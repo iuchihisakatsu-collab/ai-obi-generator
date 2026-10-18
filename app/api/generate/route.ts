@@ -15,6 +15,7 @@ export async function POST(req: Request) {
 【配置・密度】${density || 'バランスの取れた配置'}
 鮮明なシームレス連続文様。人物、着物の立体写真、シワ、影は一切不可。`;
 
+    // 2026年現行の正規モデル gpt-image-2.5-sunburst を呼び出し
     const res = await fetch('https://api.openai.com/v1/images/generations', {
       method: 'POST',
       headers: {
@@ -22,20 +23,31 @@ export async function POST(req: Request) {
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'dall-e-3',
+        model: 'gpt-image-2.5-sunburst',
         prompt: prompt,
         n: 1,
         size: '1024x1024',
+        quality: 'high',
+        output_format: 'png',
       }),
     });
 
     const data = await res.json();
 
     if (!res.ok) {
-      return NextResponse.json({ error: data?.error?.message || '画像生成に失敗しました。' }, { status: res.status });
+      return NextResponse.json(
+        { error: data?.error?.message || '画像生成に失敗しました。' },
+        { status: res.status }
+      );
     }
 
-    return NextResponse.json({ imageUrl: data.data?.[0]?.url });
+    const base64Image = data.data?.[0]?.b64_json;
+    if (!base64Image) {
+      return NextResponse.json({ error: '画像データの取得に失敗しました。' }, { status: 500 });
+    }
+
+    // page.tsx の仕様に合わせて imageUrl として返却
+    return NextResponse.json({ imageUrl: `data:image/png;base64,${base64Image}` });
   } catch (error: any) {
     return NextResponse.json({ error: error?.message || '通信エラーが発生しました。' }, { status: 500 });
   }
