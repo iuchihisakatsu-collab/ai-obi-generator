@@ -47,17 +47,17 @@ const TRADITIONAL_COLORS = [
 
 // 生成中に切り替わる仕立てストーリー
 const LOADING_STEPS = [
-  '① ご指定の地色とモチーフから、反物の骨格を製版中...',
+  '① ご指定の地色とモチーフから、小紋図案の骨格を製版中...',
   '② デジタル捺染機「モナリザ」に合わせた高精細リピートを構築中...',
   '③ 染料の重なりとテキスタイルの質感をシミュレート中...',
-  '④ 世界に一着だけの着物の銘を打刻しています...',
+  '④ 世界に一つの小紋図案の銘を打刻しています...',
 ];
 
 export default function Home() {
   const [motif, setMotif] = useState('');
   const [selectedColor, setSelectedColor] = useState(TRADITIONAL_COLORS[0]);
   const [density, setDensity] = useState('総柄（ぎっしり華やか）');
-  const [designerName, setDesignerName] = useState('');
+  const [patternTitle, setPatternTitle] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
   const [imageUrl, setImageUrl] = useState('');
@@ -146,9 +146,9 @@ export default function Home() {
     setLoading(false);
   };
 
-  const titleName = `${motif}の小紋`;
+  const finalTitle = patternTitle.trim() || `${motif.slice(0, 10)}の小紋`;
   const shareText = encodeURIComponent(
-    `AIで仕立てた私だけの着物図案が完成しました👘✨\n\n銘：『${titleName}』\n地色：${selectedColor.name}\n図案師：${designerName || '名無し'} 殿\n\n#AI着物ジェネレーター #ゴフクヤサン #モナリザプリント`
+    `AIで仕立てた私だけの小紋図案が完成しました👘✨\n\n銘：『${finalTitle}』\n地色：${selectedColor.name}\n\n#AI小紋ジェネレーター #ゴフクヤサン #モナリザプリント`
   );
   const shareUrl = typeof window !== 'undefined' ? encodeURIComponent(window.location.href) : '';
   const xShareLink = `https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`;
@@ -162,24 +162,24 @@ export default function Home() {
             Digital Textile Atelier
           </div>
           <h1 className="text-2xl sm:text-3xl font-black mt-3 text-stone-900 tracking-wider">
-            AI小紋柄 仕立て処
+            AI小紋図案 仕立て処
           </h1>
           <p className="text-xs text-stone-500 mt-1 font-sans">
-            言葉と色彩から、世界で一着だけの着物（小紋）の柄をお誂えします
+            言葉と色彩から、世界で一着だけの小紋図案をお誂えします
           </p>
         </div>
 
         <div className="space-y-5">
           <div>
             <label className="block text-xs font-bold text-stone-700 tracking-wider mb-1 font-sans">
-              壱. 図案師のお名前（反物の銘板に刻印されます）
+              壱. 図案の名前（銘板に刻印されます）
             </label>
             <input
               type="text"
               className="w-full rounded-lg border border-stone-300 p-2.5 bg-white font-sans text-sm focus:outline-none focus:ring-2 focus:ring-stone-800"
-              value={designerName}
-              onChange={(e) => setDesignerName(e.target.value)}
-              placeholder="例：千代、きもの好き花子（空欄可）"
+              value={patternTitle}
+              onChange={(e) => setPatternTitle(e.target.value)}
+              placeholder="例：春宵の椿、月影の格子（空欄の場合は自動命名）"
               disabled={loading}
             />
           </div>
@@ -214,27 +214,6 @@ export default function Home() {
 
           <div>
             <label className="block text-xs font-bold text-stone-700 tracking-wider mb-1 font-sans">
-              参. 着物に散りばめるモチーフ・背景柄（自由入力）
+              参. 散りばめるモチーフ・背景柄（自由入力）
             </label>
             <p className="text-[10px] text-stone-500 mb-2 font-sans">
-              ※「市松模様」「水玉」「縦縞」などの背景柄も、ここへ自由にテキストで指示できます。
-            </p>
-            <textarea
-              className="w-full rounded-lg border border-stone-300 p-3 bg-white font-sans text-sm focus:outline-none focus:ring-2 focus:ring-stone-800 resize-none"
-              rows={3}
-              value={motif}
-              onChange={(e) => setMotif(e.target.value)}
-              placeholder="例：市松模様の背景に、黒猫と赤い椿&#13;&#10;例：水玉模様の上に、レトロな蓄音機と洋書"
-              disabled={loading}
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-stone-700 tracking-wider mb-1 font-sans">
-              四. 柄の密度
-            </label>
-            <div className="flex gap-3 font-sans text-xs">
-              {['総柄（ぎっしり華やか）', '飛び柄（余白を活かして上品に）'].map((item) => (
-                <label
-                  key={item}
-                  className={`flex-1 p-2.
