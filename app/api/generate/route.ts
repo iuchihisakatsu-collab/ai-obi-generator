@@ -22,7 +22,7 @@ export async function POST(req: Request) {
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'dall-e-3', // やっぱりDALL-E 3が正解です！
+        model: 'dall-e-3',
         prompt: prompt,
         n: 1,
         size: '1024x1024',
