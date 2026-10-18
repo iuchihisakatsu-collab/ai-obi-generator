@@ -17,7 +17,7 @@ export async function POST(request: Request) {
 
     const data = await resend.emails.send({
       from: 'onboarding@resend.dev', // Resend初期テスト用送信元
-      to: 'iuchihisakatsu@gmail.com', // 居内様（お店）の受信アドレス
+      to: 'info@gofukuyasan.com', // ★ここを変更しました！
       subject: `【AI小紋】新規図案データ受信：${komonId}`,
       html: `
         <div style="font-family: sans-serif; padding: 20px; color: #333;">
