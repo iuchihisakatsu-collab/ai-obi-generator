@@ -1,12 +1,6 @@
-入力されたテキストの中から「浮世絵風」などの画風を無視し、**【5】メインモチーフ（猫、犬、うさぎ、鳥、蝶々、花、宇宙、星座など）を最優先で自動検出して検索キーワードに割り当てる**ようにロジックを改良しました。
-（※「花・植物」が選ばれた場合は、ショップ側で検索がヒットしやすいよう「花」に変換して検索します）
-
-以下が修正済みの `app/page.tsx` の完全なコードです。GitHubで上書き保存してください。
-
-```tsx
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, type MouseEvent } from 'react';
 
 const FORBIDDEN_WORDS = [
   'ディズニー', 'disney', 'ミッキー', 'mickey', 'ピカチュウ', 'ポケモン', 'pokemon',
@@ -119,6 +113,7 @@ export default function Home() {
         setErrorMsg(data.error || '図案の生成に失敗しました。');
       }
     } catch (error) {
+      console.error(error);
       setErrorMsg('通信エラーが発生しました。時間を置いてお試しください。');
     }
     setLoading(false);
@@ -130,7 +125,7 @@ export default function Home() {
   const xShareLink = `https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`;
   const orderUrl = `https://store.gofukuyasan.com/view/item/000000007300?komon_id=${encodeURIComponent(serialNumber)}&title=${encodeURIComponent(finalTitle)}`;
 
-  const handleOrderClick = async (e: any) => {
+  const handleOrderClick = async (e: MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault(); 
     try {
       fetch('/api/send-email', {
@@ -144,16 +139,13 @@ export default function Home() {
     window.open(orderUrl, '_blank', 'noopener,noreferrer');
   };
 
-  // ★【5】メインモチーフから最優先で検索キーワードを抽出する処理
   const matchedMainMotif = MAIN_MOTIF_LIST.find((item) => motif.includes(item));
   
   let searchKeyword = '帯';
   if (matchedMainMotif) {
-    // 「花・植物」の場合は商品検索でヒットしやすいよう「花」に変換
     searchKeyword = matchedMainMotif === '花・植物' ? '花' : matchedMainMotif;
   } else {
-    // メインモチーフのタグが選ばれていない場合、入力された単語からフォールバック抽出
-    const splitMotifs = motif ? motif.split(/[、, \s]+/) : [];
+    const splitMotifs = motif ? motif.split('、') : [];
     searchKeyword = splitMotifs.length > 0 && splitMotifs[0] ? splitMotifs[0].slice(0, 6) : '帯';
   }
 
@@ -161,7 +153,6 @@ export default function Home() {
     <div className="min-h-screen bg-stone-100 text-stone-800 p-4 sm:p-6 flex flex-col items-center justify-center font-serif">
       <div className="max-w-2xl w-full bg-[#fdfbf7] rounded-2xl shadow-2xl border border-stone-200 p-6 sm:p-8">
         
-        {/* ヘッダーエリア */}
         <div className="text-center mb-6 pb-4 border-b border-stone-200">
           <div className="inline-flex items-center gap-1.5 bg-stone-800 text-amber-200 text-[10px] tracking-widest px-3 py-0.5 rounded uppercase font-sans font-bold shadow-sm">
             <img src={IUCHI_LOGO} alt="" className="h-3.5 w-auto object-contain brightness-125" />
@@ -345,14 +336,13 @@ export default function Home() {
             <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 text-center">
               <p className="text-xs font-bold text-rose-800 font-sans mb-1">＼ お誂えをご希望の方へ ／</p>
               <p className="text-[10px] text-rose-700 font-sans mb-3 leading-relaxed">
-                生成された画像は、図案のアイデアを確認するためのイメージです。実際の生地として制作する場合は、ご注文後に人の目で柄のつながりや色彩バランス、印刷への適性を確認し、必要に応じてデータを調整します。生成画像と実際の生地では、色味や柄の見え方が異なる場合があります。
+                生成された画像は、図案のアイデアを確認するためのイメージです。実際の生地として制作する場合は、ご注文後に工房で柄のつながりや色彩バランス、印刷への適性を確認し、必要に応じてデータを調整します。生成画像と実際の生地では、色味や柄の見え方が異なる場合があります。
               </p>
               <a href={orderUrl} onClick={handleOrderClick} className="block w-full bg-rose-800 text-amber-50 font-black py-3 rounded-lg hover:bg-rose-900 transition shadow text-sm tracking-wider cursor-pointer">
                 この図案イメージをもとにお誂えを申し込む
               </a>
             </div>
 
-            {/* ★【5】メインモチーフに基づいたコーディネート提案エリア */}
             <div className="bg-stone-50 border border-stone-200 rounded-xl p-4 mt-2">
               <p className="text-xs font-bold text-stone-800 font-sans mb-2">👘 この図案に合わせるコーディネート</p>
               <p className="text-[10px] text-stone-600 font-sans mb-3 leading-relaxed">
@@ -391,5 +381,3 @@ export default function Home() {
     </div>
   );
 }
-
-```
