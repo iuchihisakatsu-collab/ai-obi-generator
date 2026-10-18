@@ -61,6 +61,9 @@ export default function Home() {
   const [selectedColor, setSelectedColor] = useState(TRADITIONAL_COLORS[0]);
   const [density, setDensity] = useState('総柄（ぎっしり華やか）');
   const [patternTitle, setPatternTitle] = useState('');
+  // ★追加：アイテム（比率）を選択する状態
+  const [itemType, setItemType] = useState('hanhaba'); // 'hanhaba' (半幅帯/横長) または 'tanmono' (反物・京袋帯/縦長)
+
   const [loading, setLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
   const [imageUrl, setImageUrl] = useState('');
@@ -123,13 +126,13 @@ export default function Home() {
           motif,
           color: selectedColor.text,
           density,
+          itemType, // ★裏側に選んだアイテムの種類（hanhabaかtanmono）を送信
         }),
       });
       const data = await res.json();
 
       if (data.imageUrl) {
         setImageUrl(data.imageUrl);
-        // ここでのメール送信処理は削除し、注文ボタンを押した時に移動しました
         setSerialNumber(`KOMON-${Math.floor(1000 + Math.random() * 9000)}`);
         
         const today = new Date().toISOString().slice(0, 10);
@@ -156,11 +159,10 @@ export default function Home() {
   // makeshopの半幅帯商品ページへの連携URL
   const orderUrl = `https://store.gofukuyasan.com/view/item/000000007300?komon_id=${encodeURIComponent(serialNumber)}&title=${encodeURIComponent(finalTitle)}`;
 
-  // ★注文ボタンを押した時の処理（メール送信 ＋ makeshopを開く）
+  // 注文ボタンを押した時の処理（メール送信 ＋ makeshopを開く）
   const handleOrderClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault(); // 一旦普通のリンク移動を止める
+    e.preventDefault(); 
 
-    // 1. 裏側でこっそりメール送信
     fetch('/api/send-email', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -171,7 +173,6 @@ export default function Home() {
       }),
     }).catch(err => console.error('メール送信呼び出しエラー:', err));
 
-    // 2. 別タブでmakeshopを開く
     window.open(orderUrl, '_blank', 'noopener,noreferrer');
   };
 
@@ -256,9 +257,50 @@ export default function Home() {
             />
           </div>
 
+          {/* ★追加：アイテムの種類を選ぶセクション */}
           <div>
             <label className="block text-xs font-bold text-stone-700 tracking-wider mb-1 font-sans">
-              四. 柄の密度
+              四. 仕立てるアイテム（柄の比率が変わります）
+            </label>
+            <div className="flex gap-3 font-sans text-xs">
+              <label
+                className={`flex-1 p-2.5 rounded-lg border text-center cursor-pointer font-bold transition ${
+                  itemType === 'hanhaba'
+                    ? 'border-stone-900 bg-stone-900 text-white'
+                    : 'border-stone-200 bg-white text-stone-700'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="itemType"
+                  className="sr-only"
+                  checked={itemType === 'hanhaba'}
+                  onChange={() => setItemType('hanhaba')}
+                />
+                半幅帯（横長 16:9）
+              </label>
+              <label
+                className={`flex-1 p-2.5 rounded-lg border text-center cursor-pointer font-bold transition ${
+                  itemType === 'tanmono'
+                    ? 'border-stone-900 bg-stone-900 text-white'
+                    : 'border-stone-200 bg-white text-stone-700'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="itemType"
+                  className="sr-only"
+                  checked={itemType === 'tanmono'}
+                  onChange={() => setItemType('tanmono')}
+                />
+                反物・京袋帯（縦長 9:16）
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-stone-700 tracking-wider mb-1 font-sans">
+              五. 柄の密度
             </label>
             <div className="flex gap-3 font-sans text-xs">
               {['総柄（ぎっしり華やか）', '飛び柄（余白を活かして上品に）'].map((item) => (
@@ -335,7 +377,7 @@ export default function Home() {
                     : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
                 }`}
               >
-                ① 図案原画（正方形）
+                ① 図案原画
               </button>
               <button
                 onClick={() => setPreviewMode('fabric')}
@@ -345,14 +387,15 @@ export default function Home() {
                     : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
                 }`}
               >
-                ② 反物仕立て姿（生地イメージ）
+                ② 反物仕立て姿
               </button>
             </div>
 
             <div className="bg-[#fffefb] border-2 border-stone-300 rounded-xl p-4 shadow-xl">
               {previewMode === 'pattern' ? (
-                <div className="relative aspect-square w-full rounded-lg overflow-hidden border border-stone-200 shadow-inner">
-                  <img src={imageUrl} alt="小紋の図案" className="w-full h-full object-cover" />
+                // ★画像のプレビュー枠を少し変更（正方形固定をやめました）
+                <div className="relative w-full rounded-lg overflow-hidden border border-stone-200 shadow-inner">
+                  <img src={imageUrl} alt="小紋の図案" className="w-full h-auto object-contain" />
                 </div>
               ) : (
                 <div className="flex flex-col items-center py-4 bg-stone-200/50 rounded-lg">
@@ -363,7 +406,7 @@ export default function Home() {
                     className="w-full h-64 rounded border-x-4 border-stone-400 shadow-md bg-repeat"
                     style={{
                       backgroundImage: `url(${imageUrl})`,
-                      backgroundSize: '120px 120px',
+                      backgroundSize: '120px', // ★横幅か縦幅が違うので、繰り返しサイズを調整
                     }}
                   />
                   <span className="text-[10px] font-sans text-stone-400 mt-2">
@@ -413,13 +456,12 @@ export default function Home() {
                 図案原画を保存する（長押しまたは右クリック）
               </a>
 
-              {/* ★注文ボタンを a タグからボタン処理に変更 */}
               <a
                 href={orderUrl}
                 onClick={handleOrderClick}
                 className="block text-center w-full bg-rose-800 text-amber-50 font-black py-4 rounded-xl hover:bg-rose-900 transition shadow-lg text-sm tracking-wider cursor-pointer"
               >
-                この図案でお誂え半幅帯を仕立てる（14,000円+税）
+                この図案でお誂えを仕立てる
               </a>
             </div>
 
