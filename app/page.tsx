@@ -304,4 +304,122 @@ export default function Home() {
         )}
 
         {imageUrl && !loading && (
-          <div className="mt-8 pt-6 border-t border-stone-20
+          <div className="mt-8 pt-6 border-t border-stone-200 space-y-4 animate-fade-in">
+            
+            <div className="flex justify-center gap-2 font-sans text-xs">
+              <button
+                onClick={() => setPreviewMode('pattern')}
+                className={`px-4 py-1.5 rounded-full font-bold transition ${
+                  previewMode === 'pattern'
+                    ? 'bg-stone-900 text-white'
+                    : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                }`}
+              >
+                ① 図案原画（正方形）
+              </button>
+              <button
+                onClick={() => setPreviewMode('fabric')}
+                className={`px-4 py-1.5 rounded-full font-bold transition ${
+                  previewMode === 'fabric'
+                    ? 'bg-amber-800 text-white'
+                    : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                }`}
+              >
+                ② 反物仕立て姿（生地イメージ）
+              </button>
+            </div>
+
+            <div className="bg-[#fffefb] border-2 border-stone-300 rounded-xl p-4 shadow-xl">
+              {previewMode === 'pattern' ? (
+                <div className="relative aspect-square w-full rounded-lg overflow-hidden border border-stone-200 shadow-inner">
+                  <img src={imageUrl} alt="小紋の図案" className="w-full h-full object-cover" />
+                </div>
+              ) : (
+                <div className="flex flex-col items-center py-4 bg-stone-200/50 rounded-lg">
+                  <span className="text-[11px] font-sans text-stone-500 mb-2 font-bold">
+                    【反物（着尺）イメージ】
+                  </span>
+                  <div
+                    className="w-full h-64 rounded border-x-4 border-stone-400 shadow-md bg-repeat"
+                    style={{
+                      backgroundImage: `url(${imageUrl})`,
+                      backgroundSize: '120px 120px',
+                    }}
+                  />
+                  <span className="text-[10px] font-sans text-stone-400 mt-2">
+                    ※ 生地幅に柄を連続配置したシミュレーションです
+                  </span>
+                </div>
+              )}
+
+              {/* ロゴ入り鑑定書デザイン */}
+              <div className="mt-4 pt-3 border-t border-dashed border-stone-300 flex justify-between items-end text-stone-700">
+                <div>
+                  <p className="text-[10px] font-sans text-stone-400">図案銘</p>
+                  <p className="text-base font-black text-stone-900">{finalTitle}</p>
+                </div>
+                <div className="text-right flex flex-col items-end gap-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] font-sans font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded border border-amber-300">
+                      {serialNumber}
+                    </span>
+                    <img src={IUCHI_LOGO} alt="" className="h-5 w-auto object-contain" />
+                  </div>
+                  <p className="text-[9px] font-sans text-stone-400">Mona Lisa捺染 謹製規格</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2 pt-2 font-sans">
+              <a
+                href={xShareLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 w-full bg-black text-white font-bold py-3.5 px-4 rounded-xl hover:bg-stone-800 transition shadow"
+              >
+                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                </svg>
+                この小紋図案をXで披露する（#ゴフクヤサン小紋ジェネレーター）
+              </a>
+
+              <a
+                href={imageUrl}
+                download="komon-design.png"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block text-center w-full border border-stone-400 text-stone-700 font-bold py-3 rounded-xl hover:bg-stone-100 transition text-xs"
+              >
+                図案原画を保存する（長押しまたは右クリック）
+              </a>
+
+              {/* makeshop半幅帯ページへ直結するボタン */}
+              <a
+                href={orderUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block text-center w-full bg-rose-800 text-amber-50 font-black py-4 rounded-xl hover:bg-rose-900 transition shadow-lg text-sm tracking-wider"
+              >
+                この図案でお誂え半幅帯を仕立てる（14,000円+税）
+              </a>
+            </div>
+
+          </div>
+        )}
+
+        {/* 提携・クレジット */}
+        <div className="mt-8 pt-4 border-t border-stone-200 text-center flex flex-col items-center gap-1.5 opacity-60">
+          <div className="flex items-center gap-2 text-[10px] font-sans text-stone-500">
+            <span>企 劃 ・ 提 供 ：</span>
+            <img src={IUCHI_LOGO} alt="居内商店" className="h-5 w-auto object-contain" />
+            <span className="font-bold">居内商店</span>
+          </div>
+          <p className="text-[9px] text-stone-400 font-sans">
+            © IUCHI SHOUTEN. All Rights Reserved.
+          </p>
+        </div>
+
+      </div>
+    </div>
+  );
+}
