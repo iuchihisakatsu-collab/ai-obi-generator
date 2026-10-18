@@ -106,27 +106,11 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
   const [imageUrl, setImageUrl] = useState('');
-  const [remaining, setRemaining] = useState(1); // 1日1回制限
   const [agreed, setAgreed] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [previewMode, setPreviewMode] = useState<'pattern' | 'fabric'>('pattern');
   const [serialNumber, setSerialNumber] = useState('');
   const [showTags, setShowTags] = useState(true);
-
-  useEffect(() => {
-    const today = new Date().toISOString().slice(0, 10);
-    const savedDate = localStorage.getItem('generateDate');
-    const savedCount = localStorage.getItem('generateCount');
-
-    if (savedDate !== today) {
-      localStorage.setItem('generateDate', today);
-      localStorage.setItem('generateCount', '0');
-      setRemaining(1);
-    } else {
-      const count = savedCount ? parseInt(savedCount, 10) : 0;
-      setRemaining(Math.max(0, 1 - count));
-    }
-  }, []);
 
   // 焦らす演出：4秒ごとにテキスト切り替え
   useEffect(() => {
@@ -152,10 +136,6 @@ export default function Home() {
   const handleGenerate = async () => {
     setErrorMsg('');
 
-    if (remaining <= 0) {
-      setErrorMsg('本日の調合枠は終了しました。明日またお越しください。');
-      return;
-    }
     if (!motif.trim()) {
       setErrorMsg('モチーフを入力または選択してください。');
       return;
@@ -183,12 +163,6 @@ export default function Home() {
       if (data.imageUrl) {
         setImageUrl(data.imageUrl);
         setSerialNumber(`KOMON-${Math.floor(1000 + Math.random() * 9000)}`);
-        
-        const today = new Date().toISOString().slice(0, 10);
-        const newCount = 1 - remaining + 1;
-        localStorage.setItem('generateDate', today);
-        localStorage.setItem('generateCount', newCount.toString());
-        setRemaining(Math.max(0, 1 - newCount));
       } else {
         setErrorMsg(data.error || '図案の調合に失敗しました。');
       }
@@ -232,7 +206,7 @@ export default function Home() {
             </h1>
           </div>
           <p className="text-xs text-stone-500 mt-2 font-sans font-bold text-rose-800">
-            【1日1回限定】あなただけの着物図案をお誂えします
+            【開発中・無制限】あなただけの着物図案をお誂えします
           </p>
         </div>
 
@@ -289,7 +263,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* ★大増量：36色のカラーピッカー */}
           <div>
             <label className="block text-xs font-bold text-stone-700 tracking-wider mb-2 font-sans">
               弐. 着物の地色（36の伝統色から選ぶ）
@@ -369,13 +342,13 @@ export default function Home() {
           )}
 
           <div className="flex justify-between items-center text-xs font-sans font-bold px-1 text-stone-600">
-            <span>※ 日付変更（午前0時）で枠が回復します</span>
-            <span>本日の残り枠：<strong className={`text-sm ${remaining > 0 ? 'text-rose-700' : 'text-stone-400'}`}>{remaining}回</strong></span>
+            <span>※ 現在はテスト用に制限を解除しています</span>
+            <span>本日のお誂え可能数：<strong className="text-amber-800 text-sm">無制限（実験中）</strong></span>
           </div>
 
           <button
             onClick={handleGenerate}
-            disabled={loading || remaining <= 0}
+            disabled={loading}
             className="w-full bg-stone-900 text-amber-100 font-bold py-4 rounded-xl shadow-lg hover:bg-black disabled:bg-stone-400 disabled:text-stone-200 transition duration-200 font-sans tracking-widest text-sm"
           >
             {loading ? '図案を染め上げています...' : 'この意匠で小紋図案を謹製する'}
