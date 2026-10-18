@@ -12,12 +12,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'データが不足しています' }, { status: 400 });
     }
 
-    // 画像のBase64ヘッダー部分（data:image/png;base64,など）を取り除いてデータ化
+    // 画像のBase64ヘッダー部分（data:image/png;base64,など）を取り除いてバイナリ化
     const base64Data = imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64;
 
     const data = await resend.emails.send({
       from: 'onboarding@resend.dev', // Resend初期テスト用送信元
-      to: 'info@gofukuyasan.com', // ★ここを変更しました！
+      to: 'iuchihisakatsu@gmail.com', // ★登録済みGmailに戻しました
       subject: `【AI小紋】新規図案データ受信：${komonId}`,
       html: `
         <div style="font-family: sans-serif; padding: 20px; color: #333;">
