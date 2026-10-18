@@ -11,14 +11,38 @@ const FORBIDDEN_WORDS = [
   'ナイキ', 'nike', 'アディダス', 'adidas'
 ];
 
-// 日本の伝統色パレット（選択式）
+// 日本の伝統色パレット（24色に拡張！）
 const TRADITIONAL_COLORS = [
+  // モノトーン・ベース系
   { name: '漆黒 (しっこく)', hex: '#161616', text: '黒地' },
   { name: '生成り (きなり)', hex: '#f6f5ec', text: '淡いアイボリー地' },
+  { name: '胡粉色 (ごふん)', hex: '#fffffc', text: '純白地' },
+  { name: '銀鼠 (ぎんねず)', hex: '#afafb0', text: '明るいシルバーグレー地' },
+  // 赤・ピンク系
   { name: '深緋 (こきひ)', hex: '#8b1e2a', text: '深みのある紅・臙脂地' },
-  { name: '常磐色 (ときわ)', hex: '#1b4d3e', text: '深い深緑地' },
+  { name: '朱色 (しゅいろ)', hex: '#ea5532', text: '鮮やかな朱赤地' },
+  { name: '牡丹色 (ぼたん)', hex: '#e7609e', text: '華やかな牡丹色地' },
+  { name: '桜色 (さくらいろ)', hex: '#fef4f4', text: 'ごく淡い桜ピンク地' },
+  // 青・紺系
   { name: '藍色 (あいいろ)', hex: '#163b5c', text: '濃紺・藍地' },
-  { name: '藤紫 (ふじむらさき)', hex: '#9b82aa', text: '上品な淡紫地' },
+  { name: '鉄紺 (てっこん)', hex: '#17184b', text: '極めて暗い紫みの紺地' },
+  { name: '瑠璃色 (るりいろ)', hex: '#1e50a2', text: '鮮やかな瑠璃・ブルー地' },
+  { name: '浅葱色 (あさぎ)', hex: '#00a3af', text: '明るい青緑・水色地' },
+  // 緑系
+  { name: '常磐色 (ときわ)', hex: '#1b4d3e', text: '深い深緑地' },
+  { name: '海松色 (みるいろ)', hex: '#726d40', text: '渋いオリーブグリーン地' },
+  { name: '青磁色 (せいじ)', hex: '#7ebea5', text: '柔らかい青磁・ミントグリーン地' },
+  { name: '白緑 (びゃくろく)', hex: '#d6e9ca', text: 'ごく淡い黄緑地' },
+  // 紫系
+  { name: '古代紫 (こだい)', hex: '#895b8a', text: 'くすんだ深紫地' },
+  { name: '江戸紫 (えど)', hex: '#745399', text: '鮮やかな青紫地' },
+  { name: '桔梗色 (ききょう)', hex: '#5654a2', text: '濃い青紫地' },
+  { name: '藤紫 (ふじ)', hex: '#9b82aa', text: '上品な淡紫地' },
+  // 黄・茶系
+  { name: '山吹色 (やまぶき)', hex: '#f8b500', text: '鮮やかな黄金・山吹色地' },
+  { name: '芥子色 (からし)', hex: '#d0af4c', text: '渋いマスタードイエロー地' },
+  { name: '胡桃色 (くるみ)', hex: '#a86f4c', text: '温かみのある胡桃ブラウン地' },
+  { name: '焦茶 (こげちゃ)', hex: '#693b32', text: '深いダークブラウン地' },
 ];
 
 // 生成中に切り替わる仕立てストーリー
@@ -44,7 +68,6 @@ export default function Home() {
   const [serialNumber, setSerialNumber] = useState('');
 
   useEffect(() => {
-    // 毎日深夜0時のリセット判定
     const today = new Date().toISOString().slice(0, 10);
     const savedDate = localStorage.getItem('generateDate');
     const savedCount = localStorage.getItem('generateCount');
@@ -59,7 +82,6 @@ export default function Home() {
     }
   }, []);
 
-  // 生成中メッセージの自動送り
   useEffect(() => {
     let interval: any;
     if (loading) {
@@ -166,23 +188,23 @@ export default function Home() {
             <label className="block text-xs font-bold text-stone-700 tracking-wider mb-2 font-sans">
               弐. 帯の地色（ベースカラーを選ぶ）
             </label>
-            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+            <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
               {TRADITIONAL_COLORS.map((col) => (
                 <button
                   key={col.name}
                   type="button"
                   onClick={() => setSelectedColor(col)}
-                  className={`p-2 rounded-lg border flex flex-col items-center justify-center gap-1 transition-all ${
+                  className={`p-1.5 rounded-lg border flex flex-col items-center justify-center gap-1 transition-all ${
                     selectedColor.name === col.name
                       ? 'border-stone-900 ring-2 ring-stone-900 bg-white shadow-sm'
                       : 'border-stone-200 bg-white/60 hover:bg-white'
                   }`}
                 >
                   <span
-                    className="w-6 h-6 rounded-full border border-black/10 shadow-inner"
+                    className="w-5 h-5 sm:w-6 sm:h-6 rounded-full border border-black/10 shadow-inner"
                     style={{ backgroundColor: col.hex }}
                   />
-                  <span className="text-[10px] font-sans text-stone-700 font-bold whitespace-nowrap">
+                  <span className="text-[9px] sm:text-[10px] font-sans text-stone-700 font-bold whitespace-nowrap overflow-hidden text-ellipsis w-full text-center">
                     {col.name.split(' ')[0]}
                   </span>
                 </button>
