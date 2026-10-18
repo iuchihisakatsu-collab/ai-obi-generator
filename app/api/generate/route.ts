@@ -47,6 +47,7 @@ export async function POST(req: Request) {
 
     const prompt = `${baseInstruction}\n${layoutInstruction}\n\n【Textile Requirements】\nMotifs: ${motif}\nBackground Color: Solid ${color}\nFormat: ${ratioInstruction}\n\n【Art Style & Texture】\n${tunedStyle}\n\n【Strict Restrictions】\n${negativePrompt}`;
 
+    // ★修正箇所：response_format を削除し、デフォルトのURL形式でリクエストする
     const res = await fetch('https://api.openai.com/v1/images/generations', {
       method: 'POST',
       headers: {
@@ -59,18 +60,21 @@ export async function POST(req: Request) {
         n: 1,
         size: imageSize,
         quality: 'standard',
-        response_format: 'b64_json',
       }),
     });
 
     const data = await res.json();
     if (!res.ok) throw new Error(data?.error?.message || '画像生成に失敗しました。');
     
-    const base64Image = data.data?.[0]?.b64_json;
-    if (!base64Image) throw new Error('画像データの取得に失敗しました。');
+    const openAiUrl = data.data?.[0]?.url;
+    if (!openAiUrl) throw new Error('画像URLの取得に失敗しました。');
 
-    // ★Blob（ストレージ）への保存処理
-    const buffer = Buffer.from(base64Image, 'base64');
+    // ★追加：OpenAIが発行したURLから、Vercelのサーバー内で画像を直接ダウンロードする
+    const imageResponse = await fetch(openAiUrl);
+    const arrayBuffer = await imageResponse.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    // ダウンロードした画像データをVercel Blob（ストレージ）へ保存
     const filename = `komon-${Date.now()}.png`;
     const blob = await put(filename, buffer, { 
       access: 'public', 
@@ -78,9 +82,10 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json({ 
-      imageUrl: `data:image/png;base64,${base64Image}`, 
-      blobUrl: blob.url
+      imageUrl: openAiUrl, // ブラウザでの一時表示用
+      blobUrl: blob.url    // メールのリンク・保存用の永続URL
     });
+
   } catch (error: any) {
     return NextResponse.json({ error: error?.message || '通信エラーが発生しました。' }, { status: 500 });
   }
