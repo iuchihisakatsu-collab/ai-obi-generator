@@ -47,7 +47,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // Stability AIはBase64形式で画像を返却
     const base64Image = data.artifacts?.[0]?.base64;
     if (!base64Image) {
       return NextResponse.json(
