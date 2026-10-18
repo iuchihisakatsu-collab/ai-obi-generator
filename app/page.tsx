@@ -96,14 +96,6 @@ export default function Home() {
   const handleGenerate = async () => {
     setErrorMsg('');
 
-    // 【実験用変更】制限チェックを一時的にコメントアウトし、無制限で回せるようにしています
-    /*
-    if (remaining <= 0) {
-      setErrorMsg('本日の生成上限（5回）に達しました。明日またお試しください！');
-      return;
-    }
-    */
-
     if (!motif.trim()) {
       setErrorMsg('モチーフを入力してください。');
       return;
@@ -140,7 +132,7 @@ export default function Home() {
         const newCount = 5 - remaining + 1;
         localStorage.setItem('generateDate', today);
         localStorage.setItem('generateCount', newCount.toString());
-        setRemaining(Math.max(0, 5 - newCount)); // カウントは減らしますがマイナスにはしません
+        setRemaining(Math.max(0, 5 - newCount));
       } else {
         setErrorMsg(data.error || '図案の調合に失敗しました。');
       }
@@ -152,7 +144,7 @@ export default function Home() {
 
   const finalTitle = patternTitle.trim() || `${motif.slice(0, 10)}の小紋`;
   const shareText = encodeURIComponent(
-    `AIで仕立てた私だけの小紋図案が完成しました👘✨\n\n銘：『${finalTitle}』\n地色：${selectedColor.name}\n\n#AI小紋ジェネレーター #ゴフクヤサン #モナリザプリント`
+    `AIで仕立てた私だけの小紋図案が完成しました👘✨\n\n銘：『${finalTitle}』\n地色：${selectedColor.name}\n\n#ゴフクヤサン小紋ジェネレーター #ゴフクヤサン #モナリザプリント`
   );
   const shareUrl = typeof window !== 'undefined' ? encodeURIComponent(window.location.href) : '';
   const xShareLink = `https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`;
@@ -166,7 +158,7 @@ export default function Home() {
             Digital Textile Atelier
           </div>
           <h1 className="text-2xl sm:text-3xl font-black mt-3 text-stone-900 tracking-wider">
-            AI小紋図案 仕立て処
+            ゴフクヤサン小紋ジェネレーター
           </h1>
           <p className="text-xs text-stone-500 mt-1 font-sans">
             言葉と色彩から、世界で一着だけの小紋図案をお誂えします
@@ -280,13 +272,11 @@ export default function Home() {
 
           <div className="flex justify-between items-center text-xs font-sans font-bold px-1 text-stone-600">
             <span>※ 日付変更（午前0時）で回復</span>
-            {/* 【実験用変更】制限表示を「無制限」に書き換えました */}
             <span>本日のお誂え可能数：<strong className="text-amber-800 text-sm">無制限（実験中）</strong></span>
           </div>
 
           <button
             onClick={handleGenerate}
-            // 【実験用変更】残り回数が0になってもボタンを押せるように remaining <= 0 を外しました
             disabled={loading}
             className="w-full bg-stone-900 text-amber-100 font-bold py-4 rounded-xl shadow-lg hover:bg-black disabled:bg-stone-300 transition duration-200 font-sans tracking-widest text-sm"
           >
@@ -375,7 +365,7 @@ export default function Home() {
                 <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
                   <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
                 </svg>
-                この小紋図案をXで披露する（#AI小紋ジェネレーター）
+                この小紋図案をXで披露する（#ゴフクヤサン小紋ジェネレーター）
               </a>
 
               <a
