@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 
-// 代表的なNGワードリスト
 const FORBIDDEN_WORDS = [
   'ディズニー', 'disney', 'ミッキー', 'mickey', 'ピカチュウ', 'ポケモン', 'pokemon',
   'マリオ', 'mario', 'サンリオ', 'キティ', 'kitty', 'ちいかわ', '鬼滅', '呪術',
@@ -12,42 +11,24 @@ const FORBIDDEN_WORDS = [
 ];
 
 const TRADITIONAL_COLORS = [
-  { name: '胡粉 (ごふん)', hex: '#fffffc', text: '純白地' },
-  { name: '生成 (きなり)', hex: '#f6f5ec', text: '淡いアイボリー地' },
-  { name: '灰桜 (はいざくら)', hex: '#e8d3d1', text: 'ごく淡いグレーピンク地' },
-  { name: '銀鼠 (ぎんねず)', hex: '#afafb0', text: '明るいシルバーグレー地' },
-  { name: '消炭 (けしずみ)', hex: '#524e4d', text: '濃いチャコールグレー地' },
-  { name: '漆黒 (しっこく)', hex: '#161616', text: '真っ黒な地' },
-  { name: '桜色 (さくら)', hex: '#fef4f4', text: 'ごく淡い桜ピンク地' },
-  { name: '桃色 (もも)', hex: '#f58f98', text: '明るいピーチピンク地' },
-  { name: '牡丹 (ぼたん)', hex: '#e7609e', text: '華やかなマゼンタピンク地' },
-  { name: '珊瑚 (さんご)', hex: '#f5b1aa', text: '柔らかなコーラル地' },
-  { name: '朱色 (しゅ)', hex: '#ea5532', text: '鮮やかな朱赤地' },
-  { name: '深緋 (こきひ)', hex: '#8b1e2a', text: '深みのある真紅・ボルドー地' },
-  { name: '白群 (びゃくぐん)', hex: '#83ccd2', text: '淡いペールブルー地' },
-  { name: '水色 (みず)', hex: '#bce2e8', text: '澄んだライトブルー地' },
-  { name: '浅葱 (あさぎ)', hex: '#00a3af', text: '鮮やかな青緑・ターコイズ地' },
-  { name: '瑠璃 (るり)', hex: '#1e50a2', text: '鮮やかなロイヤルブルー地' },
-  { name: '藍色 (あい)', hex: '#163b5c', text: '深いネイビー・藍地' },
-  { name: '鉄紺 (てっこん)', hex: '#17184b', text: '極めて暗い紫みの紺地' },
-  { name: '白緑 (びゃくろく)', hex: '#d6e9ca', text: 'ごく淡いミントグリーン地' },
-  { name: '鶸色 (ひわ)', hex: '#d7cf3a', text: '明るいイエローグリーン地' },
-  { name: '若竹 (わかたけ)', hex: '#68be8d', text: '鮮やかなエメラルドグリーン地' },
-  { name: '青磁 (せいじ)', hex: '#7ebea5', text: 'くすんだブルーグリーン地' },
-  { name: '海松 (みる)', hex: '#726d40', text: '渋いオリーブグリーン地' },
-  { name: '常磐 (ときわ)', hex: '#1b4d3e', text: '深いフォレストグリーン地' },
-  { name: '藤色 (ふじ)', hex: '#bbbcde', text: '淡いラベンダー地' },
-  { name: '桔梗 (ききょう)', hex: '#5654a2', text: '鮮やかな青紫地' },
-  { name: '江戸紫 (えど)', hex: '#745399', text: '濃い赤紫地' },
-  { name: '古代紫 (こだい)', hex: '#895b8a', text: 'くすんだアンティークパープル地' },
-  { name: '滅紫 (けしむらさき)', hex: '#594255', text: '非常に暗いグレイッシュパープル地' },
-  { name: '京紫 (きょう)', hex: '#9d5b8b', text: '華麗な赤みの紫地' },
-  { name: '鳥の子 (とりのこ)', hex: '#dac9a6', text: '温かみのあるベージュ地' },
-  { name: '山吹 (やまぶき)', hex: '#f8b500', text: '鮮やかな黄金・マスタード地' },
-  { name: '芥子 (からし)', hex: '#d0af4c', text: '渋い辛子色地' },
-  { name: '琥珀 (こはく)', hex: '#bf783a', text: '明るいキャメル・琥珀地' },
-  { name: '胡桃 (くるみ)', hex: '#a86f4c', text: '穏やかなブラウン地' },
-  { name: '焦茶 (こげちゃ)', hex: '#693b32', text: '深いダークブラウン・チョコレート地' },
+  { name: '胡粉 (ごふん)', hex: '#fffffc', text: '純白地' }, { name: '生成 (きなり)', hex: '#f6f5ec', text: '淡いアイボリー地' },
+  { name: '灰桜 (はいざくら)', hex: '#e8d3d1', text: 'ごく淡いグレーピンク地' }, { name: '銀鼠 (ぎんねず)', hex: '#afafb0', text: '明るいシルバーグレー地' },
+  { name: '消炭 (けしずみ)', hex: '#524e4d', text: '濃いチャコールグレー地' }, { name: '漆黒 (しっこく)', hex: '#161616', text: '真っ黒な地' },
+  { name: '桜色 (さくら)', hex: '#fef4f4', text: 'ごく淡い桜ピンク地' }, { name: '桃色 (もも)', hex: '#f58f98', text: '明るいピーチピンク地' },
+  { name: '牡丹 (ぼたん)', hex: '#e7609e', text: '華やかなマゼンタピンク地' }, { name: '珊瑚 (さんご)', hex: '#f5b1aa', text: '柔らかなコーラル地' },
+  { name: '朱色 (しゅ)', hex: '#ea5532', text: '鮮やかな朱赤地' }, { name: '深緋 (こきひ)', hex: '#8b1e2a', text: '深みのある真紅・ボルドー地' },
+  { name: '白群 (びゃくぐん)', hex: '#83ccd2', text: '淡いペールブルー地' }, { name: '水色 (みず)', hex: '#bce2e8', text: '澄んだライトブルー地' },
+  { name: '浅葱 (あさぎ)', hex: '#00a3af', text: '鮮やかな青緑・ターコイズ地' }, { name: '瑠璃 (るり)', hex: '#1e50a2', text: '鮮やかなロイヤルブルー地' },
+  { name: '藍色 (あい)', hex: '#163b5c', text: '深いネイビー・藍地' }, { name: '鉄紺 (てっこん)', hex: '#17184b', text: '極めて暗い紫みの紺地' },
+  { name: '白緑 (びゃくろく)', hex: '#d6e9ca', text: 'ごく淡いミントグリーン地' }, { name: '鶸色 (ひわ)', hex: '#d7cf3a', text: '明るいイエローグリーン地' },
+  { name: '若竹 (わかたけ)', hex: '#68be8d', text: '鮮やかなエメラルドグリーン地' }, { name: '青磁 (せいじ)', hex: '#7ebea5', text: 'くすんだブルーグリーン地' },
+  { name: '海松 (みる)', hex: '#726d40', text: '渋いオリーブグリーン地' }, { name: '常磐 (ときわ)', hex: '#1b4d3e', text: '深いフォレストグリーン地' },
+  { name: '藤色 (ふじ)', hex: '#bbbcde', text: '淡いラベンダー地' }, { name: '桔梗 (ききょう)', hex: '#5654a2', text: '鮮やかな青紫地' },
+  { name: '江戸紫 (えど)', hex: '#745399', text: '濃い赤紫地' }, { name: '古代紫 (こだい)', hex: '#895b8a', text: 'くすんだアンティークパープル地' },
+  { name: '滅紫 (けしむらさき)', hex: '#594255', text: '非常に暗いグレイッシュパープル地' }, { name: '京紫 (きょう)', hex: '#9d5b8b', text: '華麗な赤みの紫地' },
+  { name: '鳥の子 (とりのこ)', hex: '#dac9a6', text: '温かみのあるベージュ地' }, { name: '山吹 (やまぶき)', hex: '#f8b500', text: '鮮やかな黄金・マスタード地' },
+  { name: '芥子 (からし)', hex: '#d0af4c', text: '渋い辛子色地' }, { name: '琥珀 (こはく)', hex: '#bf783a', text: '明るいキャメル・琥珀地' },
+  { name: '胡桃 (くるみ)', hex: '#a86f4c', text: '穏やかなブラウン地' }, { name: '焦茶 (こげちゃ)', hex: '#693b32', text: '深いダークブラウン・チョコレート地' },
 ];
 
 const TAG_CATEGORIES = [
@@ -78,7 +59,8 @@ export default function Home() {
   const [patternTitle, setPatternTitle] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
-  const [imageUrl, setImageUrl] = useState('');
+  const [imageUrl, setImageUrl] = useState(''); 
+  const [blobUrl, setBlobUrl] = useState('');   
   const [agreed, setAgreed] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [previewMode, setPreviewMode] = useState<'pattern' | 'fabric'>('pattern');
@@ -96,9 +78,7 @@ export default function Home() {
         });
       }, 4000); 
     }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
+    return () => { if (interval) clearInterval(interval); };
   }, [loading]);
 
   const handleTagClick = (tag: string) => {
@@ -109,21 +89,10 @@ export default function Home() {
 
   const handleGenerate = async () => {
     setErrorMsg('');
-
-    if (!motif.trim()) {
-      setErrorMsg('モチーフを入力または選択してください。');
-      return;
-    }
-    if (!agreed) {
-      setErrorMsg('著作権・商標権に関する誓約への同意が必要です。');
-      return;
-    }
-
+    if (!motif.trim()) { setErrorMsg('モチーフを入力または選択してください。'); return; }
+    if (!agreed) { setErrorMsg('著作権・商標権に関する誓約への同意が必要です。'); return; }
     const hitWord = FORBIDDEN_WORDS.find((word) => motif.toLowerCase().includes(word));
-    if (hitWord) {
-      setErrorMsg(`特定のキャラクターや商標名「${hitWord}」を含む言葉は入力できません。`);
-      return;
-    }
+    if (hitWord) { setErrorMsg(`特定のキャラクターや商標名「${hitWord}」を含む言葉は入力できません。`); return; }
 
     setLoading(true);
     try {
@@ -134,8 +103,9 @@ export default function Home() {
       });
       const data = await res.json();
 
-      if (data.imageUrl) {
-        setImageUrl(data.imageUrl);
+      if (data.imageUrl && data.blobUrl) {
+        setImageUrl(data.imageUrl); 
+        setBlobUrl(data.blobUrl);   
         setSerialNumber(`KOMON-${Math.floor(1000 + Math.random() * 9000)}`);
       } else {
         setErrorMsg(data.error || '図案の調合に失敗しました。');
@@ -147,25 +117,25 @@ export default function Home() {
   };
 
   const finalTitle = patternTitle.trim() || '（無題）';
-  const shareText = encodeURIComponent(
-    `AIで仕立てた私だけの小紋図案が完成しました👘✨\n\n銘：『${finalTitle}』\n地色：${selectedColor.name}\n\n#ゴフクヤサン小紋ジェネレーター #ゴフクヤサン #モナリザプリント #居内商店`
-  );
+  const shareText = encodeURIComponent(`AIで仕立てた私だけの小紋図案が完成しました👘✨\n\n銘：『${finalTitle}』\n地色：${selectedColor.name}\n\n#ゴフクヤサン小紋ジェネレーター #ゴフクヤサン #モナリザプリント #居内商店`);
   const shareUrl = typeof window !== 'undefined' ? encodeURIComponent(window.location.href) : '';
   const xShareLink = `https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`;
   const orderUrl = `https://store.gofukuyasan.com/view/item/000000007300?komon_id=${encodeURIComponent(serialNumber)}&title=${encodeURIComponent(finalTitle)}`;
 
-  // ★お誂えボタン押下時にGmailへ画像送信＋Makeshop遷移
-  const handleOrderClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+  const handleOrderClick = async (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault(); 
-    fetch('/api/send-email', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ imageBase64: imageUrl, komonId: serialNumber, title: finalTitle }),
-    }).catch(err => console.error(err));
+    try {
+      fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageUrl: blobUrl, komonId: serialNumber, title: finalTitle }),
+      }).catch(err => console.error(err));
+    } catch (err) {
+      console.error(err);
+    }
     window.open(orderUrl, '_blank', 'noopener,noreferrer');
   };
 
-  // 型安全なキーワード抽出
   const splitMotifs = motif ? motif.split('、') : [];
   const primaryTag = splitMotifs.length > 0 && splitMotifs[0] ? splitMotifs[0].trim() : '';
   const searchKeyword = primaryTag ? primaryTag.slice(0, 6) : '帯';
@@ -362,7 +332,6 @@ export default function Home() {
               </a>
             </div>
 
-            {/* 商品レコメンド連動枠 */}
             <div className="bg-stone-50 border border-stone-200 rounded-xl p-4 mt-2">
               <p className="text-xs font-bold text-stone-800 font-sans mb-2">👘 この図案に合わせるおすすめコーディネート</p>
               <p className="text-[10px] text-stone-600 font-sans mb-3 leading-relaxed">
@@ -378,13 +347,12 @@ export default function Home() {
               </div>
             </div>
 
-            {/* 保存＆Xシェア案内枠 */}
             <div className="space-y-3 font-sans pt-2">
               <div className="text-center bg-stone-100 rounded-lg p-3 border border-stone-200">
                 <p className="text-[11px] font-bold text-stone-800 mb-1">【画像保存・シェアのお願い】</p>
                 <p className="text-[10px] text-stone-600 mb-3">下のボタンで端末に画像を保存してから、Xの投稿に添付してご披露ください！</p>
                 
-                <a href={imageUrl} download={`${serialNumber || 'komon'}_${finalTitle}.png`} className="flex items-center justify-center gap-2 w-full bg-white text-stone-800 font-bold py-3 px-4 rounded-xl border border-stone-300 hover:bg-stone-50 transition shadow-sm text-[13px] mb-2">
+                <a href={blobUrl} download={`${serialNumber || 'komon'}_${finalTitle}.png`} className="flex items-center justify-center gap-2 w-full bg-white text-stone-800 font-bold py-3 px-4 rounded-xl border border-stone-300 hover:bg-stone-50 transition shadow-sm text-[13px] mb-2">
                   <svg className="w-4 h-4 text-stone-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                   図案画像を端末に保存する
                 </a>
