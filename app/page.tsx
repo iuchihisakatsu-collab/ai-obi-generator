@@ -53,6 +53,9 @@ const LOADING_STEPS = [
   '④ 世界に一つの小紋図案の銘を打刻しています...',
 ];
 
+// 居内商店の招き猫ロゴ画像（データURL化）
+const IUCHI_LOGO = "https://images.microcms-assets.io/assets/b83ef316223e4299b867c2936746cf5a/883726715f3e49e29a396262432ef2b0/iuchi_cat_logo.png";
+
 export default function Home() {
   const [motif, setMotif] = useState('');
   const [selectedColor, setSelectedColor] = useState(TRADITIONAL_COLORS[0]);
@@ -144,7 +147,7 @@ export default function Home() {
 
   const finalTitle = patternTitle.trim() || `${motif.slice(0, 10)}の小紋`;
   const shareText = encodeURIComponent(
-    `AIで仕立てた私だけの小紋図案が完成しました👘✨\n\n銘：『${finalTitle}』\n地色：${selectedColor.name}\n\n#ゴフクヤサン小紋ジェネレーター #ゴフクヤサン #モナリザプリント`
+    `AIで仕立てた私だけの小紋図案が完成しました👘✨\n\n銘：『${finalTitle}』\n地色：${selectedColor.name}\n\n#ゴフクヤサン小紋ジェネレーター #ゴフクヤサン #モナリザプリント #居内商店`
   );
   const shareUrl = typeof window !== 'undefined' ? encodeURIComponent(window.location.href) : '';
   const xShareLink = `https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`;
@@ -153,14 +156,19 @@ export default function Home() {
     <div className="min-h-screen bg-stone-100 text-stone-800 p-4 sm:p-6 flex flex-col items-center justify-center font-serif">
       <div className="max-w-xl w-full bg-[#fdfbf7] rounded-2xl shadow-2xl border border-stone-200 p-6 sm:p-8">
         
+        {/* ロゴ入りヘッダー */}
         <div className="text-center mb-6 pb-4 border-b border-stone-200">
-          <div className="inline-block bg-stone-800 text-amber-200 text-[11px] tracking-widest px-3 py-0.5 rounded uppercase font-sans font-bold">
-            Digital Textile Atelier
+          <div className="inline-flex items-center gap-1.5 bg-stone-800 text-amber-200 text-[10px] tracking-widest px-3 py-0.5 rounded uppercase font-sans font-bold">
+            <img src={IUCHI_LOGO} alt="" className="h-3.5 w-auto object-contain brightness-125" />
+            <span>Digital Textile Atelier</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black mt-3 text-stone-900 tracking-wider">
-            ゴフクヤサン小紋ジェネレーター
-          </h1>
-          <p className="text-xs text-stone-500 mt-1 font-sans">
+          <div className="flex items-center justify-center gap-3 mt-3">
+            <img src={IUCHI_LOGO} alt="居内商店" className="h-10 sm:h-12 w-auto object-contain" />
+            <h1 className="text-xl sm:text-2xl font-black text-stone-900 tracking-wider text-left leading-tight">
+              ゴフクヤサン<br className="sm:hidden" />小紋ジェネレーター
+            </h1>
+          </div>
+          <p className="text-xs text-stone-500 mt-2 font-sans">
             言葉と色彩から、世界で一着だけの小紋図案をお誂えします
           </p>
         </div>
@@ -278,7 +286,7 @@ export default function Home() {
           <button
             onClick={handleGenerate}
             disabled={loading}
-            className="w-full bg-stone-900 text-amber-100 font-bold py-4 rounded-xl shadow-lg hover:bg-black disabled:bg-stone-300 transition duration-200 font-sans tracking-widest text-sm"
+            className="w-full bg-stone-900 text-amber-100 font-bold py-4 rounded-xl shadow-lg hover:bg-black disabled:bg-stone-300 transition duration-200 font-sans tracking-widest text-sm animate-shimmer"
           >
             {loading ? '小紋図案を染め上げています...' : 'この意匠で小紋図案を謹製する'}
           </button>
@@ -293,7 +301,7 @@ export default function Home() {
         )}
 
         {imageUrl && !loading && (
-          <div className="mt-8 pt-6 border-t border-stone-200 space-y-4">
+          <div className="mt-8 pt-6 border-t border-stone-200 space-y-4 animate-fade-in">
             
             <div className="flex justify-center gap-2 font-sans text-xs">
               <button
@@ -341,16 +349,20 @@ export default function Home() {
                 </div>
               )}
 
+              {/* ロゴ入り鑑定書デザイン */}
               <div className="mt-4 pt-3 border-t border-dashed border-stone-300 flex justify-between items-end text-stone-700">
                 <div>
                   <p className="text-[10px] font-sans text-stone-400">図案銘</p>
                   <p className="text-base font-black text-stone-900">{finalTitle}</p>
                 </div>
-                <div className="text-right">
-                  <span className="text-[10px] font-sans font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded border border-amber-300">
-                    {serialNumber}
-                  </span>
-                  <p className="text-[9px] font-sans text-stone-400 mt-1">Mona Lisa捺染 謹製規格</p>
+                <div className="text-right flex flex-col items-end gap-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] font-sans font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded border border-amber-300">
+                      {serialNumber}
+                    </span>
+                    <img src={IUCHI_LOGO} alt="" className="h-5 w-auto object-contain" />
+                  </div>
+                  <p className="text-[9px] font-sans text-stone-400">Mona Lisa捺染 謹製規格</p>
                 </div>
               </div>
             </div>
@@ -390,6 +402,18 @@ export default function Home() {
 
           </div>
         )}
+
+        {/* 提携・クレジット */}
+        <div className="mt-8 pt-4 border-t border-stone-200 text-center flex flex-col items-center gap-1.5 opacity-60">
+          <div className="flex items-center gap-2 text-[10px] font-sans text-stone-500">
+            <span>企 劃 ・ 提 供 ：</span>
+            <img src={IUCHI_LOGO} alt="居内商店" className="h-5 w-auto object-contain" />
+            <span className="font-bold">居内商店</span>
+          </div>
+          <p className="text-[9px] text-stone-400 font-sans">
+            © IUCHI SHOUTEN. All Rights Reserved.
+          </p>
+        </div>
 
       </div>
     </div>
