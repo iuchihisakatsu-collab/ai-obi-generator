@@ -1,12 +1,18 @@
 import { NextResponse } from 'next/server';
 import { put } from '@vercel/blob';
 import OpenAI from 'openai';
+import { randomUUID } from 'node:crypto';
+
+// ★ キャッシュを強制的に無効化（重要）
+export const dynamic = 'force-dynamic';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
 export async function POST(req: Request) {
+  const requestId = randomUUID(); // 今回のデバッグ用のID
+
   try {
     const { motif, color, density, itemType } = await req.json();
 
@@ -47,7 +53,7 @@ export async function POST(req: Request) {
 
     const prompt = `${baseInstruction}\n${layoutInstruction}\n\n【Textile Requirements】\nMotifs: ${motif}\nBackground Color: Solid ${color}\nFormat: ${ratioInstruction}\n\n【Art Style & Texture】\n${tunedStyle}\n\n【Strict Restrictions】\n${negativePrompt}`;
 
-    // 最新のGPT Imageモデルに切り替え
+    // ★ 最新のGPT Imageモデル
     const response = await openai.images.generate({
       model: "gpt-image-2.5-sunburst", 
       prompt: prompt,
@@ -60,6 +66,7 @@ export async function POST(req: Request) {
     const base64Image = response.data?.[0]?.b64_json;
     if (!base64Image) throw new Error('画像データの取得に失敗しました。');
 
+    // Blobに保存
     const buffer = Buffer.from(base64Image, 'base64');
     const filename = `komon-${Date.now()}.png`;
 
@@ -68,13 +75,28 @@ export async function POST(req: Request) {
       contentType: 'image/png' 
     });
 
-    return NextResponse.json({ 
-      imageUrl: blob.url, 
-      blobUrl: blob.url
-    });
+    // ★ レスポンス時にもキャッシュを持たせないヘッダーを付与
+    return NextResponse.json(
+      { 
+        imageUrl: blob.url, 
+        blobUrl: blob.url,
+        debugId: requestId // デバッグ用
+      },
+      {
+        headers: {
+          'Cache-Control': 'no-store, max-age=0'
+        }
+      }
+    );
 
   } catch (error: any) {
     console.error('API Error:', error);
-    return NextResponse.json({ error: error?.message || '通信エラーが発生しました。' }, { status: 500 });
+    return NextResponse.json(
+      { error: error?.message || '通信エラーが発生しました。', debugId: requestId },
+      { 
+        status: 500,
+        headers: { 'Cache-Control': 'no-store, max-age=0' }
+      }
+    );
   }
 }
