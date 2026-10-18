@@ -96,10 +96,14 @@ export default function Home() {
   const handleGenerate = async () => {
     setErrorMsg('');
 
+    // 【実験用変更】制限チェックを一時的にコメントアウトし、無制限で回せるようにしています
+    /*
     if (remaining <= 0) {
       setErrorMsg('本日の生成上限（5回）に達しました。明日またお試しください！');
       return;
     }
+    */
+
     if (!motif.trim()) {
       setErrorMsg('モチーフを入力してください。');
       return;
@@ -136,7 +140,7 @@ export default function Home() {
         const newCount = 5 - remaining + 1;
         localStorage.setItem('generateDate', today);
         localStorage.setItem('generateCount', newCount.toString());
-        setRemaining(5 - newCount);
+        setRemaining(Math.max(0, 5 - newCount)); // カウントは減らしますがマイナスにはしません
       } else {
         setErrorMsg(data.error || '図案の調合に失敗しました。');
       }
@@ -276,12 +280,14 @@ export default function Home() {
 
           <div className="flex justify-between items-center text-xs font-sans font-bold px-1 text-stone-600">
             <span>※ 日付変更（午前0時）で回復</span>
-            <span>本日のお誂え可能数：<strong className="text-amber-800 text-sm">{remaining}</strong> / 5回</span>
+            {/* 【実験用変更】制限表示を「無制限」に書き換えました */}
+            <span>本日のお誂え可能数：<strong className="text-amber-800 text-sm">無制限（実験中）</strong></span>
           </div>
 
           <button
             onClick={handleGenerate}
-            disabled={loading || remaining <= 0}
+            // 【実験用変更】残り回数が0になってもボタンを押せるように remaining <= 0 を外しました
+            disabled={loading}
             className="w-full bg-stone-900 text-amber-100 font-bold py-4 rounded-xl shadow-lg hover:bg-black disabled:bg-stone-300 transition duration-200 font-sans tracking-widest text-sm"
           >
             {loading ? '小紋図案を染め上げています...' : 'この意匠で小紋図案を謹製する'}
