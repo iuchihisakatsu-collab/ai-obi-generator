@@ -15,6 +15,7 @@ export async function POST(req: Request) {
     // デジタル捺染（モナリザ）に最適化した小紋柄の指示文
     const prompt = `A flat overhead 2D Japanese textile pattern, traditional Komon kimono fabric design. Seamless repeating pattern, high resolution, top-down view, vector art style. Background base color: ${color}. Main motif elements: ${motif}. Pattern arrangement: ${density}. Clean details, elegant traditional aesthetic, NO human, NO model, NO 3D rendering.`;
 
+    // 最新の画像生成エンドポイント（gpt-image-1）
     const res = await fetch('https://api.openai.com/v1/images/generations', {
       method: 'POST',
       headers: {
@@ -22,7 +23,7 @@ export async function POST(req: Request) {
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'dall-e-3',
+        model: 'gpt-image-1',
         prompt: prompt,
         n: 1,
         size: '1024x1024',
