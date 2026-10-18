@@ -1,5 +1,12 @@
 import { NextResponse } from 'next/server';
 import { put } from '@vercel/blob';
+import OpenAI from 'openai';
+
+export const dynamic = 'force-dynamic';
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 export async function POST(req: Request) {
   try {
@@ -9,12 +16,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'モチーフまたは地色が指定されていません。' }, { status: 400 });
     }
 
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json({ error: 'APIキーが設定されていません。' }, { status: 500 });
-    }
-
-    let imageSize = '1024x1024';
+    let imageSize: "1024x1024" | "1792x1024" | "1024x1792" = '1024x1024';
     let ratioInstruction = '正方形のシームレス文様';
     if (itemType === 'hanhaba') {
       imageSize = '1792x1024';
@@ -47,46 +49,37 @@ export async function POST(req: Request) {
 
     const prompt = `${baseInstruction}\n${layoutInstruction}\n\n【Textile Requirements】\nMotifs: ${motif}\nBackground Color: Solid ${color}\nFormat: ${ratioInstruction}\n\n【Art Style & Texture】\n${tunedStyle}\n\n【Strict Restrictions】\n${negativePrompt}`;
 
-    // ★修正箇所：response_format を削除し、デフォルトのURL形式でリクエストする
-    const res = await fetch('https://api.openai.com/v1/images/generations', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'dall-e-3',
-        prompt: prompt,
-        n: 1,
-        size: imageSize,
-        quality: 'standard',
-      }),
+    const response = await openai.images.generate({
+      model: "gpt-image-2.5-sunburst", 
+      prompt: prompt,
+      n: 1,
+      size: imageSize,
+      quality: "high", 
+      output_format: "png",
     });
 
-    const data = await res.json();
-    if (!res.ok) throw new Error(data?.error?.message || '画像生成に失敗しました。');
-    
-    const openAiUrl = data.data?.[0]?.url;
-    if (!openAiUrl) throw new Error('画像URLの取得に失敗しました。');
+    const base64Image = response.data?.[0]?.b64_json;
+    if (!base64Image) throw new Error('画像データの取得に失敗しました。');
 
-    // ★追加：OpenAIが発行したURLから、Vercelのサーバー内で画像を直接ダウンロードする
-    const imageResponse = await fetch(openAiUrl);
-    const arrayBuffer = await imageResponse.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-
-    // ダウンロードした画像データをVercel Blob（ストレージ）へ保存
+    const buffer = Buffer.from(base64Image, 'base64');
     const filename = `komon-${Date.now()}.png`;
+
     const blob = await put(filename, buffer, { 
       access: 'public', 
       contentType: 'image/png' 
     });
 
     return NextResponse.json({ 
-      imageUrl: openAiUrl, // ブラウザでの一時表示用
-      blobUrl: blob.url    // メールのリンク・保存用の永続URL
+      imageUrl: blob.url, 
+      blobUrl: blob.url
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, max-age=0'
+      }
     });
 
   } catch (error: any) {
+    console.error('API Error:', error);
     return NextResponse.json({ error: error?.message || '通信エラーが発生しました。' }, { status: 500 });
   }
 }
