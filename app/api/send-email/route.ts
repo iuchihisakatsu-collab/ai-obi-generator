@@ -3,8 +3,7 @@ import { put } from '@vercel/blob';
 import OpenAI from 'openai';
 
 const openai = new OpenAI({
-  // process.env を使わず、現在持っている最新のAPIキーを直接貼り付けます
-  apiKey: "sk-proj-ここから始まる実際のAPIキーをそのまま貼り付けてください",
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 export async function POST(req: Request) {
@@ -48,7 +47,7 @@ export async function POST(req: Request) {
 
     const prompt = `${baseInstruction}\n${layoutInstruction}\n\n【Textile Requirements】\nMotifs: ${motif}\nBackground Color: Solid ${color}\nFormat: ${ratioInstruction}\n\n【Art Style & Texture】\n${tunedStyle}\n\n【Strict Restrictions】\n${negativePrompt}`;
 
-    // ★ ChatGPTが教えてくれた正解のモデルとパラメータ
+    // 最新のGPT Imageモデルに切り替え
     const response = await openai.images.generate({
       model: "gpt-image-2.5-sunburst", 
       prompt: prompt,
@@ -61,17 +60,16 @@ export async function POST(req: Request) {
     const base64Image = response.data?.[0]?.b64_json;
     if (!base64Image) throw new Error('画像データの取得に失敗しました。');
 
-    // Blobに保存する
     const buffer = Buffer.from(base64Image, 'base64');
     const filename = `komon-${Date.now()}.png`;
+
     const blob = await put(filename, buffer, { 
       access: 'public', 
       contentType: 'image/png' 
     });
 
-    // ★ 超重要ポイント：フロントには巨大なBase64を返さず、BlobのURLだけを返す（これでVercelの4.5MB制限を完全回避！）
     return NextResponse.json({ 
-      imageUrl: blob.url, // 画面表示用にもBlob URLを使う
+      imageUrl: blob.url, 
       blobUrl: blob.url
     });
 
