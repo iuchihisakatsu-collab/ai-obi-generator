@@ -47,28 +47,30 @@ export async function POST(req: Request) {
 
     const prompt = `${baseInstruction}\n${layoutInstruction}\n\n【Textile Requirements】\nMotifs: ${motif}\nBackground Color: Solid ${color}\nFormat: ${ratioInstruction}\n\n【Art Style & Texture】\n${tunedStyle}\n\n【Strict Restrictions】\n${negativePrompt}`;
 
+    // ★ ChatGPTが教えてくれた正解のモデルとパラメータ
     const response = await openai.images.generate({
-      model: "dall-e-3",
+      model: "gpt-image-2.5-sunburst", 
       prompt: prompt,
       n: 1,
       size: imageSize,
-      quality: "standard",
-      response_format: "b64_json",
+      quality: "high", 
+      output_format: "png",
     });
 
-    const base64Image = response.data[0].b64_json;
+    const base64Image = response.data?.[0]?.b64_json;
     if (!base64Image) throw new Error('画像データの取得に失敗しました。');
 
+    // Blobに保存する
     const buffer = Buffer.from(base64Image, 'base64');
     const filename = `komon-${Date.now()}.png`;
-
     const blob = await put(filename, buffer, { 
       access: 'public', 
       contentType: 'image/png' 
     });
 
+    // ★ 超重要ポイント：フロントには巨大なBase64を返さず、BlobのURLだけを返す（これでVercelの4.5MB制限を完全回避！）
     return NextResponse.json({ 
-      imageUrl: `data:image/png;base64,${base64Image}`, 
+      imageUrl: blob.url, // 画面表示用にもBlob URLを使う
       blobUrl: blob.url
     });
 
