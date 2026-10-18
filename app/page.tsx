@@ -1,6 +1,12 @@
+入力されたテキストの中から「浮世絵風」などの画風を無視し、**【5】メインモチーフ（猫、犬、うさぎ、鳥、蝶々、花、宇宙、星座など）を最優先で自動検出して検索キーワードに割り当てる**ようにロジックを改良しました。
+（※「花・植物」が選ばれた場合は、ショップ側で検索がヒットしやすいよう「花」に変換して検索します）
+
+以下が修正済みの `app/page.tsx` の完全なコードです。GitHubで上書き保存してください。
+
+```tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const FORBIDDEN_WORDS = [
   'ディズニー', 'disney', 'ミッキー', 'mickey', 'ピカチュウ', 'ポケモン', 'pokemon',
@@ -31,12 +37,14 @@ const TRADITIONAL_COLORS = [
   { name: '胡桃 (くるみ)', hex: '#a86f4c', text: '穏やかなブラウン地' }, { name: '焦茶 (こげちゃ)', hex: '#693b32', text: '深いダークブラウン・チョコレート地' },
 ];
 
+const MAIN_MOTIF_LIST = ['猫', '犬', 'うさぎ', '鳥', '蝶々', '花・植物', '宇宙', '星座'];
+
 const TAG_CATEGORIES = [
   { title: '【1】画風・アートスタイル', tags: ['浮世絵風', '京友禅風', '水彩画風', '油絵風', 'アールヌーヴォー', 'アールデコ', 'ミッドセンチュリー', 'ステンドグラス風'] },
   { title: '【2】カルチャー・世界観', tags: ['大正ロマン', '昭和レトロ', '70sサイケ', 'ゴスロリ', 'スチームパンク', 'サイバーパンク', 'ゆめかわいい', '絵本風'] },
   { title: '【3】季節・イベント', tags: ['お正月', 'お花見', '夏祭り', 'ハロウィン', 'クリスマス', 'イースター'] },
   { title: '【4】背景・地紋', tags: ['市松模様', '麻の葉', '矢絣', '七宝', '青海波', '唐草模様', '水玉', '縞模様', '幾何学模様', 'レース'] },
-  { title: '【5】メインモチーフ', tags: ['猫', '犬', 'うさぎ', '鳥', '蝶々', '花・植物', '宇宙', '星座'] },
+  { title: '【5】メインモチーフ', tags: MAIN_MOTIF_LIST },
   { title: '【6】情景・アイデア', tags: ['空を飛ぶ', '水に浮かぶ', 'アンティークな', '機械仕掛けの', '洋書と一緒に', '珈琲カップと', 'シルエット', 'モノクローム'] }
 ];
 
@@ -122,7 +130,7 @@ export default function Home() {
   const xShareLink = `https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`;
   const orderUrl = `https://store.gofukuyasan.com/view/item/000000007300?komon_id=${encodeURIComponent(serialNumber)}&title=${encodeURIComponent(finalTitle)}`;
 
-  const handleOrderClick = async (e: React.MouseEvent<HTMLAnchorElement>) => {
+  const handleOrderClick = async (e: any) => {
     e.preventDefault(); 
     try {
       fetch('/api/send-email', {
@@ -136,9 +144,18 @@ export default function Home() {
     window.open(orderUrl, '_blank', 'noopener,noreferrer');
   };
 
-  const splitMotifs = motif ? motif.split('、') : [];
-  const primaryTag = splitMotifs.length > 0 && splitMotifs[0] ? splitMotifs[0].trim() : '';
-  const searchKeyword = primaryTag ? primaryTag.slice(0, 6) : '帯';
+  // ★【5】メインモチーフから最優先で検索キーワードを抽出する処理
+  const matchedMainMotif = MAIN_MOTIF_LIST.find((item) => motif.includes(item));
+  
+  let searchKeyword = '帯';
+  if (matchedMainMotif) {
+    // 「花・植物」の場合は商品検索でヒットしやすいよう「花」に変換
+    searchKeyword = matchedMainMotif === '花・植物' ? '花' : matchedMainMotif;
+  } else {
+    // メインモチーフのタグが選ばれていない場合、入力された単語からフォールバック抽出
+    const splitMotifs = motif ? motif.split(/[、, \s]+/) : [];
+    searchKeyword = splitMotifs.length > 0 && splitMotifs[0] ? splitMotifs[0].slice(0, 6) : '帯';
+  }
 
   return (
     <div className="min-h-screen bg-stone-100 text-stone-800 p-4 sm:p-6 flex flex-col items-center justify-center font-serif">
@@ -264,7 +281,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* AI生成画像の特性と商品化前の確認について説明 */}
           <div className="bg-stone-50 rounded-lg p-3 border border-stone-200 text-xs text-stone-600 font-sans">
             <label className="flex items-start gap-2 font-bold cursor-pointer text-stone-800 leading-snug">
               <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="w-4 h-4 mt-0.5 rounded text-stone-900 focus:ring-stone-900" />
@@ -326,21 +342,21 @@ export default function Home() {
               </div>
             </div>
 
-            {/* 生成画像と実際の商品制作の違いを明示 */}
             <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 text-center">
               <p className="text-xs font-bold text-rose-800 font-sans mb-1">＼ お誂えをご希望の方へ ／</p>
               <p className="text-[10px] text-rose-700 font-sans mb-3 leading-relaxed">
-                生成された画像は、図案のアイデアを確認するためのイメージです。実際の生地として制作する場合は、ご注文後に工房で柄のつながりや色彩バランス、印刷への適性を確認し、必要に応じてデータを調整します。生成画像と実際の生地では、色味や柄の見え方が異なる場合があります。
+                生成された画像は、図案のアイデアを確認するためのイメージです。実際の生地として制作する場合は、ご注文後に人の目で柄のつながりや色彩バランス、印刷への適性を確認し、必要に応じてデータを調整します。生成画像と実際の生地では、色味や柄の見え方が異なる場合があります。
               </p>
               <a href={orderUrl} onClick={handleOrderClick} className="block w-full bg-rose-800 text-amber-50 font-black py-3 rounded-lg hover:bg-rose-900 transition shadow text-sm tracking-wider cursor-pointer">
                 この図案イメージをもとにお誂えを申し込む
               </a>
             </div>
 
+            {/* ★【5】メインモチーフに基づいたコーディネート提案エリア */}
             <div className="bg-stone-50 border border-stone-200 rounded-xl p-4 mt-2">
-              <p className="text-xs font-bold text-stone-800 font-sans mb-2">この図案に合わせるコーディネート</p>
+              <p className="text-xs font-bold text-stone-800 font-sans mb-2">👘 この図案に合わせるコーディネート</p>
               <p className="text-[10px] text-stone-600 font-sans mb-3 leading-relaxed">
-                図案の雰囲気に合わせて、当店の商品もご覧いただけます。
+                思い描いた「{searchKeyword}」の意匠に合わせて、当店こだわりのアイテムをご覧いただけます。
               </p>
               <div className="flex flex-col gap-2">
                 <a href={`https://store.gofukuyasan.com/view/search?search_keyword=${encodeURIComponent(searchKeyword)}`} target="_blank" rel="noopener noreferrer" className="block w-full bg-white border border-stone-300 text-stone-700 text-center py-2.5 rounded-lg hover:bg-stone-100 transition text-[11px] font-bold shadow-sm">
@@ -375,3 +391,5 @@ export default function Home() {
     </div>
   );
 }
+
+```
