@@ -4,63 +4,35 @@ export async function POST(req: Request) {
   try {
     const { motif, color, density } = await req.json();
 
-    const apiKey = process.env.STABILITY_API_KEY || process.env.OPENAI_API_KEY;
+    const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
-      return NextResponse.json(
-        { error: 'APIキーが設定されていません。' },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: 'OpenAI APIキーが設定されていません。' }, { status: 500 });
     }
 
-    // デジタル捺染向けの着物・小紋文様プロンプト
-    const prompt = `A flat 2D Japanese kimono pattern, traditional Komon fabric design, seamless repeating vector motif. Background color: ${color}. Motif elements: ${motif}. Arrangement: ${density}. Top-down view, crisp lines, clean colors, high resolution textile art, NO humans, NO kimono mockup, perfectly flat graphic.`;
+    const prompt = `日本の伝統的な着物の小紋柄テキスタイルデザイン。デジタル捺染印刷用の完全な平面2Dパターン、真上からのフラットな構図。地色：${color || 'おまかせ'}。モチーフ：${motif || '伝統文様'}。配置・密度：${density || 'バランスの取れた配置'}。ベクターアート調の鮮明でクリーンな描線、シームレスな連続文様。人物、モデル、着物の立体写真、シワ、影は一切含めないこと。`;
 
-    const response = await fetch(
-      'https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/text-to-image',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          text_prompts: [
-            { text: prompt, weight: 1 },
-            { text: 'human, face, 3d model, mockup, realistic photo, shadows, folds, blurry', weight: -1 },
-          ],
-          cfg_scale: 7,
-          height: 1024,
-          width: 1024,
-          samples: 1,
-          steps: 30,
-        }),
-      }
-    );
+    const res = await fetch('https://api.openai.com/v1/images/generations', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'dall-e-3',
+        prompt: prompt,
+        n: 1,
+        size: '1024x1024',
+      }),
+    });
 
-    const data = await response.json();
+    const data = await res.json();
 
-    if (!response.ok) {
-      return NextResponse.json(
-        { error: data?.message || '画像生成に失敗しました。' },
-        { status: response.status }
-      );
+    if (!res.ok) {
+      return NextResponse.json({ error: data?.error?.message || '画像生成に失敗しました。' }, { status: res.status });
     }
 
-    const base64Image = data.artifacts?.[0]?.base64;
-    if (!base64Image) {
-      return NextResponse.json(
-        { error: '画像データの取得に失敗しました。' },
-        { status: 500 }
-      );
-    }
-
-    const imageUrl = `data:image/png;base64,${base64Image}`;
-    return NextResponse.json({ imageUrl });
+    return NextResponse.json({ imageUrl: data.data?.[0]?.url });
   } catch (error: any) {
-    return NextResponse.json(
-      { error: error?.message || '通信エラーが発生しました。' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error?.message || '通信エラーが発生しました。' }, { status: 500 });
   }
 }
