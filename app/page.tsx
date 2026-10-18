@@ -41,12 +41,12 @@ const TAG_CATEGORIES = [
 ];
 
 const LOADING_STEPS = [
-  '壱. ご指定の意匠から、テキスタイルの骨格を設計中...',
-  '弐. 着物の配色・構図バランスを反映中...',
-  '参. デジタル捺染機「モナリザ」用の高精細データを構築中...',
-  '四. シームレス文様の送り付け（連続性）を計算中...',
-  '五. 染料の重なりと生地の質感をシミュレート中...',
-  '六. 最終仕上げ：図案の生成を完了しています...',
+  '壱. ご指定の内容から、テキスタイルの骨格を設計中...',
+  '弐. 配色と構図のバランスを計算中...',
+  '参. デジタル捺染機「モナリザ」での印刷を想定したデータを構築中...',
+  '四. パターンの連続性（シームレス）を計算中...',
+  '五. 生地の質感シミュレーションを適用中...',
+  '六. 最終仕上げ：図案イメージを保存しています...',
 ];
 
 const IUCHI_LOGO = "https://gofukuyasan.com/wp-content/uploads/2026/10/logo22.jpg";
@@ -90,9 +90,9 @@ export default function Home() {
   const handleGenerate = async () => {
     setErrorMsg('');
     if (!motif.trim()) { setErrorMsg('モチーフを入力または選択してください。'); return; }
-    if (!agreed) { setErrorMsg('著作権への配慮および利用規約への同意が必要です。'); return; }
+    if (!agreed) { setErrorMsg('利用規約および確認事項への同意が必要です。'); return; }
     const hitWord = FORBIDDEN_WORDS.find((word) => motif.toLowerCase().includes(word));
-    if (hitWord) { setErrorMsg(`特定のキャラクターや既存ブランド名「${hitWord}」を含む言葉は入力できません。`); return; }
+    if (hitWord) { setErrorMsg(`特定のキャラクターやブランド名「${hitWord}」を含む言葉は入力できません。`); return; }
 
     setLoading(true);
     try {
@@ -108,7 +108,7 @@ export default function Home() {
         setBlobUrl(data.blobUrl);   
         setSerialNumber(`KOMON-${Math.floor(1000 + Math.random() * 9000)}`);
       } else {
-        setErrorMsg(data.error || '図案の生成に失敗しました。');
+        setErrorMsg(data.error || '図案イメージの生成に失敗しました。');
       }
     } catch (error) {
       setErrorMsg('通信エラーが発生しました。時間を置いてお試しください。');
@@ -117,7 +117,7 @@ export default function Home() {
   };
 
   const finalTitle = patternTitle.trim() || '（無題）';
-  const shareText = encodeURIComponent(`AIと一緒に考えたオリジナルの小紋図案ができました👘✨\n\n銘：『${finalTitle}』\n地色：${selectedColor.name}\n\n#ゴフクヤサン小紋ジェネレーター #ゴフクヤサン #モナリザプリント #居内商店`);
+  const shareText = encodeURIComponent(`AI生成による小紋の図案イメージを作成しました👘\n\n銘：『${finalTitle}』\n地色：${selectedColor.name}\n\n#ゴフクヤサン小紋ジェネレーター #ゴフクヤサン #居内商店`);
   const shareUrl = typeof window !== 'undefined' ? encodeURIComponent(window.location.href) : '';
   const xShareLink = `https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`;
   const orderUrl = `https://store.gofukuyasan.com/view/item/000000007300?komon_id=${encodeURIComponent(serialNumber)}&title=${encodeURIComponent(finalTitle)}`;
@@ -221,4 +221,79 @@ export default function Home() {
                   key={col.name}
                   type="button"
                   onClick={() => setSelectedColor(col)}
-                  className={`p-1.5 rounded-lg
+                  className={`p-1.5 rounded-lg border flex flex-col items-center justify-center gap-1 transition-all ${
+                    selectedColor.name === col.name ? 'border-stone-900 ring-2 ring-stone-900 bg-white shadow-sm' : 'border-stone-200 bg-white/60 hover:bg-white'
+                  }`}
+                >
+                  <span className="w-5 h-5 sm:w-6 sm:h-6 rounded-full border border-black/10 shadow-inner" style={{ backgroundColor: col.hex }} />
+                  <span className="text-[9px] sm:text-[10px] font-sans text-stone-700 font-bold whitespace-nowrap overflow-hidden text-ellipsis w-full text-center">
+                    {col.name.split(' ')[0]}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-stone-700 tracking-wider mb-1 font-sans">
+              参. 仕立てるアイテム（柄の比率が変わります）
+            </label>
+            <div className="flex gap-3 font-sans text-xs">
+              <label className={`flex-1 p-2.5 rounded-lg border text-center cursor-pointer font-bold transition ${itemType === 'hanhaba' ? 'border-stone-900 bg-stone-900 text-white' : 'border-stone-200 bg-white text-stone-700'}`}>
+                <input type="radio" className="sr-only" checked={itemType === 'hanhaba'} onChange={() => setItemType('hanhaba')} />
+                半幅帯（横長）
+              </label>
+              <label className={`flex-1 p-2.5 rounded-lg border text-center cursor-pointer font-bold transition ${itemType === 'tanmono' ? 'border-stone-900 bg-stone-900 text-white' : 'border-stone-200 bg-white text-stone-700'}`}>
+                <input type="radio" className="sr-only" checked={itemType === 'tanmono'} onChange={() => setItemType('tanmono')} />
+                反物・京袋帯（縦長）
+              </label>
+            </div>
+          </div>
+
+          <div className="flex gap-3 font-sans text-xs">
+            <div className="flex-1">
+              <label className="block text-[10px] font-bold text-stone-500 mb-1">密度</label>
+              <select className="w-full p-2 border border-stone-300 rounded bg-white text-stone-700 focus:outline-none focus:border-stone-800" value={density} onChange={(e) => setDensity(e.target.value)}>
+                <option value="総柄（ぎっしり華やか）">総柄（ぎっしり華やか）</option>
+                <option value="飛び柄（余白を活かして上品に）">飛び柄（余白を活かして上品に）</option>
+              </select>
+            </div>
+            <div className="flex-1">
+              <label className="block text-[10px] font-bold text-stone-500 mb-1">図案銘（任意）</label>
+              <input type="text" className="w-full p-2 border border-stone-300 rounded bg-white text-stone-700 focus:outline-none focus:border-stone-800" value={patternTitle} onChange={(e) => setPatternTitle(e.target.value)} placeholder="例：春宵の椿" />
+            </div>
+          </div>
+
+          {/* AI生成画像の特性と商品化前の確認について説明 */}
+          <div className="bg-stone-50 rounded-lg p-3 border border-stone-200 text-xs text-stone-600 font-sans">
+            <label className="flex items-start gap-2 font-bold cursor-pointer text-stone-800 leading-snug">
+              <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="w-4 h-4 mt-0.5 rounded text-stone-900 focus:ring-stone-900" />
+              <span>既存の作品・キャラクター・ブランド等の模倣を目的として利用しません。AI生成の図案は既存の意匠と似る場合があり、完全な独自性や権利上の問題がないことを保証するものではないと理解しました。実際の生地制作をご希望の場合は、工房で図案を確認し、必要に応じて調整します。</span>
+            </label>
+          </div>
+
+          {errorMsg && <div className="bg-rose-50 text-rose-800 text-xs font-bold p-3 rounded-lg border border-rose-200 font-sans">{errorMsg}</div>}
+
+          <button onClick={handleGenerate} disabled={loading} className="w-full bg-stone-900 text-amber-100 font-bold py-4 rounded-xl shadow-lg hover:bg-black disabled:bg-stone-400 disabled:text-stone-200 transition duration-200 font-sans tracking-widest text-sm">
+            {loading ? '図案イメージを生成しています...' : 'この内容で図案イメージを生成する'}
+          </button>
+        </div>
+
+        {loading && (
+          <div className="mt-8 p-6 rounded-xl bg-stone-800 border border-stone-700 text-center shadow-2xl relative overflow-hidden">
+            <div className="absolute inset-0 bg-[url('https://gofukuyasan.com/wp-content/uploads/2026/10/logo22.jpg')] bg-repeat opacity-5 animate-[slide_20s_linear_infinite]" />
+            <p className="text-sm font-bold text-amber-200 font-sans relative z-10 tracking-widest leading-relaxed">
+              {LOADING_STEPS[loadingStep]}
+            </p>
+            <div className="mt-4 w-full bg-stone-700 h-1.5 rounded-full overflow-hidden relative z-10">
+              <div className="bg-amber-400 h-full animate-[loading_24s_ease-in-out_forwards]" />
+            </div>
+            <p className="text-[10px] text-stone-400 mt-3 relative z-10 font-sans">※画像の生成と保存には時間がかかる場合があります。</p>
+          </div>
+        )}
+
+        {imageUrl && !loading && (
+          <div className="mt-8 pt-6 border-t border-stone-200 space-y-4 animate-fade-in">
+            <div className="flex justify-center gap-2 font-sans text-xs">
+              <button onClick={() => setPreviewMode('pattern')} className={`px-4 py-1.5 rounded-full font-bold transition ${previewMode === 'pattern' ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}>① 図案原画</button>
+              <button onClick={() => setPreviewMode('fabric')} className={`px-4 py-1.5 rounded-full font-bold transition ${previewMode === 'fabric' ? 'bg-amber-800 text-white' : 'bg-stone-100 text-stone-6
