@@ -1,5 +1,30 @@
-// ==========================================
-    // ★ゴフクヤサン秘伝のチューニング（プロンプト増幅器・最終進化版）
+import { NextResponse } from 'next/server';
+
+export async function POST(req: Request) {
+  try {
+    const { motif, color, density, itemType } = await req.json();
+
+    if (!motif || !color) {
+      return NextResponse.json({ error: 'モチーフまたは地色が指定されていません。' }, { status: 400 });
+    }
+
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json({ error: 'APIキーが設定されていません。' }, { status: 500 });
+    }
+
+    let imageSize = '1024x1024';
+    let ratioInstruction = '正方形のシームレス文様';
+    if (itemType === 'hanhaba') {
+      imageSize = '1792x1024';
+      ratioInstruction = '横長（16:9比率）の帯用テキスタイル文様';
+    } else if (itemType === 'tanmono') {
+      imageSize = '1024x1792';
+      ratioInstruction = '縦長（9:16比率）の反物・着尺用テキスタイル文様';
+    }
+
+    // ==========================================
+    // ★ゴフクヤサン秘伝のチューニング（プロンプト増幅器）
     // ==========================================
     
     // 1. デジナ基準のベース指定（モナリザ出力用の完全平面・高解像度データ）
@@ -45,3 +70,43 @@ ${tunedStyle}
 【Strict Restrictions】
 ${negativePrompt}
 `;
+
+    // 本来使用している正規モデル gpt-image-2.5-sunburst
+    const res = await fetch('https://api.openai.com/v1/images/generations', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'gpt-image-2.5-sunburst',
+        prompt: prompt,
+        n: 1,
+        size: imageSize,
+        quality: 'high',
+        output_format: 'png',
+      }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      return NextResponse.json(
+        { error: data?.error?.message || '画像生成に失敗しました。' },
+        { status: res.status }
+      );
+    }
+
+    const base64Image = data.data?.[0]?.b64_json;
+    if (!base64Image) {
+      if (data.data?.[0]?.url) {
+        return NextResponse.json({ imageUrl: data.data[0].url });
+      }
+      return NextResponse.json({ error: '画像データの取得に失敗しました。' }, { status: 500 });
+    }
+
+    return NextResponse.json({ imageUrl: `data:image/png;base64,${base64Image}` });
+  } catch (error: any) {
+    return NextResponse.json({ error: error?.message || '通信エラーが発生しました。' }, { status: 500 });
+  }
+}
