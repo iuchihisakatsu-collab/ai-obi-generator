@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { put } from '@vercel/blob';
 import OpenAI from 'openai';
 
-// 公式部品の初期化
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
@@ -48,20 +47,19 @@ export async function POST(req: Request) {
 
     const prompt = `${baseInstruction}\n${layoutInstruction}\n\n【Textile Requirements】\nMotifs: ${motif}\nBackground Color: Solid ${color}\nFormat: ${ratioInstruction}\n\n【Art Style & Texture】\n${tunedStyle}\n\n【Strict Restrictions】\n${negativePrompt}`;
 
-    // ★修正箇所：OpenAIの公式部品（SDK）を使って生成
+    // ★修正箇所：2026年最新のGPT Imageモデルと新パラメータを指定
     const response = await openai.images.generate({
-      model: "dall-e-3",
+      model: "gpt-image-2.5-sunburst", // dall-e-3から移行
       prompt: prompt,
       n: 1,
       size: imageSize,
-      quality: "standard",
-      response_format: "b64_json",
+      quality: "high", // 旧standardから変更
+      output_format: "png", // 新しく追加
     });
 
-    const base64Image = response.data[0].b64_json;
+    const base64Image = response.data?.[0]?.b64_json;
     if (!base64Image) throw new Error('画像データの取得に失敗しました。');
 
-    // 生成されたBase64データをバイナリに変換し、Vercel Blob（ストレージ）へ直接保存
     const buffer = Buffer.from(base64Image, 'base64');
     const filename = `komon-${Date.now()}.png`;
 
