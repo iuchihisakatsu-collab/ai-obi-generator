@@ -22,12 +22,10 @@ export async function POST(req: Request) {
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'gpt-image-2.5-sunburst',
+        model: 'dall-e-3', // やっぱりDALL-E 3が正解です！
         prompt: prompt,
         n: 1,
         size: '1024x1024',
-        quality: 'high',
-        response_format: 'b64_json',
       }),
     });
 
@@ -37,12 +35,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: data?.error?.message || '画像生成に失敗しました。' }, { status: res.status });
     }
 
-    const base64Image = data.data?.[0]?.b64_json;
-    if (!base64Image) {
-      return NextResponse.json({ error: '画像データの取得に失敗しました。' }, { status: 500 });
-    }
-
-    return NextResponse.json({ imageUrl: `data:image/png;base64,${base64Image}` });
+    return NextResponse.json({ imageUrl: data.data?.[0]?.url });
   } catch (error: any) {
     return NextResponse.json({ error: error?.message || '通信エラーが発生しました。' }, { status: 500 });
   }
