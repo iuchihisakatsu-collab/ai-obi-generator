@@ -3,7 +3,8 @@ import { put } from '@vercel/blob';
 import OpenAI from 'openai';
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  // process.env を使わず、現在持っている最新のAPIキーを直接貼り付けます
+  apiKey: "sk-proj-ここから始まる実際のAPIキーをそのまま貼り付けてください",
 });
 
 export async function POST(req: Request) {
