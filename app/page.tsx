@@ -11,44 +11,37 @@ const FORBIDDEN_WORDS = [
   'ナイキ', 'nike', 'アディダス', 'adidas'
 ];
 
-// ★大増量：選ぶ楽しみを最大化する「36色の伝統色＆モダンカラー」
 const TRADITIONAL_COLORS = [
-  // 【白・生成・グレー系】
   { name: '胡粉 (ごふん)', hex: '#fffffc', text: '純白地' },
   { name: '生成 (きなり)', hex: '#f6f5ec', text: '淡いアイボリー地' },
   { name: '灰桜 (はいざくら)', hex: '#e8d3d1', text: 'ごく淡いグレーピンク地' },
   { name: '銀鼠 (ぎんねず)', hex: '#afafb0', text: '明るいシルバーグレー地' },
   { name: '消炭 (けしずみ)', hex: '#524e4d', text: '濃いチャコールグレー地' },
   { name: '漆黒 (しっこく)', hex: '#161616', text: '真っ黒な地' },
-  // 【赤・ピンク系】
   { name: '桜色 (さくら)', hex: '#fef4f4', text: 'ごく淡い桜ピンク地' },
   { name: '桃色 (もも)', hex: '#f58f98', text: '明るいピーチピンク地' },
   { name: '牡丹 (ぼたん)', hex: '#e7609e', text: '華やかなマゼンタピンク地' },
   { name: '珊瑚 (さんご)', hex: '#f5b1aa', text: '柔らかなコーラル地' },
   { name: '朱色 (しゅ)', hex: '#ea5532', text: '鮮やかな朱赤地' },
   { name: '深緋 (こきひ)', hex: '#8b1e2a', text: '深みのある真紅・ボルドー地' },
-  // 【青・水色系】
   { name: '白群 (びゃくぐん)', hex: '#83ccd2', text: '淡いペールブルー地' },
   { name: '水色 (みず)', hex: '#bce2e8', text: '澄んだライトブルー地' },
   { name: '浅葱 (あさぎ)', hex: '#00a3af', text: '鮮やかな青緑・ターコイズ地' },
   { name: '瑠璃 (るり)', hex: '#1e50a2', text: '鮮やかなロイヤルブルー地' },
   { name: '藍色 (あい)', hex: '#163b5c', text: '深いネイビー・藍地' },
   { name: '鉄紺 (てっこん)', hex: '#17184b', text: '極めて暗い紫みの紺地' },
-  // 【緑系】
   { name: '白緑 (びゃくろく)', hex: '#d6e9ca', text: 'ごく淡いミントグリーン地' },
   { name: '鶸色 (ひわ)', hex: '#d7cf3a', text: '明るいイエローグリーン地' },
   { name: '若竹 (わかたけ)', hex: '#68be8d', text: '鮮やかなエメラルドグリーン地' },
   { name: '青磁 (せいじ)', hex: '#7ebea5', text: 'くすんだブルーグリーン地' },
   { name: '海松 (みる)', hex: '#726d40', text: '渋いオリーブグリーン地' },
   { name: '常磐 (ときわ)', hex: '#1b4d3e', text: '深いフォレストグリーン地' },
-  // 【紫系】
   { name: '藤色 (ふじ)', hex: '#bbbcde', text: '淡いラベンダー地' },
   { name: '桔梗 (ききょう)', hex: '#5654a2', text: '鮮やかな青紫地' },
   { name: '江戸紫 (えど)', hex: '#745399', text: '濃い赤紫地' },
   { name: '古代紫 (こだい)', hex: '#895b8a', text: 'くすんだアンティークパープル地' },
   { name: '滅紫 (けしむらさき)', hex: '#594255', text: '非常に暗いグレイッシュパープル地' },
   { name: '京紫 (きょう)', hex: '#9d5b8b', text: '華麗な赤みの紫地' },
-  // 【黄・茶系】
   { name: '鳥の子 (とりのこ)', hex: '#dac9a6', text: '温かみのあるベージュ地' },
   { name: '山吹 (やまぶき)', hex: '#f8b500', text: '鮮やかな黄金・マスタード地' },
   { name: '芥子 (からし)', hex: '#d0af4c', text: '渋い辛子色地' },
@@ -57,38 +50,18 @@ const TRADITIONAL_COLORS = [
   { name: '焦茶 (こげちゃ)', hex: '#693b32', text: '深いダークブラウン・チョコレート地' },
 ];
 
-// ★一球入魂のアイデア・フックタグ
 const TAG_CATEGORIES = [
-  {
-    title: '【1】画風・アートスタイル',
-    tags: ['浮世絵風', '京友禅風', '水彩画風', '油絵風', 'アールヌーヴォー', 'アールデコ', 'ミッドセンチュリー', 'ステンドグラス風']
-  },
-  {
-    title: '【2】カルチャー・世界観',
-    tags: ['大正ロマン', '昭和レトロ', '70sサイケ', 'ゴスロリ', 'スチームパンク', 'サイバーパンク', 'ゆめかわいい', '絵本風']
-  },
-  {
-    title: '【3】季節・イベント',
-    tags: ['お正月', 'お花見', '夏祭り', 'ハロウィン', 'クリスマス', 'イースター']
-  },
-  {
-    title: '【4】背景・地紋（和洋ミックス）',
-    tags: ['市松模様', '麻の葉', '矢絣', '七宝', '青海波', '唐草模様', '水玉（ドット）', '縞模様', '幾何学模様', 'レース']
-  },
-  {
-    title: '【5】メインモチーフ（定番）',
-    tags: ['猫', '犬', 'うさぎ', '鳥', '蝶々', '花・植物', '宇宙', '星座']
-  },
-  {
-    title: '【6】情景・アイデア（ひらめきのヒント！）',
-    tags: ['空を飛ぶ', '水に浮かぶ', 'アンティークな', '機械仕掛けの', '洋書と一緒に', '珈琲カップと', 'シルエット', 'モノクローム']
-  }
+  { title: '【1】画風・アートスタイル', tags: ['浮世絵風', '京友禅風', '水彩画風', '油絵風', 'アールヌーヴォー', 'アールデコ', 'ミッドセンチュリー', 'ステンドグラス風'] },
+  { title: '【2】カルチャー・世界観', tags: ['大正ロマン', '昭和レトロ', '70sサイケ', 'ゴスロリ', 'スチームパンク', 'サイバーパンク', 'ゆめかわいい', '絵本風'] },
+  { title: '【3】季節・イベント', tags: ['お正月', 'お花見', '夏祭り', 'ハロウィン', 'クリスマス', 'イースター'] },
+  { title: '【4】背景・地紋', tags: ['市松模様', '麻の葉', '矢絣', '七宝', '青海波', '唐草模様', '水玉', '縞模様', '幾何学模様', 'レース'] },
+  { title: '【5】メインモチーフ', tags: ['猫', '犬', 'うさぎ', '鳥', '蝶々', '花・植物', '宇宙', '星座'] },
+  { title: '【6】情景・アイデア', tags: ['空を飛ぶ', '水に浮かぶ', 'アンティークな', '機械仕掛けの', '洋書と一緒に', '珈琲カップと', 'シルエット', 'モノクローム'] }
 ];
 
-// 儀式感を高めるローディングステップ
 const LOADING_STEPS = [
   '壱. ご指定の意匠から、テキスタイルの骨格を設計中...',
-  '弐. 選択された画風と色彩のバランスを最適化中...',
+  '弐. ゴフクヤサン秘伝の調合レシピ（構図・色彩補正）を適用中...',
   '参. デジタル捺染機「モナリザ」用の高精細データを構築中...',
   '四. シームレス文様の送り付け（連続性）を計算中...',
   '五. 染料の重なりと生地の質感をシミュレート中...',
@@ -112,7 +85,6 @@ export default function Home() {
   const [serialNumber, setSerialNumber] = useState('');
   const [showTags, setShowTags] = useState(true);
 
-  // 焦らす演出：4秒ごとにテキスト切り替え
   useEffect(() => {
     let interval: any;
     if (loading) {
@@ -180,24 +152,14 @@ export default function Home() {
   const xShareLink = `https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`;
   const orderUrl = `https://store.gofukuyasan.com/view/item/000000007300?komon_id=${encodeURIComponent(serialNumber)}&title=${encodeURIComponent(finalTitle)}`;
 
-  const handleOrderClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault(); 
-    fetch('/api/send-email', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ imageBase64: imageUrl, komonId: serialNumber, title: finalTitle }),
-    }).catch(err => console.error(err));
-    window.open(orderUrl, '_blank', 'noopener,noreferrer');
-  };
-
   return (
     <div className="min-h-screen bg-stone-100 text-stone-800 p-4 sm:p-6 flex flex-col items-center justify-center font-serif">
       <div className="max-w-2xl w-full bg-[#fdfbf7] rounded-2xl shadow-2xl border border-stone-200 p-6 sm:p-8">
         
         <div className="text-center mb-6 pb-4 border-b border-stone-200">
-          <div className="inline-flex items-center gap-1.5 bg-stone-800 text-amber-200 text-[10px] tracking-widest px-3 py-0.5 rounded uppercase font-sans font-bold">
+          <div className="inline-flex items-center gap-1.5 bg-stone-800 text-amber-200 text-[10px] tracking-widest px-3 py-0.5 rounded uppercase font-sans font-bold shadow-sm">
             <img src={IUCHI_LOGO} alt="" className="h-3.5 w-auto object-contain brightness-125" />
-            <span>Digital Textile Atelier</span>
+            <span>Gofukuyasan Custom Tuned AI</span>
           </div>
           <div className="flex items-center justify-center gap-3 mt-3">
             <img src={IUCHI_LOGO} alt="居内商店" className="h-10 sm:h-12 w-auto object-contain" />
@@ -205,13 +167,12 @@ export default function Home() {
               ゴフクヤサン<br className="sm:hidden" />小紋ジェネレーター
             </h1>
           </div>
-          <p className="text-xs text-stone-500 mt-2 font-sans font-bold text-rose-800">
-            【開発中・無制限】あなただけの着物図案をお誂えします
+          <p className="text-[11px] sm:text-xs text-stone-500 mt-2 font-sans font-bold">
+            創業以来の図案アーカイブとノウハウを凝縮——着物専用に極限チューニングされた特注AI
           </p>
         </div>
 
         <div className="space-y-6">
-          
           <div className="bg-white p-4 rounded-xl border border-stone-200 shadow-sm">
             <div className="flex justify-between items-center mb-3">
               <label className="block text-sm font-bold text-stone-800 tracking-wider font-sans">
@@ -245,21 +206,20 @@ export default function Home() {
             )}
 
             <div className="mt-4">
-              <p className="text-[10px] font-bold text-stone-500 mb-1 font-sans">▼ 選択された意匠（自由に書き足しも可能です）</p>
+              {/* ★ここが「書き足すほど精度が上がる」という注記です */}
+              <div className="flex flex-col mb-1 font-sans">
+                <p className="text-[11px] font-bold text-stone-700">▼ 選択された意匠（自由に書き足しも可能です）</p>
+                <p className="text-[10px] font-bold text-rose-600 mt-0.5">※言葉を具体的に書き足すほどAIの精度が上がり、思い通りの柄に仕上がります！</p>
+              </div>
               <textarea
                 className="w-full rounded-lg border-2 border-stone-300 p-3 bg-stone-50 font-sans text-sm focus:outline-none focus:border-stone-800 resize-none font-bold"
                 rows={3}
                 value={motif}
                 onChange={(e) => setMotif(e.target.value)}
-                placeholder="上のボタンをタップするか、好きな言葉を入力してください"
+                placeholder="例：黒猫と赤い椿が絡み合うように、背景には三日月を浮かべて..."
                 disabled={loading}
               />
-              <button 
-                onClick={() => setMotif('')} 
-                className="text-[10px] text-stone-500 underline mt-1 font-sans"
-              >
-                クリア
-              </button>
+              <button onClick={() => setMotif('')} className="text-[10px] text-stone-500 underline mt-1 font-sans">クリア</button>
             </div>
           </div>
 
@@ -274,9 +234,7 @@ export default function Home() {
                   type="button"
                   onClick={() => setSelectedColor(col)}
                   className={`p-1.5 rounded-lg border flex flex-col items-center justify-center gap-1 transition-all ${
-                    selectedColor.name === col.name
-                      ? 'border-stone-900 ring-2 ring-stone-900 bg-white shadow-sm'
-                      : 'border-stone-200 bg-white/60 hover:bg-white'
+                    selectedColor.name === col.name ? 'border-stone-900 ring-2 ring-stone-900 bg-white shadow-sm' : 'border-stone-200 bg-white/60 hover:bg-white'
                   }`}
                 >
                   <span className="w-5 h-5 sm:w-6 sm:h-6 rounded-full border border-black/10 shadow-inner" style={{ backgroundColor: col.hex }} />
@@ -307,24 +265,14 @@ export default function Home() {
           <div className="flex gap-3 font-sans text-xs">
             <div className="flex-1">
               <label className="block text-[10px] font-bold text-stone-500 mb-1">密度</label>
-              <select 
-                className="w-full p-2 border border-stone-300 rounded bg-white text-stone-700 focus:outline-none focus:border-stone-800"
-                value={density}
-                onChange={(e) => setDensity(e.target.value)}
-              >
+              <select className="w-full p-2 border border-stone-300 rounded bg-white text-stone-700 focus:outline-none focus:border-stone-800" value={density} onChange={(e) => setDensity(e.target.value)}>
                 <option value="総柄（ぎっしり華やか）">総柄（ぎっしり華やか）</option>
                 <option value="飛び柄（余白を活かして上品に）">飛び柄（余白を活かして上品に）</option>
               </select>
             </div>
             <div className="flex-1">
               <label className="block text-[10px] font-bold text-stone-500 mb-1">図案銘（任意）</label>
-              <input
-                type="text"
-                className="w-full p-2 border border-stone-300 rounded bg-white text-stone-700 focus:outline-none focus:border-stone-800"
-                value={patternTitle}
-                onChange={(e) => setPatternTitle(e.target.value)}
-                placeholder="例：春宵の椿"
-              />
+              <input type="text" className="w-full p-2 border border-stone-300 rounded bg-white text-stone-700 focus:outline-none focus:border-stone-800" value={patternTitle} onChange={(e) => setPatternTitle(e.target.value)} placeholder="例：春宵の椿" />
             </div>
           </div>
 
@@ -335,22 +283,9 @@ export default function Home() {
             </label>
           </div>
 
-          {errorMsg && (
-            <div className="bg-rose-50 text-rose-800 text-xs font-bold p-3 rounded-lg border border-rose-200 font-sans">
-              {errorMsg}
-            </div>
-          )}
+          {errorMsg && <div className="bg-rose-50 text-rose-800 text-xs font-bold p-3 rounded-lg border border-rose-200 font-sans">{errorMsg}</div>}
 
-          <div className="flex justify-between items-center text-xs font-sans font-bold px-1 text-stone-600">
-            <span>※ 現在はテスト用に制限を解除しています</span>
-            <span>本日のお誂え可能数：<strong className="text-amber-800 text-sm">無制限（実験中）</strong></span>
-          </div>
-
-          <button
-            onClick={handleGenerate}
-            disabled={loading}
-            className="w-full bg-stone-900 text-amber-100 font-bold py-4 rounded-xl shadow-lg hover:bg-black disabled:bg-stone-400 disabled:text-stone-200 transition duration-200 font-sans tracking-widest text-sm"
-          >
+          <button onClick={handleGenerate} disabled={loading} className="w-full bg-stone-900 text-amber-100 font-bold py-4 rounded-xl shadow-lg hover:bg-black disabled:bg-stone-400 disabled:text-stone-200 transition duration-200 font-sans tracking-widest text-sm">
             {loading ? '図案を染め上げています...' : 'この意匠で小紋図案を謹製する'}
           </button>
         </div>
@@ -397,7 +332,7 @@ export default function Home() {
                     <span className="text-[10px] font-sans font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded border border-amber-300">{serialNumber}</span>
                     <img src={IUCHI_LOGO} alt="" className="h-5 w-auto object-contain" />
                   </div>
-                  <p className="text-[9px] font-sans text-stone-400">Mona Lisa捺染 謹製規格</p>
+                  <p className="text-[9px] font-sans text-stone-400">Mona Lisa Printing Spec / Gofukuyasan Tuned AI</p>
                 </div>
               </div>
             </div>
@@ -405,26 +340,48 @@ export default function Home() {
             <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 text-center">
               <p className="text-xs font-bold text-rose-800 font-sans mb-1">＼ お誂えをご希望の方へ ／</p>
               <p className="text-[10px] text-rose-600 font-sans mb-3">この図案データは当工房に送信され、職人が手作業で送り付け（つなぎ目）の微調整を行ってからプリントいたします。</p>
-              <a href={orderUrl} onClick={handleOrderClick} className="block w-full bg-rose-800 text-amber-50 font-black py-3 rounded-lg hover:bg-rose-900 transition shadow text-sm tracking-wider cursor-pointer">
+              <a href={orderUrl} target="_blank" rel="noopener noreferrer" className="block w-full bg-rose-800 text-amber-50 font-black py-3 rounded-lg hover:bg-rose-900 transition shadow text-sm tracking-wider cursor-pointer">
                 この図案でお誂えを仕立てる
               </a>
             </div>
 
-            <div className="space-y-2 font-sans pt-2">
-              <a href={xShareLink} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 w-full bg-black text-white font-bold py-3.5 px-4 rounded-xl hover:bg-stone-800 transition shadow text-sm">
-                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-                この小紋図案をXで披露する
-              </a>
+            {/* ★商品レコメンド連動枠 */}
+            <div className="bg-stone-50 border border-stone-200 rounded-xl p-4 mt-2">
+              <p className="text-xs font-bold text-stone-800 font-sans mb-2">👘 この図案に合わせるおすすめコーディネート</p>
+              <p className="text-[10px] text-stone-600 font-sans mb-3 leading-relaxed">
+                あなたが仕立てた意匠には、当店こだわりのアイテムが相性抜群です。
+              </p>
+              <div className="flex flex-col gap-2">
+                <a href={`https://store.gofukuyasan.com/view/search?search_keyword=${encodeURIComponent(motif.split('、')[0] || '帯')}`} target="_blank" rel="noopener noreferrer" className="block w-full bg-white border border-stone-300 text-stone-700 text-center py-2.5 rounded-lg hover:bg-stone-100 transition text-[11px] font-bold shadow-sm">
+                  ▶ ゴフクヤサンの「{motif.split('、')[0].substring(0,6) || 'オリジナル'}」関連商品を探す
+                </a>
+                <a href="https://store.gofukuyasan.com/" target="_blank" rel="noopener noreferrer" className="block w-full bg-white border border-stone-300 text-stone-700 text-center py-2.5 rounded-lg hover:bg-stone-100 transition text-[11px] font-bold shadow-sm">
+                  ▶ この帯に合わせる着物・小物を探す
+                </a>
+              </div>
+            </div>
+
+            {/* ★保存＆Xシェア案内枠 */}
+            <div className="space-y-3 font-sans pt-2">
+              <div className="text-center bg-stone-100 rounded-lg p-3 border border-stone-200">
+                <p className="text-[11px] font-bold text-stone-800 mb-1">【画像保存・シェアのお願い】</p>
+                <p className="text-[10px] text-stone-600 mb-3">下のボタンで端末に画像を保存してから、Xの投稿に添付してご披露ください！</p>
+                
+                <a href={imageUrl} download={`${serialNumber || 'komon'}_${finalTitle}.png`} className="flex items-center justify-center gap-2 w-full bg-white text-stone-800 font-bold py-3 px-4 rounded-xl border border-stone-300 hover:bg-stone-50 transition shadow-sm text-[13px] mb-2">
+                  <svg className="w-4 h-4 text-stone-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                  図案画像を端末に保存する
+                </a>
+
+                <a href={xShareLink} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 w-full bg-black text-white font-bold py-3 px-4 rounded-xl hover:bg-stone-800 transition shadow text-[13px]">
+                  <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                  この小紋図案をXで披露する
+                </a>
+              </div>
             </div>
           </div>
         )}
       </div>
-      
-      {/* Tailwindのアニメーション定義 */}
-      <style dangerouslySetInnerHTML={{__html: `
-        @keyframes slide { from { background-position: 0 0; } to { background-position: 100% 100%; } }
-        @keyframes loading { 0% { width: 0%; } 100% { width: 100%; } }
-      `}} />
+      <style dangerouslySetInnerHTML={{__html: `@keyframes slide { from { background-position: 0 0; } to { background-position: 100% 100%; } } @keyframes loading { 0% { width: 0%; } 100% { width: 100%; } }`}} />
     </div>
   );
 }
