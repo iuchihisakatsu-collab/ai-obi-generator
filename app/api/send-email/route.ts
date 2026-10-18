@@ -1,101 +1,170 @@
-import { NextResponse } from 'next/server';
-import { put } from '@vercel/blob';
-import OpenAI from 'openai';
-import { randomUUID } from 'node:crypto';
+import { NextResponse } from "next/server";
+import { put } from "@vercel/blob";
+import OpenAI from "openai";
+import { randomUUID } from "node:crypto";
 
-// ★ キャッシュを強制的に無効化（重要）
-export const dynamic = 'force-dynamic';
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// この値を変更してPushすると、旧デプロイとの区別ができる
+const ROUTE_MARKER = "genroute-diag-20261019-01";
+const IMAGE_MODEL = "gpt-image-2.5-sunburst";
+
+const headers = {
+  "Cache-Control": "no-store, max-age=0, must-revalidate",
+  "X-Debug-Route": ROUTE_MARKER,
+};
+
+// 一時診断用：ブラウザからアクセスして実行環境を確認する
+export async function GET() {
+  return NextResponse.json(
+    {
+      ok: true,
+      routeMarker: ROUTE_MARKER,
+      model: IMAGE_MODEL,
+      commit:
+        process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 8) ?? "unknown",
+      openAIKeyConfigured: Boolean(process.env.OPENAI_API_KEY),
+      blobTokenConfigured: Boolean(process.env.BLOB_READ_WRITE_TOKEN),
+    },
+    { headers }
+  );
+}
 
 export async function POST(req: Request) {
-  const requestId = randomUUID(); // 今回のデバッグ用のID
+  const requestId = randomUUID();
+
+  console.info("[GENERATE:START]", {
+    requestId,
+    routeMarker: ROUTE_MARKER,
+    model: IMAGE_MODEL,
+    commit:
+      process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 8) ?? "unknown",
+  });
 
   try {
-    const { motif, color, density, itemType } = await req.json();
+    const apiKey = process.env.OPENAI_API_KEY;
 
-    if (!motif || !color) {
-      return NextResponse.json({ error: 'モチーフまたは地色が指定されていません。' }, { status: 400 });
+    if (!apiKey) {
+      throw new Error("OPENAI_API_KEY is not configured");
     }
 
-    let imageSize: "1024x1024" | "1792x1024" | "1024x1792" = '1024x1024';
-    let ratioInstruction = '正方形のシームレス文様';
-    if (itemType === 'hanhaba') {
-      imageSize = '1792x1024';
-      ratioInstruction = '横長（16:9比率）の帯用テキスタイル文様';
-    } else if (itemType === 'tanmono') {
-      imageSize = '1024x1792';
-      ratioInstruction = '縦長（9:16比率）の反物・着尺用テキスタイル文様';
+    if (!process.env.BLOB_READ_WRITE_TOKEN) {
+      throw new Error("BLOB_READ_WRITE_TOKEN is not configured");
     }
 
-    let baseInstruction = "Flat overhead shot, perfectly seamless 2D textile pattern graphic design. Intended for Epson Monna Lisa high-end digital textile printing on silk. High resolution, crisp details, vivid color separation, no halftone dots. ";
-    let layoutInstruction = density === '総柄（ぎっしり華やか）'
-      ? "Continuous all-over repeating pattern, densely packed motifs, rich and gorgeous layout with minimal negative space."
-      : "Scattered motifs with elegant negative space, refined traditional Japanese layout, well-balanced floating elements.";
-    let tunedStyle = 'Masterpiece, highly detailed digital textile design. ';
-    
-    if (motif.includes('浮世絵')) tunedStyle += 'Ukiyo-e woodblock print aesthetic, flat bold colors, precise ink outlines, Edo period traditional art style. ';
-    if (motif.includes('京友禅')) tunedStyle += 'Kyo-Yuzen dyeing style, delicate line art, elegant and refined motifs, soft gradation, subtle gold leaf accents. ';
-    if (motif.includes('水彩画')) tunedStyle += 'Soft pastel watercolor wash, delicate color blending, transparent and gentle texture. ';
-    if (motif.includes('油絵')) tunedStyle += 'Thick impasto oil painting style, visible rich brushstrokes, expressive texture, deep color saturation. ';
-    if (motif.includes('アールヌーヴォー')) tunedStyle += 'Art Nouveau style, Alphonse Mucha aesthetic, elegant flowing curves, intricate floral ornaments. ';
-    if (motif.includes('アールデコ')) tunedStyle += 'Art Deco style, geometric elegance, symmetrical balance, 1920s glamour, gold and black contrasts. ';
-    if (motif.includes('ミッドセンチュリー')) tunedStyle += 'Mid-century modern textile, organic abstract shapes, retro color palette, minimal and stylish. ';
-    if (motif.includes('70sサイケ')) tunedStyle += '70s psychedelic pop art, vibrant contrasting colors, wavy hypnotic patterns, retro groovy vibe. ';
-    if (motif.includes('大正ロマン') || motif.includes('昭和レトロ')) tunedStyle += 'Taisho Roman retro style, nostalgic Japanese aesthetic, Takehisa Yumeji style, vintage modern crossover. ';
-    if (motif.includes('スチームパンク')) tunedStyle += 'Steampunk aesthetic, brass clockwork, gears and cogs, Victorian industrial fantasy, metallic accents. ';
-    if (motif.includes('ゴスロリ')) tunedStyle += 'Gothic Lolita aesthetic, dark elegant fantasy, intricate black lace borders, decadent beauty, mysterious mood. ';
-    if (motif.includes('ゆめかわいい')) tunedStyle += 'Dreamy kawaii style, pastel color palette, magical girl aesthetic, sparkling stars, soft fluffy texture. ';
+    const body = await req.json();
+    const { motif, color, density, itemType } = body;
 
-    const negativePrompt = "Absolutely NO humans, NO faces, NO body parts, NO clothing items being worn. NO 3D perspective, NO fabric folds, NO wrinkles, NO lighting/shadow effects, NO background scenes. The image MUST consist ONLY of the repeating pattern motifs on the solid background color.";
+    // ここは診断用の簡易プロンプト。
+    // 問題が解消したら、現在使用している詳細なプロンプトに戻す。
+    const prompt = [
+      "Create a textile pattern design.",
+      `Motif: ${String(motif ?? "")}`,
+      `Color: ${String(color ?? "")}`,
+      `Density: ${String(density ?? "")}`,
+      `Item type: ${String(itemType ?? "")}`,
+    ].join("\n");
 
-    const prompt = `${baseInstruction}\n${layoutInstruction}\n\n【Textile Requirements】\nMotifs: ${motif}\nBackground Color: Solid ${color}\nFormat: ${ratioInstruction}\n\n【Art Style & Texture】\n${tunedStyle}\n\n【Strict Restrictions】\n${negativePrompt}`;
+    const openai = new OpenAI({ apiKey });
 
-    // ★ 最新のGPT Imageモデル
-    const response = await openai.images.generate({
-      model: "gpt-image-2.5-sunburst", 
-      prompt: prompt,
+    console.info("[GENERATE:OPENAI_REQUEST]", {
+      requestId,
+      routeMarker: ROUTE_MARKER,
+      model: IMAGE_MODEL,
+      size: "1024x1024",
+    });
+
+    const result = await openai.images.generate({
+      model: IMAGE_MODEL,
+      prompt,
       n: 1,
-      size: imageSize,
-      quality: "high", 
+      size: "1024x1024",
+      quality: "high",
       output_format: "png",
     });
 
-    const base64Image = response.data?.[0]?.b64_json;
-    if (!base64Image) throw new Error('画像データの取得に失敗しました。');
+    const base64Image = result.data?.[0]?.b64_json;
 
-    // Blobに保存
-    const buffer = Buffer.from(base64Image, 'base64');
-    const filename = `komon-${Date.now()}.png`;
+    if (!base64Image) {
+      throw new Error("OpenAI returned no image data");
+    }
 
-    const blob = await put(filename, buffer, { 
-      access: 'public', 
-      contentType: 'image/png' 
+    console.info("[GENERATE:OPENAI_SUCCESS]", {
+      requestId,
+      routeMarker: ROUTE_MARKER,
+      model: IMAGE_MODEL,
     });
 
-    // ★ レスポンス時にもキャッシュを持たせないヘッダーを付与
-    return NextResponse.json(
-      { 
-        imageUrl: blob.url, 
-        blobUrl: blob.url,
-        debugId: requestId // デバッグ用
-      },
+    const buffer = Buffer.from(base64Image, "base64");
+
+    const blob = await put(
+      `generated/${requestId}.png`,
+      buffer,
       {
-        headers: {
-          'Cache-Control': 'no-store, max-age=0'
-        }
+        access: "public",
+        contentType: "image/png",
       }
     );
 
-  } catch (error: any) {
-    console.error('API Error:', error);
+    console.info("[GENERATE:BLOB_SUCCESS]", {
+      requestId,
+      routeMarker: ROUTE_MARKER,
+    });
+
     return NextResponse.json(
-      { error: error?.message || '通信エラーが発生しました。', debugId: requestId },
-      { 
-        status: 500,
-        headers: { 'Cache-Control': 'no-store, max-age=0' }
+      {
+        ok: true,
+        requestId,
+        routeMarker: ROUTE_MARKER,
+        model: IMAGE_MODEL,
+        imageUrl: blob.url,
+      },
+      {
+        headers: {
+          ...headers,
+          "X-Debug-Request-Id": requestId,
+        },
+      }
+    );
+  } catch (error) {
+    const isOpenAIError = error instanceof OpenAI.APIError;
+
+    const message =
+      error instanceof Error ? error.message : String(error);
+
+    const openAIError = isOpenAIError
+      ? {
+          status: error.status,
+          code: error.code,
+          type: error.type,
+          requestId: error.request_id,
+        }
+      : null;
+
+    console.error("[GENERATE:ERROR]", {
+      requestId,
+      routeMarker: ROUTE_MARKER,
+      model: IMAGE_MODEL,
+      message,
+      openAIError,
+    });
+
+    return NextResponse.json(
+      {
+        ok: false,
+        requestId,
+        routeMarker: ROUTE_MARKER,
+        model: IMAGE_MODEL,
+        error: message,
+        openAIRequestId: openAIError?.requestId ?? null,
+      },
+      {
+        status: isOpenAIError ? error.status ?? 502 : 500,
+        headers: {
+          ...headers,
+          "X-Debug-Request-Id": requestId,
+        },
       }
     );
   }
