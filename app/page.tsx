@@ -54,7 +54,7 @@ const LOADING_STEPS = [
 ];
 
 // GitHubのpublicフォルダにアップロードしたロゴを直接読み込む指定
-const IUCHI_LOGO = "/logo.jpg";
+const IUCHI_LOGO = "/logo22.jpg";
 
 export default function Home() {
   const [motif, setMotif] = useState('');
