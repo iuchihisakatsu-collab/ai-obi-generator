@@ -129,8 +129,20 @@ export default function Home() {
 
       if (data.imageUrl) {
         setImageUrl(data.imageUrl);
-        setSerialNumber(`KOMON-${Math.floor(1000 + Math.random() * 9000)}`);
+        const newSerial = `KOMON-${Math.floor(1000 + Math.random() * 9000)}`;
+        setSerialNumber(newSerial);
         
+        // 居内様へのメール送信処理を呼び出す（エラーで止まらないようにcatch）
+        fetch('/api/send-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            imageBase64: data.imageUrl,
+            komonId: newSerial,
+            title: patternTitle.trim() || `${motif.slice(0, 10)}の小紋`,
+          }),
+        }).catch(err => console.error('メール送信呼び出しエラー:', err));
+
         const today = new Date().toISOString().slice(0, 10);
         const newCount = 5 - remaining + 1;
         localStorage.setItem('generateDate', today);
