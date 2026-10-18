@@ -129,20 +129,9 @@ export default function Home() {
 
       if (data.imageUrl) {
         setImageUrl(data.imageUrl);
-        const newSerial = `KOMON-${Math.floor(1000 + Math.random() * 9000)}`;
-        setSerialNumber(newSerial);
+        // ここでのメール送信処理は削除し、注文ボタンを押した時に移動しました
+        setSerialNumber(`KOMON-${Math.floor(1000 + Math.random() * 9000)}`);
         
-        // 居内様へのメール送信処理を呼び出す（エラーで止まらないようにcatch）
-        fetch('/api/send-email', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            imageBase64: data.imageUrl,
-            komonId: newSerial,
-            title: patternTitle.trim() || `${motif.slice(0, 10)}の小紋`,
-          }),
-        }).catch(err => console.error('メール送信呼び出しエラー:', err));
-
         const today = new Date().toISOString().slice(0, 10);
         const newCount = 5 - remaining + 1;
         localStorage.setItem('generateDate', today);
@@ -164,8 +153,27 @@ export default function Home() {
   const shareUrl = typeof window !== 'undefined' ? encodeURIComponent(window.location.href) : '';
   const xShareLink = `https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`;
 
-  // makeshopの半幅帯商品ページへの連携URL（シリアル番号と銘をパラメータとして付与）
+  // makeshopの半幅帯商品ページへの連携URL
   const orderUrl = `https://store.gofukuyasan.com/view/item/000000007300?komon_id=${encodeURIComponent(serialNumber)}&title=${encodeURIComponent(finalTitle)}`;
+
+  // ★注文ボタンを押した時の処理（メール送信 ＋ makeshopを開く）
+  const handleOrderClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault(); // 一旦普通のリンク移動を止める
+
+    // 1. 裏側でこっそりメール送信
+    fetch('/api/send-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        imageBase64: imageUrl,
+        komonId: serialNumber,
+        title: finalTitle,
+      }),
+    }).catch(err => console.error('メール送信呼び出しエラー:', err));
+
+    // 2. 別タブでmakeshopを開く
+    window.open(orderUrl, '_blank', 'noopener,noreferrer');
+  };
 
   return (
     <div className="min-h-screen bg-stone-100 text-stone-800 p-4 sm:p-6 flex flex-col items-center justify-center font-serif">
@@ -405,12 +413,11 @@ export default function Home() {
                 図案原画を保存する（長押しまたは右クリック）
               </a>
 
-              {/* makeshop半幅帯ページへ直結するボタン */}
+              {/* ★注文ボタンを a タグからボタン処理に変更 */}
               <a
                 href={orderUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block text-center w-full bg-rose-800 text-amber-50 font-black py-4 rounded-xl hover:bg-rose-900 transition shadow-lg text-sm tracking-wider"
+                onClick={handleOrderClick}
+                className="block text-center w-full bg-rose-800 text-amber-50 font-black py-4 rounded-xl hover:bg-rose-900 transition shadow-lg text-sm tracking-wider cursor-pointer"
               >
                 この図案でお誂え半幅帯を仕立てる（14,000円+税）
               </a>
