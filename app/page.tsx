@@ -86,7 +86,7 @@ export default function Home() {
   const [showTags, setShowTags] = useState(true);
 
   useEffect(() => {
-    let interval: any;
+    let interval: ReturnType<typeof setInterval> | undefined;
     if (loading) {
       setLoadingStep(0);
       interval = setInterval(() => {
@@ -96,7 +96,9 @@ export default function Home() {
         });
       }, 4000); 
     }
-    return () => clearInterval(interval);
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, [loading]);
 
   const handleTagClick = (tag: string) => {
@@ -152,6 +154,22 @@ export default function Home() {
   const xShareLink = `https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`;
   const orderUrl = `https://store.gofukuyasan.com/view/item/000000007300?komon_id=${encodeURIComponent(serialNumber)}&title=${encodeURIComponent(finalTitle)}`;
 
+  // ★お誂えボタン押下時にGmailへ画像送信＋Makeshop遷移
+  const handleOrderClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault(); 
+    fetch('/api/send-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imageBase64: imageUrl, komonId: serialNumber, title: finalTitle }),
+    }).catch(err => console.error(err));
+    window.open(orderUrl, '_blank', 'noopener,noreferrer');
+  };
+
+  // 型安全なキーワード抽出
+  const splitMotifs = motif ? motif.split('、') : [];
+  const primaryTag = splitMotifs.length > 0 && splitMotifs[0] ? splitMotifs[0].trim() : '';
+  const searchKeyword = primaryTag ? primaryTag.slice(0, 6) : '帯';
+
   return (
     <div className="min-h-screen bg-stone-100 text-stone-800 p-4 sm:p-6 flex flex-col items-center justify-center font-serif">
       <div className="max-w-2xl w-full bg-[#fdfbf7] rounded-2xl shadow-2xl border border-stone-200 p-6 sm:p-8">
@@ -206,7 +224,6 @@ export default function Home() {
             )}
 
             <div className="mt-4">
-              {/* ★ここが「書き足すほど精度が上がる」という注記です */}
               <div className="flex flex-col mb-1 font-sans">
                 <p className="text-[11px] font-bold text-stone-700">▼ 選択された意匠（自由に書き足しも可能です）</p>
                 <p className="text-[10px] font-bold text-rose-600 mt-0.5">※言葉を具体的に書き足すほどAIの精度が上がり、思い通りの柄に仕上がります！</p>
@@ -340,20 +357,20 @@ export default function Home() {
             <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 text-center">
               <p className="text-xs font-bold text-rose-800 font-sans mb-1">＼ お誂えをご希望の方へ ／</p>
               <p className="text-[10px] text-rose-600 font-sans mb-3">この図案データは当工房に送信され、職人が手作業で送り付け（つなぎ目）の微調整を行ってからプリントいたします。</p>
-              <a href={orderUrl} target="_blank" rel="noopener noreferrer" className="block w-full bg-rose-800 text-amber-50 font-black py-3 rounded-lg hover:bg-rose-900 transition shadow text-sm tracking-wider cursor-pointer">
+              <a href={orderUrl} onClick={handleOrderClick} className="block w-full bg-rose-800 text-amber-50 font-black py-3 rounded-lg hover:bg-rose-900 transition shadow text-sm tracking-wider cursor-pointer">
                 この図案でお誂えを仕立てる
               </a>
             </div>
 
-            {/* ★商品レコメンド連動枠 */}
+            {/* 商品レコメンド連動枠 */}
             <div className="bg-stone-50 border border-stone-200 rounded-xl p-4 mt-2">
               <p className="text-xs font-bold text-stone-800 font-sans mb-2">👘 この図案に合わせるおすすめコーディネート</p>
               <p className="text-[10px] text-stone-600 font-sans mb-3 leading-relaxed">
                 あなたが仕立てた意匠には、当店こだわりのアイテムが相性抜群です。
               </p>
               <div className="flex flex-col gap-2">
-                <a href={`https://store.gofukuyasan.com/view/search?search_keyword=${encodeURIComponent(motif.split('、')[0] || '帯')}`} target="_blank" rel="noopener noreferrer" className="block w-full bg-white border border-stone-300 text-stone-700 text-center py-2.5 rounded-lg hover:bg-stone-100 transition text-[11px] font-bold shadow-sm">
-                  ▶ ゴフクヤサンの「{motif.split('、')[0].substring(0,6) || 'オリジナル'}」関連商品を探す
+                <a href={`https://store.gofukuyasan.com/view/search?search_keyword=${encodeURIComponent(searchKeyword)}`} target="_blank" rel="noopener noreferrer" className="block w-full bg-white border border-stone-300 text-stone-700 text-center py-2.5 rounded-lg hover:bg-stone-100 transition text-[11px] font-bold shadow-sm">
+                  ▶ ゴフクヤサンの「{searchKeyword}」関連商品を探す
                 </a>
                 <a href="https://store.gofukuyasan.com/" target="_blank" rel="noopener noreferrer" className="block w-full bg-white border border-stone-300 text-stone-700 text-center py-2.5 rounded-lg hover:bg-stone-100 transition text-[11px] font-bold shadow-sm">
                   ▶ この帯に合わせる着物・小物を探す
@@ -361,7 +378,7 @@ export default function Home() {
               </div>
             </div>
 
-            {/* ★保存＆Xシェア案内枠 */}
+            {/* 保存＆Xシェア案内枠 */}
             <div className="space-y-3 font-sans pt-2">
               <div className="text-center bg-stone-100 rounded-lg p-3 border border-stone-200">
                 <p className="text-[11px] font-bold text-stone-800 mb-1">【画像保存・シェアのお願い】</p>
