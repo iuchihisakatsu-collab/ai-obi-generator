@@ -20,7 +20,7 @@ export async function POST(req: Request) {
     const prompt = `A flat overhead 2D Japanese textile pattern, traditional Komon kimono fabric design. Seamless repeating pattern, high resolution, top-down view, vector art style. Background base color: ${color}. Main motif elements: ${motif}. Pattern arrangement: ${density}. Clean details, elegant traditional aesthetic, NO human, NO model, NO 3D rendering.`;
 
     const response = await openai.images.generate({
-      model: 'gpt-image-1',
+      model: 'dall-e-3',
       prompt: prompt,
       n: 1,
       size: '1024x1024',
