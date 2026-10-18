@@ -217,3 +217,185 @@ export default function Home() {
               参. 散りばめるモチーフ・背景柄（自由入力）
             </label>
             <p className="text-[10px] text-stone-500 mb-2 font-sans">
+              ※「市松模様」「水玉」「縦縞」などの背景柄も、ここへ自由にテキストで指示できます。
+            </p>
+            <textarea
+              className="w-full rounded-lg border border-stone-300 p-3 bg-white font-sans text-sm focus:outline-none focus:ring-2 focus:ring-stone-800 resize-none"
+              rows={3}
+              value={motif}
+              onChange={(e) => setMotif(e.target.value)}
+              placeholder="例：市松模様の背景に、黒猫と赤い椿&#13;&#10;例：水玉模様の上に、レトロな蓄音機と洋書"
+              disabled={loading}
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-stone-700 tracking-wider mb-1 font-sans">
+              四. 柄の密度
+            </label>
+            <div className="flex gap-3 font-sans text-xs">
+              {['総柄（ぎっしり華やか）', '飛び柄（余白を活かして上品に）'].map((item) => (
+                <label
+                  key={item}
+                  className={`flex-1 p-2.5 rounded-lg border text-center cursor-pointer font-bold transition ${
+                    density === item
+                      ? 'border-stone-900 bg-stone-900 text-white'
+                      : 'border-stone-200 bg-white text-stone-700'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="density"
+                    className="sr-only"
+                    checked={density === item}
+                    onChange={() => setDensity(item)}
+                  />
+                  {item}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-stone-50 rounded-lg p-3 border border-stone-200 text-xs text-stone-600 font-sans">
+            <label className="flex items-start gap-2 font-bold cursor-pointer text-stone-800 leading-snug">
+              <input
+                type="checkbox"
+                checked={agreed}
+                onChange={(e) => setAgreed(e.target.checked)}
+                className="w-4 h-4 mt-0.5 rounded text-stone-900 focus:ring-stone-900 accent-stone-900"
+              />
+              <span>アニメ・漫画・既存ブランドなどの商標・著作権を侵害しない完全オリジナル意匠として調合することに誓約します</span>
+            </label>
+          </div>
+
+          {errorMsg && (
+            <div className="bg-rose-50 text-rose-800 text-xs font-bold p-3 rounded-lg border border-rose-200 font-sans">
+              {errorMsg}
+            </div>
+          )}
+
+          <div className="flex justify-between items-center text-xs font-sans font-bold px-1 text-stone-600">
+            <span>※ 日付変更（午前0時）で回復</span>
+            <span>本日のお誂え可能数：<strong className="text-amber-800 text-sm">{remaining}</strong> / 5回</span>
+          </div>
+
+          <button
+            onClick={handleGenerate}
+            disabled={loading || remaining <= 0}
+            className="w-full bg-stone-900 text-amber-100 font-bold py-4 rounded-xl shadow-lg hover:bg-black disabled:bg-stone-300 transition duration-200 font-sans tracking-widest text-sm"
+          >
+            {loading ? '小紋図案を染め上げています...' : 'この意匠で小紋図案を謹製する'}
+          </button>
+        </div>
+
+        {loading && (
+          <div className="mt-6 p-4 rounded-xl bg-amber-50/80 border border-amber-200 text-center animate-pulse">
+            <p className="text-xs font-bold text-amber-900 font-sans">
+              {LOADING_STEPS[loadingStep]}
+            </p>
+          </div>
+        )}
+
+        {imageUrl && !loading && (
+          <div className="mt-8 pt-6 border-t border-stone-200 space-y-4">
+            
+            <div className="flex justify-center gap-2 font-sans text-xs">
+              <button
+                onClick={() => setPreviewMode('pattern')}
+                className={`px-4 py-1.5 rounded-full font-bold transition ${
+                  previewMode === 'pattern'
+                    ? 'bg-stone-900 text-white'
+                    : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                }`}
+              >
+                ① 図案原画（正方形）
+              </button>
+              <button
+                onClick={() => setPreviewMode('fabric')}
+                className={`px-4 py-1.5 rounded-full font-bold transition ${
+                  previewMode === 'fabric'
+                    ? 'bg-amber-800 text-white'
+                    : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                }`}
+              >
+                ② 反物仕立て姿（生地イメージ）
+              </button>
+            </div>
+
+            <div className="bg-[#fffefb] border-2 border-stone-300 rounded-xl p-4 shadow-xl">
+              {previewMode === 'pattern' ? (
+                <div className="relative aspect-square w-full rounded-lg overflow-hidden border border-stone-200 shadow-inner">
+                  <img src={imageUrl} alt="小紋の図案" className="w-full h-full object-cover" />
+                </div>
+              ) : (
+                <div className="flex flex-col items-center py-4 bg-stone-200/50 rounded-lg">
+                  <span className="text-[11px] font-sans text-stone-500 mb-2 font-bold">
+                    【反物（着尺）イメージ】
+                  </span>
+                  <div
+                    className="w-full h-64 rounded border-x-4 border-stone-400 shadow-md bg-repeat"
+                    style={{
+                      backgroundImage: `url(${imageUrl})`,
+                      backgroundSize: '120px 120px',
+                    }}
+                  />
+                  <span className="text-[10px] font-sans text-stone-400 mt-2">
+                    ※ 生地幅に柄を連続配置したシミュレーションです
+                  </span>
+                </div>
+              )}
+
+              <div className="mt-4 pt-3 border-t border-dashed border-stone-300 flex justify-between items-end text-stone-700">
+                <div>
+                  <p className="text-[10px] font-sans text-stone-400">図案銘</p>
+                  <p className="text-base font-black text-stone-900">{finalTitle}</p>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] font-sans font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded border border-amber-300">
+                    {serialNumber}
+                  </span>
+                  <p className="text-[9px] font-sans text-stone-400 mt-1">Mona Lisa捺染 謹製規格</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2 pt-2 font-sans">
+              <a
+                href={xShareLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 w-full bg-black text-white font-bold py-3.5 px-4 rounded-xl hover:bg-stone-800 transition shadow"
+              >
+                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                </svg>
+                この小紋図案をXで披露する（#AI小紋ジェネレーター）
+              </a>
+
+              <a
+                href={imageUrl}
+                download="komon-design.png"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block text-center w-full border border-stone-400 text-stone-700 font-bold py-3 rounded-xl hover:bg-stone-100 transition text-xs"
+              >
+                図案原画を保存する（長押しまたは右クリック）
+              </a>
+
+              <a
+                href="https://store.gofukuyasan.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block text-center w-full bg-rose-800 text-amber-50 font-black py-4 rounded-xl hover:bg-rose-900 transition shadow-lg text-sm tracking-wider"
+              >
+                この図案で着物や小物を仕立てる（販売店へ）
+              </a>
+            </div>
+
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+}
