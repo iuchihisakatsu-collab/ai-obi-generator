@@ -47,17 +47,16 @@ export async function POST(req: Request) {
 
     const prompt = `${baseInstruction}\n${layoutInstruction}\n\n【Textile Requirements】\nMotifs: ${motif}\nBackground Color: Solid ${color}\nFormat: ${ratioInstruction}\n\n【Art Style & Texture】\n${tunedStyle}\n\n【Strict Restrictions】\n${negativePrompt}`;
 
-    // ★修正箇所：2026年最新のGPT Imageモデルと新パラメータを指定
     const response = await openai.images.generate({
-      model: "gpt-image-2.5-sunburst", // dall-e-3から移行
+      model: "dall-e-3",
       prompt: prompt,
       n: 1,
       size: imageSize,
-      quality: "high", // 旧standardから変更
-      output_format: "png", // 新しく追加
+      quality: "standard",
+      response_format: "b64_json",
     });
 
-    const base64Image = response.data?.[0]?.b64_json;
+    const base64Image = response.data[0].b64_json;
     if (!base64Image) throw new Error('画像データの取得に失敗しました。');
 
     const buffer = Buffer.from(base64Image, 'base64');
