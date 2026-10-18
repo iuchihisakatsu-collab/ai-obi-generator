@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
   try {
-    // ★ 'itemType' も受け取るように追加
     const { motif, color, density, itemType } = await request.json();
 
     if (!motif || !color) {
@@ -30,7 +29,7 @@ ${layoutPrompt}`;
 
     const userPrompt = `Motifs: ${motif}`;
 
-    // ★ここで選ばれた種類に合わせてサイズを切り替える
+    // 選ばれた種類に合わせてサイズを切り替える
     let imageSize = '1024x1024'; // デフォルト
     if (itemType === 'hanhaba') {
       imageSize = '1792x1024'; // 横長（半幅帯用）
@@ -38,6 +37,7 @@ ${layoutPrompt}`;
       imageSize = '1024x1792'; // 縦長（反物・京袋帯用）
     }
 
+    // ★ エラー原因だった response_format を削除しました
     const response = await fetch('https://api.openai.com/v1/images/generations', {
       method: 'POST',
       headers: {
@@ -48,9 +48,8 @@ ${layoutPrompt}`;
         model: "dall-e-3",
         prompt: `${systemPrompt}\n\n${userPrompt}`,
         n: 1,
-        size: imageSize, // ★切り替えたサイズを指定
-        quality: "hd",
-        response_format: "b64_json"
+        size: imageSize,
+        quality: "hd"
       }),
     });
 
@@ -61,8 +60,21 @@ ${layoutPrompt}`;
       return NextResponse.json({ success: false, error: `OpenAI APIエラー: ${aiData.error?.message || '不明なエラー'}` }, { status: response.status });
     }
 
-    const base64Data = aiData.data[0].b64_json;
-    const dataUrl = `data:image/png;base64,${base64Data}`;
+    const imgData = aiData.data[0];
+    let dataUrl = '';
+
+    // ★ URL形式で返ってきた場合でもサーバー側で安全に変換する仕組みを追加
+    if (imgData.b64_json) {
+      dataUrl = `data:image/png;base64,${imgData.b64_json}`;
+    } else if (imgData.url) {
+      const imgRes = await fetch(imgData.url);
+      const arrayBuffer = await imgRes.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      const base64Data = buffer.toString('base64');
+      dataUrl = `data:image/png;base64,${base64Data}`;
+    } else {
+      return NextResponse.json({ success: false, error: '画像データの取得に失敗しました。' }, { status: 500 });
+    }
 
     return NextResponse.json({ success: true, imageUrl: dataUrl });
 
