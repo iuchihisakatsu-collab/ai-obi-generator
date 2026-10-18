@@ -42,11 +42,11 @@ const TAG_CATEGORIES = [
 
 const LOADING_STEPS = [
   '壱. ご指定の意匠から、テキスタイルの骨格を設計中...',
-  '弐. ゴフクヤサン秘伝の調合レシピ（構図・色彩補正）を適用中...',
+  '弐. 着物の配色・構図バランスを反映中...',
   '参. デジタル捺染機「モナリザ」用の高精細データを構築中...',
   '四. シームレス文様の送り付け（連続性）を計算中...',
   '五. 染料の重なりと生地の質感をシミュレート中...',
-  '六. 最終仕上げ：世界に一つの図案に銘を打刻しています...',
+  '六. 最終仕上げ：図案の生成を完了しています...',
 ];
 
 const IUCHI_LOGO = "https://gofukuyasan.com/wp-content/uploads/2026/10/logo22.jpg";
@@ -90,9 +90,9 @@ export default function Home() {
   const handleGenerate = async () => {
     setErrorMsg('');
     if (!motif.trim()) { setErrorMsg('モチーフを入力または選択してください。'); return; }
-    if (!agreed) { setErrorMsg('著作権・商標権に関する誓約への同意が必要です。'); return; }
+    if (!agreed) { setErrorMsg('著作権への配慮および利用規約への同意が必要です。'); return; }
     const hitWord = FORBIDDEN_WORDS.find((word) => motif.toLowerCase().includes(word));
-    if (hitWord) { setErrorMsg(`特定のキャラクターや商標名「${hitWord}」を含む言葉は入力できません。`); return; }
+    if (hitWord) { setErrorMsg(`特定のキャラクターや既存ブランド名「${hitWord}」を含む言葉は入力できません。`); return; }
 
     setLoading(true);
     try {
@@ -108,7 +108,7 @@ export default function Home() {
         setBlobUrl(data.blobUrl);   
         setSerialNumber(`KOMON-${Math.floor(1000 + Math.random() * 9000)}`);
       } else {
-        setErrorMsg(data.error || '図案の調合に失敗しました。');
+        setErrorMsg(data.error || '図案の生成に失敗しました。');
       }
     } catch (error) {
       setErrorMsg('通信エラーが発生しました。時間を置いてお試しください。');
@@ -117,7 +117,7 @@ export default function Home() {
   };
 
   const finalTitle = patternTitle.trim() || '（無題）';
-  const shareText = encodeURIComponent(`AIで仕立てた私だけの小紋図案が完成しました👘✨\n\n銘：『${finalTitle}』\n地色：${selectedColor.name}\n\n#ゴフクヤサン小紋ジェネレーター #ゴフクヤサン #モナリザプリント #居内商店`);
+  const shareText = encodeURIComponent(`AIと一緒に考えたオリジナルの小紋図案ができました👘✨\n\n銘：『${finalTitle}』\n地色：${selectedColor.name}\n\n#ゴフクヤサン小紋ジェネレーター #ゴフクヤサン #モナリザプリント #居内商店`);
   const shareUrl = typeof window !== 'undefined' ? encodeURIComponent(window.location.href) : '';
   const xShareLink = `https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`;
   const orderUrl = `https://store.gofukuyasan.com/view/item/000000007300?komon_id=${encodeURIComponent(serialNumber)}&title=${encodeURIComponent(finalTitle)}`;
@@ -144,10 +144,11 @@ export default function Home() {
     <div className="min-h-screen bg-stone-100 text-stone-800 p-4 sm:p-6 flex flex-col items-center justify-center font-serif">
       <div className="max-w-2xl w-full bg-[#fdfbf7] rounded-2xl shadow-2xl border border-stone-200 p-6 sm:p-8">
         
+        {/* ヘッダーエリア */}
         <div className="text-center mb-6 pb-4 border-b border-stone-200">
           <div className="inline-flex items-center gap-1.5 bg-stone-800 text-amber-200 text-[10px] tracking-widest px-3 py-0.5 rounded uppercase font-sans font-bold shadow-sm">
             <img src={IUCHI_LOGO} alt="" className="h-3.5 w-auto object-contain brightness-125" />
-            <span>Gofukuyasan Custom Tuned AI</span>
+            <span>Gofukuyasan Pattern Studio</span>
           </div>
           <div className="flex items-center justify-center gap-3 mt-3">
             <img src={IUCHI_LOGO} alt="居内商店" className="h-10 sm:h-12 w-auto object-contain" />
@@ -156,7 +157,7 @@ export default function Home() {
             </h1>
           </div>
           <p className="text-[11px] sm:text-xs text-stone-500 mt-2 font-sans font-bold">
-            創業以来の図案アーカイブとノウハウを凝縮——着物専用に極限チューニングされた特注AI
+            着物の配色と柄づくりのノウハウを生かした、オリジナル図案づくりのためのAIツール
           </p>
         </div>
 
@@ -196,7 +197,7 @@ export default function Home() {
             <div className="mt-4">
               <div className="flex flex-col mb-1 font-sans">
                 <p className="text-[11px] font-bold text-stone-700">▼ 選択された意匠（自由に書き足しも可能です）</p>
-                <p className="text-[10px] font-bold text-rose-600 mt-0.5">※言葉を具体的に書き足すほどAIの精度が上がり、思い通りの柄に仕上がります！</p>
+                <p className="text-[10px] font-bold text-amber-800 mt-0.5">※頭の中にあるイメージを言葉で書き足すほど、より理想の雰囲気に近づきます。</p>
               </div>
               <textarea
                 className="w-full rounded-lg border-2 border-stone-300 p-3 bg-stone-50 font-sans text-sm focus:outline-none focus:border-stone-800 resize-none font-bold"
@@ -220,153 +221,4 @@ export default function Home() {
                   key={col.name}
                   type="button"
                   onClick={() => setSelectedColor(col)}
-                  className={`p-1.5 rounded-lg border flex flex-col items-center justify-center gap-1 transition-all ${
-                    selectedColor.name === col.name ? 'border-stone-900 ring-2 ring-stone-900 bg-white shadow-sm' : 'border-stone-200 bg-white/60 hover:bg-white'
-                  }`}
-                >
-                  <span className="w-5 h-5 sm:w-6 sm:h-6 rounded-full border border-black/10 shadow-inner" style={{ backgroundColor: col.hex }} />
-                  <span className="text-[9px] sm:text-[10px] font-sans text-stone-700 font-bold whitespace-nowrap overflow-hidden text-ellipsis w-full text-center">
-                    {col.name.split(' ')[0]}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-stone-700 tracking-wider mb-1 font-sans">
-              参. 仕立てるアイテム（柄の比率が変わります）
-            </label>
-            <div className="flex gap-3 font-sans text-xs">
-              <label className={`flex-1 p-2.5 rounded-lg border text-center cursor-pointer font-bold transition ${itemType === 'hanhaba' ? 'border-stone-900 bg-stone-900 text-white' : 'border-stone-200 bg-white text-stone-700'}`}>
-                <input type="radio" className="sr-only" checked={itemType === 'hanhaba'} onChange={() => setItemType('hanhaba')} />
-                半幅帯（横長）
-              </label>
-              <label className={`flex-1 p-2.5 rounded-lg border text-center cursor-pointer font-bold transition ${itemType === 'tanmono' ? 'border-stone-900 bg-stone-900 text-white' : 'border-stone-200 bg-white text-stone-700'}`}>
-                <input type="radio" className="sr-only" checked={itemType === 'tanmono'} onChange={() => setItemType('tanmono')} />
-                反物・京袋帯（縦長）
-              </label>
-            </div>
-          </div>
-
-          <div className="flex gap-3 font-sans text-xs">
-            <div className="flex-1">
-              <label className="block text-[10px] font-bold text-stone-500 mb-1">密度</label>
-              <select className="w-full p-2 border border-stone-300 rounded bg-white text-stone-700 focus:outline-none focus:border-stone-800" value={density} onChange={(e) => setDensity(e.target.value)}>
-                <option value="総柄（ぎっしり華やか）">総柄（ぎっしり華やか）</option>
-                <option value="飛び柄（余白を活かして上品に）">飛び柄（余白を活かして上品に）</option>
-              </select>
-            </div>
-            <div className="flex-1">
-              <label className="block text-[10px] font-bold text-stone-500 mb-1">図案銘（任意）</label>
-              <input type="text" className="w-full p-2 border border-stone-300 rounded bg-white text-stone-700 focus:outline-none focus:border-stone-800" value={patternTitle} onChange={(e) => setPatternTitle(e.target.value)} placeholder="例：春宵の椿" />
-            </div>
-          </div>
-
-          <div className="bg-stone-50 rounded-lg p-3 border border-stone-200 text-xs text-stone-600 font-sans">
-            <label className="flex items-start gap-2 font-bold cursor-pointer text-stone-800 leading-snug">
-              <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="w-4 h-4 mt-0.5 rounded text-stone-900 focus:ring-stone-900" />
-              <span>アニメや既存ブランド等の権利を侵害しない、完全オリジナル意匠として調合することに誓約します</span>
-            </label>
-          </div>
-
-          {errorMsg && <div className="bg-rose-50 text-rose-800 text-xs font-bold p-3 rounded-lg border border-rose-200 font-sans">{errorMsg}</div>}
-
-          <button onClick={handleGenerate} disabled={loading} className="w-full bg-stone-900 text-amber-100 font-bold py-4 rounded-xl shadow-lg hover:bg-black disabled:bg-stone-400 disabled:text-stone-200 transition duration-200 font-sans tracking-widest text-sm">
-            {loading ? '図案を染め上げています...' : 'この意匠で小紋図案を謹製する'}
-          </button>
-        </div>
-
-        {loading && (
-          <div className="mt-8 p-6 rounded-xl bg-stone-800 border border-stone-700 text-center shadow-2xl relative overflow-hidden">
-            <div className="absolute inset-0 bg-[url('https://gofukuyasan.com/wp-content/uploads/2026/10/logo22.jpg')] bg-repeat opacity-5 animate-[slide_20s_linear_infinite]" />
-            <p className="text-sm font-bold text-amber-200 font-sans relative z-10 tracking-widest leading-relaxed">
-              {LOADING_STEPS[loadingStep]}
-            </p>
-            <div className="mt-4 w-full bg-stone-700 h-1.5 rounded-full overflow-hidden relative z-10">
-              <div className="bg-amber-400 h-full animate-[loading_24s_ease-in-out_forwards]" />
-            </div>
-            <p className="text-[10px] text-stone-400 mt-3 relative z-10 font-sans">※高精細なデータを作成するため、お時間をいただきます。</p>
-          </div>
-        )}
-
-        {imageUrl && !loading && (
-          <div className="mt-8 pt-6 border-t border-stone-200 space-y-4 animate-fade-in">
-            <div className="flex justify-center gap-2 font-sans text-xs">
-              <button onClick={() => setPreviewMode('pattern')} className={`px-4 py-1.5 rounded-full font-bold transition ${previewMode === 'pattern' ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}>① 図案原画</button>
-              <button onClick={() => setPreviewMode('fabric')} className={`px-4 py-1.5 rounded-full font-bold transition ${previewMode === 'fabric' ? 'bg-amber-800 text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}>② 反物仕立て姿</button>
-            </div>
-
-            <div className="bg-[#fffefb] border-2 border-stone-300 rounded-xl p-4 shadow-xl">
-              {previewMode === 'pattern' ? (
-                <div className="relative w-full rounded-lg overflow-hidden border border-stone-200 shadow-inner">
-                  <img src={imageUrl} alt="小紋の図案" className="w-full h-auto object-contain" />
-                </div>
-              ) : (
-                <div className="flex flex-col items-center py-4 bg-stone-200/50 rounded-lg">
-                  <span className="text-[11px] font-sans text-stone-500 mb-2 font-bold">【反物（着尺）イメージ】</span>
-                  <div className="w-full h-64 rounded border-x-4 border-stone-400 shadow-md bg-repeat" style={{ backgroundImage: `url(${imageUrl})`, backgroundSize: '120px' }} />
-                </div>
-              )}
-
-              <div className="mt-4 pt-3 border-t border-dashed border-stone-300 flex justify-between items-end text-stone-700">
-                <div>
-                  <p className="text-[10px] font-sans text-stone-400">図案銘</p>
-                  <p className="text-base font-black text-stone-900">{finalTitle}</p>
-                </div>
-                <div className="text-right flex flex-col items-end gap-1">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] font-sans font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded border border-amber-300">{serialNumber}</span>
-                    <img src={IUCHI_LOGO} alt="" className="h-5 w-auto object-contain" />
-                  </div>
-                  <p className="text-[9px] font-sans text-stone-400">Mona Lisa Printing Spec / Gofukuyasan Tuned AI</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 text-center">
-              <p className="text-xs font-bold text-rose-800 font-sans mb-1">＼ お誂えをご希望の方へ ／</p>
-              <p className="text-[10px] text-rose-600 font-sans mb-3">この図案データは当工房に送信され、職人が手作業で送り付け（つなぎ目）の微調整を行ってからプリントいたします。</p>
-              <a href={orderUrl} onClick={handleOrderClick} className="block w-full bg-rose-800 text-amber-50 font-black py-3 rounded-lg hover:bg-rose-900 transition shadow text-sm tracking-wider cursor-pointer">
-                この図案でお誂えを仕立てる
-              </a>
-            </div>
-
-            <div className="bg-stone-50 border border-stone-200 rounded-xl p-4 mt-2">
-              <p className="text-xs font-bold text-stone-800 font-sans mb-2">👘 この図案に合わせるおすすめコーディネート</p>
-              <p className="text-[10px] text-stone-600 font-sans mb-3 leading-relaxed">
-                あなたが仕立てた意匠には、当店こだわりのアイテムが相性抜群です。
-              </p>
-              <div className="flex flex-col gap-2">
-                <a href={`https://store.gofukuyasan.com/view/search?search_keyword=${encodeURIComponent(searchKeyword)}`} target="_blank" rel="noopener noreferrer" className="block w-full bg-white border border-stone-300 text-stone-700 text-center py-2.5 rounded-lg hover:bg-stone-100 transition text-[11px] font-bold shadow-sm">
-                  ▶ ゴフクヤサンの「{searchKeyword}」関連商品を探す
-                </a>
-                <a href="https://store.gofukuyasan.com/" target="_blank" rel="noopener noreferrer" className="block w-full bg-white border border-stone-300 text-stone-700 text-center py-2.5 rounded-lg hover:bg-stone-100 transition text-[11px] font-bold shadow-sm">
-                  ▶ この帯に合わせる着物・小物を探す
-                </a>
-              </div>
-            </div>
-
-            <div className="space-y-3 font-sans pt-2">
-              <div className="text-center bg-stone-100 rounded-lg p-3 border border-stone-200">
-                <p className="text-[11px] font-bold text-stone-800 mb-1">【画像保存・シェアのお願い】</p>
-                <p className="text-[10px] text-stone-600 mb-3">下のボタンで端末に画像を保存してから、Xの投稿に添付してご披露ください！</p>
-                
-                <a href={blobUrl} download={`${serialNumber || 'komon'}_${finalTitle}.png`} className="flex items-center justify-center gap-2 w-full bg-white text-stone-800 font-bold py-3 px-4 rounded-xl border border-stone-300 hover:bg-stone-50 transition shadow-sm text-[13px] mb-2">
-                  <svg className="w-4 h-4 text-stone-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                  図案画像を端末に保存する
-                </a>
-
-                <a href={xShareLink} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 w-full bg-black text-white font-bold py-3 px-4 rounded-xl hover:bg-stone-800 transition shadow text-[13px]">
-                  <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-                  この小紋図案をXで披露する
-                </a>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-      <style dangerouslySetInnerHTML={{__html: `@keyframes slide { from { background-position: 0 0; } to { background-position: 100% 100%; } } @keyframes loading { 0% { width: 0%; } 100% { width: 100%; } }`}} />
-    </div>
-  );
-}
+                  className={`p-1.5 rounded-lg
