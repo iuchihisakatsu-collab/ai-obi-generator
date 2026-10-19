@@ -17,19 +17,33 @@ export async function POST(req: Request) {
     }
 
     let imageSize: "1024x1024" | "1792x1024" | "1024x1792" = '1024x1024';
-    let ratioInstruction = '正方形のシームレス文様';
+    let ratioInstruction = '正方形のテキスタイルデザイン';
     if (itemType === 'hanhaba') {
       imageSize = '1792x1024';
-      ratioInstruction = '横長（16:9比率）の帯用テキスタイル文様';
+      ratioInstruction = '横長（16:9比率）の帯用テキスタイルデザイン';
     } else if (itemType === 'tanmono') {
       imageSize = '1024x1792';
-      ratioInstruction = '縦長（9:16比率）の反物・着尺用テキスタイル文様';
+      ratioInstruction = '縦長（9:16比率）の反物・着尺用テキスタイルデザイン';
     }
 
-    let baseInstruction = "Flat overhead shot, perfectly seamless 2D textile pattern graphic design. Intended for Epson Monna Lisa high-end digital textile printing on silk. High resolution, crisp details, vivid color separation, no halftone dots. ";
-    let layoutInstruction = density === '総柄（ぎっしり華やか）'
-      ? "Continuous all-over repeating pattern, densely packed motifs, rich and gorgeous layout with minimal negative space."
-      : "Scattered motifs with elegant negative space, refined traditional Japanese layout, well-balanced floating elements.";
+    // 基本指示（シームレスの記述を一旦外す）
+    let baseInstruction = "Flat overhead shot, 2D textile graphic design. Intended for Epson Monna Lisa high-end digital textile printing on silk. High resolution, crisp details, vivid color separation, no halftone dots. ";
+    
+    // 柄の密度による条件分岐
+    let layoutInstruction = "";
+    if (density === 'お太鼓柄（ワンポイント/1枚絵）') {
+      // ワンポイント用の特別な指示
+      layoutInstruction = "NON-SEAMLESS. A single, large, central one-point motif illustration placed exactly in the middle of the solid background. This is a standalone picture (Otaiko style), NOT a repeating pattern. Do NOT repeat the motif. Leave abundant solid negative space around the central element.";
+    } else if (density === '総柄（ぎっしり華やか）') {
+      // 総柄用の指示（シームレスを追加）
+      baseInstruction += "Perfectly seamless repeating pattern. ";
+      layoutInstruction = "Continuous all-over repeating pattern, densely packed motifs, rich and gorgeous layout with minimal negative space.";
+    } else {
+      // 飛び柄用の指示（シームレスを追加）
+      baseInstruction += "Perfectly seamless repeating pattern. ";
+      layoutInstruction = "Scattered motifs with elegant negative space, refined traditional Japanese layout, well-balanced floating elements.";
+    }
+
     let tunedStyle = 'Masterpiece, highly detailed digital textile design. ';
     
     if (motif.includes('浮世絵')) tunedStyle += 'Ukiyo-e woodblock print aesthetic, flat bold colors, precise ink outlines, Edo period traditional art style. ';
@@ -45,7 +59,7 @@ export async function POST(req: Request) {
     if (motif.includes('ゴスロリ')) tunedStyle += 'Gothic Lolita aesthetic, dark elegant fantasy, intricate black lace borders, decadent beauty, mysterious mood. ';
     if (motif.includes('ゆめかわいい')) tunedStyle += 'Dreamy kawaii style, pastel color palette, magical girl aesthetic, sparkling stars, soft fluffy texture. ';
 
-    const negativePrompt = "Absolutely NO humans, NO faces, NO body parts, NO clothing items being worn. NO 3D perspective, NO fabric folds, NO wrinkles, NO lighting/shadow effects, NO background scenes. The image MUST consist ONLY of the repeating pattern motifs on the solid background color.";
+    const negativePrompt = "Absolutely NO humans, NO faces, NO body parts, NO clothing items being worn. NO 3D perspective, NO fabric folds, NO wrinkles, NO lighting/shadow effects, NO background scenes. The image MUST consist ONLY of the requested motifs on the solid background color.";
 
     const prompt = `${baseInstruction}\n${layoutInstruction}\n\n【Textile Requirements】\nMotifs: ${motif}\nBackground Color: Solid ${color}\nFormat: ${ratioInstruction}\n\n【Art Style & Texture】\n${tunedStyle}\n\n【Strict Restrictions】\n${negativePrompt}`;
 
