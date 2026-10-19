@@ -10,7 +10,7 @@ const FORBIDDEN_WORDS = [
   'ナイキ', 'nike', 'アディダス', 'adidas'
 ];
 
-// ★ 6の倍数：ぴったり102色（推し活・色無地対応の伝統色＆ニュアンスカラー）
+// 6の倍数：ぴったり102色（伝統色・推し色対応）
 const TRADITIONAL_COLORS = [
   // 1. 白・灰・黒（12色）
   { name: '胡粉 (ごふん)', hex: '#fffffc', text: '純白地', isDark: false },
@@ -38,7 +38,7 @@ const TRADITIONAL_COLORS = [
   { name: '蘇芳 (すおう)', hex: '#8e354a', text: '渋いベリーレッド地', isDark: true },
   { name: '紅樺 (べにかば)', hex: '#bb5548', text: '落ち着いたテラコッタレッド地', isDark: true },
   { name: '弁柄 (べんがら)', hex: '#8f2e14', text: '重厚な弁柄赤地', isDark: true },
-  { name: '暗紅 (あんこう)', hex: '#5b191f,', text: '極めて深いダークボルドー地', isDark: true },
+  { name: '暗紅 (あんこう)', hex: '#5b191f', text: '極めて深いダークボルドー地', isDark: true },
 
   // 3. 桃・マゼンタ（12色）
   { name: '桜色 (さくら)', hex: '#fef4f4', text: '淡い桜ピンク地', isDark: false },
@@ -152,7 +152,7 @@ interface CategoryItem {
 
 const TAG_CATEGORIES: { title: string; items: CategoryItem[] }[] = [
   {
-    title: '【1】生き物・モチーフ（MakeShop連動）',
+    title: '【1】生き物・モチーフ',
     items: [
       { label: 'ねこ', id: 'ct300' },
       { label: '犬', id: 'ct301' },
@@ -166,7 +166,7 @@ const TAG_CATEGORIES: { title: string; items: CategoryItem[] }[] = [
     ]
   },
   {
-    title: '【2】世界観・テーマ（MakeShop連動）',
+    title: '【2】世界観・テーマ',
     items: [
       { label: '風景・宇宙', id: 'ct51' },
       { label: '食べ物', id: 'ct48' },
@@ -179,7 +179,7 @@ const TAG_CATEGORIES: { title: string; items: CategoryItem[] }[] = [
     ]
   },
   {
-    title: '【3】柄・地紋（MakeShop連動）',
+    title: '【3】柄・地紋',
     items: [
       { label: '水玉（ドット）', id: 'ct310' },
       { label: 'ボーダー・ストライプ', id: 'ct309' },
@@ -190,11 +190,11 @@ const TAG_CATEGORIES: { title: string; items: CategoryItem[] }[] = [
     ]
   },
   {
-    title: '【4】画風・アートスタイル（MakeShop連動）',
+    title: '【4】画風・表現',
     items: [
       { label: '日本画', id: 'ct49' },
       { label: '西洋画', id: 'ct50' },
-      { label: '名画', id: 'ct358' },
+      { label: '名画に着想を得た色づかい', id: 'ct358' },
       { label: 'アールヌーヴォー・デコ', id: 'ct312' },
       { label: 'ミッドセンチュリー', id: 'ct352' },
       { label: 'ゴシック', id: 'ct354' },
@@ -206,7 +206,7 @@ const TAG_CATEGORIES: { title: string; items: CategoryItem[] }[] = [
 const ALL_CATEGORIES = TAG_CATEGORIES.flatMap(cat => cat.items);
 
 const LOADING_STEPS = [
-  '妄想された意匠から、図案のアイデアを練り上げています...',
+  '思い描いた意匠から、図案のアイデアを練り上げています...',
   '色や柄の調和を組み合わせ、反物のイメージを整えています...',
   '思い描いたイメージを図案帖に描き出しています...',
   '今回の図案イメージを準備しています...',
@@ -260,7 +260,7 @@ export default function Home() {
 
   const handleGenerate = async () => {
     setErrorMsg('');
-    if (!motif.trim()) { setErrorMsg('図案のイメージを直接入力するか、上のタグから選択してください。'); return; }
+    if (!motif.trim()) { setErrorMsg('図案のイメージを入力するか、上のヒントから選択してください。'); return; }
     if (!agreed) { setErrorMsg('図案の利用に関する確認事項への同意が必要です。'); return; }
     const hitWord = FORBIDDEN_WORDS.find((word) => motif.toLowerCase().includes(word));
     if (hitWord) { setErrorMsg(`入力内容に使用できない作品名・ブランド名等「${hitWord}」が含まれています。一般的なモチーフや特徴を表す言葉に変更してください。`); return; }
@@ -295,7 +295,7 @@ export default function Home() {
   };
 
   const finalTitle = patternTitle.trim() || '（無題）';
-  const shareText = encodeURIComponent(`ゴフクヤサンの「妄想小紋図案帖」で、頭の中のアイデアを図案にしてみました。\n\n銘：『${finalTitle}』\n地色：${selectedColor.name}\n\n※職人が仕上げる前のAIイメージ図案です。\n\n#妄想小紋図案帖 #ゴフクヤサン`);
+  const shareText = encodeURIComponent(`ゴフクヤサンの「妄想小紋図案帖」で、柄のアイデアを試してみました。\n\n銘：『${finalTitle}』\n地色：${selectedColor.name}\n\n※AIによるアイデア図案です。実際の生地制作時は工房で調整します。\n\n#妄想小紋図案帖 #ゴフクヤサン`);
   const shareUrl = typeof window !== 'undefined' ? encodeURIComponent(window.location.href) : '';
   const xShareLink = `https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`;
   const orderUrl = `https://store.gofukuyasan.com/view/item/000000007300?komon_id=${encodeURIComponent(serialNumber)}&title=${encodeURIComponent(finalTitle)}`;
@@ -341,24 +341,25 @@ export default function Home() {
               妄想小紋図案帖<br className="sm:hidden" />（ずあんちょう）
             </h1>
           </div>
-          <p className="text-[11px] sm:text-xs text-stone-500 mt-2 font-bold">
-            着物の配色と柄づくりのノウハウを生かした、自由な意匠づくりのためのアトリエ
+          <p className="text-[11px] sm:text-xs text-stone-600 mt-2 font-medium leading-relaxed">
+            着物の配色や柄づくりの知識を生かして、思いついた柄のアイデアを試せるAI図案ツールです。<br className="hidden sm:inline" />
+            伝統的なモチーフも、今の気分も。自由に組み合わせて、あなただけの柄の可能性を探してみてください。
           </p>
         </div>
 
         <div className="space-y-6">
-          {/* 壱. 画風・意匠の選択 */}
+          {/* 壱. 図案のヒント（任意） */}
           <div className="bg-white p-4 rounded-xl border border-stone-200 shadow-sm">
             <div className="flex justify-between items-center mb-1">
               <label className="block text-sm font-bold text-stone-800 tracking-wider">
-                壱. 画風・意匠の選択（任意 / タップで追加）
+                壱. 図案のヒント（任意 / タップで追加）
               </label>
               <button onClick={() => setShowTags(!showTags)} className="text-xs text-stone-500 underline">
                 {showTags ? '閉じる' : '開く'}
               </button>
             </div>
             <p className="text-[10px] text-stone-400 mb-3">
-              ※ボタンの選択は必須ではありません。選ばずに下の入力欄に直接書いてもOKです。
+              ※タグは選ばなくても大丈夫です。下の入力欄に、思い浮かんだイメージを直接書いても図案を生成できます。
             </p>
             
             {showTags && (
@@ -383,42 +384,42 @@ export default function Home() {
               </div>
             )}
 
+            {/* 図案のイメージ（自由入力） */}
             <div className="mt-4 pt-3 border-t border-stone-100">
               <div className="flex flex-col mb-1.5">
                 <p className="text-[12px] font-bold text-stone-800">
-                  ▼ 図案のイメージ（直接入力だけでも生成できます）
+                  ▼ 図案のイメージ（自由入力）
                 </p>
-                <p className="text-[10px] text-amber-800 font-medium leading-relaxed mt-0.5">
-                  ※上のタグや地色パレットを選ばなくても大丈夫です。「濃紺の地に、飛び跳ねるうさぎと満月」のように、思いついたイメージを直接ここに入力するだけで図案が作れます！
+                <p className="text-[10px] text-stone-500 font-normal leading-relaxed mt-0.5">
+                  思いついた言葉を自由に組み合わせてください。入力した内容をもとにAIが図案を生成します（イメージどおりにならない場合もあります）。
                 </p>
               </div>
               <textarea
-                className="w-full rounded-lg border-2 border-stone-300 p-3 bg-stone-50 text-sm focus:outline-none focus:border-stone-800 resize-none font-bold"
+                className="w-full rounded-lg border-2 border-stone-300 p-3 bg-stone-50 text-sm focus:outline-none focus:border-stone-800 resize-none font-medium"
                 rows={3}
                 value={motif}
                 onChange={(e) => setMotif(e.target.value)}
-                placeholder="例：黒地に赤い椿の花、背景には三日月を浮かべて..."
+                placeholder="例：濃紺の地に、跳ねるうさぎと満月。余白を生かした、少しレトロな小紋柄"
                 disabled={loading}
               />
               <button onClick={() => setMotif('')} className="text-[10px] text-stone-500 underline mt-1">クリア</button>
             </div>
           </div>
 
-          {/* 弐. 着物の地色（102色・高さ2/3のh-8仕様） */}
+          {/* 弐. 地色を選ぶ（任意・全102色） */}
           <div>
             <div className="flex flex-col mb-1.5">
               <div className="flex justify-between items-baseline">
                 <label className="block text-xs font-bold text-stone-700 tracking-wider">
-                  弐. 着物の地色（任意 / 102の伝統色・推し色から選ぶ）
+                  弐. 地色を選ぶ（任意・全102色）
                 </label>
                 <span className="text-[10px] text-stone-500 font-bold">全102色</span>
               </div>
-              <p className="text-[10px] text-stone-400">
-                ※パレットを選ばず、上のテキスト欄に「淡いピンク地」「漆黒地」のように直接書いても反映されます。
+              <p className="text-[10px] text-stone-500">
+                着物の伝統色を中心に、好みの色を選べます。パレットを使わず、入力欄に「淡いピンク地」「漆黒地」などと書くこともできます。
               </p>
             </div>
             
-            {/* スクロール可能なカラーパレットコンテナ */}
             <div className="max-h-[300px] overflow-y-auto pr-1 border border-stone-200 rounded-xl p-2 bg-stone-50/50 scrollbar-thin scrollbar-thumb-stone-300">
               <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 sm:gap-2">
                 {TRADITIONAL_COLORS.map((col) => (
@@ -426,172 +427,4 @@ export default function Home() {
                     key={col.name}
                     type="button"
                     onClick={() => setSelectedColor(col)}
-                    className={`relative h-8 rounded border flex items-center justify-center overflow-hidden transition-all ${
-                      selectedColor.name === col.name 
-                        ? 'border-stone-900 ring-2 ring-stone-900 ring-offset-0 scale-[1.03] z-10' 
-                        : 'border-stone-200 hover:opacity-90'
-                    }`}
-                    style={{ backgroundColor: col.hex }}
-                    title={col.name}
-                  >
-                    <span className={`text-[9px] sm:text-[10px] font-bold tracking-tight px-1 truncate ${
-                      col.isDark ? 'text-white' : 'text-stone-800'
-                    }`}>
-                      {col.name.split(' ')[0]}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* 参. 仕立てるアイテム */}
-          <div>
-            <label className="block text-xs font-bold text-stone-700 tracking-wider mb-1">
-              参. 仕立てるアイテム（柄の比率が変わります）
-            </label>
-            <div className="flex gap-3 text-xs">
-              <label className={`flex-1 p-2.5 rounded-lg border text-center cursor-pointer font-bold transition ${itemType === 'hanhaba' ? 'border-stone-900 bg-stone-900 text-white' : 'border-stone-200 bg-white text-stone-700'}`}>
-                <input type="radio" className="sr-only" checked={itemType === 'hanhaba'} onChange={() => setItemType('hanhaba')} />
-                半幅帯（横長）
-              </label>
-              <label className={`flex-1 p-2.5 rounded-lg border text-center cursor-pointer font-bold transition ${itemType === 'tanmono' ? 'border-stone-900 bg-stone-900 text-white' : 'border-stone-200 bg-white text-stone-700'}`}>
-                <input type="radio" className="sr-only" checked={itemType === 'tanmono'} onChange={() => setItemType('tanmono')} />
-                反物・京袋帯（縦長）
-              </label>
-            </div>
-          </div>
-
-          <div className="flex gap-3 text-xs">
-            <div className="flex-1">
-              <label className="block text-[10px] font-bold text-stone-500 mb-1">密度</label>
-              <select className="w-full p-2 border border-stone-300 rounded bg-white text-stone-700 focus:outline-none focus:border-stone-800" value={density} onChange={(e) => setDensity(e.target.value)}>
-                <option value="総柄（ぎっしり華やか）">総柄（ぎっしり華やか）</option>
-                <option value="飛び柄（余白を活かして上品に）">飛び柄（余白を活かして上品に）</option>
-              </select>
-            </div>
-            <div className="flex-1">
-              <label className="block text-[10px] font-bold text-stone-500 mb-1">図案銘（任意）</label>
-              <input type="text" className="w-full p-2 border border-stone-300 rounded bg-white text-stone-700 focus:outline-none focus:border-stone-800" value={patternTitle} onChange={(e) => setPatternTitle(e.target.value)} placeholder="例：春宵の椿" />
-            </div>
-          </div>
-
-          <div className="bg-stone-50 rounded-lg p-3 border border-stone-200 text-xs text-stone-600">
-            <label className="flex items-start gap-2 font-bold cursor-pointer text-stone-800 leading-snug">
-              <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="w-4 h-4 mt-0.5 rounded text-stone-900 focus:ring-stone-900" />
-              <span>既存の作品・キャラクター・ブランド等の模倣を目的として利用しません。AI生成の図案は既存の意匠と似る場合があり、完全な独自性や権利上の問題がないことを保証するものではないと理解しました。実際の生地制作をご希望の場合は、工房で図案を確認し、必要に応じて調整します。</span>
-            </label>
-          </div>
-
-          {errorMsg && <div className="bg-rose-50 text-rose-800 text-xs font-bold p-3 rounded-lg border border-rose-200">{errorMsg}</div>}
-
-          <button onClick={handleGenerate} disabled={loading} className="w-full bg-stone-900 text-amber-100 font-bold py-4 rounded-xl shadow-lg hover:bg-black disabled:bg-stone-400 disabled:text-stone-200 transition duration-200 tracking-widest text-sm">
-            {loading ? '妄想を図案帖に描いています...' : 'この内容で図案を生成する'}
-          </button>
-        </div>
-
-        {loading && (
-          <div className="mt-8 p-6 rounded-xl bg-stone-800 border border-stone-700 text-center shadow-2xl relative overflow-hidden">
-            <div className="absolute inset-0 bg-[url('https://gofukuyasan.com/wp-content/uploads/2026/10/logo22.jpg')] bg-repeat opacity-5 animate-[slide_20s_linear_infinite]" />
-            <p className="text-sm font-bold text-amber-200 relative z-10 tracking-widest leading-relaxed">
-              {LOADING_STEPS[loadingStep]}
-            </p>
-            <div className="mt-4 w-full bg-stone-700 h-1.5 rounded-full overflow-hidden relative z-10">
-              <div className="bg-amber-400 h-full animate-[loading_24s_ease-in-out_forwards]" />
-            </div>
-            <p className="text-[10px] text-stone-400 mt-3 relative z-10">※画像の生成と保存には時間がかかる場合があります。</p>
-          </div>
-        )}
-
-        {imageUrl && !loading && (
-          <div className="mt-8 pt-6 border-t border-stone-200 space-y-4 animate-fade-in">
-            <div className="flex justify-center gap-2 text-xs">
-              <button onClick={() => setPreviewMode('pattern')} className={`px-4 py-1.5 rounded-full font-bold transition ${previewMode === 'pattern' ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}>① 図案原画</button>
-              <button onClick={() => setPreviewMode('fabric')} className={`px-4 py-1.5 rounded-full font-bold transition ${previewMode === 'fabric' ? 'bg-amber-800 text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}>② 反物にした場合のイメージ</button>
-            </div>
-
-            <div className="bg-[#fffefb] border-2 border-stone-300 rounded-xl p-4 shadow-xl">
-              {previewMode === 'pattern' ? (
-                <div className="relative w-full rounded-lg overflow-hidden border border-stone-200 shadow-inner">
-                  <img src={imageUrl} alt="小紋の図案" className="w-full h-auto object-contain" />
-                </div>
-              ) : (
-                <div className="flex flex-col items-center py-4 bg-stone-200/50 rounded-lg">
-                  <span className="text-[11px] text-stone-500 mb-2 font-bold">【反物にした場合のイメージ】</span>
-                  <div className="w-full h-64 rounded border-x-4 border-stone-400 shadow-md bg-repeat" style={{ backgroundImage: `url(${imageUrl})`, backgroundSize: '120px' }} />
-                </div>
-              )}
-
-              <div className="mt-4 pt-3 border-t border-dashed border-stone-300 flex justify-between items-end text-stone-700">
-                <div>
-                  <p className="text-[10px] text-stone-400">図案銘</p>
-                  <p className="text-base font-black text-stone-900">{finalTitle}</p>
-                </div>
-                <div className="text-right flex flex-col items-end gap-1">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded border border-amber-300">{serialNumber}</span>
-                    <img src={IUCHI_LOGO} alt="" className="h-5 w-auto object-contain" />
-                  </div>
-                  <p className="text-[9px] text-stone-400">妄想小紋図案帖 / Gofukuyasan</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 text-center">
-              <p className="text-xs font-bold text-rose-800 mb-1">＼ お誂えをご希望の方へ ／</p>
-              <p className="text-[10px] text-rose-700 mb-3 leading-relaxed">
-                生成された画像は、図案のアイデアを確認するためのイメージです。実際の生地として制作する場合は、ご注文後に工房で柄のつながりや色彩バランス、印刷への適性を確認し、必要に応じてデータを調整します。生成画像と実際の生地では、色味や柄の見え方が異なる場合があります。
-              </p>
-              <a href={orderUrl} onClick={handleOrderClick} className="block w-full bg-rose-800 text-amber-50 font-black py-3 rounded-lg hover:bg-rose-900 transition shadow text-sm tracking-wider cursor-pointer">
-                この図案をもとにお誂えを申し込む
-              </a>
-            </div>
-
-            <div className="bg-stone-50 border border-stone-200 rounded-xl p-4 mt-2">
-              <p className="text-xs font-bold text-stone-800 mb-2">👘 この図案に合わせるコーディネート</p>
-              <p className="text-[10px] text-stone-600 mb-3 leading-relaxed">
-                思い描いた「{selectedCategoryName}」の意匠に合わせて、ゴフクヤサンの実在アイテムをご覧いただけます。
-              </p>
-              <div className="flex flex-col gap-2">
-                <a 
-                  href={makeshopCategoryUrl} 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
-                  className="block w-full bg-white border border-stone-300 text-stone-700 text-center py-2.5 rounded-lg hover:bg-stone-100 transition text-[11px] font-bold shadow-sm"
-                >
-                  ▶ ゴフクヤサンの「{selectedCategoryName}」カテゴリー商品を見る
-                </a>
-                <a 
-                  href="https://store.gofukuyasan.com/" 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
-                  className="block w-full bg-white border border-stone-300 text-stone-700 text-center py-2.5 rounded-lg hover:bg-stone-100 transition text-[11px] font-bold shadow-sm"
-                >
-                  ▶ 着物・帯・小物 全商品を見る
-                </a>
-              </div>
-            </div>
-
-            <div className="space-y-3 pt-2">
-              <div className="text-center bg-stone-100 rounded-lg p-3 border border-stone-200">
-                <p className="text-[11px] font-bold text-stone-800 mb-1">【画像の保存・共有】</p>
-                <p className="text-[10px] text-stone-600 mb-3">画像を保存して、SNSなどで共有できます。共有の際は、AI生成による図案イメージであることも添えていただけると幸いです。</p>
-                
-                <a href={blobUrl} download={`${serialNumber || 'komon'}_${finalTitle}.png`} className="flex items-center justify-center gap-2 w-full bg-white text-stone-800 font-bold py-3 px-4 rounded-xl border border-stone-300 hover:bg-stone-50 transition shadow-sm text-[13px] mb-2">
-                  <svg className="w-4 h-4 text-stone-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                  図案画像を端末に保存する
-                </a>
-
-                <a href={xShareLink} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 w-full bg-black text-white font-bold py-3 px-4 rounded-xl hover:bg-stone-800 transition shadow text-[13px]">
-                  <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-                  この図案をXで共有する
-                </a>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-      <style dangerouslySetInnerHTML={{__html: `@keyframes slide { from { background-position: 0 0; } to { background-position: 100% 100%; } } @keyframes loading { 0% { width: 0%; } 100% { width: 100%; } }`}} />
-    </div>
-  );
-}
+                    className={`relative h
