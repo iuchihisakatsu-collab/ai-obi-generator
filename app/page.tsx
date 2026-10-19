@@ -421,18 +421,20 @@ export default function Home() {
     <div className="min-h-screen bg-[#fafafa] text-zinc-900 p-4 sm:p-8 flex flex-col items-center justify-center font-sans selection:bg-zinc-200">
       <div className="max-w-2xl w-full bg-white rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-zinc-100 p-6 sm:p-12 transition-all duration-300">
         
-        {/* ヘッダーエリア */}
-        <div className="text-center mb-10 pb-8 border-b border-zinc-100">
-          <div className="inline-flex items-center gap-2 mb-6">
-            <img src={IUCHI_LOGO} alt="" className="h-4 w-auto object-contain opacity-80" />
-            <span className="text-[10px] tracking-[0.2em] font-bold text-zinc-400 uppercase">Gofukuyasan Studio</span>
+        {/* ヘッダーエリア（漆黒デザイン） */}
+        <div className="relative overflow-hidden text-center mb-10 p-8 sm:p-10 bg-zinc-950 text-white rounded-[1.5rem] shadow-xl">
+          <div className="relative z-10">
+            <div className="inline-flex items-center gap-2 mb-6">
+              <img src={IUCHI_LOGO} alt="" className="h-4 w-auto object-contain brightness-0 invert opacity-90" />
+              <span className="text-[10px] tracking-[0.2em] font-bold text-zinc-400 uppercase">Gofukuyasan Studio</span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-black tracking-widest text-center leading-tight">
+              妄想小紋図案帖
+            </h1>
+            <p className="text-xs text-zinc-400 mt-4 leading-relaxed font-medium tracking-wider">
+              着物の配色や柄づくりの知識を生かして、<br className="hidden sm:inline" />思いついた柄のアイデアを試せるAI図案ツールです。
+            </p>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-zinc-900 tracking-widest text-center leading-tight">
-            妄想小紋図案帖
-          </h1>
-          <p className="text-xs text-zinc-500 mt-4 leading-relaxed font-medium tracking-wider">
-            着物の配色や柄づくりの知識を生かして、<br className="hidden sm:inline" />思いついた柄のアイデアを試せるAI図案ツールです。
-          </p>
         </div>
 
         <div className="space-y-10">
