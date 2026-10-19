@@ -184,12 +184,20 @@ const TAG_CATEGORIES: { title: string; items: CategoryItem[] }[] = [
   {
     title: '【3】柄・地紋',
     items: [
-      { label: '水玉（ドット）', id: 'ct310' },
-      { label: 'ボーダー・ストライプ', id: 'ct309' },
-      { label: 'ギンガム・格子', id: 'ct311' },
+      { label: '水玉・ドット', id: 'ct310' },
+      { label: '縞・ストライプ', id: 'ct309' },
+      { label: '格子・チェック', id: 'ct311' },
+      { label: '市松 (いちまつ)', id: 'ct53' },
+      { label: '七宝 (しっぽう)', id: 'ct53' },
+      { label: '青海波 (せいがいは)', id: 'ct53' },
+      { label: '麻の葉 (あさのは)', id: 'ct53' },
+      { label: '矢絣 (やがすり)', id: 'ct53' },
+      { label: '亀甲 (きっこう)', id: 'ct53' },
+      { label: '唐草 (からくさ)', id: 'ct53' },
+      { label: '紗綾形 (さやがた)', id: 'ct53' },
+      { label: '千鳥格子', id: 'ct311' },
       { label: '幾何学模様', id: 'ct53' },
       { label: 'マーブル', id: 'ct171' },
-      { label: 'ミリタリー・迷彩', id: 'ct166' },
     ]
   },
   {
