@@ -2,6 +2,9 @@
 
 import { useState, useEffect, type MouseEvent } from 'react';
 
+// 1日あたりの生成上限回数
+const MAX_GENERATIONS_PER_DAY = 3;
+
 const FORBIDDEN_WORDS = [
   'ディズニー', 'disney', 'ミッキー', 'mickey', 'ピカチュウ', 'ポケモン', 'pokemon',
   'マリオ', 'mario', 'サンリオ', 'キティ', 'kitty', 'ちいかわ', '鬼滅', '呪術',
@@ -265,6 +268,32 @@ export default function Home() {
     const hitWord = FORBIDDEN_WORDS.find((word) => motif.toLowerCase().includes(word));
     if (hitWord) { setErrorMsg(`入力内容に使用できない作品名・ブランド名等「${hitWord}」が含まれています。一般的なモチーフや特徴を表す言葉に変更してください。`); return; }
 
+    // 【追加】1日3回の制限チェック
+    const today = new Date().toISOString().split('T')[0];
+    const storedData = localStorage.getItem('komon_generations');
+    
+    let generationCount = 0;
+    let storedDate = '';
+
+    if (storedData) {
+      try {
+        const parsedData = JSON.parse(storedData);
+        storedDate = parsedData.date;
+        generationCount = parsedData.count;
+      } catch (e) {
+        console.error("Local storage parse error:", e);
+      }
+    }
+
+    if (storedDate !== today) {
+      generationCount = 0;
+    }
+
+    if (generationCount >= MAX_GENERATIONS_PER_DAY) {
+      alert(`【本日の上限に達しました🙏】\n\nお試しいただきありがとうございます！\nAIのサーバー利用料（課金）が高額になってしまうため、無料での作成は「お一人様1日3回まで」とさせていただいております。\n\nまた明日、新しい図案を作りに来てくださいね！`);
+      return;
+    }
+
     const matched = ALL_CATEGORIES.find(c => motif.includes(c.label));
     if (matched) {
       setSelectedCategoryId(matched.id);
@@ -284,6 +313,13 @@ export default function Home() {
         setImageUrl(data.imageUrl); 
         setBlobUrl(data.blobUrl);   
         setSerialNumber(`KOMON-${Math.floor(1000 + Math.random() * 9000)}`);
+
+        // 【追加】生成成功時のみカウントを1増やす
+        const newCount = generationCount + 1;
+        localStorage.setItem('komon_generations', JSON.stringify({
+          date: today,
+          count: newCount
+        }));
       } else {
         setErrorMsg(data.error || '図案の生成に失敗しました。');
       }
@@ -427,4 +463,100 @@ export default function Home() {
                     key={col.name}
                     type="button"
                     onClick={() => setSelectedColor(col)}
-                    className={`relative h
+                    className={`relative h-14 rounded-lg p-1.5 flex flex-col justify-between text-left transition-all border ${
+                      selectedColor.name === col.name
+                        ? 'ring-2 ring-stone-900 border-stone-900 scale-95 shadow-md'
+                        : 'border-stone-200 hover:border-stone-400'
+                    }`}
+                    style={{ backgroundColor: col.hex }}
+                  >
+                    <span className={`text-[10px] font-bold truncate leading-tight ${col.isDark ? 'text-white' : 'text-stone-900'}`}>
+                      {col.name}
+                    </span>
+                    {selectedColor.name === col.name && (
+                      <span className={`text-[9px] self-end font-bold px-1 rounded ${col.isDark ? 'bg-white text-stone-900' : 'bg-stone-900 text-white'}`}>
+                        選択中
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* 参. 柄の密度 */}
+          <div>
+            <label className="block text-xs font-bold text-stone-700 tracking-wider mb-1.5">
+              参. 柄の密度
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              {['総柄（ぎっしり華やか）', '飛び柄（余白のある小紋）'].map((d) => (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => setDensity(d)}
+                  className={`py-2 px-3 rounded-lg text-xs font-bold border transition-all ${
+                    density === d
+                      ? 'bg-stone-800 text-white border-stone-800 shadow-sm'
+                      : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-50'
+                  }`}
+                >
+                  {d}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 四. 図案の比率・形式 */}
+          <div>
+            <label className="block text-xs font-bold text-stone-700 tracking-wider mb-1.5">
+              四. 図案の比率・形式
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { id: 'hanhaba', label: '半幅帯 (横長)' },
+                { id: 'tanmono', label: '反物・着尺 (縦長)' },
+                { id: 'square', label: '正方形 (基本)' },
+              ].map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setItemType(item.id)}
+                  className={`py-2 px-3 rounded-lg text-xs font-bold border transition-all ${
+                    itemType === item.id
+                      ? 'bg-stone-800 text-white border-stone-800 shadow-sm'
+                      : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-50'
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 伍. 図案銘（命名・任意） */}
+          <div>
+            <label className="block text-xs font-bold text-stone-700 tracking-wider mb-1.5">
+              伍. 図案の銘（命名・任意）
+            </label>
+            <input
+              type="text"
+              className="w-full rounded-lg border-2 border-stone-300 p-2.5 bg-stone-50 text-sm focus:outline-none focus:border-stone-800 font-medium"
+              placeholder="例：月夜の跳ね兎"
+              value={patternTitle}
+              onChange={(e) => setPatternTitle(e.target.value)}
+              disabled={loading}
+            />
+          </div>
+
+          {/* 利用規約同意チェック */}
+          <div className="pt-2">
+            <label className="flex items-start gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={agreed}
+                onChange={(e) => setAgreed(e.target.checked)}
+                className="mt-1 h-4 w-4 rounded border-stone-300 text-stone-800 focus:ring-stone-800"
+              />
+              <span className="text-[11px] text-stone-600 leading-snug">
+                生成された図案はAIによるアイデアイメージであり、実際の
