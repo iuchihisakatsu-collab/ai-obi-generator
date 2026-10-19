@@ -150,22 +150,24 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-stone-100 text-stone-800 p-4 sm:p-6 flex flex-col items-center justify-center font-serif">
+    // ★ 修正ポイント：ベースのフォント指定から serif（明朝）を削除し、全体をゴシック体（sans）に統一
+    <div className="min-h-screen bg-stone-100 text-stone-800 p-4 sm:p-6 flex flex-col items-center justify-center font-sans">
       <div className="max-w-2xl w-full bg-[#fdfbf7] rounded-2xl shadow-2xl border border-stone-200 p-6 sm:p-8">
         
         {/* ヘッダーエリア */}
         <div className="text-center mb-6 pb-4 border-b border-stone-200">
-          <div className="inline-flex items-center gap-1.5 bg-stone-800 text-amber-200 text-[10px] tracking-widest px-3 py-0.5 rounded uppercase font-sans font-bold shadow-sm">
+          <div className="inline-flex items-center gap-1.5 bg-stone-800 text-amber-200 text-[10px] tracking-widest px-3 py-0.5 rounded uppercase font-bold shadow-sm">
             <img src={IUCHI_LOGO} alt="" className="h-3.5 w-auto object-contain brightness-125" />
             <span>Gofukuyasan Pattern Studio</span>
           </div>
           <div className="flex items-center justify-center gap-3 mt-3">
             <img src={IUCHI_LOGO} alt="居内商店" className="h-10 sm:h-12 w-auto object-contain" />
-            <h1 className="text-xl sm:text-2xl font-black text-stone-900 tracking-wider text-left leading-tight">
+            {/* ★ 修正ポイント：タイトルのフォントを sans（ゴシック）に固定 */}
+            <h1 className="text-xl sm:text-2xl font-black text-stone-900 tracking-wider text-left leading-tight font-sans">
               ゴフクヤサン<br className="sm:hidden" />小紋ジェネレーター
             </h1>
           </div>
-          <p className="text-[11px] sm:text-xs text-stone-500 mt-2 font-sans font-bold">
+          <p className="text-[11px] sm:text-xs text-stone-500 mt-2 font-bold">
             着物の配色と柄づくりのノウハウを生かした、オリジナル図案づくりのためのAIツール
           </p>
         </div>
@@ -173,103 +175,5 @@ export default function Home() {
         <div className="space-y-6">
           <div className="bg-white p-4 rounded-xl border border-stone-200 shadow-sm">
             <div className="flex justify-between items-center mb-1">
-              <label className="block text-sm font-bold text-stone-800 tracking-wider font-sans">
-                壱. 画風・意匠の選択（任意 / タップで追加）
-              </label>
-              <button onClick={() => setShowTags(!showTags)} className="text-xs text-stone-500 underline font-sans">
-                {showTags ? '閉じる' : '開く'}
-              </button>
-            </div>
-            <p className="text-[10px] text-stone-400 font-sans mb-3">
-              ※ボタンの選択は必須ではありません。選ばずに下の入力欄に直接書いてもOKです。
-            </p>
-            
-            {showTags && (
-              <div className="space-y-4 max-h-[320px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-stone-300">
-                {TAG_CATEGORIES.map((cat) => (
-                  <div key={cat.title}>
-                    <p className="text-[11px] font-bold text-stone-500 mb-1.5 font-sans">{cat.title}</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {cat.tags.map((tag) => (
-                        <button
-                          key={tag}
-                          type="button"
-                          onClick={() => handleTagClick(tag)}
-                          className="px-2.5 py-1 bg-stone-100 border border-stone-300 rounded-md text-[11px] font-sans text-stone-700 hover:bg-stone-800 hover:text-white transition-colors"
-                        >
-                          {tag}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* 直接入力エリアの強化案内 */}
-            <div className="mt-4 pt-3 border-t border-stone-100">
-              <div className="flex flex-col mb-1.5 font-sans">
-                <p className="text-[12px] font-bold text-stone-800">
-                  ▼ 図案のイメージ（直接入力だけでも生成できます）
-                </p>
-                <p className="text-[10px] text-amber-800 font-medium leading-relaxed mt-0.5">
-                  ※上のタグや地色パレットを選ばなくても大丈夫です。「濃紺の地に、飛び跳ねる白うさぎと満月」のように、思いついたイメージを直接ここに入力（または書き足し）するだけで図案が作れます！
-                </p>
-              </div>
-              <textarea
-                className="w-full rounded-lg border-2 border-stone-300 p-3 bg-stone-50 font-sans text-sm focus:outline-none focus:border-stone-800 resize-none font-bold"
-                rows={3}
-                value={motif}
-                onChange={(e) => setMotif(e.target.value)}
-                placeholder="例：黒地に赤い椿の花、背景には三日月を浮かべて..."
-                disabled={loading}
-              />
-              <button onClick={() => setMotif('')} className="text-[10px] text-stone-500 underline mt-1 font-sans">クリア</button>
-            </div>
-          </div>
-
-          <div>
-            <div className="flex flex-col mb-1.5 font-sans">
-              <label className="block text-xs font-bold text-stone-700 tracking-wider">
-                弐. 着物の地色（任意 / 36の伝統色から選ぶ）
-              </label>
-              <p className="text-[10px] text-stone-400">
-                ※パレットを選ばず、上のテキスト欄に「淡いピンク地」「漆黒地」のように直接書いても反映されます。
-              </p>
-            </div>
-            <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-              {TRADITIONAL_COLORS.map((col) => (
-                <button
-                  key={col.name}
-                  type="button"
-                  onClick={() => setSelectedColor(col)}
-                  className={`p-1.5 rounded-lg border flex flex-col items-center justify-center gap-1 transition-all ${
-                    selectedColor.name === col.name ? 'border-stone-900 ring-2 ring-stone-900 bg-white shadow-sm' : 'border-stone-200 bg-white/60 hover:bg-white'
-                  }`}
-                >
-                  <span className="w-5 h-5 sm:w-6 sm:h-6 rounded-full border border-black/10 shadow-inner" style={{ backgroundColor: col.hex }} />
-                  <span className="text-[9px] sm:text-[10px] font-sans text-stone-700 font-bold whitespace-nowrap overflow-hidden text-ellipsis w-full text-center">
-                    {col.name.split(' ')[0]}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-stone-700 tracking-wider mb-1 font-sans">
-              参. 仕立てるアイテム（柄の比率が変わります）
-            </label>
-            <div className="flex gap-3 font-sans text-xs">
-              <label className={`flex-1 p-2.5 rounded-lg border text-center cursor-pointer font-bold transition ${itemType === 'hanhaba' ? 'border-stone-900 bg-stone-900 text-white' : 'border-stone-200 bg-white text-stone-700'}`}>
-                <input type="radio" className="sr-only" checked={itemType === 'hanhaba'} onChange={() => setItemType('hanhaba')} />
-                半幅帯（横長）
-              </label>
-              <label className={`flex-1 p-2.5 rounded-lg border text-center cursor-pointer font-bold transition ${itemType === 'tanmono' ? 'border-stone-900 bg-stone-900 text-white' : 'border-stone-200 bg-white text-stone-700'}`}>
-                <input type="radio" className="sr-only" checked={itemType === 'tanmono'} onChange={() => setItemType('tanmono')} />
-                反物・京袋帯（縦長）
-              </label>
-            </div>
-          </div>
-
-          <div className="flex gap-3 font-sans text-xs
+              <label className="block text-sm font-bold text-stone-800 tracking-wider">
+                壱. 画風・意匠の選択（
