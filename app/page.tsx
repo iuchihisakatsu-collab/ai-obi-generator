@@ -49,16 +49,67 @@ const TRADITIONAL_COLORS = [
   { name: '焦茶 (こげちゃ)', hex: '#693b32', text: '深いダークブラウン・チョコレート地', isDark: true },
 ];
 
-const MAIN_MOTIF_LIST = ['猫', '犬', 'うさぎ', '鳥', '蝶々', '花・植物', '宇宙', '星座'];
+// ★ MakeShopの実在カテゴリー定義（画像から完全連動）
+interface CategoryItem {
+  label: string;
+  id: string; // Makeshop カテゴリーID
+}
 
-const TAG_CATEGORIES = [
-  { title: '【1】画風・アートスタイル', tags: ['浮世絵風', '京友禅風', '水彩画風', '油絵風', 'アールヌーヴォー', 'アールデコ', 'ミッドセンチュリー', 'ステンドグラス風'] },
-  { title: '【2】カルチャー・世界観', tags: ['大正ロマン', '昭和レトロ', '70sサイケ', 'ゴスロリ', 'スチームパンク', 'サイバーパンク', 'ゆめかわいい', '絵本風'] },
-  { title: '【3】季節・イベント', tags: ['お正月', 'お花見', '夏祭り', 'ハロウィン', 'クリスマス', 'イースター'] },
-  { title: '【4】背景・地紋', tags: ['市松模様', '麻の葉', '矢絣', '七宝', '青海波', '唐草模様', '水玉', '縞模様', '幾何学模様', 'レース'] },
-  { title: '【5】メインモチーフ', tags: MAIN_MOTIF_LIST },
-  { title: '【6】情景・アイデア', tags: ['空を飛ぶ', '水に浮かぶ', 'アンティークな', '機械仕掛けの', '洋書と一緒に', '珈琲カップと', 'シルエット', 'モノクローム'] }
+const TAG_CATEGORIES: { title: string; items: CategoryItem[] }[] = [
+  {
+    title: '【1】生き物・モチーフ（MakeShop連動）',
+    items: [
+      { label: 'ねこ', id: 'ct300' },
+      { label: '犬', id: 'ct301' },
+      { label: 'うさぎ', id: 'ct303' },
+      { label: '鳥類', id: 'ct269' },
+      { label: '海・海洋', id: 'ct265' },
+      { label: '昆虫', id: 'ct188' },
+      { label: '動物', id: 'ct47' },
+      { label: '植物・ボタニカル', id: 'ct46' },
+      { label: '恐竜・架空動物', id: 'ct267' },
+    ]
+  },
+  {
+    title: '【2】世界観・テーマ（MakeShop連動）',
+    items: [
+      { label: '風景・宇宙', id: 'ct51' },
+      { label: '食べ物', id: 'ct48' },
+      { label: '音楽', id: 'ct315' },
+      { label: '乗り物', id: 'ct320' },
+      { label: '建造物', id: 'ct268' },
+      { label: '鉱物・宝石', id: 'ct170' },
+      { label: '玩具', id: 'ct319' },
+      { label: '妖怪・おばけ・ドクロ', id: 'ct175' },
+    ]
+  },
+  {
+    title: '【3】柄・地紋（MakeShop連動）',
+    items: [
+      { label: '水玉（ドット）', id: 'ct310' },
+      { label: 'ボーダー・ストライプ', id: 'ct309' },
+      { label: 'ギンガム・格子', id: 'ct311' },
+      { label: '幾何学模様', id: 'ct53' },
+      { label: 'マーブル', id: 'ct171' },
+      { label: 'ミリタリー・迷彩', id: 'ct166' },
+    ]
+  },
+  {
+    title: '【4】画風・アートスタイル（MakeShop連動）',
+    items: [
+      { label: '日本画', id: 'ct49' },
+      { label: '西洋画', id: 'ct50' },
+      { label: '名画', id: 'ct358' },
+      { label: 'アールヌーヴォー・デコ', id: 'ct312' },
+      { label: 'ミッドセンチュリー', id: 'ct352' },
+      { label: 'ゴシック', id: 'ct354' },
+      { label: 'オリエンタル', id: 'ct295' },
+    ]
+  }
 ];
+
+// 全カテゴリーの平坦なリスト（テキスト判定用）
+const ALL_CATEGORIES = TAG_CATEGORIES.flatMap(cat => cat.items);
 
 const LOADING_STEPS = [
   'ご指定のモチーフから、図案のアイデアを生成しています...',
@@ -87,6 +138,10 @@ export default function Home() {
   const [serialNumber, setSerialNumber] = useState('');
   const [showTags, setShowTags] = useState(true);
 
+  // 選択されたMakeShopカテゴリーIDを保持
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('ct334'); // デフォルトは半幅帯(ct334)
+  const [selectedCategoryName, setSelectedCategoryName] = useState<string>('帯');
+
   useEffect(() => {
     let interval: ReturnType<typeof setInterval> | undefined;
     if (loading) {
@@ -101,10 +156,14 @@ export default function Home() {
     return () => { if (interval) clearInterval(interval); };
   }, [loading]);
 
-  const handleTagClick = (tag: string) => {
-    if (motif.includes(tag)) return; 
-    const newMotif = motif ? `${motif}、${tag}` : tag;
-    setMotif(newMotif);
+  const handleTagClick = (item: CategoryItem) => {
+    if (!motif.includes(item.label)) {
+      const newMotif = motif ? `${motif}、${item.label}` : item.label;
+      setMotif(newMotif);
+    }
+    // タグが押されたらMakeShopカテゴリーを即時連動
+    setSelectedCategoryId(item.id);
+    setSelectedCategoryName(item.label);
   };
 
   const handleGenerate = async () => {
@@ -113,6 +172,13 @@ export default function Home() {
     if (!agreed) { setErrorMsg('図案の利用に関する確認事項への同意が必要です。'); return; }
     const hitWord = FORBIDDEN_WORDS.find((word) => motif.toLowerCase().includes(word));
     if (hitWord) { setErrorMsg(`入力内容に使用できない作品名・ブランド名等「${hitWord}」が含まれています。一般的なモチーフや特徴を表す言葉に変更してください。`); return; }
+
+    // 入力テキストから最もマッチするMakeShopカテゴリーを再スキャン
+    const matched = ALL_CATEGORIES.find(c => motif.includes(c.label));
+    if (matched) {
+      setSelectedCategoryId(matched.id);
+      setSelectedCategoryName(matched.label);
+    }
 
     setLoading(true);
     try {
@@ -166,29 +232,8 @@ export default function Home() {
     }
   };
 
-  // ★ 修正ポイント：入力された全テキストの中から、確実に【5】メインモチーフだけを最優先で探し出す処理
-  const getSearchKeyword = (inputText: string) => {
-    // 1. まず MAIN_MOTIF_LIST の中から、入力文に含まれているものを探す
-    const matchedMainMotif = MAIN_MOTIF_LIST.find((item) => inputText.includes(item));
-    
-    if (matchedMainMotif) {
-      // 「花・植物」が見つかった場合は、MakeShopで検索されやすい「花」に変換
-      if (matchedMainMotif === '花・植物') return '花';
-      return matchedMainMotif;
-    }
-    
-    // 2. メインモチーフが見つからなかった場合のフォールバック（予備）
-    // ユーザーが「浮世絵風」などとだけ入れた場合は、それを使ってしまうと商品がヒットしないため、
-    // ここでは安全に「帯」や、それに付随する言葉にするか、最初の単語をとる
-    const splitMotifs = inputText.split(/[、, \s]+/);
-    const firstWord = splitMotifs.length > 0 && splitMotifs[0] ? splitMotifs[0] : '';
-    
-    // もし最初の単語が画風などの場合は弾きたいが、完全な除外は難しいため
-    // ここでは単純に最初の数文字を取るか、「帯」とする
-    return firstWord.length > 0 && !TAG_CATEGORIES[0].tags.includes(firstWord) ? firstWord.slice(0, 6) : '帯';
-  };
-
-  const searchKeyword = getSearchKeyword(motif);
+  // カテゴリー直接リンクURL
+  const makeshopCategoryUrl = `https://store.gofukuyasan.com/view/category/${selectedCategoryId}`;
 
   return (
     <div className="min-h-screen bg-stone-100 text-stone-800 p-4 sm:p-6 flex flex-col items-center justify-center font-sans">
@@ -230,14 +275,14 @@ export default function Home() {
                   <div key={cat.title}>
                     <p className="text-[11px] font-bold text-stone-500 mb-1.5">{cat.title}</p>
                     <div className="flex flex-wrap gap-1.5">
-                      {cat.tags.map((tag) => (
+                      {cat.items.map((item) => (
                         <button
-                          key={tag}
+                          key={item.label}
                           type="button"
-                          onClick={() => handleTagClick(tag)}
+                          onClick={() => handleTagClick(item)}
                           className="px-2.5 py-1 bg-stone-100 border border-stone-300 rounded-md text-[11px] text-stone-700 hover:bg-stone-800 hover:text-white transition-colors"
                         >
-                          {tag}
+                          {item.label}
                         </button>
                       ))}
                     </div>
@@ -252,7 +297,7 @@ export default function Home() {
                   ▼ 図案のイメージ（直接入力だけでも生成できます）
                 </p>
                 <p className="text-[10px] text-amber-800 font-medium leading-relaxed mt-0.5">
-                  ※上のタグや地色パレットを選ばなくても大丈夫です。「濃紺の地に、飛び跳ねる白うさぎと満月」のように、思いついたイメージを直接ここに入力（または書き足し）するだけで図案が作れます！
+                  ※上のタグや地色パレットを選ばなくても大丈夫です。「濃紺の地に、飛び跳ねるうさぎと満月」のように、思いついたイメージを直接ここに入力するだけで図案が作れます！
                 </p>
               </div>
               <textarea
@@ -304,137 +349,4 @@ export default function Home() {
               参. 仕立てるアイテム（柄の比率が変わります）
             </label>
             <div className="flex gap-3 text-xs">
-              <label className={`flex-1 p-2.5 rounded-lg border text-center cursor-pointer font-bold transition ${itemType === 'hanhaba' ? 'border-stone-900 bg-stone-900 text-white' : 'border-stone-200 bg-white text-stone-700'}`}>
-                <input type="radio" className="sr-only" checked={itemType === 'hanhaba'} onChange={() => setItemType('hanhaba')} />
-                半幅帯（横長）
-              </label>
-              <label className={`flex-1 p-2.5 rounded-lg border text-center cursor-pointer font-bold transition ${itemType === 'tanmono' ? 'border-stone-900 bg-stone-900 text-white' : 'border-stone-200 bg-white text-stone-700'}`}>
-                <input type="radio" className="sr-only" checked={itemType === 'tanmono'} onChange={() => setItemType('tanmono')} />
-                反物・京袋帯（縦長）
-              </label>
-            </div>
-          </div>
-
-          <div className="flex gap-3 text-xs">
-            <div className="flex-1">
-              <label className="block text-[10px] font-bold text-stone-500 mb-1">密度</label>
-              <select className="w-full p-2 border border-stone-300 rounded bg-white text-stone-700 focus:outline-none focus:border-stone-800" value={density} onChange={(e) => setDensity(e.target.value)}>
-                <option value="総柄（ぎっしり華やか）">総柄（ぎっしり華やか）</option>
-                <option value="飛び柄（余白を活かして上品に）">飛び柄（余白を活かして上品に）</option>
-              </select>
-            </div>
-            <div className="flex-1">
-              <label className="block text-[10px] font-bold text-stone-500 mb-1">図案銘（任意）</label>
-              <input type="text" className="w-full p-2 border border-stone-300 rounded bg-white text-stone-700 focus:outline-none focus:border-stone-800" value={patternTitle} onChange={(e) => setPatternTitle(e.target.value)} placeholder="例：春宵の椿" />
-            </div>
-          </div>
-
-          <div className="bg-stone-50 rounded-lg p-3 border border-stone-200 text-xs text-stone-600">
-            <label className="flex items-start gap-2 font-bold cursor-pointer text-stone-800 leading-snug">
-              <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="w-4 h-4 mt-0.5 rounded text-stone-900 focus:ring-stone-900" />
-              <span>既存の作品・キャラクター・ブランド等の模倣を目的として利用しません。AI生成の図案は既存の意匠と似る場合があり、完全な独自性や権利上の問題がないことを保証するものではないと理解しました。実際の生地制作をご希望の場合は、工房で図案を確認し、必要に応じて調整します。</span>
-            </label>
-          </div>
-
-          {errorMsg && <div className="bg-rose-50 text-rose-800 text-xs font-bold p-3 rounded-lg border border-rose-200">{errorMsg}</div>}
-
-          <button onClick={handleGenerate} disabled={loading} className="w-full bg-stone-900 text-amber-100 font-bold py-4 rounded-xl shadow-lg hover:bg-black disabled:bg-stone-400 disabled:text-stone-200 transition duration-200 tracking-widest text-sm">
-            {loading ? '図案イメージを生成しています...' : 'この内容で図案イメージを生成する'}
-          </button>
-        </div>
-
-        {loading && (
-          <div className="mt-8 p-6 rounded-xl bg-stone-800 border border-stone-700 text-center shadow-2xl relative overflow-hidden">
-            <div className="absolute inset-0 bg-[url('https://gofukuyasan.com/wp-content/uploads/2026/10/logo22.jpg')] bg-repeat opacity-5 animate-[slide_20s_linear_infinite]" />
-            <p className="text-sm font-bold text-amber-200 relative z-10 tracking-widest leading-relaxed">
-              {LOADING_STEPS[loadingStep]}
-            </p>
-            <div className="mt-4 w-full bg-stone-700 h-1.5 rounded-full overflow-hidden relative z-10">
-              <div className="bg-amber-400 h-full animate-[loading_24s_ease-in-out_forwards]" />
-            </div>
-            <p className="text-[10px] text-stone-400 mt-3 relative z-10">※画像の生成と保存には時間がかかる場合があります。</p>
-          </div>
-        )}
-
-        {imageUrl && !loading && (
-          <div className="mt-8 pt-6 border-t border-stone-200 space-y-4 animate-fade-in">
-            <div className="flex justify-center gap-2 text-xs">
-              <button onClick={() => setPreviewMode('pattern')} className={`px-4 py-1.5 rounded-full font-bold transition ${previewMode === 'pattern' ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}>① 図案原画</button>
-              <button onClick={() => setPreviewMode('fabric')} className={`px-4 py-1.5 rounded-full font-bold transition ${previewMode === 'fabric' ? 'bg-amber-800 text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}>② 生地にした場合のイメージ</button>
-            </div>
-
-            <div className="bg-[#fffefb] border-2 border-stone-300 rounded-xl p-4 shadow-xl">
-              {previewMode === 'pattern' ? (
-                <div className="relative w-full rounded-lg overflow-hidden border border-stone-200 shadow-inner">
-                  <img src={imageUrl} alt="小紋の図案" className="w-full h-auto object-contain" />
-                </div>
-              ) : (
-                <div className="flex flex-col items-center py-4 bg-stone-200/50 rounded-lg">
-                  <span className="text-[11px] text-stone-500 mb-2 font-bold">【反物にした場合のイメージ】</span>
-                  <div className="w-full h-64 rounded border-x-4 border-stone-400 shadow-md bg-repeat" style={{ backgroundImage: `url(${imageUrl})`, backgroundSize: '120px' }} />
-                </div>
-              )}
-
-              <div className="mt-4 pt-3 border-t border-dashed border-stone-300 flex justify-between items-end text-stone-700">
-                <div>
-                  <p className="text-[10px] text-stone-400">図案銘</p>
-                  <p className="text-base font-black text-stone-900">{finalTitle}</p>
-                </div>
-                <div className="text-right flex flex-col items-end gap-1">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded border border-amber-300">{serialNumber}</span>
-                    <img src={IUCHI_LOGO} alt="" className="h-5 w-auto object-contain" />
-                  </div>
-                  <p className="text-[9px] text-stone-400">AI生成による図案イメージ / Gofukuyasan</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 text-center">
-              <p className="text-xs font-bold text-rose-800 mb-1">＼ お誂えをご希望の方へ ／</p>
-              <p className="text-[10px] text-rose-700 mb-3 leading-relaxed">
-                生成された画像は、図案のアイデアを確認するためのイメージです。実際の生地として制作する場合は、ご注文後に工房で柄のつながりや色彩バランス、印刷への適性を確認し、必要に応じてデータを調整します。生成画像と実際の生地では、色味や柄の見え方が異なる場合があります。
-              </p>
-              <a href={orderUrl} onClick={handleOrderClick} className="block w-full bg-rose-800 text-amber-50 font-black py-3 rounded-lg hover:bg-rose-900 transition shadow text-sm tracking-wider cursor-pointer">
-                この図案イメージをもとにお誂えを申し込む
-              </a>
-            </div>
-
-            <div className="bg-stone-50 border border-stone-200 rounded-xl p-4 mt-2">
-              <p className="text-xs font-bold text-stone-800 mb-2">👘 この図案に合わせるコーディネート</p>
-              <p className="text-[10px] text-stone-600 mb-3 leading-relaxed">
-                思い描いた「{searchKeyword}」の意匠に合わせて、当店こだわりのアイテムをご覧いただけます。
-              </p>
-              <div className="flex flex-col gap-2">
-                <a href={`https://store.gofukuyasan.com/view/search?search_keyword=${encodeURIComponent(searchKeyword)}`} target="_blank" rel="noopener noreferrer" className="block w-full bg-white border border-stone-300 text-stone-700 text-center py-2.5 rounded-lg hover:bg-stone-100 transition text-[11px] font-bold shadow-sm">
-                  ゴフクヤサンの「{searchKeyword}」関連商品を見る
-                </a>
-                <a href="https://store.gofukuyasan.com/" target="_blank" rel="noopener noreferrer" className="block w-full bg-white border border-stone-300 text-stone-700 text-center py-2.5 rounded-lg hover:bg-stone-100 transition text-[11px] font-bold shadow-sm">
-                  着物・帯・小物を見る
-                </a>
-              </div>
-            </div>
-
-            <div className="space-y-3 pt-2">
-              <div className="text-center bg-stone-100 rounded-lg p-3 border border-stone-200">
-                <p className="text-[11px] font-bold text-stone-800 mb-1">【画像の保存・共有】</p>
-                <p className="text-[10px] text-stone-600 mb-3">画像を保存して、SNSなどで共有できます。共有の際は、AI生成による図案イメージであることも添えていただけると幸いです。</p>
-                
-                <a href={blobUrl} download={`${serialNumber || 'komon'}_${finalTitle}.png`} className="flex items-center justify-center gap-2 w-full bg-white text-stone-800 font-bold py-3 px-4 rounded-xl border border-stone-300 hover:bg-stone-50 transition shadow-sm text-[13px] mb-2">
-                  <svg className="w-4 h-4 text-stone-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                  図案画像を端末に保存する
-                </a>
-
-                <a href={xShareLink} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 w-full bg-black text-white font-bold py-3 px-4 rounded-xl hover:bg-stone-800 transition shadow text-[13px]">
-                  <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-                  この図案イメージをXで共有する
-                </a>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-      <style dangerouslySetInnerHTML={{__html: `@keyframes slide { from { background-position: 0 0; } to { background-position: 100% 100%; } } @keyframes loading { 0% { width: 0%; } 100% { width: 100%; } }`}} />
-    </div>
-  );
-}
+              <label className={`flex-1 p-2.5 rounded-lg
