@@ -148,6 +148,7 @@ const TRADITIONAL_COLORS = [
   { name: '焦茶 (こげちゃ)', hex: '#693b32', text: '深いダークブラウン・チョコレート地', isDark: true },
 ];
 
+// ==================== 犯行箇所（ここから下を上書き） ====================
 interface CategoryItem {
   label: string;
   id: string; 
@@ -201,7 +202,20 @@ const TAG_CATEGORIES: { title: string; items: CategoryItem[] }[] = [
     ]
   },
   {
-    title: '【4】画材・タッチ',
+    title: '【4】和の技法・様式',
+    items: [
+      { label: '友禅染め風', id: 'ct49' },
+      { label: '紅型 (びんがた) 風', id: 'ct49' },
+      { label: '浮世絵タッチ', id: 'ct49' },
+      { label: '水墨画', id: 'ct49' },
+      { label: '琳派 (りんぱ) 風', id: 'ct49' },
+      { label: '絞り染め風', id: 'ct53' },
+      { label: '江戸小紋', id: 'ct53' },
+      { label: '金彩・蒔絵風', id: 'ct49' },
+    ]
+  },
+  {
+    title: '【5】画材・タッチ',
     items: [
       { label: '水彩画', id: 'ct50' },
       { label: '油絵・厚塗り', id: 'ct50' },
@@ -213,11 +227,10 @@ const TAG_CATEGORIES: { title: string; items: CategoryItem[] }[] = [
     ]
   },
   {
-    title: '【5】テイスト・雰囲気',
+    title: '【6】テイスト・雰囲気',
     items: [
       { label: 'ファンシー・ゆめかわ', id: 'ct312' },
       { label: 'レトロ・大正ロマン', id: 'ct49' },
-      { label: '日本画風', id: 'ct49' },
       { label: '西洋名画風', id: 'ct50' },
       { label: 'アールヌーヴォー・デコ', id: 'ct312' },
       { label: 'ゴシック・ダーク', id: 'ct354' },
@@ -226,6 +239,9 @@ const TAG_CATEGORIES: { title: string; items: CategoryItem[] }[] = [
     ]
   }
 ];
+
+const ALL_CATEGORIES = TAG_CATEGORIES.flatMap(cat => cat.items);
+// ==================== 犯行箇所（ここまでを上書き） ====================
 const IUCHI_LOGO = "https://gofukuyasan.com/wp-content/uploads/2026/10/logo22.jpg";
 
 export default function Home() {
