@@ -148,7 +148,8 @@ const TRADITIONAL_COLORS = [
   { name: '焦茶 (こげちゃ)', hex: '#693b32', text: '深いダークブラウン・チョコレート地', isDark: true },
 ];
 
-// ==================== 犯行箇所（ここから下を上書き） ====================
+
+// ==================== 変更箇所（ここから下を上書き） ====================
 interface CategoryItem {
   label: string;
   id: string; 
@@ -167,13 +168,15 @@ const TAG_CATEGORIES: { title: string; items: CategoryItem[] }[] = [
       { label: '動物', id: 'ct47' },
       { label: '植物・ボタニカル', id: 'ct46' },
       { label: '恐竜・架空動物', id: 'ct267' },
+      { label: 'リボン・レース', id: 'ct312' },
     ]
   },
   {
     title: '【2】世界観・テーマ',
     items: [
       { label: '風景・宇宙', id: 'ct51' },
-      { label: '食べ物', id: 'ct48' },
+      { label: '食べ物・お菓子', id: 'ct48' },
+      { label: 'ロリポップ・キャンディ', id: 'ct48' },
       { label: '音楽', id: 'ct315' },
       { label: '乗り物', id: 'ct320' },
       { label: '建造物', id: 'ct268' },
@@ -230,6 +233,7 @@ const TAG_CATEGORIES: { title: string; items: CategoryItem[] }[] = [
     title: '【6】テイスト・雰囲気',
     items: [
       { label: 'ファンシー・ゆめかわ', id: 'ct312' },
+      { label: 'ゴスロリ・ロリータ', id: 'ct354' },
       { label: 'レトロ・大正ロマン', id: 'ct49' },
       { label: '西洋名画風', id: 'ct50' },
       { label: 'アールヌーヴォー・デコ', id: 'ct312' },
@@ -241,7 +245,12 @@ const TAG_CATEGORIES: { title: string; items: CategoryItem[] }[] = [
 ];
 
 const ALL_CATEGORIES = TAG_CATEGORIES.flatMap(cat => cat.items);
-// ==================== 犯行箇所（ここまでを上書き） ====================
+// ==================== 変更箇所（ここまでを上書き） ====================
+
+
+
+
+
 const IUCHI_LOGO = "https://gofukuyasan.com/wp-content/uploads/2026/10/logo22.jpg";
 
 export default function Home() {
