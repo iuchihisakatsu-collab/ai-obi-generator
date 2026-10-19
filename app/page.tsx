@@ -274,7 +274,7 @@ export default function Home() {
   const [serialNumber, setSerialNumber] = useState('');
   const [showTags, setShowTags] = useState(true);
 
-  // 【追加】残りの回数を管理する状態
+  // 残りの回数を管理する状態
   const [remainingCount, setRemainingCount] = useState<number | null>(null);
 
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('ct334'); 
@@ -418,54 +418,47 @@ export default function Home() {
   const makeshopCategoryUrl = `https://store.gofukuyasan.com/view/category/${selectedCategoryId}`;
 
   return (
-    <div className="min-h-screen bg-stone-100 text-stone-800 p-4 sm:p-6 flex flex-col items-center justify-center font-sans">
-      <div className="max-w-2xl w-full bg-[#fdfbf7] rounded-2xl shadow-2xl border border-stone-200 p-6 sm:p-8">
+    <div className="min-h-screen bg-[#fafafa] text-zinc-900 p-4 sm:p-8 flex flex-col items-center justify-center font-sans selection:bg-zinc-200">
+      <div className="max-w-2xl w-full bg-white rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-zinc-100 p-6 sm:p-12 transition-all duration-300">
         
         {/* ヘッダーエリア */}
-        <div className="text-center mb-6 pb-4 border-b border-stone-200">
-          <div className="inline-flex items-center gap-1.5 bg-stone-800 text-amber-200 text-[10px] tracking-widest px-3 py-0.5 rounded uppercase font-bold shadow-sm">
-            <img src={IUCHI_LOGO} alt="" className="h-3.5 w-auto object-contain brightness-125" />
-            <span>Gofukuyasan Pattern Studio</span>
+        <div className="text-center mb-10 pb-8 border-b border-zinc-100">
+          <div className="inline-flex items-center gap-2 mb-6">
+            <img src={IUCHI_LOGO} alt="" className="h-4 w-auto object-contain opacity-80" />
+            <span className="text-[10px] tracking-[0.2em] font-bold text-zinc-400 uppercase">Gofukuyasan Studio</span>
           </div>
-          <div className="flex items-center justify-center gap-3 mt-3">
-            <img src={IUCHI_LOGO} alt="居内商店" className="h-10 sm:h-12 w-auto object-contain" />
-            <h1 className="text-xl sm:text-2xl font-black text-stone-900 tracking-wider text-left leading-tight font-sans">
-              妄想小紋図案帖<br className="sm:hidden" />（ずあんちょう）
-            </h1>
-          </div>
-          <p className="text-[11px] sm:text-xs text-stone-600 mt-2 font-medium leading-relaxed">
-            着物の配色や柄づくりの知識を生かして、思いついた柄のアイデアを試せるAI図案ツールです。<br className="hidden sm:inline" />
-            伝統的なモチーフも、今の気分も。自由に組み合わせて、あなただけの柄の可能性を探してみてください。
+          <h1 className="text-2xl sm:text-3xl font-black text-zinc-900 tracking-widest text-center leading-tight">
+            妄想小紋図案帖
+          </h1>
+          <p className="text-xs text-zinc-500 mt-4 leading-relaxed font-medium tracking-wider">
+            着物の配色や柄づくりの知識を生かして、<br className="hidden sm:inline" />思いついた柄のアイデアを試せるAI図案ツールです。
           </p>
         </div>
 
-        <div className="space-y-6">
-          {/* 壱. 図案のヒント（任意） */}
-          <div className="bg-white p-4 rounded-xl border border-stone-200 shadow-sm">
-            <div className="flex justify-between items-center mb-1">
-              <label className="block text-sm font-bold text-stone-800 tracking-wider">
-                壱. 図案のヒント（任意 / タップで追加）
+        <div className="space-y-10">
+          {/* 壱. 図案のヒント */}
+          <div>
+            <div className="flex justify-between items-end mb-4">
+              <label className="block text-xs font-bold text-zinc-800 tracking-widest uppercase">
+                01. Motif & Theme <span className="ml-2 text-[10px] text-zinc-400 font-normal">図案のヒント</span>
               </label>
-              <button onClick={() => setShowTags(!showTags)} className="text-xs text-stone-500 underline">
-                {showTags ? '閉じる' : '開く'}
+              <button onClick={() => setShowTags(!showTags)} className="text-[10px] text-zinc-400 hover:text-zinc-800 transition-colors tracking-widest">
+                {showTags ? 'HIDE' : 'SHOW'}
               </button>
             </div>
-            <p className="text-[10px] text-stone-400 mb-3">
-              ※タグは選ばなくても大丈夫です。下の入力欄に、思い浮かんだイメージを直接書いても図案を生成できます。
-            </p>
             
             {showTags && (
-              <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-stone-300">
+              <div className="space-y-5 max-h-[320px] overflow-y-auto pr-3 mb-6 scrollbar-thin scrollbar-thumb-zinc-200">
                 {TAG_CATEGORIES.map((cat) => (
                   <div key={cat.title}>
-                    <p className="text-[11px] font-bold text-stone-500 mb-1.5">{cat.title}</p>
-                    <div className="flex flex-wrap gap-1.5">
+                    <p className="text-[10px] font-bold text-zinc-400 tracking-wider mb-2">{cat.title}</p>
+                    <div className="flex flex-wrap gap-2">
                       {cat.items.map((item) => (
                         <button
                           key={item.label}
                           type="button"
                           onClick={() => handleTagClick(item)}
-                          className="px-2.5 py-1 bg-stone-100 border border-stone-300 rounded-md text-[11px] text-stone-700 hover:bg-stone-800 hover:text-white transition-colors"
+                          className="px-3.5 py-1.5 bg-zinc-50 rounded-full text-[11px] font-medium text-zinc-600 hover:bg-zinc-900 hover:text-white transition-all duration-200"
                         >
                           {item.label}
                         </button>
@@ -476,128 +469,118 @@ export default function Home() {
               </div>
             )}
 
-            {/* 図案のイメージ（自由入力） */}
-            <div className="mt-4 pt-3 border-t border-stone-100">
-              <div className="flex flex-col mb-1.5">
-                <p className="text-[12px] font-bold text-stone-800">
-                  ▼ 図案のイメージ（自由入力）
-                </p>
-                <p className="text-[10px] text-stone-500 font-normal leading-relaxed mt-0.5">
-                  思いついた言葉を自由に組み合わせてください。入力した内容をもとにAIが図案を生成します（イメージどおりにならない場合もあります）。
-                </p>
-              </div>
+            <div className="relative">
               <textarea
-                className="w-full rounded-lg border-2 border-stone-300 p-3 bg-stone-50 text-sm focus:outline-none focus:border-stone-800 resize-none font-medium"
+                className="w-full rounded-2xl border border-zinc-200 p-4 bg-zinc-50/50 text-sm focus:outline-none focus:border-zinc-900 focus:bg-white focus:ring-1 focus:ring-zinc-900 resize-none transition-all duration-200 leading-relaxed"
                 rows={3}
                 value={motif}
                 onChange={(e) => setMotif(e.target.value)}
-                placeholder="例：濃紺の地に、跳ねるうさぎと満月。余白を生かした、少しレトロな小紋柄"
+                placeholder="例：濃紺の地に、跳ねるうさぎと満月。少しレトロな小紋柄"
                 disabled={loading}
               />
-              <button onClick={() => setMotif('')} className="text-[10px] text-stone-500 underline mt-1">クリア</button>
+              {motif && (
+                <button 
+                  onClick={() => setMotif('')} 
+                  className="absolute bottom-3 right-4 text-[10px] font-bold text-zinc-400 hover:text-zinc-800 tracking-widest uppercase"
+                >
+                  Clear
+                </button>
+              )}
             </div>
           </div>
 
-          {/* 弐. 地色を選ぶ（任意・全102色） */}
+          {/* 弐. 地色 */}
           <div>
-            <div className="flex flex-col mb-1.5">
-              <div className="flex justify-between items-baseline">
-                <label className="block text-xs font-bold text-stone-700 tracking-wider">
-                  弐. 地色を選ぶ（任意・全102色）
-                </label>
-                <span className="text-[10px] text-stone-500 font-bold">全102色</span>
-              </div>
-              <p className="text-[10px] text-stone-500">
-                着物の伝統色を中心に、好みの色を選べます。パレットを使わず、入力欄に「淡いピンク地」「漆黒地」などと書くこともできます。
-              </p>
+            <div className="flex justify-between items-end mb-4">
+              <label className="block text-xs font-bold text-zinc-800 tracking-widest uppercase">
+                02. Base Color <span className="ml-2 text-[10px] text-zinc-400 font-normal">地色</span>
+              </label>
+              <span className="text-[10px] text-zinc-400 tracking-widest">102 COLORS</span>
             </div>
             
-            <div className="max-h-[300px] overflow-y-auto pr-1 border border-stone-200 rounded-xl p-2 bg-stone-50/50 scrollbar-thin scrollbar-thumb-stone-300">
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 sm:gap-2">
+            <div className="max-h-[280px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-zinc-200">
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 sm:gap-3">
                 {TRADITIONAL_COLORS.map((col) => (
                   <button
                     key={col.name}
                     type="button"
                     onClick={() => setSelectedColor(col)}
-                    className={`relative h-14 rounded-lg p-1.5 flex flex-col justify-between text-left transition-all border ${
+                    className={`relative h-14 rounded-xl p-2 flex flex-col justify-end text-left transition-all duration-200 ${
                       selectedColor.name === col.name
-                        ? 'ring-2 ring-stone-900 border-stone-900 scale-95 shadow-md'
-                        : 'border-stone-200 hover:border-stone-400'
+                        ? 'ring-2 ring-offset-2 ring-zinc-900 scale-95'
+                        : 'border border-zinc-100 hover:scale-105 hover:shadow-sm'
                     }`}
                     style={{ backgroundColor: col.hex }}
                   >
-                    <span className={`text-[10px] font-bold truncate leading-tight ${col.isDark ? 'text-white' : 'text-stone-900'}`}>
-                      {col.name}
+                    <span className={`text-[9px] font-bold tracking-wider truncate leading-tight ${col.isDark ? 'text-white/90' : 'text-zinc-900/90'}`}>
+                      {col.name.split(' ')[0]}
                     </span>
-                    {selectedColor.name === col.name && (
-                      <span className={`text-[9px] self-end font-bold px-1 rounded ${col.isDark ? 'bg-white text-stone-900' : 'bg-stone-900 text-white'}`}>
-                        選択中
-                      </span>
-                    )}
                   </button>
                 ))}
               </div>
             </div>
           </div>
 
-          {/* 参. 柄の密度 */}
-          <div>
-            <label className="block text-xs font-bold text-stone-700 tracking-wider mb-1.5">
-              参. 柄の密度
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              {['総柄（ぎっしり華やか）', '飛び柄（余白のある小紋）'].map((d) => (
-                <button
-                  key={d}
-                  type="button"
-                  onClick={() => setDensity(d)}
-                  className={`py-2 px-3 rounded-lg text-xs font-bold border transition-all ${
-                    density === d
-                      ? 'bg-stone-800 text-white border-stone-800 shadow-sm'
-                      : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-50'
-                  }`}
-                >
-                  {d}
-                </button>
-              ))}
+          <div className="grid sm:grid-cols-2 gap-8">
+            {/* 参. 密度 */}
+            <div>
+              <label className="block text-xs font-bold text-zinc-800 tracking-widest uppercase mb-4">
+                03. Density <span className="ml-2 text-[10px] text-zinc-400 font-normal">柄の密度</span>
+              </label>
+              <div className="flex flex-col gap-2">
+                {['総柄（ぎっしり華やか）', '飛び柄（余白のある小紋）'].map((d) => (
+                  <button
+                    key={d}
+                    type="button"
+                    onClick={() => setDensity(d)}
+                    className={`py-3 px-4 rounded-xl text-xs font-bold tracking-wider transition-all duration-200 text-left ${
+                      density === d
+                        ? 'bg-zinc-900 text-white'
+                        : 'bg-zinc-50 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900'
+                    }`}
+                  >
+                    {d}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 四. 比率 */}
+            <div>
+              <label className="block text-xs font-bold text-zinc-800 tracking-widest uppercase mb-4">
+                04. Format <span className="ml-2 text-[10px] text-zinc-400 font-normal">形式</span>
+              </label>
+              <div className="flex flex-col gap-2">
+                {[
+                  { id: 'hanhaba', label: '半幅帯 (横長)' },
+                  { id: 'tanmono', label: '反物・着尺 (縦長)' },
+                  { id: 'square', label: '正方形 (基本)' },
+                ].map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setItemType(item.id)}
+                    className={`py-3 px-4 rounded-xl text-xs font-bold tracking-wider transition-all duration-200 text-left ${
+                      itemType === item.id
+                        ? 'bg-zinc-900 text-white'
+                        : 'bg-zinc-50 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900'
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
-          {/* 四. 図案の比率・形式 */}
+          {/* 伍. 図案銘 */}
           <div>
-            <label className="block text-xs font-bold text-stone-700 tracking-wider mb-1.5">
-              四. 図案の比率・形式
-            </label>
-            <div className="grid grid-cols-3 gap-2">
-              {[
-                { id: 'hanhaba', label: '半幅帯 (横長)' },
-                { id: 'tanmono', label: '反物・着尺 (縦長)' },
-                { id: 'square', label: '正方形 (基本)' },
-              ].map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => setItemType(item.id)}
-                  className={`py-2 px-3 rounded-lg text-xs font-bold border transition-all ${
-                    itemType === item.id
-                      ? 'bg-stone-800 text-white border-stone-800 shadow-sm'
-                      : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-50'
-                  }`}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* 伍. 図案銘（命名・任意） */}
-          <div>
-            <label className="block text-xs font-bold text-stone-700 tracking-wider mb-1.5">
-              伍. 図案の銘（命名・任意）
+            <label className="block text-xs font-bold text-zinc-800 tracking-widest uppercase mb-4">
+              05. Title <span className="ml-2 text-[10px] text-zinc-400 font-normal">図案銘 (任意)</span>
             </label>
             <input
               type="text"
-              className="w-full rounded-lg border-2 border-stone-300 p-2.5 bg-stone-50 text-sm focus:outline-none focus:border-stone-800 font-medium"
+              className="w-full rounded-2xl border border-zinc-200 p-4 bg-zinc-50/50 text-sm focus:outline-none focus:border-zinc-900 focus:bg-white focus:ring-1 focus:ring-zinc-900 transition-all duration-200"
               placeholder="例：月夜の跳ね兎"
               value={patternTitle}
               onChange={(e) => setPatternTitle(e.target.value)}
@@ -605,90 +588,87 @@ export default function Home() {
             />
           </div>
 
-          {/* 利用規約同意チェック */}
-          <div className="pt-2">
-            <label className="flex items-start gap-2 cursor-pointer select-none">
+          {/* 同意と生成ボタン */}
+          <div className="pt-4 border-t border-zinc-100">
+            <label className="flex items-start gap-3 cursor-pointer select-none mb-8 group">
               <input
                 type="checkbox"
                 checked={agreed}
                 onChange={(e) => setAgreed(e.target.checked)}
-                className="mt-1 h-4 w-4 rounded border-stone-300 text-stone-800 focus:ring-stone-800"
+                className="mt-0.5 h-4 w-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900 transition-colors"
               />
-              <span className="text-[11px] text-stone-600 leading-snug">
+              <span className="text-[11px] text-zinc-500 leading-relaxed group-hover:text-zinc-800 transition-colors">
                 生成された図案はAIによるアイデアイメージであり、実際の生地制作・捺染時には工房の職人の手でデータ調整が行われること、および公序良俗・権利侵害のない利用に同意します。
               </span>
             </label>
-          </div>
 
-          {/* エラーメッセージ */}
-          {errorMsg && (
-            <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg font-bold">
-              {errorMsg}
-            </div>
-          )}
-
-          {/* 生成実行ボタン */}
-          <button
-            type="button"
-            onClick={handleGenerate}
-            disabled={loading || remainingCount === 0}
-            className={`w-full py-4 rounded-xl font-bold text-base transition-all shadow-lg flex items-center justify-center gap-2 ${
-              remainingCount === 0
-                ? 'bg-stone-400 text-stone-200 cursor-not-allowed shadow-none'
-                : 'bg-stone-900 text-white hover:bg-stone-800 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed'
-            }`}
-          >
-            {loading ? (
-              <div className="flex flex-col items-center gap-1 py-1">
-                <span className="text-sm">{LOADING_STEPS[loadingStep]}</span>
-                <span className="text-[10px] text-stone-300">少々お待ちください...</span>
+            {errorMsg && (
+              <div className="mb-6 p-4 bg-red-50 text-red-600 text-xs rounded-xl font-bold tracking-wide">
+                {errorMsg}
               </div>
-            ) : (
-              <span>
-                {remainingCount === 0
-                  ? '本日の上限（3回）に達しました'
-                  : `👘 妄想小紋図案帖に描き出す（本日残り ${remainingCount ?? 3} 回）`}
-              </span>
             )}
-          </button>
+
+            <button
+              type="button"
+              onClick={handleGenerate}
+              disabled={loading || remainingCount === 0}
+              className={`w-full py-5 rounded-2xl font-black text-sm tracking-widest uppercase transition-all duration-300 flex items-center justify-center gap-3 ${
+                remainingCount === 0
+                  ? 'bg-zinc-100 text-zinc-400 cursor-not-allowed'
+                  : 'bg-zinc-950 text-white hover:bg-zinc-800 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed'
+              }`}
+            >
+              {loading ? (
+                <div className="flex flex-col items-center gap-1.5">
+                  <span>{LOADING_STEPS[loadingStep]}</span>
+                  <span className="text-[9px] text-zinc-400 font-normal">PROCESSING...</span>
+                </div>
+              ) : (
+                <span>
+                  {remainingCount === 0
+                    ? 'LIMIT REACHED (3/3)'
+                    : `GENERATE / 図案を描き出す (残り ${remainingCount ?? 3} 回)`}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
 
         {/* 生成結果表示エリア */}
         {imageUrl && (
-          <div className="mt-8 pt-8 border-t border-stone-200">
-            <div className="bg-white p-4 sm:p-6 rounded-2xl border border-stone-200 shadow-md">
-              <div className="flex justify-between items-baseline mb-3">
+          <div className="mt-12 pt-12 border-t border-zinc-100 animate-fade-in">
+            <div className="bg-white rounded-3xl border border-zinc-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden">
+              <div className="p-6 sm:p-8 pb-6 border-b border-zinc-50 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
                 <div>
-                  <span className="text-[10px] font-mono font-bold bg-stone-800 text-amber-200 px-2 py-0.5 rounded">
-                    {serialNumber}
+                  <span className="inline-block text-[9px] font-mono font-bold tracking-widest text-zinc-400 mb-2">
+                    ID: {serialNumber}
                   </span>
-                  <h2 className="text-lg font-bold text-stone-900 mt-1">銘：『{finalTitle}』</h2>
+                  <h2 className="text-xl font-black text-zinc-900 tracking-widest">銘：『{finalTitle}』</h2>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex bg-zinc-50 p-1 rounded-lg">
                   <button
                     type="button"
                     onClick={() => setPreviewMode('pattern')}
-                    className={`text-xs px-2.5 py-1 rounded border ${previewMode === 'pattern' ? 'bg-stone-800 text-white' : 'bg-stone-100 text-stone-600'}`}
+                    className={`text-xs px-4 py-2 rounded-md font-bold tracking-wider transition-all duration-200 ${previewMode === 'pattern' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-400 hover:text-zinc-600'}`}
                   >
                     図案
                   </button>
                   <button
                     type="button"
                     onClick={() => setPreviewMode('fabric')}
-                    className={`text-xs px-2.5 py-1 rounded border ${previewMode === 'fabric' ? 'bg-stone-800 text-white' : 'bg-stone-100 text-stone-600'}`}
+                    className={`text-xs px-4 py-2 rounded-md font-bold tracking-wider transition-all duration-200 ${previewMode === 'fabric' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-400 hover:text-zinc-600'}`}
                   >
-                    帯プレビュー
+                    プレビュー
                   </button>
                 </div>
               </div>
 
-              {/* 画像プレビュー */}
-              <div className="relative overflow-hidden rounded-xl border border-stone-200 bg-stone-50 flex items-center justify-center min-h-[300px]">
+              <div className="bg-zinc-50/50 flex items-center justify-center min-h-[400px] p-6">
                 {previewMode === 'pattern' ? (
-                  <img src={imageUrl} alt={finalTitle} className="w-full h-auto object-contain max-h-[500px]" />
+                  <img src={imageUrl} alt={finalTitle} className="w-full max-w-lg h-auto object-contain rounded-xl shadow-sm" />
                 ) : (
                   <div 
-                    className="w-full h-[360px] bg-repeat shadow-inner"
+                    className="w-full h-[400px] rounded-xl shadow-inner border border-zinc-100/50"
                     style={{ 
                       backgroundImage: `url(${imageUrl})`,
                       backgroundSize: '200px auto'
@@ -697,51 +677,49 @@ export default function Home() {
                 )}
               </div>
 
-              {/* アクションボタン群 */}
-              <div className="mt-5 space-y-3">
-                <div className="grid grid-cols-2 gap-3">
+              <div className="p-6 sm:p-8 space-y-4 bg-white">
+                <div className="grid grid-cols-2 gap-3 sm:gap-4">
                   <a
                     href={blobUrl || imageUrl}
                     download={`komon-${serialNumber}.png`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-full py-2.5 text-center bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-bold rounded-lg border border-stone-300 transition-colors"
+                    className="w-full py-4 text-center bg-zinc-50 hover:bg-zinc-100 text-zinc-900 text-xs font-bold tracking-widest uppercase rounded-xl transition-colors"
                   >
-                    💾 図案を保存する
+                    SAVE
                   </a>
                   <a
                     href={xShareLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-full py-2.5 text-center bg-black hover:bg-stone-800 text-white text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5"
+                    className="w-full py-4 text-center bg-[#1DA1F2] hover:bg-[#1a8cd8] text-white text-xs font-bold tracking-widest uppercase rounded-xl transition-colors flex items-center justify-center gap-2"
                   >
-                    <span>𝕏 で共有する</span>
+                    SHARE ON X
                   </a>
                 </div>
 
                 <a
                   href={orderUrl}
                   onClick={handleOrderClick}
-                  className="block w-full py-3.5 text-center bg-[#8b1e2a] hover:bg-[#731923] text-white text-sm font-bold rounded-xl shadow-md transition-all"
+                  className="block w-full py-5 text-center bg-zinc-900 hover:bg-zinc-800 text-white text-sm font-bold tracking-widest uppercase rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 mt-2"
                 >
-                  👘 この図案をもとにお誂えを申し込む
+                  この図案でお誂えを申し込む
                 </a>
 
-                <div className="text-center pt-2">
+                <div className="text-center pt-6">
                   <a
                     href={makeshopCategoryUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-xs text-stone-500 hover:text-stone-800 underline"
+                    className="text-[10px] text-zinc-400 hover:text-zinc-800 tracking-widest uppercase transition-colors"
                   >
-                    似たモチーフ（{selectedCategoryName}）の既製帯・着物を見る →
+                    VIEW SIMILAR ITEMS IN STORE →
                   </a>
                 </div>
               </div>
             </div>
           </div>
         )}
-
       </div>
     </div>
   );
