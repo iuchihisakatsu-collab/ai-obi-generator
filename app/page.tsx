@@ -11,24 +11,42 @@ const FORBIDDEN_WORDS = [
 ];
 
 const TRADITIONAL_COLORS = [
-  { name: '胡粉 (ごふん)', hex: '#fffffc', text: '純白地' }, { name: '生成 (きなり)', hex: '#f6f5ec', text: '淡いアイボリー地' },
-  { name: '灰桜 (はいざくら)', hex: '#e8d3d1', text: 'ごく淡いグレーピンク地' }, { name: '銀鼠 (ぎんねず)', hex: '#afafb0', text: '明るいシルバーグレー地' },
-  { name: '消炭 (けしずみ)', hex: '#524e4d', text: '濃いチャコールグレー地' }, { name: '漆黒 (しっこく)', hex: '#161616', text: '真っ黒な地' },
-  { name: '桜色 (さくら)', hex: '#fef4f4', text: 'ごく淡い桜ピンク地' }, { name: '桃色 (もも)', hex: '#f58f98', text: '明るいピーチピンク地' },
-  { name: '牡丹 (ぼたん)', hex: '#e7609e', text: '華やかなマゼンタピンク地' }, { name: '珊瑚 (さんご)', hex: '#f5b1aa', text: '柔らかなコーラル地' },
-  { name: '朱色 (しゅ)', hex: '#ea5532', text: '鮮やかな朱赤地' }, { name: '深緋 (こきひ)', hex: '#8b1e2a', text: '深みのある真紅・ボルドー地' },
-  { name: '白群 (びゃくぐん)', hex: '#83ccd2', text: '淡いペールブルー地' }, { name: '水色 (みず)', hex: '#bce2e8', text: '澄んだライトブルー地' },
-  { name: '浅葱 (あさぎ)', hex: '#00a3af', text: '鮮やかな青緑・ターコイズ地' }, { name: '瑠璃 (るり)', hex: '#1e50a2', text: '鮮やかなロイヤルブルー地' },
-  { name: '藍色 (あい)', hex: '#163b5c', text: '深いネイビー・藍地' }, { name: '鉄紺 (てっこん)', hex: '#17184b', text: '極めて暗い紫みの紺地' },
-  { name: '白緑 (びゃくろく)', hex: '#d6e9ca', text: 'ごく淡いミントグリーン地' }, { name: '鶸色 (ひわ)', hex: '#d7cf3a', text: '明るいイエローグリーン地' },
-  { name: '若竹 (わかたけ)', hex: '#68be8d', text: '鮮やかなエメラルドグリーン地' }, { name: '青磁 (せいじ)', hex: '#7ebea5', text: 'くすんだブルーグリーン地' },
-  { name: '海松 (みる)', hex: '#726d40', text: '渋いオリーブグリーン地' }, { name: '常磐 (ときわ)', hex: '#1b4d3e', text: '深いフォレストグリーン地' },
-  { name: '藤色 (ふじ)', hex: '#bbbcde', text: '淡いラベンダー地' }, { name: '桔梗 (ききょう)', hex: '#5654a2', text: '鮮やかな青紫地' },
-  { name: '江戸紫 (えど)', hex: '#745399', text: '濃い赤紫地' }, { name: '古代紫 (こだい)', hex: '#895b8a', text: 'くすんだアンティークパープル地' },
-  { name: '滅紫 (けしむらさき)', hex: '#594255', text: '非常に暗いグレイッシュパープル地' }, { name: '京紫 (きょう)', hex: '#9d5b8b', text: '華麗な赤みの紫地' },
-  { name: '鳥の子 (とりのこ)', hex: '#dac9a6', text: '温かみのあるベージュ地' }, { name: '山吹 (やまぶき)', hex: '#f8b500', text: '鮮やかな黄金・マスタード地' },
-  { name: '芥子 (からし)', hex: '#d0af4c', text: '渋い辛子色地' }, { name: '琥珀 (こはく)', hex: '#bf783a', text: '明るいキャメル・琥珀地' },
-  { name: '胡桃 (くるみ)', hex: '#a86f4c', text: '穏やかなブラウン地' }, { name: '焦茶 (こげちゃ)', hex: '#693b32', text: '深いダークブラウン・チョコレート地' },
+  { name: '胡粉 (ごふん)', hex: '#fffffc', text: '純白地', isDark: false }, 
+  { name: '生成 (きなり)', hex: '#f6f5ec', text: '淡いアイボリー地', isDark: false },
+  { name: '灰桜 (はいざくら)', hex: '#e8d3d1', text: 'ごく淡いグレーピンク地', isDark: false }, 
+  { name: '銀鼠 (ぎんねず)', hex: '#afafb0', text: '明るいシルバーグレー地', isDark: false },
+  { name: '消炭 (けしずみ)', hex: '#524e4d', text: '濃いチャコールグレー地', isDark: true }, 
+  { name: '漆黒 (しっこく)', hex: '#161616', text: '真っ黒な地', isDark: true },
+  { name: '桜色 (さくら)', hex: '#fef4f4', text: 'ごく淡い桜ピンク地', isDark: false }, 
+  { name: '桃色 (もも)', hex: '#f58f98', text: '明るいピーチピンク地', isDark: false },
+  { name: '牡丹 (ぼたん)', hex: '#e7609e', text: '華やかなマゼンタピンク地', isDark: true }, 
+  { name: '珊瑚 (さんご)', hex: '#f5b1aa', text: '柔らかなコーラル地', isDark: false },
+  { name: '朱色 (しゅ)', hex: '#ea5532', text: '鮮やかな朱赤地', isDark: true }, 
+  { name: '深緋 (こきひ)', hex: '#8b1e2a', text: '深みのある真紅・ボルドー地', isDark: true },
+  { name: '白群 (びゃくぐん)', hex: '#83ccd2', text: '淡いペールブルー地', isDark: false }, 
+  { name: '水色 (みず)', hex: '#bce2e8', text: '澄んだライトブルー地', isDark: false },
+  { name: '浅葱 (あさぎ)', hex: '#00a3af', text: '鮮やかな青緑・ターコイズ地', isDark: true }, 
+  { name: '瑠璃 (るり)', hex: '#1e50a2', text: '鮮やかなロイヤルブルー地', isDark: true },
+  { name: '藍色 (あい)', hex: '#163b5c', text: '深いネイビー・藍地', isDark: true }, 
+  { name: '鉄紺 (てっこん)', hex: '#17184b', text: '極めて暗い紫みの紺地', isDark: true },
+  { name: '白緑 (びゃくろく)', hex: '#d6e9ca', text: 'ごく淡いミントグリーン地', isDark: false }, 
+  { name: '鶸色 (ひわ)', hex: '#d7cf3a', text: '明るいイエローグリーン地', isDark: false },
+  { name: '若竹 (わかたけ)', hex: '#68be8d', text: '鮮やかなエメラルドグリーン地', isDark: true }, 
+  { name: '青磁 (せいじ)', hex: '#7ebea5', text: 'くすんだブルーグリーン地', isDark: false },
+  { name: '海松 (みる)', hex: '#726d40', text: '渋いオリーブグリーン地', isDark: true }, 
+  { name: '常磐 (ときわ)', hex: '#1b4d3e', text: '深いフォレストグリーン地', isDark: true },
+  { name: '藤色 (ふじ)', hex: '#bbbcde', text: '淡いラベンダー地', isDark: false }, 
+  { name: '桔梗 (ききょう)', hex: '#5654a2', text: '鮮やかな青紫地', isDark: true },
+  { name: '江戸紫 (えど)', hex: '#745399', text: '濃い赤紫地', isDark: true }, 
+  { name: '古代紫 (こだい)', hex: '#895b8a', text: 'くすんだアンティークパープル地', isDark: true },
+  { name: '滅紫 (けしむらさき)', hex: '#594255', text: '非常に暗いグレイッシュパープル地', isDark: true }, 
+  { name: '京紫 (きょう)', hex: '#9d5b8b', text: '華麗な赤みの紫地', isDark: true },
+  { name: '鳥の子 (とりのこ)', hex: '#dac9a6', text: '温かみのあるベージュ地', isDark: false }, 
+  { name: '山吹 (やまぶき)', hex: '#f8b500', text: '鮮やかな黄金・マスタード地', isDark: true },
+  { name: '芥子 (からし)', hex: '#d0af4c', text: '渋い辛子色地', isDark: false }, 
+  { name: '琥珀 (こはく)', hex: '#bf783a', text: '明るいキャメル・琥珀地', isDark: true },
+  { name: '胡桃 (くるみ)', hex: '#a86f4c', text: '穏やかなブラウン地', isDark: true }, 
+  { name: '焦茶 (こげちゃ)', hex: '#693b32', text: '深いダークブラウン・チョコレート地', isDark: true },
 ];
 
 const MAIN_MOTIF_LIST = ['猫', '犬', 'うさぎ', '鳥', '蝶々', '花・植物', '宇宙', '星座'];
@@ -148,15 +166,29 @@ export default function Home() {
     }
   };
 
-  const matchedMainMotif = MAIN_MOTIF_LIST.find((item) => motif.includes(item));
-  
-  let searchKeyword = '帯';
-  if (matchedMainMotif) {
-    searchKeyword = matchedMainMotif === '花・植物' ? '花' : matchedMainMotif;
-  } else {
-    const splitMotifs = motif ? motif.split(/[、, \s]+/) : [];
-    searchKeyword = splitMotifs.length > 0 && splitMotifs[0] ? splitMotifs[0].slice(0, 6) : '帯';
-  }
+  // ★ 修正ポイント：入力された全テキストの中から、確実に【5】メインモチーフだけを最優先で探し出す処理
+  const getSearchKeyword = (inputText: string) => {
+    // 1. まず MAIN_MOTIF_LIST の中から、入力文に含まれているものを探す
+    const matchedMainMotif = MAIN_MOTIF_LIST.find((item) => inputText.includes(item));
+    
+    if (matchedMainMotif) {
+      // 「花・植物」が見つかった場合は、MakeShopで検索されやすい「花」に変換
+      if (matchedMainMotif === '花・植物') return '花';
+      return matchedMainMotif;
+    }
+    
+    // 2. メインモチーフが見つからなかった場合のフォールバック（予備）
+    // ユーザーが「浮世絵風」などとだけ入れた場合は、それを使ってしまうと商品がヒットしないため、
+    // ここでは安全に「帯」や、それに付随する言葉にするか、最初の単語をとる
+    const splitMotifs = inputText.split(/[、, \s]+/);
+    const firstWord = splitMotifs.length > 0 && splitMotifs[0] ? splitMotifs[0] : '';
+    
+    // もし最初の単語が画風などの場合は弾きたいが、完全な除外は難しいため
+    // ここでは単純に最初の数文字を取るか、「帯」とする
+    return firstWord.length > 0 && !TAG_CATEGORIES[0].tags.includes(firstWord) ? firstWord.slice(0, 6) : '帯';
+  };
+
+  const searchKeyword = getSearchKeyword(motif);
 
   return (
     <div className="min-h-screen bg-stone-100 text-stone-800 p-4 sm:p-6 flex flex-col items-center justify-center font-sans">
@@ -244,21 +276,22 @@ export default function Home() {
                 ※パレットを選ばず、上のテキスト欄に「淡いピンク地」「漆黒地」のように直接書いても反映されます。
               </p>
             </div>
-            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 sm:gap-3">
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 sm:gap-2.5">
               {TRADITIONAL_COLORS.map((col) => (
                 <button
                   key={col.name}
                   type="button"
                   onClick={() => setSelectedColor(col)}
-                  className={`relative h-14 sm:h-16 rounded-xl border-2 flex items-center justify-center overflow-hidden transition-all shadow-sm ${
+                  className={`relative h-12 rounded-lg border flex items-center justify-center overflow-hidden transition-all ${
                     selectedColor.name === col.name 
-                      ? 'border-stone-900 ring-2 ring-stone-900 ring-offset-1' 
-                      : 'border-black/10 hover:opacity-80'
+                      ? 'border-stone-900 ring-2 ring-stone-900 ring-offset-0 scale-[1.02]' 
+                      : 'border-stone-200'
                   }`}
                   style={{ backgroundColor: col.hex }}
                 >
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
-                  <span className="relative z-10 text-[10px] sm:text-xs font-bold text-white tracking-widest drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+                  <span className={`text-[10px] sm:text-[11px] font-bold ${
+                    col.isDark ? 'text-white' : 'text-stone-800'
+                  }`}>
                     {col.name.split(' ')[0]}
                   </span>
                 </button>
