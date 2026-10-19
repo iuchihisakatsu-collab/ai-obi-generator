@@ -201,30 +201,31 @@ const TAG_CATEGORIES: { title: string; items: CategoryItem[] }[] = [
     ]
   },
   {
-    title: '【4】画風・表現',
+    title: '【4】画材・タッチ',
     items: [
-      { label: '日本画', id: 'ct49' },
-      { label: '西洋画', id: 'ct50' },
-      { label: '名画に着想を得た色づかい', id: 'ct358' },
+      { label: '水彩画', id: 'ct50' },
+      { label: '油絵・厚塗り', id: 'ct50' },
+      { label: 'ペン画・線画', id: 'ct50' },
+      { label: '色鉛筆・パステル', id: 'ct50' },
+      { label: '版画・切り絵風', id: 'ct49' },
+      { label: 'リアルタッチ・写実的', id: 'ct50' },
+      { label: 'アニメ塗り・ポップ', id: 'ct312' },
+    ]
+  },
+  {
+    title: '【5】テイスト・雰囲気',
+    items: [
+      { label: 'ファンシー・ゆめかわ', id: 'ct312' },
+      { label: 'レトロ・大正ロマン', id: 'ct49' },
+      { label: '日本画風', id: 'ct49' },
+      { label: '西洋名画風', id: 'ct50' },
       { label: 'アールヌーヴォー・デコ', id: 'ct312' },
-      { label: 'ミッドセンチュリー', id: 'ct352' },
-      { label: 'ゴシック', id: 'ct354' },
+      { label: 'ゴシック・ダーク', id: 'ct354' },
       { label: 'オリエンタル', id: 'ct295' },
+      { label: 'ミッドセンチュリー', id: 'ct352' },
     ]
   }
 ];
-
-const ALL_CATEGORIES = TAG_CATEGORIES.flatMap(cat => cat.items);
-
-const LOADING_STEPS = [
-  '思い描いた意匠から、図案のアイデアを練り上げています...',
-  '色や柄の調和を組み合わせ、反物のイメージを整えています...',
-  '思い描いたイメージを図案帖に描き出しています...',
-  '今回の図案イメージを準備しています...',
-  'もう少しで、図案帖に仕上がります...',
-  '仕上がりを表示する準備をしています...',
-];
-
 const IUCHI_LOGO = "https://gofukuyasan.com/wp-content/uploads/2026/10/logo22.jpg";
 
 export default function Home() {
