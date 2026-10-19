@@ -274,8 +274,27 @@ export default function Home() {
   const [serialNumber, setSerialNumber] = useState('');
   const [showTags, setShowTags] = useState(true);
 
+  // 【追加】残りの回数を管理する状態
+  const [remainingCount, setRemainingCount] = useState<number | null>(null);
+
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('ct334'); 
   const [selectedCategoryName, setSelectedCategoryName] = useState<string>('帯');
+
+  // 画面を開いた時に、今日使った回数をチェックして「残り回数」を計算
+  useEffect(() => {
+    const today = new Date().toISOString().split('T')[0];
+    const storedData = localStorage.getItem('komon_generations');
+    let count = 0;
+    if (storedData) {
+      try {
+        const parsed = JSON.parse(storedData);
+        if (parsed.date === today) {
+          count = parsed.count;
+        }
+      } catch (e) {}
+    }
+    setRemainingCount(Math.max(0, MAX_GENERATIONS_PER_DAY - count));
+  }, []);
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval> | undefined;
@@ -307,28 +326,24 @@ export default function Home() {
     const hitWord = FORBIDDEN_WORDS.find((word) => motif.toLowerCase().includes(word));
     if (hitWord) { setErrorMsg(`入力内容に使用できない作品名・ブランド名等「${hitWord}」が含まれています。一般的なモチーフや特徴を表す言葉に変更してください。`); return; }
 
-    // 【追加】1日3回の制限チェック
+    // 生成前の回数チェック
     const today = new Date().toISOString().split('T')[0];
     const storedData = localStorage.getItem('komon_generations');
     
-    let generationCount = 0;
-    let storedDate = '';
-
+    let currentCount = 0;
     if (storedData) {
       try {
         const parsedData = JSON.parse(storedData);
-        storedDate = parsedData.date;
-        generationCount = parsedData.count;
+        if (parsedData.date === today) {
+          currentCount = parsedData.count;
+        }
       } catch (e) {
         console.error("Local storage parse error:", e);
       }
     }
 
-    if (storedDate !== today) {
-      generationCount = 0;
-    }
-
-    if (generationCount >= MAX_GENERATIONS_PER_DAY) {
+    if (currentCount >= MAX_GENERATIONS_PER_DAY) {
+      setRemainingCount(0);
       alert(`【本日の上限に達しました🙏】\n\nお試しいただきありがとうございます！\nAIのサーバー利用料（課金）が高額になってしまうため、無料での作成は「お一人様1日3回まで」とさせていただいております。\n\nまた明日、新しい図案を作りに来てくださいね！`);
       return;
     }
@@ -353,12 +368,14 @@ export default function Home() {
         setBlobUrl(data.blobUrl);   
         setSerialNumber(`KOMON-${Math.floor(1000 + Math.random() * 9000)}`);
 
-        // 【追加】生成成功時のみカウントを1増やす
-        const newCount = generationCount + 1;
+        // 生成成功時にカウントを増やして保存
+        const newCount = currentCount + 1;
         localStorage.setItem('komon_generations', JSON.stringify({
           date: today,
           count: newCount
         }));
+        // ボタンの残り回数を更新
+        setRemainingCount(Math.max(0, MAX_GENERATIONS_PER_DAY - newCount));
       } else {
         setErrorMsg(data.error || '図案の生成に失敗しました。');
       }
@@ -614,8 +631,12 @@ export default function Home() {
           <button
             type="button"
             onClick={handleGenerate}
-            disabled={loading}
-            className="w-full py-4 bg-stone-900 text-white rounded-xl font-bold text-base hover:bg-stone-800 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            disabled={loading || remainingCount === 0}
+            className={`w-full py-4 rounded-xl font-bold text-base transition-all shadow-lg flex items-center justify-center gap-2 ${
+              remainingCount === 0
+                ? 'bg-stone-400 text-stone-200 cursor-not-allowed shadow-none'
+                : 'bg-stone-900 text-white hover:bg-stone-800 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed'
+            }`}
           >
             {loading ? (
               <div className="flex flex-col items-center gap-1 py-1">
@@ -623,7 +644,11 @@ export default function Home() {
                 <span className="text-[10px] text-stone-300">少々お待ちください...</span>
               </div>
             ) : (
-              <span>👘 妄想小紋図案帖に描き出す（1日3回まで）</span>
+              <span>
+                {remainingCount === 0
+                  ? '本日の上限（3回）に達しました'
+                  : `👘 妄想小紋図案帖に描き出す（本日残り ${remainingCount ?? 3} 回）`}
+              </span>
             )}
           </button>
         </div>
