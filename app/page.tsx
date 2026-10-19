@@ -488,4 +488,233 @@ export default function Home() {
                 <span className="text-[10px] text-stone-500 font-bold">全102色</span>
               </div>
               <p className="text-[10px] text-stone-500">
-                着物の伝統色を中心に、好みの色を選べます。パレットを使わず、入力欄に「淡いピンク地
+                着物の伝統色を中心に、好みの色を選べます。パレットを使わず、入力欄に「淡いピンク地」「漆黒地」などと書くこともできます。
+              </p>
+            </div>
+            
+            <div className="max-h-[300px] overflow-y-auto pr-1 border border-stone-200 rounded-xl p-2 bg-stone-50/50 scrollbar-thin scrollbar-thumb-stone-300">
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 sm:gap-2">
+                {TRADITIONAL_COLORS.map((col) => (
+                  <button
+                    key={col.name}
+                    type="button"
+                    onClick={() => setSelectedColor(col)}
+                    className={`relative h-14 rounded-lg p-1.5 flex flex-col justify-between text-left transition-all border ${
+                      selectedColor.name === col.name
+                        ? 'ring-2 ring-stone-900 border-stone-900 scale-95 shadow-md'
+                        : 'border-stone-200 hover:border-stone-400'
+                    }`}
+                    style={{ backgroundColor: col.hex }}
+                  >
+                    <span className={`text-[10px] font-bold truncate leading-tight ${col.isDark ? 'text-white' : 'text-stone-900'}`}>
+                      {col.name}
+                    </span>
+                    {selectedColor.name === col.name && (
+                      <span className={`text-[9px] self-end font-bold px-1 rounded ${col.isDark ? 'bg-white text-stone-900' : 'bg-stone-900 text-white'}`}>
+                        選択中
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* 参. 柄の密度 */}
+          <div>
+            <label className="block text-xs font-bold text-stone-700 tracking-wider mb-1.5">
+              参. 柄の密度
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              {['総柄（ぎっしり華やか）', '飛び柄（余白のある小紋）'].map((d) => (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => setDensity(d)}
+                  className={`py-2 px-3 rounded-lg text-xs font-bold border transition-all ${
+                    density === d
+                      ? 'bg-stone-800 text-white border-stone-800 shadow-sm'
+                      : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-50'
+                  }`}
+                >
+                  {d}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 四. 図案の比率・形式 */}
+          <div>
+            <label className="block text-xs font-bold text-stone-700 tracking-wider mb-1.5">
+              四. 図案の比率・形式
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { id: 'hanhaba', label: '半幅帯 (横長)' },
+                { id: 'tanmono', label: '反物・着尺 (縦長)' },
+                { id: 'square', label: '正方形 (基本)' },
+              ].map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setItemType(item.id)}
+                  className={`py-2 px-3 rounded-lg text-xs font-bold border transition-all ${
+                    itemType === item.id
+                      ? 'bg-stone-800 text-white border-stone-800 shadow-sm'
+                      : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-50'
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 伍. 図案銘（命名・任意） */}
+          <div>
+            <label className="block text-xs font-bold text-stone-700 tracking-wider mb-1.5">
+              伍. 図案の銘（命名・任意）
+            </label>
+            <input
+              type="text"
+              className="w-full rounded-lg border-2 border-stone-300 p-2.5 bg-stone-50 text-sm focus:outline-none focus:border-stone-800 font-medium"
+              placeholder="例：月夜の跳ね兎"
+              value={patternTitle}
+              onChange={(e) => setPatternTitle(e.target.value)}
+              disabled={loading}
+            />
+          </div>
+
+          {/* 利用規約同意チェック */}
+          <div className="pt-2">
+            <label className="flex items-start gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={agreed}
+                onChange={(e) => setAgreed(e.target.checked)}
+                className="mt-1 h-4 w-4 rounded border-stone-300 text-stone-800 focus:ring-stone-800"
+              />
+              <span className="text-[11px] text-stone-600 leading-snug">
+                生成された図案はAIによるアイデアイメージであり、実際の生地制作・捺染時には工房の職人の手でデータ調整が行われること、および公序良俗・権利侵害のない利用に同意します。
+              </span>
+            </label>
+          </div>
+
+          {/* エラーメッセージ */}
+          {errorMsg && (
+            <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg font-bold">
+              {errorMsg}
+            </div>
+          )}
+
+          {/* 生成実行ボタン */}
+          <button
+            type="button"
+            onClick={handleGenerate}
+            disabled={loading}
+            className="w-full py-4 bg-stone-900 text-white rounded-xl font-bold text-base hover:bg-stone-800 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {loading ? (
+              <div className="flex flex-col items-center gap-1 py-1">
+                <span className="text-sm">{LOADING_STEPS[loadingStep]}</span>
+                <span className="text-[10px] text-stone-300">少々お待ちください...</span>
+              </div>
+            ) : (
+              <span>👘 妄想小紋図案帖に描き出す（1日3回まで）</span>
+            )}
+          </button>
+        </div>
+
+        {/* 生成結果表示エリア */}
+        {imageUrl && (
+          <div className="mt-8 pt-8 border-t border-stone-200">
+            <div className="bg-white p-4 sm:p-6 rounded-2xl border border-stone-200 shadow-md">
+              <div className="flex justify-between items-baseline mb-3">
+                <div>
+                  <span className="text-[10px] font-mono font-bold bg-stone-800 text-amber-200 px-2 py-0.5 rounded">
+                    {serialNumber}
+                  </span>
+                  <h2 className="text-lg font-bold text-stone-900 mt-1">銘：『{finalTitle}』</h2>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPreviewMode('pattern')}
+                    className={`text-xs px-2.5 py-1 rounded border ${previewMode === 'pattern' ? 'bg-stone-800 text-white' : 'bg-stone-100 text-stone-600'}`}
+                  >
+                    図案
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewMode('fabric')}
+                    className={`text-xs px-2.5 py-1 rounded border ${previewMode === 'fabric' ? 'bg-stone-800 text-white' : 'bg-stone-100 text-stone-600'}`}
+                  >
+                    帯プレビュー
+                  </button>
+                </div>
+              </div>
+
+              {/* 画像プレビュー */}
+              <div className="relative overflow-hidden rounded-xl border border-stone-200 bg-stone-50 flex items-center justify-center min-h-[300px]">
+                {previewMode === 'pattern' ? (
+                  <img src={imageUrl} alt={finalTitle} className="w-full h-auto object-contain max-h-[500px]" />
+                ) : (
+                  <div 
+                    className="w-full h-[360px] bg-repeat shadow-inner"
+                    style={{ 
+                      backgroundImage: `url(${imageUrl})`,
+                      backgroundSize: '200px auto'
+                    }}
+                  />
+                )}
+              </div>
+
+              {/* アクションボタン群 */}
+              <div className="mt-5 space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <a
+                    href={blobUrl || imageUrl}
+                    download={`komon-${serialNumber}.png`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full py-2.5 text-center bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-bold rounded-lg border border-stone-300 transition-colors"
+                  >
+                    💾 図案を保存する
+                  </a>
+                  <a
+                    href={xShareLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full py-2.5 text-center bg-black hover:bg-stone-800 text-white text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5"
+                  >
+                    <span>𝕏 で共有する</span>
+                  </a>
+                </div>
+
+                <a
+                  href={orderUrl}
+                  onClick={handleOrderClick}
+                  className="block w-full py-3.5 text-center bg-[#8b1e2a] hover:bg-[#731923] text-white text-sm font-bold rounded-xl shadow-md transition-all"
+                >
+                  👘 この図案をもとにお誂えを申し込む
+                </a>
+
+                <div className="text-center pt-2">
+                  <a
+                    href={makeshopCategoryUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-stone-500 hover:text-stone-800 underline"
+                  >
+                    似たモチーフ（{selectedCategoryName}）の既製帯・着物を見る →
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+}
