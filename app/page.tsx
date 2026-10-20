@@ -310,13 +310,12 @@ export default function Home() {
     return () => { if (interval) clearInterval(interval); };
   }, [loading]);
 
-  // ★ 追加：ベホイミ自動発動機能
-  // 入力欄に「ベホイミ」と入った瞬間に、ボタンを押さなくても回復します
+  // ベホイミ自動発動機能
   useEffect(() => {
     if (motif.trim() === 'ベホイミ') {
       localStorage.removeItem('komon_generations');
       setRemainingCount(MAX_GENERATIONS_PER_DAY);
-      setMotif(''); // ベホイミの文字を消す
+      setMotif('');
       alert('【管理者モード】本日の生成回数を全回復しました！✨');
     }
   }, [motif]);
@@ -338,7 +337,6 @@ export default function Home() {
     const hitWord = FORBIDDEN_WORDS.find((word) => motif.toLowerCase().includes(word));
     if (hitWord) { setErrorMsg(`入力内容に使用できない作品名・ブランド名等「${hitWord}」が含まれています。一般的なモチーフや特徴を表す言葉に変更してください。`); return; }
 
-    // 生成前の回数チェック
     const today = new Date().toISOString().split('T')[0];
     const storedData = localStorage.getItem('komon_generations');
     
@@ -380,13 +378,11 @@ export default function Home() {
         setBlobUrl(data.blobUrl);   
         setSerialNumber(`KOMON-${Math.floor(1000 + Math.random() * 9000)}`);
 
-        // 生成成功時にカウントを増やして保存
         const newCount = currentCount + 1;
         localStorage.setItem('komon_generations', JSON.stringify({
           date: today,
           count: newCount
         }));
-        // ボタンの残り回数を更新
         setRemainingCount(Math.max(0, MAX_GENERATIONS_PER_DAY - newCount));
       } else {
         setErrorMsg(data.error || '図案の生成に失敗しました。');
@@ -396,6 +392,27 @@ export default function Home() {
       setErrorMsg('通信エラーが発生しました。時間を置いてお試しください。');
     }
     setLoading(false);
+  };
+
+  // 画像を端末へ直接ダウンロード保存する関数
+  const handleDownload = async () => {
+    const targetUrl = blobUrl || imageUrl;
+    if (!targetUrl) return;
+
+    try {
+      const response = await fetch(targetUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `komon-${serialNumber || 'pattern'}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch {
+      window.open(targetUrl, '_blank', 'noopener,noreferrer');
+    }
   };
 
   const finalTitle = patternTitle.trim() || '（無題）';
@@ -431,7 +448,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#fafafa] text-zinc-900 p-4 sm:p-8 flex flex-col items-center justify-center font-sans selection:bg-zinc-200">
-      <div className="max-w-2xl w-full bg-white rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-zinc-100 p-6 sm:p-12 transition-all duration-300">
+      <div className="max-w-2xl w-full bg-white rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-zinc-100 p-6 sm:12 transition-all duration-300">
         
         {/* ヘッダーエリア（漆黒デザイン） */}
         <div className="relative overflow-hidden text-center mb-10 p-8 sm:p-10 bg-zinc-950 text-white rounded-[1.5rem] shadow-xl">
@@ -640,8 +657,8 @@ export default function Home() {
               ) : (
                 <span>
                   {remainingCount === 0
-                    ? 'LIMIT REACHED (3/3)'
-                    : `GENERATE / 図案を描き出す (残り ${remainingCount ?? 3} 回)`}
+                    ? '本日の上限に達しました (3/3)'
+                    : `図案を描き出す (残り ${remainingCount ?? 3} 回)`}
                 </span>
               )}
             </button>
@@ -693,22 +710,26 @@ export default function Home() {
 
               <div className="p-6 sm:p-8 space-y-4 bg-white">
                 <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                  <a
-                    href={blobUrl || imageUrl}
-                    download={`komon-${serialNumber}.png`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full py-4 text-center bg-zinc-50 hover:bg-zinc-100 text-zinc-900 text-xs font-bold tracking-widest uppercase rounded-xl transition-colors"
+                  {/* 画像を保存ボタン */}
+                  <button
+                    type="button"
+                    onClick={handleDownload}
+                    className="w-full py-4 text-center bg-zinc-100 hover:bg-zinc-200 text-zinc-900 text-xs font-bold tracking-widest rounded-xl transition-colors flex items-center justify-center gap-2"
                   >
-                    SAVE
-                  </a>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    画像を保存
+                  </button>
+
+                  {/* 𝕏でシェアボタン */}
                   <a
                     href={xShareLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-full py-4 text-center bg-[#1DA1F2] hover:bg-[#1a8cd8] text-white text-xs font-bold tracking-widest uppercase rounded-xl transition-colors flex items-center justify-center gap-2"
+                    className="w-full py-4 text-center bg-[#1DA1F2] hover:bg-[#1a8cd8] text-white text-xs font-bold tracking-widest rounded-xl transition-colors flex items-center justify-center gap-2"
                   >
-                    SHARE ON X
+                    𝕏でシェア
                   </a>
                 </div>
 
@@ -725,9 +746,9 @@ export default function Home() {
                     href={makeshopCategoryUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-[10px] text-zinc-400 hover:text-zinc-800 tracking-widest uppercase transition-colors"
+                    className="text-[10px] text-zinc-400 hover:text-zinc-800 tracking-widest transition-colors"
                   >
-                    VIEW SIMILAR ITEMS IN STORE →
+                    似たテイストの帯・着物を探す →
                   </a>
                 </div>
               </div>
