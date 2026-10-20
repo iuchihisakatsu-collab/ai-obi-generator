@@ -1,4 +1,38 @@
-'use client';
+def insert_contact_banner(code: str) -> str:
+    # We want to insert the banner right above the generation button area.
+    # The generation button area starts with:
+    # <div className="pt-4 border-t border-zinc-100">
+    # Let's find this and insert the banner before it.
+    
+    target_string = '          {/* 同意と生成ボタン */}'
+    
+    banner_code = '''          {/* 回復呪文お知らせバナー */}
+          <div style={{ marginTop: "20px", padding: "15px", backgroundColor: "#f9f9f9", borderRadius: "8px", textAlign: "center" }}>
+            <p style={{ margin: "0 0 10px 0", fontSize: "14px", fontWeight: "bold", color: "#333" }}>
+              ⚠️ 3回では理想の柄が作りきれない方へ
+            </p>
+            <p style={{ margin: "0 0 15px 0", fontSize: "12px", color: "#666" }}>
+              本気でご注文をご検討中の方限定で、生成回数をリセットできる【回復呪文】をお渡しします。
+            </p>
+            <a 
+              href="https://store.gofukuyasan.com/ssl/contact/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              style={{ display: "inline-block", padding: "10px 20px", backgroundColor: "#333", color: "#fff", textDecoration: "none", borderRadius: "5px", fontSize: "14px", fontWeight: "bold" }}
+            >
+              ✉️ 回復呪文をリクエストする（お問い合わせフォームへ）
+            </a>
+          </div>
+
+'''
+    
+    if target_string in code:
+        new_code = code.replace(target_string, banner_code + target_string)
+        return new_code
+    return "Target string not found."
+
+# I will write the user's code to a file and read it, or just use it directly.
+code = """'use client';
 
 import { useState, useEffect, type MouseEvent } from 'react';
 
@@ -759,3 +793,10 @@ export default function Home() {
     </div>
   );
 }
+"""
+
+with open('page.tsx', 'w', encoding='utf-8') as f:
+    f.write(insert_contact_banner(code))
+
+import os
+os.path.exists('page.tsx')
