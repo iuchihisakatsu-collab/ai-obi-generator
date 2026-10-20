@@ -1,38 +1,4 @@
-def insert_contact_banner(code: str) -> str:
-    # We want to insert the banner right above the generation button area.
-    # The generation button area starts with:
-    # <div className="pt-4 border-t border-zinc-100">
-    # Let's find this and insert the banner before it.
-    
-    target_string = '          {/* 同意と生成ボタン */}'
-    
-    banner_code = '''          {/* 回復呪文お知らせバナー */}
-          <div style={{ marginTop: "20px", padding: "15px", backgroundColor: "#f9f9f9", borderRadius: "8px", textAlign: "center" }}>
-            <p style={{ margin: "0 0 10px 0", fontSize: "14px", fontWeight: "bold", color: "#333" }}>
-              ⚠️ 3回では理想の柄が作りきれない方へ
-            </p>
-            <p style={{ margin: "0 0 15px 0", fontSize: "12px", color: "#666" }}>
-              本気でご注文をご検討中の方限定で、生成回数をリセットできる【回復呪文】をお渡しします。
-            </p>
-            <a 
-              href="https://store.gofukuyasan.com/ssl/contact/" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              style={{ display: "inline-block", padding: "10px 20px", backgroundColor: "#333", color: "#fff", textDecoration: "none", borderRadius: "5px", fontSize: "14px", fontWeight: "bold" }}
-            >
-              ✉️ 回復呪文をリクエストする（お問い合わせフォームへ）
-            </a>
-          </div>
-
-'''
-    
-    if target_string in code:
-        new_code = code.replace(target_string, banner_code + target_string)
-        return new_code
-    return "Target string not found."
-
-# I will write the user's code to a file and read it, or just use it directly.
-code = """'use client';
+'use client';
 
 import { useState, useEffect, type MouseEvent } from 'react';
 
@@ -653,6 +619,24 @@ export default function Home() {
             />
           </div>
 
+          {/* 回復呪文お知らせバナー（Tailwind CSSの安全な書き方） */}
+          <div className="mt-5 p-5 bg-zinc-50 rounded-xl text-center border border-zinc-200 shadow-sm">
+            <p className="mb-2 text-sm font-bold text-zinc-800">
+              ⚠️ 3回では理想の柄が作りきれない方へ
+            </p>
+            <p className="mb-4 text-xs text-zinc-500">
+              本気でご注文をご検討中の方限定で、生成回数をリセットできる【回復呪文】をお渡しします。
+            </p>
+            <a 
+              href="https://store.gofukuyasan.com/ssl/contact/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="inline-block px-5 py-2.5 bg-zinc-800 text-white no-underline rounded-lg text-sm font-bold hover:bg-zinc-700 transition-colors"
+            >
+              ✉️ 回復呪文をリクエストする（お問い合わせフォームへ）
+            </a>
+          </div>
+
           {/* 同意と生成ボタン */}
           <div className="pt-4 border-t border-zinc-100">
             <label className="flex items-start gap-3 cursor-pointer select-none mb-8 group">
@@ -677,126 +661,4 @@ export default function Home() {
               type="button"
               onClick={handleGenerate}
               disabled={loading || remainingCount === 0}
-              className={`w-full py-5 rounded-2xl font-black text-sm tracking-widest uppercase transition-all duration-300 flex items-center justify-center gap-3 ${
-                remainingCount === 0
-                  ? 'bg-zinc-100 text-zinc-400 cursor-not-allowed'
-                  : 'bg-zinc-950 text-white hover:bg-zinc-800 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed'
-              }`}
-            >
-              {loading ? (
-                <div className="flex flex-col items-center gap-1.5">
-                  <span>{LOADING_STEPS[loadingStep]}</span>
-                  <span className="text-[9px] text-zinc-400 font-normal">PROCESSING...</span>
-                </div>
-              ) : (
-                <span>
-                  {remainingCount === 0
-                    ? '本日の上限に達しました (3/3)'
-                    : `図案を描き出す (残り ${remainingCount ?? 3} 回)`}
-                </span>
-              )}
-            </button>
-          </div>
-        </div>
-
-        {/* 生成結果表示エリア */}
-        {imageUrl && (
-          <div className="mt-12 pt-12 border-t border-zinc-100 animate-fade-in">
-            <div className="bg-white rounded-3xl border border-zinc-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden">
-              <div className="p-6 sm:p-8 pb-6 border-b border-zinc-50 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
-                <div>
-                  <span className="inline-block text-[9px] font-mono font-bold tracking-widest text-zinc-400 mb-2">
-                    ID: {serialNumber}
-                  </span>
-                  <h2 className="text-xl font-black text-zinc-900 tracking-widest">銘：『{finalTitle}』</h2>
-                </div>
-                <div className="flex bg-zinc-50 p-1 rounded-lg">
-                  <button
-                    type="button"
-                    onClick={() => setPreviewMode('pattern')}
-                    className={`text-xs px-4 py-2 rounded-md font-bold tracking-wider transition-all duration-200 ${previewMode === 'pattern' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-400 hover:text-zinc-600'}`}
-                  >
-                    図案
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPreviewMode('fabric')}
-                    className={`text-xs px-4 py-2 rounded-md font-bold tracking-wider transition-all duration-200 ${previewMode === 'fabric' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-400 hover:text-zinc-600'}`}
-                  >
-                    プレビュー
-                  </button>
-                </div>
-              </div>
-
-              <div className="bg-zinc-50/50 flex items-center justify-center min-h-[400px] p-6">
-                {previewMode === 'pattern' ? (
-                  <img src={imageUrl} alt={finalTitle} className="w-full max-w-lg h-auto object-contain rounded-xl shadow-sm" />
-                ) : (
-                  <div 
-                    className="w-full h-[400px] rounded-xl shadow-inner border border-zinc-100/50"
-                    style={{ 
-                      backgroundImage: `url(${imageUrl})`,
-                      backgroundSize: '200px auto'
-                    }}
-                  />
-                )}
-              </div>
-
-              <div className="p-6 sm:p-8 space-y-4 bg-white">
-                <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                  {/* 画像を保存ボタン */}
-                  <button
-                    type="button"
-                    onClick={handleDownload}
-                    className="w-full py-4 text-center bg-zinc-100 hover:bg-zinc-200 text-zinc-900 text-xs font-bold tracking-widest rounded-xl transition-colors flex items-center justify-center gap-2"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>
-                    画像を保存
-                  </button>
-
-                  {/* 𝕏でシェアボタン */}
-                  <a
-                    href={xShareLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full py-4 text-center bg-[#1DA1F2] hover:bg-[#1a8cd8] text-white text-xs font-bold tracking-widest rounded-xl transition-colors flex items-center justify-center gap-2"
-                  >
-                    𝕏でシェア
-                  </a>
-                </div>
-
-                <a
-                  href={orderUrl}
-                  onClick={handleOrderClick}
-                  className="block w-full py-5 text-center bg-zinc-900 hover:bg-zinc-800 text-white text-sm font-bold tracking-widest uppercase rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 mt-2"
-                >
-                  この図案でお誂えを申し込む
-                </a>
-
-                <div className="text-center pt-6">
-                  <a
-                    href={makeshopCategoryUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[10px] text-zinc-400 hover:text-zinc-800 tracking-widest transition-colors"
-                  >
-                    似たテイストの帯・着物を探す →
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-"""
-
-with open('page.tsx', 'w', encoding='utf-8') as f:
-    f.write(insert_contact_banner(code))
-
-import os
-os.path.exists('page.tsx')
+              className={`w-full py-5 rounded-2xl font-black text-sm tracking-widest uppercase transition-all duration-300 flex items-center justify
