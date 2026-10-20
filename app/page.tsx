@@ -144,4 +144,492 @@ const TRADITIONAL_COLORS = [
   // 9. 茶・ベージュ（6色）
   { name: '丁子 (ちょうじ)', hex: '#efcd9a', text: '温かいキャメルベージュ地', isDark: false },
   { name: '鳥の子 (とりのこ)', hex: '#dac9a6', text: '温かみのある生成りベージュ地', isDark: false },
-  { name: '灰茶 (はいちゃ)', hex: '#9
+  { name: '灰茶 (はいちゃ)', hex: '#98623c', text: 'まろやかなミルクティーブラウン地', isDark: true },
+  { name: '胡桃 (くるみ)', hex: '#a86f4c', text: '穏やかなウォルナットブラウン地', isDark: true },
+  { name: '栗色 (くりいろ)', hex: '#762f07', text: '深みのあるマロンブラウン地', isDark: true },
+  { name: '焦茶 (こげちゃ)', hex: '#693b32', text: '深いダークブラウン・チョコレート地', isDark: true },
+];
+
+interface CategoryItem {
+  label: string;
+  id: string; 
+}
+
+const TAG_CATEGORIES: { title: string; items: CategoryItem[] }[] = [
+  {
+    title: '【1】生き物・モチーフ',
+    items: [
+      { label: 'ねこ', id: 'ct300' },
+      { label: '犬', id: 'ct301' },
+      { label: 'うさぎ', id: 'ct303' },    
+      { label: '虎', id: 'ct303' },    
+      { label: '蛇', id: 'ct303' },
+      { label: '鳥', id: 'ct269' },
+      { label: '魚', id: 'ct265' },
+      { label: '昆虫', id: 'ct188' },
+      { label: '動物', id: 'ct47' },
+      { label: '植物', id: 'ct46' },
+      { label: '恐竜', id: 'ct267' },
+      { label: 'リボン・レース', id: 'ct312' },
+    ]
+  },
+  {
+    title: '【2】世界観・テーマ',
+    items: [
+      { label: '宇宙', id: 'ct51' },
+      { label: 'お菓子', id: 'ct48' },
+      { label: 'ロリポップ・キャンディ', id: 'ct48' },
+      { label: '音楽', id: 'ct315' },
+      { label: '乗り物', id: 'ct320' },
+      { label: '建造物', id: 'ct268' },
+      { label: '鉱物・宝石', id: 'ct170' },
+      { label: '玩具', id: 'ct319' },
+      { label: '妖怪・おばけ・ドクロ', id: 'ct175' },
+    ]
+  },
+  {
+    title: '【3】柄・地紋',
+    items: [
+      { label: '水玉・ドット', id: 'ct310' },
+      { label: '縞・ストライプ', id: 'ct309' },
+      { label: '格子・チェック', id: 'ct311' },
+      { label: '市松', id: 'ct53' },
+      { label: '七宝', id: 'ct53' },     
+      { label: '疋田絞', id: 'ct53' },
+      { label: '青海波', id: 'ct53' },
+      { label: '麻の葉', id: 'ct53' },
+      { label: '矢絣', id: 'ct53' },
+      { label: '亀甲', id: 'ct53' },
+      { label: '唐草', id: 'ct53' },
+      { label: '紗綾形', id: 'ct53' },
+      { label: '千鳥格子', id: 'ct311' },
+      { label: '幾何学模様', id: 'ct53' },
+      { label: '墨流', id: 'ct171' },
+    ]
+  },
+  {
+    title: '【4】和の技法・様式',
+    items: [
+      { label: '友禅染め風', id: 'ct49' },
+      { label: '紅型', id: 'ct49' },
+      { label: '浮世絵', id: 'ct49' },
+      { label: '水墨画', id: 'ct49' },
+      { label: '琳派', id: 'ct49' },
+      { label: '絞り染め風', id: 'ct53' },
+      { label: '江戸小紋', id: 'ct53' },
+      { label: '金彩・蒔絵風', id: 'ct49' },
+    ]
+  },
+  {
+    title: '【5】画材・タッチ',
+    items: [
+      { label: '水彩画', id: 'ct50' },
+      { label: '油絵・厚塗り', id: 'ct50' },
+      { label: 'ペン画・線画', id: 'ct50' },
+      { label: '色鉛筆・パステル', id: 'ct50' },
+      { label: '版画・切り絵風', id: 'ct49' },
+      { label: 'リアルタッチ・写実的', id: 'ct50' },
+      { label: 'アニメ塗り・ポップ', id: 'ct312' },
+    ]
+  },
+  {
+    title: '【6】テイスト・雰囲気',
+    items: [
+      { label: 'ファンシー・ゆめかわ', id: 'ct312' },
+      { label: 'ゴスロリ・ロリータ', id: 'ct354' },
+      { label: 'レトロ・大正ロマン', id: 'ct49' },
+      { label: '西洋名画風', id: 'ct50' },
+      { label: 'アールヌーヴォー・デコ', id: 'ct312' },
+      { label: 'ゴシック・ダーク', id: 'ct354' },
+      { label: 'オリエンタル', id: 'ct295' },
+      { label: 'ミッドセンチュリー', id: 'ct352' },
+    ]
+  }
+];
+
+const ALL_CATEGORIES = TAG_CATEGORIES.flatMap(cat => cat.items);
+
+const LOADING_STEPS = [
+  '思い描いた意匠から、図案のアイデアを練り上げています...',
+  '色や柄の調和を組み合わせ、反物のイメージを整えています...',
+  '思い描いたイメージを図案帖に描き出しています...',
+  '今回の図案イメージを準備しています...',
+  'もう少しで、図案帖に仕上がります...',
+  '仕上がりを表示する準備をしています...',
+];
+
+const IUCHI_LOGO = "https://gofukuyasan.com/wp-content/uploads/2026/10/logo22.jpg";
+
+export default function Home() {
+  const [motif, setMotif] = useState('');
+  const [selectedColor, setSelectedColor] = useState(TRADITIONAL_COLORS[0]);
+  const [density, setDensity] = useState('総柄（ぎっしり華やか）');
+  const [itemType, setItemType] = useState('hanhaba'); 
+  const [patternTitle, setPatternTitle] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [loadingStep, setLoadingStep] = useState(0);
+  const [imageUrl, setImageUrl] = useState(''); 
+  const [blobUrl, setBlobUrl] = useState('');   
+  const [agreed, setAgreed] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+  const [previewMode, setPreviewMode] = useState<'pattern' | 'fabric'>('pattern');
+  const [serialNumber, setSerialNumber] = useState('');
+  const [showTags, setShowTags] = useState(true);
+
+  // 残りの回数を管理する状態
+  const [remainingCount, setRemainingCount] = useState<number | null>(null);
+
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('ct334'); 
+
+  // 画面を開いた時に、今日使った回数をチェックして「残り回数」を計算
+  useEffect(() => {
+    const today = new Date().toISOString().split('T')[0];
+    const storedData = localStorage.getItem('komon_generations');
+    let count = 0;
+    if (storedData) {
+      try {
+        const parsed = JSON.parse(storedData);
+        if (parsed.date === today) {
+          count = parsed.count;
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    setRemainingCount(Math.max(0, MAX_GENERATIONS_PER_DAY - count));
+  }, []);
+
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval> | undefined;
+    if (loading) {
+      setLoadingStep(0);
+      interval = setInterval(() => {
+        setLoadingStep((prev) => {
+          if (prev < LOADING_STEPS.length - 1) return prev + 1;
+          return prev;
+        });
+      }, 4000); 
+    }
+    return () => { if (interval) clearInterval(interval); };
+  }, [loading]);
+
+  // ベホイミ自動発動機能
+  useEffect(() => {
+    if (motif.trim() === 'ベホイミ') {
+      localStorage.removeItem('komon_generations');
+      setRemainingCount(MAX_GENERATIONS_PER_DAY);
+      setMotif('');
+      alert('【管理者モード】本日の生成回数を全回復しました！✨');
+    }
+  }, [motif]);
+
+  const handleTagClick = (item: CategoryItem) => {
+    if (!motif.includes(item.label)) {
+      const newMotif = motif ? `${motif}、${item.label}` : item.label;
+      setMotif(newMotif);
+    }
+    setSelectedCategoryId(item.id);
+  };
+
+  const handleGenerate = async () => {
+    setErrorMsg('');
+
+    if (!motif.trim()) { setErrorMsg('図案のイメージを入力するか、上のヒントから選択してください。'); return; }
+    if (!agreed) { setErrorMsg('図案の利用に関する確認事項への同意が必要です。'); return; }
+    const hitWord = FORBIDDEN_WORDS.find((word) => motif.toLowerCase().includes(word));
+    if (hitWord) { setErrorMsg(`入力内容に使用できない作品名・ブランド名等「${hitWord}」が含まれています。一般的なモチーフや特徴を表す言葉に変更してください。`); return; }
+
+    const today = new Date().toISOString().split('T')[0];
+    const storedData = localStorage.getItem('komon_generations');
+    
+    let currentCount = 0;
+    if (storedData) {
+      try {
+        const parsedData = JSON.parse(storedData);
+        if (parsedData.date === today) {
+          currentCount = parsedData.count;
+        }
+      } catch (e) {
+        console.error("Local storage parse error:", e);
+      }
+    }
+
+    if (currentCount >= MAX_GENERATIONS_PER_DAY) {
+      setRemainingCount(0);
+      alert(`【本日の上限に達しました🙏】\n\nお試しいただきありがとうございます！\nAIのサーバー利用料（課金）が高額になってしまうため、無料での作成は「お一人様1日3回まで」とさせていただいております。\n\nまた明日、新しい図案を作りに来てくださいね！`);
+      return;
+    }
+
+    const matched = ALL_CATEGORIES.find(c => motif.includes(c.label));
+    if (matched) {
+      setSelectedCategoryId(matched.id);
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ motif, color: selectedColor.text, density, itemType }),
+      });
+      const data = await res.json();
+
+      if (data.imageUrl && data.blobUrl) {
+        setImageUrl(data.imageUrl); 
+        setBlobUrl(data.blobUrl);   
+        setSerialNumber(`KOMON-${Math.floor(1000 + Math.random() * 9000)}`);
+
+        const newCount = currentCount + 1;
+        localStorage.setItem('komon_generations', JSON.stringify({
+          date: today,
+          count: newCount
+        }));
+        setRemainingCount(Math.max(0, MAX_GENERATIONS_PER_DAY - newCount));
+      } else {
+        setErrorMsg(data.error || '図案の生成に失敗しました。');
+      }
+    } catch (error) {
+      console.error(error);
+      setErrorMsg('通信エラーが発生しました。時間を置いてお試しください。');
+    }
+    setLoading(false);
+  };
+
+  // 画像を端末へ直接ダウンロード保存する関数
+  const handleDownload = async () => {
+    const targetUrl = blobUrl || imageUrl;
+    if (!targetUrl) return;
+
+    try {
+      const response = await fetch(targetUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `komon-${serialNumber || 'pattern'}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch {
+      window.open(targetUrl, '_blank', 'noopener,noreferrer');
+    }
+  };
+
+  const finalTitle = patternTitle.trim() || '（無題）';
+  const shareText = encodeURIComponent(`ゴフクヤサンの「妄想きもの図案帖」で、柄のアイデアを試してみました。\n\n銘：『${finalTitle}』\n地色：${selectedColor.name}\n\n※AIによるアイデア図案です。実際の生地制作時は工房で調整します。\n\n#妄想きもの図案帖 #ゴフクヤサン`);
+  const shareUrl = typeof window !== 'undefined' ? encodeURIComponent(window.location.href) : '';
+  const xShareLink = `https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`;
+  const orderUrl = `https://store.gofukuyasan.com/view/item/000000007300?komon_id=${encodeURIComponent(serialNumber)}&title=${encodeURIComponent(finalTitle)}`;
+
+  const handleOrderClick = async (e: MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault(); 
+    try {
+      const response = await fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageUrl: blobUrl, komonId: serialNumber, title: finalTitle }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        setErrorMsg(`メール送信エラー: ${result.error || '不明なエラー'}`);
+        return;
+      }
+
+      window.open(orderUrl, '_blank', 'noopener,noreferrer');
+    } catch (err: unknown) {
+      console.error(err);
+      setErrorMsg(`通信エラーが発生しました`);
+    }
+  };
+
+  const makeshopCategoryUrl = `https://store.gofukuyasan.com/view/category/${selectedCategoryId}`;
+
+  return (
+    <div className="min-h-screen bg-[#fafafa] text-zinc-900 p-4 sm:p-8 flex flex-col items-center justify-center font-sans selection:bg-zinc-200">
+      <div className="max-w-2xl w-full bg-white rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-zinc-100 p-6 sm:12 transition-all duration-300">
+        
+        {/* ヘッダーエリア（漆黒デザイン） */}
+        <div className="relative overflow-hidden text-center mb-10 p-8 sm:p-10 bg-zinc-950 text-white rounded-[1.5rem] shadow-xl">
+          <div className="relative z-10">
+            {/* ゴフクヤサンへのリンク化 */}
+            <a 
+              href="https://gofukuyasan.com/" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="inline-flex items-center gap-2 mb-6 hover:opacity-70 transition-opacity"
+            >
+              <img src={IUCHI_LOGO} alt="ゴフクヤサン" className="h-4 w-auto object-contain brightness-0 invert opacity-90" />
+              <span className="text-[10px] tracking-[0.2em] font-bold text-zinc-400 uppercase">Gofukuyasan Studio</span>
+            </a>
+            
+            <h1 className="text-2xl sm:text-3xl font-black tracking-widest text-center leading-tight">
+              妄想きもの図案帖
+            </h1>
+            <p className="text-xs text-zinc-400 mt-4 leading-relaxed font-medium tracking-wider">
+              着物の配色や柄づくりの知識を生かして、<br className="hidden sm:inline" />思いついた柄のアイデアを試せるAI図案ツールです。
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-10">
+          {/* 壱. 図案のヒント */}
+          <div>
+            <div className="flex justify-between items-end mb-4">
+              <label className="block text-xs font-bold text-zinc-800 tracking-widest uppercase">
+                01. Motif & Theme <span className="ml-2 text-[10px] text-zinc-400 font-normal">図案のヒント</span>
+              </label>
+              <button onClick={() => setShowTags(!showTags)} className="text-[10px] text-zinc-400 hover:text-zinc-800 transition-colors tracking-widest">
+                {showTags ? 'HIDE' : 'SHOW'}
+              </button>
+            </div>
+            
+            {showTags && (
+              <div className="space-y-5 max-h-[320px] overflow-y-auto pr-3 mb-6 scrollbar-thin scrollbar-thumb-zinc-200">
+                {TAG_CATEGORIES.map((cat) => (
+                  <div key={cat.title}>
+                    <p className="text-[10px] font-bold text-zinc-400 tracking-wider mb-2">{cat.title}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {cat.items.map((item) => (
+                        <button
+                          key={item.label}
+                          type="button"
+                          onClick={() => handleTagClick(item)}
+                          className="px-3.5 py-1.5 bg-zinc-50 rounded-full text-[11px] font-medium text-zinc-600 hover:bg-zinc-900 hover:text-white transition-all duration-200"
+                        >
+                          {item.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="relative">
+              <textarea
+                className="w-full rounded-2xl border border-zinc-200 p-4 bg-zinc-50/50 text-sm focus:outline-none focus:border-zinc-900 focus:bg-white focus:ring-1 focus:ring-zinc-900 resize-none transition-all duration-200 leading-relaxed"
+                rows={3}
+                value={motif}
+                onChange={(e) => setMotif(e.target.value)}
+                placeholder="例：濃紺の地に、跳ねるうさぎと満月。少しレトロな小紋柄"
+                disabled={loading}
+              />
+              {motif && (
+                <button 
+                  onClick={() => setMotif('')} 
+                  className="absolute bottom-3 right-4 text-[10px] font-bold text-zinc-400 hover:text-zinc-800 tracking-widest uppercase"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* 弐. 地色 */}
+          <div>
+            <div className="flex justify-between items-end mb-4">
+              <label className="block text-xs font-bold text-zinc-800 tracking-widest uppercase">
+                02. Base Color <span className="ml-2 text-[10px] text-zinc-400 font-normal">地色</span>
+              </label>
+              <span className="text-[10px] text-zinc-400 tracking-widest">102 COLORS</span>
+            </div>
+            
+            <div className="max-h-[280px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-zinc-200">
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 sm:gap-3">
+                {TRADITIONAL_COLORS.map((col) => (
+                  <button
+                    key={col.name}
+                    type="button"
+                    onClick={() => setSelectedColor(col)}
+                    className={`relative h-14 rounded-xl p-2 flex flex-col justify-end text-left transition-all duration-200 ${
+                      selectedColor.name === col.name
+                        ? 'ring-2 ring-offset-2 ring-zinc-900 scale-95'
+                        : 'border border-zinc-100 hover:scale-105 hover:shadow-sm'
+                    }`}
+                    style={{ backgroundColor: col.hex }}
+                  >
+                    <span className={`text-[9px] font-bold tracking-wider truncate leading-tight ${col.isDark ? 'text-white/90' : 'text-zinc-900/90'}`}>
+                      {col.name.split(' ')[0]}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-8">
+            {/* 参. 密度 */}
+            <div>
+              <label className="block text-xs font-bold text-zinc-800 tracking-widest uppercase mb-4">
+                03. Density <span className="ml-2 text-[10px] text-zinc-400 font-normal">柄の密度</span>
+              </label>
+              <div className="flex flex-col gap-2">
+                {['総柄（ぎっしり華やか）', '飛び柄（余白のある小紋）', 'お太鼓柄（ワンポイント/1枚絵）'].map((d) => (
+                  <button
+                    key={d}
+                    type="button"
+                    onClick={() => setDensity(d)}
+                    className={`py-3 px-4 rounded-xl text-xs font-bold tracking-wider transition-all duration-200 text-left ${
+                      density === d
+                        ? 'bg-zinc-900 text-white'
+                        : 'bg-zinc-50 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900'
+                    }`}
+                  >
+                    {d}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 四. 比率 */}
+            <div>
+              <label className="block text-xs font-bold text-zinc-800 tracking-widest uppercase mb-4">
+                04. Format <span className="ml-2 text-[10px] text-zinc-400 font-normal">形式</span>
+              </label>
+              <div className="flex flex-col gap-2">
+                {[
+                  { id: 'hanhaba', label: '半幅帯 (横長)' },
+                  { id: 'tanmono', label: '反物・着尺 (縦長)' },
+                  { id: 'square', label: '正方形 (お太鼓・小物用)' },
+                ].map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setItemType(item.id)}
+                    className={`py-3 px-4 rounded-xl text-xs font-bold tracking-wider transition-all duration-200 text-left ${
+                      itemType === item.id
+                        ? 'bg-zinc-900 text-white'
+                        : 'bg-zinc-50 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900'
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* 伍. 図案銘 */}
+          <div>
+            <label className="block text-xs font-bold text-zinc-800 tracking-widest uppercase mb-4">
+              05. Title <span className="ml-2 text-[10px] text-zinc-400 font-normal">図案銘 (任意)</span>
+            </label>
+            <input
+              type="text"
+              className="w-full rounded-2xl border border-zinc-200 p-4 bg-zinc-50/50 text-sm focus:outline-none focus:border-zinc-900 focus:bg-white focus:ring-1 focus:ring-zinc-900 transition-all duration-200"
+              placeholder="例：月夜の跳ね兎"
+              value={patternTitle}
+              onChange={(e) => setPatternTitle(e.target.value)}
+              disabled={loading}
+            />
+          </div>
+
+          {/* 回復呪文お知らせバナー */}
+          <div className="mt-5 p-5 bg-zinc-50 rounded-xl text-center border border-zinc-200 shadow-sm">
+            <p className="mb-2 text-sm font-bold text-zinc-800">
+              ⚠️ 3回では理想の柄が作りきれない方へ
+            </p>
+            <p className="mb-
