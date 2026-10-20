@@ -356,7 +356,7 @@ export default function Home() {
 
     if (currentCount >= MAX_GENERATIONS_PER_DAY) {
       setRemainingCount(0);
-      alert(`【本日の上限に達しました🙏】\n\nお試しいただきありがとうございます！\nAIのサーバー利用料（課金）が高額になってしまうため、無料での作成は「お一人様1日3回まで」とさせていただいております。\n\nまた明日、新しい図案を作りに来てくださいね！`);
+      alert(`【本日の上限に達しました🙏】\n\nお試しいただきありがとうございます！\nゴフクヤサンに請求されるAIのサーバー利用料（課金）が高額になってしまうため、無料での作成は「お一人様1日3回まで」とさせていただいております。\n\nまた明日、新しい図案を作りに来てくださいね！`);
       return;
     }
 
@@ -417,7 +417,7 @@ export default function Home() {
   };
 
   const finalTitle = patternTitle.trim() || '（無題）';
-  const shareText = encodeURIComponent(`ゴフクヤサンの「妄想きもの図案帖」で、柄のアイデアを試してみました。\n\n銘：『${finalTitle}』\n地色：${selectedColor.name}\n\n※AIによるアイデア図案です。実際の生地制作時は工房で調整します。\n\n#妄想きもの図案帖 #ゴフクヤサン`);
+  const shareText = encodeURIComponent(`ゴフクヤサンの「妄想きもの図案帖」で、柄のアイデアを試してみました。\n\n銘：『${finalTitle}』\n地色：${selectedColor.name}\n\n※AIによるアイデア図案です。実際の生地制作時は工場で調整します。\n\n#妄想きもの図案帖 #ゴフクヤサン`);
   const shareUrl = typeof window !== 'undefined' ? encodeURIComponent(window.location.href) : '';
   const xShareLink = `https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`;
   const orderUrl = `https://store.gofukuyasan.com/view/item/000000007300?komon_id=${encodeURIComponent(serialNumber)}&title=${encodeURIComponent(finalTitle)}`;
