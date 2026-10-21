@@ -26,7 +26,7 @@ export async function POST(req: Request) {
       ratioInstruction = '縦長（9:16比率）の反物・着尺用テキスタイルデザイン';
     }
 
-    // 基本指示（シームレスの記述を一旦外す）
+// 基本指示（シームレスの記述を一旦外す）
     let baseInstruction = "Flat overhead shot, 2D textile graphic design. Intended for Epson Monna Lisa high-end digital textile printing on silk. High resolution, crisp details, vivid color separation, no halftone dots. ";
     
     // 柄の密度による条件分岐
@@ -34,6 +34,10 @@ export async function POST(req: Request) {
     if (density === 'お太鼓柄（ワンポイント/1枚絵）') {
       // ワンポイント用の特別な指示
       layoutInstruction = "NON-SEAMLESS. A single, large, central one-point motif illustration placed exactly in the middle of the solid background. This is a standalone picture (Otaiko style), NOT a repeating pattern. Do NOT repeat the motif. Leave abundant solid negative space around the central element.";
+    } else if (density === '四方柄・散らし柄') {
+      // ▼▼▼ 今回追加する箇所：四方柄・散らし柄用の指示 ▼▼▼
+      baseInstruction += "Perfectly seamless repeating pattern. ";
+      layoutInstruction = "Tossed pattern, scattered layout, non-directional, no clear top or bottom. Motifs are rotated and distributed evenly in all directions.";
     } else if (density === '総柄（ぎっしり華やか）') {
       // 総柄用の指示（シームレスを追加）
       baseInstruction += "Perfectly seamless repeating pattern. ";
