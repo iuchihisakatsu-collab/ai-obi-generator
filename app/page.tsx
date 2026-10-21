@@ -153,8 +153,6 @@ const TRADITIONAL_COLORS = [
   { name: '栗色 (くりいろ)', hex: '#762f07', text: '深みのあるマロンブラウン地', isDark: true },
   { name: '焦茶 (こげちゃ)', hex: '#693b32', text: '深いダークブラウン・チョコレート地', isDark: true },
 ];
-  // ...既存の102色リストを配置...
-];
 
 export default function Home() {
   // ==========================================
