@@ -1156,8 +1156,72 @@ export default function Home() {
                   </>
                 )}
 
-                {/* 商用利用・オリジナル生地制作の案内バナー */}
+ {/* 商用利用・オリジナル生地制作の案内バナー */}
                 <div className="mt-6 p-5 bg-amber-50 rounded-xl border border-amber-100/50 shadow-sm">
                   <h3 className="text-[13px] font-bold text-amber-900 mb-3 flex items-center gap-2">
                     <svg className="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLine
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    クリエイター・作家様へ：オリジナル生地の制作について
+                  </h3>
+                  <ul className="text-xs text-amber-800/80 space-y-2 mb-4 leading-relaxed list-disc list-inside">
+                    <li><strong className="text-amber-900">初回お試しパック（10,000円）：</strong>50cm×112cmの生地1枚＋<span className="underline decoration-amber-300 decoration-2 underline-offset-2">商用利用可能な完全データ（職人による修正済み）</span>をお渡しします。</li>
+                    <li><strong className="text-amber-900">2回目以降（追加オーダー）：</strong>データ修正済みのため、生地のプリント代のみで1m単位から追加発注可能です。</li>
+                    <li><strong className="text-amber-900">5m以上のオーダー：</strong>お得な【卸価格】にて対応いたします。自社ブランドの量産等にぜひご活用ください。</li>
+                  </ul>
+                  <a 
+                    href="https://store.gofukuyasan.com/html/email.html" 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="block w-full py-3 text-center bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-bold tracking-wider rounded-lg transition-colors shadow-sm"
+                  >
+                    ✉️ オリジナル生地・商用利用について相談する
+                  </a>
+                </div>
+
+                {/* ▼▼▼ 追加：MakeShop連携ボタン ▼▼▼ */}
+                <div className="mt-6 mb-6">
+                  <a
+                    href={`https://gofukuyasan.com/shopdetail/000000000000/?image=${encodeURIComponent(blobUrl || imageUrl)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full py-4 rounded-xl bg-blue-600 text-white font-bold text-sm tracking-widest flex items-center justify-center gap-2 hover:bg-blue-700 hover:shadow-lg transition-all"
+                  >
+                    <span>この図案でプリント生地を注文する</span>
+                    <span className="text-lg">🛒</span>
+                  </a>
+                  <p className="text-[10px] text-zinc-500 mt-2 text-center">
+                    ※外部の注文ページ（MakeShop）へ移動します
+                  </p>
+                </div>
+                {/* ▲▲▲ ここまで追加 ▲▲▲ */}
+
+                <div className="text-center pt-6">
+                  <a
+                    href={makeshopCategoryUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[10px] text-zinc-400 hover:text-zinc-800 tracking-widest transition-colors"
+                  >
+                    似たテイストの帯・着物を探す →
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+      {/* フッター */}
+      <div className="mt-8 text-center pb-4">
+        <a 
+          href="https://gofukuyasan.com/" 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          className="text-xs font-bold text-zinc-400 hover:text-zinc-600 tracking-widest transition-colors"
+        >
+          ◆ ゴフクヤサン公式サイトへ
+        </a>
+      </div>
+    </div>
+  );
+}
