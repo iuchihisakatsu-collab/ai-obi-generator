@@ -491,7 +491,7 @@ export default function Home() {
               妄想図案帖
             </h1>
             <p className="text-xs text-zinc-400 mt-4 leading-relaxed font-medium tracking-wider">
-              着物の配色や柄づくりの知識を生かして、<br className="hidden sm:inline" />思いついた柄のアイデアを試せるAI図案ツールです。
+              新潟・十日町は着物の産地　着物の配色や柄づくりの知識を生かして、<br className="hidden sm:inline" />思いついた柄のアイデアを試せるAI図案ツールです。
             </p>
           </div>
         </div>
