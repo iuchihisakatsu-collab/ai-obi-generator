@@ -14,7 +14,8 @@ const FORBIDDEN_WORDS = [
   'シャネル', 'chanel', 'ヴィトン', 'vuitton', 'エルメス', 'hermes', 'グッチ', 'gucci',
   'ナイキ', 'nike', 'アディダス', 'adidas'
 ];
-// ▼▼▼【ここから追加：ベーシック柄・スケール・形式の選択肢】▼▼▼
+
+// ベーシック柄・スケール・形式の選択肢
 const BASIC_PATTERNS = [
   { value: 'none', label: '指定なし（フリーワードで生成）' },
   { value: 'grid', label: '格子（ウィンドウペン）' },
@@ -43,7 +44,6 @@ const DENSITY_OPTIONS = [
   '四方柄・散らし柄',
   'ワンポイント・パネル柄'
 ];
-// ▲▲▲【ここまで追加】▲▲▲
 
 // 6の倍数：ぴったり102色（伝統色・推し色対応）
 const TRADITIONAL_COLORS = [
@@ -179,49 +179,7 @@ const TRADITIONAL_COLORS = [
   { name: '栗色 (くりいろ)', hex: '#762f07', text: '深みのあるマロンブラウン地', isDark: true },
   { name: '焦茶 (こげちゃ)', hex: '#693b32', text: '深いダークブラウン・チョコレート地', isDark: true },
 ];
-{/* ======================================================= */}
-{/* ▼▼▼【ここから追加】ベーシック柄プルダウン＆サイズ選択 ▼▼▼ */}
-{/* ======================================================= */}
 
-{/* 1. ベースパターン選択プルダウン */}
-<div className="mb-6">
-  <label className="block text-sm font-bold mb-2">ベースパターン</label>
-  <select
-    value={basicPattern}
-    onChange={(e) => setBasicPattern(e.target.value)}
-    className="w-full p-3 border rounded focus:ring-2 focus:ring-black outline-none bg-white font-medium"
-  >
-    {BASIC_PATTERNS.map((p) => (
-      <option key={p.value} value={p.value}>{p.label}</option>
-    ))}
-  </select>
-</div>
-
-{/* 2. 柄の大きさ（ベーシック柄選択時のみ表示） */}
-{basicPattern !== 'none' && (
-  <div className="mb-6 bg-white p-4 rounded border border-gray-200">
-    <label className="block text-sm font-bold mb-2">柄の大きさ（スケール）</label>
-    <div className="flex gap-4">
-      {PATTERN_SCALES.map((scale) => (
-        <label key={scale.value} className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="radio"
-            name="patternScale"
-            value={scale.value}
-            checked={patternScale === scale.value}
-            onChange={(e) => setPatternScale(e.target.value)}
-            className="accent-black w-4 h-4"
-          />
-          <span className="text-sm">{scale.label}</span>
-        </label>
-      ))}
-    </div>
-  </div>
-)}
-
-{/* ======================================================= */}
-{/* ▲▲▲【ここまで追加】▲▲▲ */}
-{/* ======================================================= */}
 interface CategoryItem {
   label: string;
   id: string; 
@@ -331,14 +289,9 @@ const LOADING_STEPS = [
 ];
 
 const IUCHI_LOGO = "https://gofukuyasan.com/wp-content/uploads/2026/10/logo22.jpg";
-
 export default function Home() {
   const [motif, setMotif] = useState('');
 
-  // =========================================================================
-  // ▼▼▼【ここから追加・変更：Printag向け State ＆ 2色選択ロジック】▼▼▼
-  // =========================================================================
-  
   // 1. ベーシック柄とスケール（大・中・小）の管理
   const [basicPattern, setBasicPattern] = useState('none');
   const [patternScale, setPatternScale] = useState<'small' | 'medium' | 'large'>('medium');
@@ -352,25 +305,17 @@ export default function Home() {
   // 3. パレットの2色選択関数（FIFO方式：3色目をクリックすると一番古い色を自動で押し出し）
   const toggleColor = (colorObj: (typeof TRADITIONAL_COLORS)[number]) => {
     setSelectedColors((prev) => {
-      // すでに選ばれている色をクリックした場合は解除（最低1色は残す）
       if (prev.some((c) => c.hex === colorObj.hex)) {
         if (prev.length === 1) return prev;
         return prev.filter((c) => c.hex !== colorObj.hex);
       }
-      // すでに2色ある場合は、先頭（一番古い色）を押し出して最新の2色を保持
       if (prev.length >= 2) {
         return [prev[1], colorObj];
       }
-      // それ以外は追加
       return [...prev, colorObj];
     });
   };
 
-  // =========================================================================
-  // ▲▲▲【ここまで追加・変更】▲▲▲
-  // =========================================================================
-
-  
   const [density, setDensity] = useState('四方柄（上下なし・散らし柄）');
   const [itemType, setItemType] = useState('square'); 
   const [patternTitle, setPatternTitle] = useState('');
@@ -439,25 +384,14 @@ export default function Home() {
     setSelectedCategoryId(item.id);
   };
 
-  const handleColorToggle = (col: typeof TRADITIONAL_COLORS[0]) => {
-    setSelectedColors((prev) => {
-      const exists = prev.some((c) => c.name === col.name);
-      if (exists) {
-        return prev.filter((c) => c.name !== col.name);
-      } else {
-        if (prev.length >= 3) {
-          alert('配色は最大3色まで選択できます。');
-          return prev;
-        }
-        return [...prev, col];
-      }
-    });
-  };
-
   const handleGenerate = async () => {
     setErrorMsg('');
 
-    if (!motif.trim()) { setErrorMsg('図案のイメージや好きな言葉を入力してください。'); return; }
+    // モチーフの必須チェック（ベーシック柄が「指定なし」の場合のみ）
+    if (basicPattern === 'none' && !motif.trim()) { 
+      setErrorMsg('図案のイメージや好きな言葉を入力してください。'); 
+      return; 
+    }
     if (!agreed) { setErrorMsg('図案の利用に関する確認事項への同意が必要です。'); return; }
     const hitWord = FORBIDDEN_WORDS.find((word) => motif.toLowerCase().includes(word));
     if (hitWord) { setErrorMsg(`入力内容に使用できない作品名・ブランド名等「${hitWord}」が含まれています。一般的なモチーフや特徴を表す言葉に変更してください。`); return; }
@@ -488,17 +422,20 @@ export default function Home() {
       setSelectedCategoryId(matched.id);
     }
 
-    const colorPayload = selectedColors.length > 0 
-      ? selectedColors.map(c => c.text).join('と') 
-      : 'モチーフ入力内容に準拠した配色';
-
     setLoading(true);
     setMockupSuccess(false);
     try {
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ motif, color: colorPayload, density, itemType }),
+        body: JSON.stringify({ 
+          motif, 
+          basicPattern, 
+          patternScale, 
+          colors: selectedColors.map(c => c.hex), 
+          density, 
+          itemType 
+        }),
       });
       const data = await res.json();
 
@@ -573,7 +510,6 @@ export default function Home() {
     }
   };
 
-  // 査察用：バーチャルサンプル化（仮掲載キュー登録）シミュレーション
   const handleVirtualProductSubmit = async () => {
     setMockupSubmitting(true);
     try {
@@ -588,7 +524,6 @@ export default function Home() {
   };
 
   const makeshopCategoryUrl = `https://store.gofukuyasan.com/view/category/${selectedCategoryId}`;
-
   return (
     <div className="min-h-screen bg-[#fafafa] text-zinc-900 p-4 sm:p-8 flex flex-col items-center justify-center font-sans selection:bg-zinc-200">
       <div className="max-w-2xl w-full bg-white rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-zinc-100 p-6 sm:p-12 transition-all duration-300">
@@ -633,82 +568,78 @@ export default function Home() {
               )}
             </div>
             
-{/* ========================================================================= */}
-{/* ▼▼▼【ここから追加：ベーシック柄プルダウン ＆ サイズ（スケール）選択】▼▼▼ */}
-{/* ========================================================================= */}
-
-{/* 1. ベースパターン選択プルダウン */}
-<div className="mb-6">
-  <label className="block text-sm font-bold text-gray-800 mb-2">ベースパターン</label>
-  <select
-    value={basicPattern}
-    onChange={(e) => setBasicPattern(e.target.value)}
-    className="w-full p-3 border border-gray-300 rounded focus:ring-2 focus:ring-black outline-none bg-white font-medium text-sm"
-  >
-    <option value="none">指定なし（フリーワードで生成）</option>
-    <option value="grid">格子（ウィンドウペン）</option>
-    <option value="gingham">ギンガムチェック</option>
-    <option value="vertical">縦ストライプ</option>
-    <option value="horizontal">ボーダー（横縞）</option>
-    <option value="diagonal">斜めストライプ</option>
-    <option value="dots">水玉（ポルカドット）</option>
-  </select>
-</div>
-
-{/* 2. 柄の大きさ（ベーシック柄が選ばれている時だけ表示） */}
-{basicPattern !== 'none' && (
-  <div className="mb-6 bg-white p-4 rounded border border-gray-200">
-    <label className="block text-sm font-bold text-gray-800 mb-2">柄の大きさ（スケール）</label>
-    <div className="flex gap-4">
-      {[
-        { value: 'small', label: '小（細線・密集）' },
-        { value: 'medium', label: '中（標準）' },
-        { value: 'large', label: '大（太線・大柄）' }
-      ].map((scale) => (
-        <label key={scale.value} className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="radio"
-            name="patternScale"
-            value={scale.value}
-            checked={patternScale === scale.value}
-            onChange={(e) => setPatternScale(e.target.value as 'small' | 'medium' | 'large')}
-            className="accent-black w-4 h-4"
-          />
-          <span className="text-sm text-gray-700">{scale.label}</span>
-        </label>
-      ))}
-    </div>
-  </div>
-)}
-
-{/* ========================================================================= */}
-{/* ▲▲▲【ここまで追加】▲▲▲ */}
-{/* ========================================================================= */}
-            
-            <div className="relative">
-              <textarea
-                className="w-full rounded-2xl border-2 border-zinc-200 p-4 bg-white text-sm focus:outline-none focus:border-zinc-900 focus:ring-0 resize-none transition-all duration-200 leading-relaxed shadow-sm font-medium"
-                rows={4}
-                value={motif}
-                onChange={(e) => setMotif(e.target.value)}
-                placeholder="例：上から見た金魚。赤い金魚と黒出目金。水草。地色は白、ターコイズの流水柄。版画・切り絵風、ミッドセンチュリー"
-                disabled={loading}
-              />
+            {/* 1. ベースパターン選択プルダウン */}
+            <div className="mb-6">
+              <label className="block text-sm font-bold text-gray-800 mb-2">ベースパターン</label>
+              <select
+                value={basicPattern}
+                onChange={(e) => setBasicPattern(e.target.value)}
+                className="w-full p-3 border border-gray-300 rounded focus:ring-2 focus:ring-black outline-none bg-white font-medium text-sm"
+              >
+                <option value="none">指定なし（フリーワードで生成）</option>
+                <option value="grid">格子（ウィンドウペン）</option>
+                <option value="gingham">ギンガムチェック</option>
+                <option value="vertical">縦ストライプ</option>
+                <option value="horizontal">ボーダー（横縞）</option>
+                <option value="diagonal">斜めストライプ</option>
+                <option value="dots">水玉（ポルカドット）</option>
+              </select>
             </div>
+
+            {/* 2. 柄の大きさ（ベーシック柄が選ばれている時だけ表示） */}
+            {basicPattern !== 'none' && (
+              <div className="mb-6 bg-white p-4 rounded border border-gray-200">
+                <label className="block text-sm font-bold text-gray-800 mb-2">柄の大きさ（スケール）</label>
+                <div className="flex gap-4">
+                  {[
+                    { value: 'small', label: '小（細線・密集）' },
+                    { value: 'medium', label: '中（標準）' },
+                    { value: 'large', label: '大（太線・大柄）' }
+                  ].map((scale) => (
+                    <label key={scale.value} className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="patternScale"
+                        value={scale.value}
+                        checked={patternScale === scale.value}
+                        onChange={(e) => setPatternScale(e.target.value as 'small' | 'medium' | 'large')}
+                        className="accent-black w-4 h-4"
+                      />
+                      <span className="text-sm text-gray-700">{scale.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {basicPattern === 'none' && (
+              <div className="relative">
+                <textarea
+                  className="w-full rounded-2xl border-2 border-zinc-200 p-4 bg-white text-sm focus:outline-none focus:border-zinc-900 focus:ring-0 resize-none transition-all duration-200 leading-relaxed shadow-sm font-medium"
+                  rows={4}
+                  value={motif}
+                  onChange={(e) => setMotif(e.target.value)}
+                  placeholder="例：上から見た金魚。赤い金魚と黒出目金。水草。地色は白、ターコイズの流水柄。版画・切り絵風、ミッドセンチュリー"
+                  disabled={loading}
+                />
+              </div>
+            )}
 
             {/* 図案ヒントの折りたたみアコーディオン */}
-            <div className="mt-2 text-right">
-              <button
-                type="button"
-                onClick={() => setShowTags(!showTags)}
-                className="inline-flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-900 font-bold transition-colors py-1"
-              >
-                <span>💡 {showTags ? 'ヒントを閉じる' : '図案のヒント・キーワードを探す'}</span>
-                <span className="text-[9px] transform transition-transform duration-200">{showTags ? '▲' : '▼'}</span>
-              </button>
-            </div>
+            {basicPattern === 'none' && (
+              <div className="mt-2 text-right">
+                <button
+                  type="button"
+                  onClick={() => setShowTags(!showTags)}
+                  className="inline-flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-900 font-bold transition-colors py-1"
+                >
+                  <span>💡 {showTags ? 'ヒントを閉じる' : '図案のヒント・キーワードを探す'}</span>
+                  <span className="text-[9px] transform transition-transform duration-200">{showTags ? '▲' : '▼'}</span>
+                </button>
+              </div>
+            )}
 
-            {showTags && (
+            {showTags && basicPattern === 'none' && (
               <div className="mt-3 p-4 bg-zinc-50 rounded-2xl border border-zinc-200/80 space-y-4 max-h-[260px] overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-200 animate-fade-in">
                 <p className="text-[11px] text-zinc-500 font-medium">クリックすると入力欄にキーワードが追加されます：</p>
                 {TAG_CATEGORIES.map((cat) => (
@@ -760,7 +691,7 @@ export default function Home() {
                   {selectedColors.map((col) => (
                     <span
                       key={col.name}
-                      onClick={() => handleColorToggle(col)}
+                      onClick={() => toggleColor(col)}
                       className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border shadow-sm cursor-pointer hover:opacity-80 transition-opacity"
                       style={{
                         backgroundColor: col.hex,
@@ -784,7 +715,7 @@ export default function Home() {
             </div>
 
             {/* 色パレット */}
-          {showColorPalette && (
+            {showColorPalette && (
               <div className="mt-3 p-4 bg-zinc-50 rounded-2xl border border-zinc-200/80 animate-fade-in">
                 <div className="flex justify-between items-center mb-3">
                   <p className="text-[10px] text-zinc-500 font-medium">
@@ -862,91 +793,6 @@ export default function Home() {
             )}
           </div>
 
-          {/* ---------------------------------------------------- */}
-          {/* ▲▲▲ このすぐ下に来るコード（目印） ▲▲▲ */}
-          {/* {/* 参、形式と密度 */} または形式選択のブロック */}
-          {/* ---------------------------------------------------- */}{showColorPalette && (
-              <div className="mt-3 p-4 bg-zinc-50 rounded-2xl border border-zinc-200/80 animate-fade-in">
-                <div className="flex justify-between items-center mb-3">
-                  <p className="text-[10px] text-zinc-500 font-medium">
-                    タップして選択（最大2色・3色目を選ぶと古い色を押し出し）：
-                  </p>
-                </div>
-
-                {/* 現在選択中の2色プレビューバー */}
-                <div className="flex gap-4 items-center mb-3 p-2.5 bg-white rounded-xl border border-zinc-200/80 text-xs">
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-bold text-zinc-500 text-[10px]">① 地色:</span>
-                    <span
-                      className="w-4 h-4 rounded-full border shadow-inner inline-block"
-                      style={{ backgroundColor: selectedColors[0]?.hex || '#ffffff' }}
-                    />
-                    <span className="font-mono text-[11px] text-zinc-700">
-                      {selectedColors[0]?.name?.split(' ')[0] || '未選択'}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-bold text-zinc-500 text-[10px]">② 柄色:</span>
-                    <span
-                      className="w-4 h-4 rounded-full border shadow-inner inline-block"
-                      style={{ backgroundColor: selectedColors[1]?.hex || selectedColors[0]?.hex || '#000000' }}
-                    />
-                    <span className="font-mono text-[11px] text-zinc-700">
-                      {selectedColors[1]?.name?.split(' ')[0] || selectedColors[0]?.name?.split(' ')[0]}
-                    </span>
-                  </div>
-                </div>
-
-                {/* 102色グリッド */}
-                <div className="max-h-[240px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-zinc-200">
-                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                    {TRADITIONAL_COLORS.map((col) => {
-                      const colorIndex = selectedColors.findIndex((c) => c.name === col.name);
-                      const isSelected = colorIndex !== -1;
-
-                      return (
-                        <button
-                          key={col.name}
-                          type="button"
-                          onClick={() => toggleColor(col)}
-                          className={`relative h-12 rounded-xl p-2 flex flex-col justify-end text-left transition-all duration-200 ${
-                            isSelected
-                              ? 'ring-2 ring-offset-2 ring-zinc-950 scale-95 shadow-md font-black z-10'
-                              : 'border border-zinc-200/50 hover:scale-105'
-                          }`}
-                          style={{ backgroundColor: col.hex }}
-                        >
-                          {/* 選択順バッジ（1: 地色 / 2: 柄色） */}
-                          {isSelected && (
-                            <span
-                              className={`absolute top-1 right-1 w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold shadow-sm ${
-                                col.isDark ? 'bg-white text-zinc-950' : 'bg-zinc-950 text-white'
-                              }`}
-                            >
-                              {colorIndex + 1}
-                            </span>
-                          )}
-
-                          <span
-                            className={`text-[9px] font-bold tracking-wider truncate leading-tight ${
-                              col.isDark ? 'text-white' : 'text-zinc-900'
-                            }`}
-                          >
-                            {col.name.split(' ')[0]}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* ---------------------------------------------------- */}
-          {/* ▲▲▲ このすぐ下に来るコード（目印） ▲▲▲ */}
-          {/* {/* 参、形式と密度 */} または形式選択のブロック */}
-          {/* ---------------------------------------------------- */}
           {/* 参. 形式と密度 */}
           <div className="grid sm:grid-cols-2 gap-6 pt-2 border-t border-zinc-100">
             <div>
@@ -1055,10 +901,9 @@ export default function Home() {
                 {errorMsg}
               </div>
             )}
-<button
+            <button
               type="button"
               onClick={handleGenerate}
-              // ▼ ここを変更：最後に「|| !agreed」を追加して、同意チェック必須にする
               disabled={loading || remainingCount === 0 || (basicPattern === 'none' && !motif.trim()) || !agreed}
               className={`w-full py-4 sm:py-5 rounded-2xl font-black text-sm tracking-widest uppercase transition-all duration-300 flex items-center justify-center gap-3 ${
                 (remainingCount === 0 || (basicPattern === 'none' && !motif.trim()) || !agreed)
@@ -1079,11 +924,6 @@ export default function Home() {
                 </span>
               )}
             </button>
-
-
-
-
-            
           </div>
         </div>
 
@@ -1320,52 +1160,4 @@ export default function Home() {
                 <div className="mt-6 p-5 bg-amber-50 rounded-xl border border-amber-100/50 shadow-sm">
                   <h3 className="text-[13px] font-bold text-amber-900 mb-3 flex items-center gap-2">
                     <svg className="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
-                    クリエイター・作家様へ：オリジナル生地の制作について
-                  </h3>
-                  <ul className="text-xs text-amber-800/80 space-y-2 mb-4 leading-relaxed list-disc list-inside">
-                    <li><strong className="text-amber-900">初回お試しパック（10,000円）：</strong>50cm×112cmの生地1枚＋<span className="underline decoration-amber-300 decoration-2 underline-offset-2">商用利用可能な完全データ（職人による修正済み）</span>をお渡しします。</li>
-                    <li><strong className="text-amber-900">2回目以降（追加オーダー）：</strong>データ修正済みのため、生地のプリント代のみで1m単位から追加発注可能です。</li>
-                    <li><strong className="text-amber-900">5m以上のオーダー：</strong>お得な【卸価格】にて対応いたします。自社ブランドの量産等にぜひご活用ください。</li>
-                  </ul>
-                  <a 
-                    href="https://store.gofukuyasan.com/html/email.html" 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
-                    className="block w-full py-3 text-center bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-bold tracking-wider rounded-lg transition-colors shadow-sm"
-                  >
-                    ✉️ オリジナル生地・商用利用について相談する
-                  </a>
-                </div>
-
-                <div className="text-center pt-6">
-                  <a
-                    href={makeshopCategoryUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[10px] text-zinc-400 hover:text-zinc-800 tracking-widest transition-colors"
-                  >
-                    似たテイストの帯・着物を探す →
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-
-      {/* フッター */}
-      <div className="mt-8 text-center pb-4">
-        <a 
-          href="https://gofukuyasan.com/" 
-          target="_blank" 
-          rel="noopener noreferrer" 
-          className="text-xs font-bold text-zinc-400 hover:text-zinc-600 tracking-widest transition-colors"
-        >
-          ◆ ゴフクヤサン公式サイトへ
-        </a>
-      </div>
-    </div>
-  );
-}
+                      <path strokeLine
