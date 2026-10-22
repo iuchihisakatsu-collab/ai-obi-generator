@@ -872,33 +872,35 @@ export default function Home() {
                     {/* 立体合成モックアップ本体 */}
                     <div className="relative flex items-center justify-center py-4">
                       {mockupItem === 'bag' && (
-                        <div className="relative w-64 flex flex-col items-center">
-                          {/* バッグ持ち手 */}
-                          <div className="w-24 h-16 border-[12px] border-zinc-700 rounded-t-full mb-[-8px] opacity-90 z-0" />
-                          {/* バッグ本体（立体陰影＆乗算） */}
-                          <div className="relative w-60 h-64 rounded-b-2xl overflow-hidden shadow-2xl border border-zinc-200/80 bg-zinc-100">
+                        <div className="relative w-64 h-64 mx-auto flex items-center justify-center">
+                          <div className="relative w-full h-full">
+                            {/* 1. 生成された柄レイヤー（バッグの形に切り抜き） */}
                             <div 
-                              className="absolute inset-0" 
+                              className="absolute inset-0 z-0" 
                               style={{ 
                                 backgroundImage: `url(${imageUrl})`, 
-                                backgroundSize: '110px auto',
-                                backgroundRepeat: 'repeat' 
+                                backgroundSize: '120px auto',
+                                backgroundRepeat: 'repeat',
+                                maskImage: `url('/bag-mockup.png')`,
+                                WebkitMaskImage: `url('/bag-mockup.png')`,
+                                maskSize: 'contain',
+                                WebkitMaskSize: 'contain',
+                                maskRepeat: 'no-repeat',
+                                WebkitMaskRepeat: 'no-repeat',
+                                maskPosition: 'center',
+                                WebkitMaskPosition: 'center',
                               }} 
                             />
-                            {/* 立体陰影レイヤー */}
+                            
+                            {/* 2. 陰影レイヤー（元のグレーバッグを乗算合成してシワを出す） */}
                             <div 
-                              className="absolute inset-0 pointer-events-none"
+                              className="absolute inset-0 z-10 pointer-events-none"
                               style={{
-                                background: 'linear-gradient(to right, rgba(0,0,0,0.35) 0%, rgba(255,255,255,0.4) 18%, rgba(0,0,0,0.05) 50%, rgba(255,255,255,0.3) 82%, rgba(0,0,0,0.4) 100%), linear-gradient(to bottom, transparent 65%, rgba(0,0,0,0.35) 100%)',
+                                backgroundImage: `url('/bag-mockup.png')`,
+                                backgroundSize: 'contain',
+                                backgroundRepeat: 'no-repeat',
+                                backgroundPosition: 'center',
                                 mixBlendMode: 'multiply'
-                              }}
-                            />
-                            {/* 中央ハイライト */}
-                            <div 
-                              className="absolute inset-0 pointer-events-none"
-                              style={{
-                                background: 'radial-gradient(ellipse at 50% 25%, rgba(255,255,255,0.45) 0%, transparent 65%)',
-                                mixBlendMode: 'screen'
                               }}
                             />
                           </div>
