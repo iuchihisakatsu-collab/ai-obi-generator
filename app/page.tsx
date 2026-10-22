@@ -486,16 +486,7 @@ export default function Home() {
         {/* ヘッダーエリア */}
         <div className="relative overflow-hidden text-center mb-8 p-8 sm:p-10 bg-zinc-950 text-white rounded-[1.5rem] shadow-xl">
           <div className="relative z-10">
-            <a 
-              href="https://gofukuyasan.com/" 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              className="inline-flex items-center gap-2 mb-6 hover:opacity-70 transition-opacity"
-            >
-              <img src={IUCHI_LOGO} alt="ゴフクヤサン" className="h-4 w-auto object-contain brightness-0 invert opacity-90" />
-              <span className="text-[10px] tracking-[0.2em] font-bold text-zinc-400 uppercase">Digina Studio</span>
-            </a>
-            
+      
             <h1 className="text-2xl sm:text-3xl font-black tracking-widest text-center leading-tight">
               妄想図案帖
             </h1>
