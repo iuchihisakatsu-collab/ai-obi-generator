@@ -1353,7 +1353,7 @@ export default function Home() {
             </div>
           </div>
         )}
-      </div>
+
 
       {/* フッター */}
       <div className="mt-8 text-center pb-4">
