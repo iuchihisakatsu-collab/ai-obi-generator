@@ -13,7 +13,6 @@ import {
   type DotLayout 
 } from './utils/geometricPatterns';
 
-// 1日あたりの生成上限回数
 const MAX_GENERATIONS_PER_DAY = 3;
 
 const FORBIDDEN_WORDS = [
@@ -24,9 +23,7 @@ const FORBIDDEN_WORDS = [
   'ナイキ', 'nike', 'アディダス', 'adidas'
 ];
 
-// 6の倍数：ぴったり102色（伝統色・推し色対応）
 const TRADITIONAL_COLORS = [
-  // 1. 白・灰・黒（12色）
   { name: '胡粉 (ごふん)', hex: '#fffffc', text: '純白地', isDark: false },
   { name: '白磁 (はくじ)', hex: '#f8fbf8', text: '澄んだ白地', isDark: false },
   { name: '生成 (きなり)', hex: '#f6f5ec', text: '淡いアイボリー地', isDark: false },
@@ -40,7 +37,6 @@ const TRADITIONAL_COLORS = [
   { name: '漆黒 (しっこく)', hex: '#161616', text: '真っ黒な地', isDark: true },
   { name: '濡羽 (ぬれば)', hex: '#0b0b0b', text: '深みのある艶やかな黒地', isDark: true },
 
-  // 2. 赤・深紅（12色）
   { name: '甚三紅 (じんざもみ)', hex: '#ee827c', text: '柔らかなサーモンレッド地', isDark: false },
   { name: '緋色 (ひいろ)', hex: '#d3381c', text: '鮮烈なスカーレットレッド地', isDark: true },
   { name: '朱色 (しゅ)', hex: '#ea5532', text: '鮮やかな朱赤地', isDark: true },
@@ -54,7 +50,6 @@ const TRADITIONAL_COLORS = [
   { name: '弁柄 (べんがら)', hex: '#8f2e14', text: '重厚な弁柄赤地', isDark: true },
   { name: '暗紅 (あんこう)', hex: '#5b191f', text: '極めて深いダークボルドー地', isDark: true },
 
-  // 3. 桃・マゼンタ（12色）
   { name: '桜色 (さくら)', hex: '#fef4f4', text: '淡い桜ピンク地', isDark: false },
   { name: '薄桜 (うすざくら)', hex: '#fdeff2', text: '澄んだミルキーピンク地', isDark: false },
   { name: '一斤染 (いっこん)', hex: '#f4d5cb', text: 'ごく淡いペールピンク地', isDark: false },
@@ -68,7 +63,6 @@ const TRADITIONAL_COLORS = [
   { name: '梅紫 (うめむらさき)', hex: '#a8497a', text: '大人びたダスティベリー地', isDark: true },
   { name: '灰梅 (はいうめ)', hex: '#e8d3ca', text: 'くすみスモーキーピンク地', isDark: false },
 
-  // 4. 橙・琥珀（12色）
   { name: '洗柿 (あらいがき)', hex: '#f2a0a1', text: '淡いサーモンオレンジ地', isDark: false },
   { name: '杏色 (あんず)', hex: '#f7b977', text: '明るいアプリコット地', isDark: false },
   { name: '萱草 (かんぞう)', hex: '#fda14c', text: '温かいマンダリンオレンジ地', isDark: false },
@@ -82,7 +76,6 @@ const TRADITIONAL_COLORS = [
   { name: '黄櫨染 (こうろぜん)', hex: '#7d532c', text: '重厚なノーブルアンバー地', isDark: true },
   { name: '枯野 (かれの)', hex: '#d3a243', text: 'くすんだマスタードオレンジ地', isDark: false },
 
-  // 5. 黄・金（12色）
   { name: '蒸栗 (むしくり)', hex: '#ede1a9', text: '淡いミルキーイエロー地', isDark: false },
   { name: '刈安 (かりやす)', hex: '#f5e56b', text: '爽やかなペールレモン地', isDark: false },
   { name: '菜の花 (なのはな)', hex: '#ffec47', text: '明るいカナリアイエロー地', isDark: false },
@@ -96,7 +89,6 @@ const TRADITIONAL_COLORS = [
   { name: '朽葉 (くちば)', hex: '#917347', text: 'アンティークなゴールドブラウン地', isDark: true },
   { name: '利休白茶 (しらちゃ)', hex: '#b4a992', text: '上品なくすみサンドベージュ地', isDark: false },
 
-  // 6. 緑・萌黄（18色）
   { name: '白緑 (びゃくろく)', hex: '#d6e9ca', text: 'ごく淡いペールミント地', isDark: false },
   { name: '浅緑 (あさみどり)', hex: '#88cb7f', text: '爽やかなライトグリーン地', isDark: false },
   { name: '鶸色 (ひわ)', hex: '#d7cf3a', text: '明るいイエローグリーン地', isDark: false },
@@ -116,7 +108,6 @@ const TRADITIONAL_COLORS = [
   { name: '鶯色 (うぐいす)', hex: '#928c36', text: '落ち着いたモスグリーン地', isDark: true },
   { name: '苔色 (こけ)', hex: '#69821b', text: '味わい深いディープオリーブ地', isDark: true },
 
-  // 7. 青・藍・水色（18色）
   { name: '甕覗 (かめのぞき)', hex: '#a2d7dd', text: 'ごく淡いアイスブルー地', isDark: false },
   { name: '白群 (びゃくぐん)', hex: '#83ccd2', text: '淡いペールブルー地', isDark: false },
   { name: '水色 (みず)', hex: '#bce2e8', text: '澄んだライトブルー地', isDark: false },
@@ -136,7 +127,6 @@ const TRADITIONAL_COLORS = [
   { name: '藍鉄 (あいてつ)', hex: '#393f4c', text: 'スモーキーなアイアンブルー地', isDark: true },
   { name: '留紺 (とまりこん)', hex: '#1c1c39', text: '漆黒に近い極深紺地', isDark: true },
 
-  // 8. 紫・菫（12色）
   { name: '白藤 (しらふじ)', hex: '#dbd0e6', text: 'ごく淡いペールライラック地', isDark: false },
   { name: '藤色 (ふじ)', hex: '#bbbcde', text: '淡いラベンダー地', isDark: false },
   { name: '紫苑 (しおん)', hex: '#8f77b5', text: '澄んだライトバイオレット地', isDark: true },
@@ -150,7 +140,6 @@ const TRADITIONAL_COLORS = [
   { name: '滅紫 (けしむらさき)', hex: '#594255', text: '非常に暗いグレイッシュパープル地', isDark: true },
   { name: '濃紫 (こむらさき)', hex: '#3a243b', text: '極めて深いディープバイオレット地', isDark: true },
 
-  // 9. 茶・ベージュ（6色）
   { name: '丁子 (ちょうじ)', hex: '#efcd9a', text: '温かいキャメルベージュ地', isDark: false },
   { name: '鳥の子 (とりのこ)', hex: '#dac9a6', text: '温かみのある生成りベージュ地', isDark: false },
   { name: '灰茶 (はいちゃ)', hex: '#98623c', text: 'まろやかなミルクティーブラウン地', isDark: true },
@@ -293,12 +282,17 @@ export default function Home() {
   const [creationMode, setCreationMode] = useState<'ai' | 'geometric'>('ai');
   const [geoPatternType, setGeoPatternType] = useState<'stripe' | 'dot' | 'grid' | 'gingham'>('stripe');
   const [stripeDir, setStripeDir] = useState<StripeDirection>('vertical');
-  const [lineWidth, setLineWidth] = useState(20);
-  const [gapWidth, setGapWidth] = useState(30);
-  const [dotRadius, setDotRadius] = useState(15);
+  
+  // パラメータをmm単位で管理
+  const [lineWidth, setLineWidth] = useState(5);
+  const [gapWidth, setGapWidth] = useState(10);
+  const [dotRadius, setDotRadius] = useState(5); // 半径(mm)
   const [dotLayout, setDotLayout] = useState<DotLayout>('staggered');
   const [geoBgColor, setGeoBgColor] = useState('#fffffc');
   const [geoPatternColor, setGeoPatternColor] = useState('#161616');
+  
+  // リアルなスケール計算用（1mm = 1pxとしてプレビュー時に扱うためのサイズ）
+  const [bgSizeMm, setBgSizeMm] = useState(100);
 
   useEffect(() => {
     const today = new Date().toISOString().split('T')[0];
@@ -344,15 +338,26 @@ export default function Home() {
     if (creationMode !== 'geometric') return;
 
     let svgString = '';
+    let tileSize = 0;
+
+    const period = lineWidth + gapWidth;
+    const dotPitch = (dotRadius * 2) + gapWidth;
+
     if (geoPatternType === 'stripe') {
       svgString = generateStripeSvg({ direction: stripeDir, lineWidth, gap: gapWidth, bgColor: geoBgColor, stripeColor: geoPatternColor });
+      tileSize = stripeDir === 'diagonal' ? period * 2 : period;
     } else if (geoPatternType === 'dot') {
       svgString = generateDotSvg({ layout: dotLayout, radius: dotRadius, gap: gapWidth, bgColor: geoBgColor, dotColor: geoPatternColor });
+      tileSize = dotLayout === 'staggered' ? dotPitch * 2 : dotPitch;
     } else if (geoPatternType === 'grid') {
       svgString = generateGridSvg({ lineWidth, gap: gapWidth, bgColor: geoBgColor, gridColor: geoPatternColor });
+      tileSize = period;
     } else if (geoPatternType === 'gingham') {
       svgString = generateGinghamSvg({ lineWidth, gap: gapWidth, bgColor: geoBgColor, checkColor: geoPatternColor });
+      tileSize = period;
     }
+
+    setBgSizeMm(tileSize);
 
     const svgDataUrl = `data:image/svg+xml;utf8,${encodeURIComponent(svgString)}`;
     setImageUrl(svgDataUrl);
@@ -369,7 +374,6 @@ export default function Home() {
     if (geoPatternType === 'gingham') newTitle = 'ギンガムチェック';
 
     setPatternTitle(prev => {
-      // ユーザーが手入力していない（デフォルトタイトルのいずれか）場合は自動更新する
       if (!prev || ['万筋縞', '千鳥水玉', '格子柄', 'ギンガムチェック'].includes(prev)) {
         return newTitle;
       }
@@ -546,7 +550,6 @@ export default function Home() {
         {/* ヘッダーエリア */}
         <div className="relative overflow-hidden text-center mb-8 p-8 sm:p-10 bg-zinc-950 text-white rounded-[1.5rem] shadow-xl">
           <div className="relative z-10">
-      
             <h1 className="text-2xl sm:text-3xl font-black tracking-widest text-center leading-tight">
               妄想図案帖
             </h1>
@@ -608,7 +611,6 @@ export default function Home() {
                   />
                 </div>
 
-                {/* 図案ヒント */}
                 <div className="mt-2 text-right">
                   <button
                     type="button"
@@ -859,7 +861,7 @@ export default function Home() {
               </div>
             </>
           ) : (
-            /* 幾何学モード UI */
+            /* 幾何学モード UI （ミリ表記に変更） */
             <div className="space-y-6 animate-fade-in">
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -902,35 +904,46 @@ export default function Home() {
                     </select>
                   </div>
                 )}
-                {/* 格子とギンガムチェック時は2列目を空けてレイアウトを整える */}
                 {(geoPatternType === 'grid' || geoPatternType === 'gingham') && (
                   <div></div>
                 )}
               </div>
 
               <div className="space-y-4 pt-4 border-t border-zinc-100">
-                <label className="block text-xs font-bold text-zinc-900">サイズ調整（リアルタイム）</label>
+                <label className="block text-xs font-bold text-zinc-900 mb-4">サイズ調整（mm指定・実寸連動）</label>
                 
                 {geoPatternType === 'dot' ? (
                   <>
                     <div>
-                      <span className="text-[10px] text-zinc-500">水玉の大きさ: {dotRadius}px</span>
-                      <input type="range" min="2" max="60" value={dotRadius} onChange={(e) => setDotRadius(Number(e.target.value))} className="w-full" />
+                      <div className="flex justify-between items-end mb-1">
+                        <span className="text-[10px] font-bold text-zinc-500">水玉の大きさ（直径）</span>
+                        <span className="text-sm font-black text-zinc-900">{dotRadius * 2}<span className="text-[10px] font-normal text-zinc-400 ml-0.5">mm</span></span>
+                      </div>
+                      <input type="range" min="1" max="50" value={dotRadius} onChange={(e) => setDotRadius(Number(e.target.value))} className="w-full" />
                     </div>
                     <div>
-                      <span className="text-[10px] text-zinc-500">間隔: {gapWidth}px</span>
-                      <input type="range" min="0" max="120" value={gapWidth} onChange={(e) => setGapWidth(Number(e.target.value))} className="w-full" />
+                      <div className="flex justify-between items-end mb-1">
+                        <span className="text-[10px] font-bold text-zinc-500">間隔（余白）</span>
+                        <span className="text-sm font-black text-zinc-900">{gapWidth}<span className="text-[10px] font-normal text-zinc-400 ml-0.5">mm</span></span>
+                      </div>
+                      <input type="range" min="0" max="100" value={gapWidth} onChange={(e) => setGapWidth(Number(e.target.value))} className="w-full" />
                     </div>
                   </>
                 ) : (
                   <>
                     <div>
-                      <span className="text-[10px] text-zinc-500">線の太さ (バンド幅): {lineWidth}px</span>
+                      <div className="flex justify-between items-end mb-1">
+                        <span className="text-[10px] font-bold text-zinc-500">線の太さ</span>
+                        <span className="text-sm font-black text-zinc-900">{lineWidth}<span className="text-[10px] font-normal text-zinc-400 ml-0.5">mm</span></span>
+                      </div>
                       <input type="range" min="1" max="100" value={lineWidth} onChange={(e) => setLineWidth(Number(e.target.value))} className="w-full" />
                     </div>
                     <div>
-                      <span className="text-[10px] text-zinc-500">間隔: {gapWidth}px</span>
-                      <input type="range" min="1" max="100" value={gapWidth} onChange={(e) => setGapWidth(Number(e.target.value))} className="w-full" />
+                      <div className="flex justify-between items-end mb-1">
+                        <span className="text-[10px] font-bold text-zinc-500">間隔（余白）</span>
+                        <span className="text-sm font-black text-zinc-900">{gapWidth}<span className="text-[10px] font-normal text-zinc-400 ml-0.5">mm</span></span>
+                      </div>
+                      <input type="range" min="0" max="200" value={gapWidth} onChange={(e) => setGapWidth(Number(e.target.value))} className="w-full" />
                     </div>
                   </>
                 )}
@@ -972,20 +985,21 @@ export default function Home() {
                   <h2 className="text-xl font-black text-zinc-900 tracking-widest">銘：『{finalTitle}』</h2>
                 </div>
                 
+                {/* プレビュー切り替えタブ（名称変更） */}
                 <div className="flex bg-zinc-100 p-1 rounded-xl">
                   <button
                     type="button"
                     onClick={() => setPreviewMode('pattern')}
                     className={`text-xs px-3.5 py-1.5 rounded-lg font-bold tracking-wider transition-all duration-200 ${previewMode === 'pattern' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
                   >
-                    図案
+                    図案 (1リピート)
                   </button>
                   <button
                     type="button"
                     onClick={() => setPreviewMode('fabric')}
                     className={`text-xs px-3.5 py-1.5 rounded-lg font-bold tracking-wider transition-all duration-200 ${previewMode === 'fabric' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
                   >
-                    反物
+                    原寸大・反物 (約40cm幅)
                   </button>
                   <button
                     type="button"
@@ -999,18 +1013,32 @@ export default function Home() {
 
               {/* 画像・モックアップ表示コンテナ */}
               <div className="bg-zinc-50/70 flex flex-col items-center justify-center min-h-[420px] p-6 relative">
+                
                 {previewMode === 'pattern' && (
-                  <img src={imageUrl} alt={finalTitle} className="w-full max-w-lg h-auto object-contain rounded-xl shadow-sm" />
+                  <div className="flex flex-col items-center">
+                    <img src={imageUrl} alt={finalTitle} className="w-full max-w-sm h-auto object-contain rounded-xl shadow-sm border border-zinc-200/50" />
+                    {creationMode === 'geometric' && (
+                      <p className="text-[11px] text-zinc-400 mt-4 font-medium">※この1枚のタイル（最小単位）をシームレスに敷き詰めて生地を作ります</p>
+                    )}
+                  </div>
                 )}
 
                 {previewMode === 'fabric' && (
-                  <div 
-                    className="w-full h-[400px] rounded-xl shadow-inner border border-zinc-200/60"
-                    style={{ 
-                      backgroundImage: `url(${imageUrl})`, 
-                      backgroundSize: '200px auto'
-                    }} 
-                  />
+                  <div className="flex flex-col items-center w-full">
+                    {/* 400px幅を「実際の40cmの反物幅」として見立てるコンテナ */}
+                    <div 
+                      className="w-full max-w-[400px] h-[500px] rounded-xl shadow-[0_0_15px_rgba(0,0,0,0.1)] border border-zinc-200"
+                      style={{ 
+                        backgroundImage: `url(${imageUrl})`, 
+                        // AIモードは固定200px、幾何学モードは1mm=1pxとして厳密にスケール反映
+                        backgroundSize: creationMode === 'geometric' ? `${bgSizeMm}px auto` : '200px auto',
+                        backgroundRepeat: 'repeat'
+                      }} 
+                    />
+                    {creationMode === 'geometric' && (
+                      <p className="text-[11px] text-zinc-400 mt-4 font-medium">※画面上の枠幅を「実際の約40cm」とした場合の、仕上がり原寸大シミュレーション</p>
+                    )}
+                  </div>
                 )}
 
                 {previewMode === 'mockup' && (
@@ -1044,7 +1072,8 @@ export default function Home() {
                               className="absolute inset-0 z-0" 
                               style={{ 
                                 backgroundImage: `url(${imageUrl})`, 
-                                backgroundSize: '120px auto',
+                                // トートバッグ（約40cm幅）に対するスケール（256px / 400mm = 0.64）
+                                backgroundSize: creationMode === 'geometric' ? `${bgSizeMm * 0.64}px auto` : '120px auto',
                                 backgroundRepeat: 'repeat',
                                 maskImage: `url('/bag-mockup.png')`,
                                 WebkitMaskImage: `url('/bag-mockup.png')`,
@@ -1076,7 +1105,8 @@ export default function Home() {
                             className="absolute inset-0" 
                             style={{ 
                               backgroundImage: `url(${imageUrl})`, 
-                              backgroundSize: '130px auto',
+                              // クッション（約45cm角）に対するスケール（256px / 450mm = 0.56）
+                              backgroundSize: creationMode === 'geometric' ? `${bgSizeMm * 0.56}px auto` : '130px auto',
                               backgroundRepeat: 'repeat' 
                             }} 
                           />
@@ -1096,7 +1126,8 @@ export default function Home() {
                             className="absolute inset-0" 
                             style={{ 
                               backgroundImage: `url(${imageUrl})`, 
-                              backgroundSize: '150px auto',
+                              // Tシャツ（身幅約50cm）に対するスケール（256px / 500mm = 0.51）
+                              backgroundSize: creationMode === 'geometric' ? `${bgSizeMm * 0.51}px auto` : '150px auto',
                               backgroundRepeat: 'repeat' 
                             }} 
                           />
@@ -1111,7 +1142,7 @@ export default function Home() {
                       )}
                     </div>
 
-                    <p className="text-[11px] text-zinc-400 mt-2 font-medium">※デジタル捺染（モナリザ）による仕上がりシミュレーション</p>
+                    <p className="text-[11px] text-zinc-400 mt-3 font-medium">※設定したミリ単位を実際の製品サイズ（トート40cm幅等）に割り当てたシミュレーション</p>
                   </div>
                 )}
               </div>
