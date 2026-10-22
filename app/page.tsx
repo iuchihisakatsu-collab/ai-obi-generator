@@ -258,8 +258,6 @@ const LOADING_STEPS = [
   '仕上がりを表示する準備をしています...',
 ];
 
-const IUCHI_LOGO = "https://gofukuyasan.com/wp-content/uploads/2026/10/logo22.jpg";
-
 export default function Home() {
   const [motif, setMotif] = useState('');
   const [selectedColors, setSelectedColors] = useState<typeof TRADITIONAL_COLORS>([]);
@@ -437,7 +435,7 @@ export default function Home() {
 
   const finalTitle = patternTitle.trim() || '（無題）';
   const colorSummary = selectedColors.length > 0 ? selectedColors.map(c => c.name.split(' ')[0]).join('・') : '自由配色';
-  const shareText = encodeURIComponent(`ゴフクヤサンの「妄想きもの図案帖」で、柄のアイデアを試してみました。\n\n銘：『${finalTitle}』\n配色：${colorSummary}\n\n※AIによるアイデア図案です。実際の生地制作時は工房で調整します。\n\n#妄想きもの図案帖 #ゴフクヤサン`);
+  const shareText = encodeURIComponent(`「妄想図案帖」で、柄のアイデアを試してみました。\n\n銘：『${finalTitle}』\n配色：${colorSummary}\n\n※AIによるアイデア図案です。実際の生地制作時はスタッフが人の目で調整します。\n\n#妄想図案帖`);
   const shareUrl = typeof window !== 'undefined' ? encodeURIComponent(window.location.href) : '';
   const xShareLink = `https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`;
   const orderUrl = `https://store.gofukuyasan.com/view/item/000000007300?komon_id=${encodeURIComponent(serialNumber)}&title=${encodeURIComponent(finalTitle)}`;
@@ -495,11 +493,11 @@ export default function Home() {
               className="inline-flex items-center gap-2 mb-6 hover:opacity-70 transition-opacity"
             >
               <img src={IUCHI_LOGO} alt="ゴフクヤサン" className="h-4 w-auto object-contain brightness-0 invert opacity-90" />
-              <span className="text-[10px] tracking-[0.2em] font-bold text-zinc-400 uppercase">Gofukuyasan Studio</span>
+              <span className="text-[10px] tracking-[0.2em] font-bold text-zinc-400 uppercase">Digina Studio</span>
             </a>
             
             <h1 className="text-2xl sm:text-3xl font-black tracking-widest text-center leading-tight">
-              妄想きもの図案帖
+              妄想図案帖
             </h1>
             <p className="text-xs text-zinc-400 mt-4 leading-relaxed font-medium tracking-wider">
               着物の配色や柄づくりの知識を生かして、<br className="hidden sm:inline" />思いついた柄のアイデアを試せるAI図案ツールです。
@@ -1059,17 +1057,7 @@ export default function Home() {
         )}
       </div>
 
-      {/* フッター */}
-      <div className="mt-8 text-center pb-4">
-        <a 
-          href="https://gofukuyasan.com/" 
-          target="_blank" 
-          rel="noopener noreferrer" 
-          className="text-xs font-bold text-zinc-400 hover:text-zinc-600 tracking-widest transition-colors"
-        >
-          ◆ ゴフクヤサン公式サイトへ
-        </a>
-      </div>
+
     </div>
   );
 }
