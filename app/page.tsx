@@ -283,15 +283,15 @@ export default function Home() {
   const [geoPatternType, setGeoPatternType] = useState<'stripe' | 'dot' | 'grid' | 'gingham'>('stripe');
   const [stripeDir, setStripeDir] = useState<StripeDirection>('vertical');
   
-  // パラメータをmm単位で管理
   const [lineWidth, setLineWidth] = useState(5);
   const [gapWidth, setGapWidth] = useState(10);
-  const [dotRadius, setDotRadius] = useState(5); // 半径(mm)
+  const [dotRadius, setDotRadius] = useState(5);
   const [dotLayout, setDotLayout] = useState<DotLayout>('staggered');
+  
   const [geoBgColor, setGeoBgColor] = useState('#fffffc');
   const [geoPatternColor, setGeoPatternColor] = useState('#161616');
+  const [showGeoPaletteFor, setShowGeoPaletteFor] = useState<'bg' | 'pattern' | null>(null); // パレット表示状態
   
-  // リアルなスケール計算用（1mm = 1pxとしてプレビュー時に扱うためのサイズ）
   const [bgSizeMm, setBgSizeMm] = useState(100);
 
   useEffect(() => {
@@ -861,7 +861,7 @@ export default function Home() {
               </div>
             </>
           ) : (
-            /* 幾何学モード UI （ミリ表記に変更） */
+            /* 幾何学モード UI */
             <div className="space-y-6 animate-fade-in">
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -949,15 +949,69 @@ export default function Home() {
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-zinc-100">
-                <div>
-                  <label className="block text-[10px] font-bold text-zinc-900 mb-1">地色 (HEX)</label>
-                  <input type="color" value={geoBgColor} onChange={(e) => setGeoBgColor(e.target.value)} className="w-full h-10 rounded-xl cursor-pointer" />
+              {/* カラー選択エリアのリニューアル */}
+              <div className="pt-4 border-t border-zinc-100 space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-bold text-zinc-900 mb-1">地色</label>
+                    <div className="flex items-center gap-2">
+                      <input type="color" value={geoBgColor} onChange={(e) => setGeoBgColor(e.target.value)} className="w-12 h-10 rounded-xl cursor-pointer shrink-0 border border-zinc-200 p-0.5" />
+                      <button
+                        type="button"
+                        onClick={() => setShowGeoPaletteFor(showGeoPaletteFor === 'bg' ? null : 'bg')}
+                        className={`flex-1 text-[10px] h-10 rounded-xl font-bold transition-all border ${showGeoPaletteFor === 'bg' ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50'}`}
+                      >
+                        🎨 102色から選ぶ
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-zinc-900 mb-1">柄色</label>
+                    <div className="flex items-center gap-2">
+                      <input type="color" value={geoPatternColor} onChange={(e) => setGeoPatternColor(e.target.value)} className="w-12 h-10 rounded-xl cursor-pointer shrink-0 border border-zinc-200 p-0.5" />
+                      <button
+                        type="button"
+                        onClick={() => setShowGeoPaletteFor(showGeoPaletteFor === 'pattern' ? null : 'pattern')}
+                        className={`flex-1 text-[10px] h-10 rounded-xl font-bold transition-all border ${showGeoPaletteFor === 'pattern' ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50'}`}
+                      >
+                        🎨 102色から選ぶ
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-zinc-900 mb-1">柄色 (HEX)</label>
-                  <input type="color" value={geoPatternColor} onChange={(e) => setGeoPatternColor(e.target.value)} className="w-full h-10 rounded-xl cursor-pointer" />
-                </div>
+
+                {/* 102色パレットの表示領域 */}
+                {showGeoPaletteFor && (
+                  <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-200/80 animate-fade-in">
+                    <div className="flex justify-between items-center mb-3">
+                      <p className="text-[10px] text-zinc-500 font-bold">
+                        {showGeoPaletteFor === 'bg' ? '地色' : '柄色'}を選ぶ（102色）：
+                      </p>
+                      <button type="button" onClick={() => setShowGeoPaletteFor(null)} className="text-[10px] text-zinc-400 hover:text-zinc-800 font-bold">閉じる ✕</button>
+                    </div>
+                    <div className="max-h-[240px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-zinc-200">
+                      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                        {TRADITIONAL_COLORS.map((col) => (
+                          <button
+                            key={col.name}
+                            type="button"
+                            onClick={() => {
+                              if (showGeoPaletteFor === 'bg') setGeoBgColor(col.hex);
+                              if (showGeoPaletteFor === 'pattern') setGeoPatternColor(col.hex);
+                              setShowGeoPaletteFor(null);
+                            }}
+                            className="relative h-12 rounded-xl p-2 flex flex-col justify-end text-left transition-all duration-200 border border-zinc-200/50 hover:scale-105"
+                            style={{ backgroundColor: col.hex }}
+                          >
+                            <span className={`text-[9px] font-bold tracking-wider truncate leading-tight ${col.isDark ? 'text-white' : 'text-zinc-900'}`}>
+                              {col.name.split(' ')[0]}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="pt-2 border-t border-zinc-100">
@@ -985,7 +1039,7 @@ export default function Home() {
                   <h2 className="text-xl font-black text-zinc-900 tracking-widest">銘：『{finalTitle}』</h2>
                 </div>
                 
-                {/* プレビュー切り替えタブ（名称変更） */}
+                {/* プレビュー切り替えタブ */}
                 <div className="flex bg-zinc-100 p-1 rounded-xl">
                   <button
                     type="button"
@@ -1025,12 +1079,10 @@ export default function Home() {
 
                 {previewMode === 'fabric' && (
                   <div className="flex flex-col items-center w-full">
-                    {/* 400px幅を「実際の40cmの反物幅」として見立てるコンテナ */}
                     <div 
                       className="w-full max-w-[400px] h-[500px] rounded-xl shadow-[0_0_15px_rgba(0,0,0,0.1)] border border-zinc-200"
                       style={{ 
                         backgroundImage: `url(${imageUrl})`, 
-                        // AIモードは固定200px、幾何学モードは1mm=1pxとして厳密にスケール反映
                         backgroundSize: creationMode === 'geometric' ? `${bgSizeMm}px auto` : '200px auto',
                         backgroundRepeat: 'repeat'
                       }} 
@@ -1072,7 +1124,6 @@ export default function Home() {
                               className="absolute inset-0 z-0" 
                               style={{ 
                                 backgroundImage: `url(${imageUrl})`, 
-                                // トートバッグ（約40cm幅）に対するスケール（256px / 400mm = 0.64）
                                 backgroundSize: creationMode === 'geometric' ? `${bgSizeMm * 0.64}px auto` : '120px auto',
                                 backgroundRepeat: 'repeat',
                                 maskImage: `url('/bag-mockup.png')`,
@@ -1105,7 +1156,6 @@ export default function Home() {
                             className="absolute inset-0" 
                             style={{ 
                               backgroundImage: `url(${imageUrl})`, 
-                              // クッション（約45cm角）に対するスケール（256px / 450mm = 0.56）
                               backgroundSize: creationMode === 'geometric' ? `${bgSizeMm * 0.56}px auto` : '130px auto',
                               backgroundRepeat: 'repeat' 
                             }} 
@@ -1126,7 +1176,6 @@ export default function Home() {
                             className="absolute inset-0" 
                             style={{ 
                               backgroundImage: `url(${imageUrl})`, 
-                              // Tシャツ（身幅約50cm）に対するスケール（256px / 500mm = 0.51）
                               backgroundSize: creationMode === 'geometric' ? `${bgSizeMm * 0.51}px auto` : '150px auto',
                               backgroundRepeat: 'repeat' 
                             }} 
@@ -1243,9 +1292,3 @@ export default function Home() {
                 </div>
               </div>
             </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
