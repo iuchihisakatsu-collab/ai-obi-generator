@@ -2,7 +2,8 @@
 
 /* eslint-disable @next/next/no-img-element */
 
-import { useState, useEffect, type MouseEvent } from 'react';
+import { useState, useEffect, type MouseEvent, useCallback } from 'react';
+import { generateStripeSvg, generateDotSvg, svgToHighResPng, type StripeDirection, type DotLayout } from './utils/geometricPatterns';
 
 // 1日あたりの生成上限回数
 const MAX_GENERATIONS_PER_DAY = 3;
@@ -281,6 +282,16 @@ export default function Home() {
   const [remainingCount, setRemainingCount] = useState<number | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('ct334'); 
 
+  const [creationMode, setCreationMode] = useState<'ai' | 'geometric'>('ai');
+  const [geoPatternType, setGeoPatternType] = useState<'stripe' | 'dot'>('stripe');
+  const [stripeDir, setStripeDir] = useState<StripeDirection>('vertical');
+  const [lineWidth, setLineWidth] = useState(20);
+  const [gapWidth, setGapWidth] = useState(30);
+  const [dotRadius, setDotRadius] = useState(15);
+  const [dotLayout, setDotLayout] = useState<DotLayout>('staggered');
+  const [geoBgColor, setGeoBgColor] = useState('#fffffc');
+  const [geoPatternColor, setGeoPatternColor] = useState('#161616');
+
   useEffect(() => {
     const today = new Date().toISOString().split('T')[0];
     const storedData = localStorage.getItem('komon_generations');
@@ -320,6 +331,31 @@ export default function Home() {
       alert('【管理者モード】本日の生成回数を全回復しました！✨');
     }
   }, [motif]);
+
+  const updateGeometricPattern = useCallback(async () => {
+    if (creationMode !== 'geometric') return;
+
+    const svgString = geoPatternType === 'stripe'
+      ? generateStripeSvg({ direction: stripeDir, lineWidth, gap: gapWidth, bgColor: geoBgColor, stripeColor: geoPatternColor })
+      : generateDotSvg({ layout: dotLayout, radius: dotRadius, gap: gapWidth, bgColor: geoBgColor, dotColor: geoPatternColor });
+
+    const svgDataUrl = `data:image/svg+xml;utf8,${encodeURIComponent(svgString)}`;
+    setImageUrl(svgDataUrl);
+
+    const highResPng = await svgToHighResPng(svgString, 2400);
+    setBlobUrl(highResPng);
+    
+    if (!serialNumber.startsWith('GEO-')) {
+      setSerialNumber(`GEO-${Math.floor(1000 + Math.random() * 9000)}`);
+    }
+    if (!patternTitle) {
+      setPatternTitle(geoPatternType === 'stripe' ? '万筋縞' : '千鳥水玉');
+    }
+  }, [creationMode, geoPatternType, stripeDir, lineWidth, gapWidth, dotLayout, dotRadius, geoBgColor, geoPatternColor]);
+
+  useEffect(() => {
+    updateGeometricPattern();
+  }, [updateGeometricPattern]);
 
   const handleTagClick = (item: CategoryItem) => {
     if (!motif.includes(item.label)) {
@@ -463,7 +499,6 @@ export default function Home() {
     }
   };
 
-  // 査察用：バーチャルサンプル化（仮掲載キュー登録）シミュレーション
   const handleVirtualProductSubmit = async () => {
     setMockupSubmitting(true);
     try {
@@ -491,293 +526,409 @@ export default function Home() {
               妄想図案帖
             </h1>
             <p className="text-xs text-zinc-400 mt-4 leading-relaxed font-medium tracking-wider">
-              新潟・十日町は着物の産地　着物の配色や柄づくりの知識を生かして、<br className="hidden sm:inline" />思いついた柄のアイデアを試せるAI図案ツールです。
+              新潟・十日町は着物の産地 着物の配色や柄づくりの知識を生かして、<br className="hidden sm:inline" />思いついた柄のアイデアを試せるAI図案ツールです。
             </p>
           </div>
         </div>
 
+        {/* モード切替タブを追加 */}
+        <div className="flex bg-zinc-100 p-1 rounded-2xl mb-8">
+          <button
+            type="button"
+            onClick={() => setCreationMode('ai')}
+            className={`flex-1 py-3 text-xs font-black tracking-wider rounded-xl transition-all ${
+              creationMode === 'ai' ? 'bg-zinc-950 text-white shadow-md' : 'text-zinc-500 hover:text-zinc-800'
+            }`}
+          >
+            ✨ AI妄想モード
+          </button>
+          <button
+            type="button"
+            onClick={() => setCreationMode('geometric')}
+            className={`flex-1 py-3 text-xs font-black tracking-wider rounded-xl transition-all ${
+              creationMode === 'geometric' ? 'bg-zinc-950 text-white shadow-md' : 'text-zinc-500 hover:text-zinc-800'
+            }`}
+          >
+            📐 幾何学ベクターモード
+          </button>
+        </div>
+
         <div className="space-y-8">
-          
-          {/* 壱. プロンプト自由入力 */}
-          <div>
-            <div className="flex justify-between items-baseline mb-2">
-              <label className="block text-xs font-bold text-zinc-900 tracking-wider">
-                01. 図案のイメージ・プロンプト <span className="text-[10px] text-zinc-400 font-normal">（自由に入力してください）</span>
-              </label>
-              {motif && (
-                <button 
-                  onClick={() => setMotif('')} 
-                  className="text-[10px] font-bold text-zinc-400 hover:text-zinc-800 tracking-widest uppercase transition-colors"
-                >
-                  Clear
-                </button>
-              )}
-            </div>
-            
-            <div className="relative">
-              <textarea
-                className="w-full rounded-2xl border-2 border-zinc-200 p-4 bg-white text-sm focus:outline-none focus:border-zinc-900 focus:ring-0 resize-none transition-all duration-200 leading-relaxed shadow-sm font-medium"
-                rows={4}
-                value={motif}
-                onChange={(e) => setMotif(e.target.value)}
-                placeholder="例：上から見た金魚。赤い金魚と黒出目金。水草。地色は白、ターコイズの流水柄。版画・切り絵風、ミッドセンチュリー"
-                disabled={loading}
-              />
-            </div>
+          {creationMode === 'ai' ? (
+            <>
+              {/* 壱. プロンプト自由入力 */}
+              <div>
+                <div className="flex justify-between items-baseline mb-2">
+                  <label className="block text-xs font-bold text-zinc-900 tracking-wider">
+                    01. 図案のイメージ・プロンプト <span className="text-[10px] text-zinc-400 font-normal">（自由に入力してください）</span>
+                  </label>
+                  {motif && (
+                    <button 
+                      onClick={() => setMotif('')} 
+                      className="text-[10px] font-bold text-zinc-400 hover:text-zinc-800 tracking-widest uppercase transition-colors"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+                
+                <div className="relative">
+                  <textarea
+                    className="w-full rounded-2xl border-2 border-zinc-200 p-4 bg-white text-sm focus:outline-none focus:border-zinc-900 focus:ring-0 resize-none transition-all duration-200 leading-relaxed shadow-sm font-medium"
+                    rows={4}
+                    value={motif}
+                    onChange={(e) => setMotif(e.target.value)}
+                    placeholder="例：上から見た金魚。赤い金魚と黒出目金。水草。地色は白、ターコイズの流水柄。版画・切り絵風、ミッドセンチュリー"
+                    disabled={loading}
+                  />
+                </div>
 
-            {/* 図案ヒントの折りたたみアコーディオン */}
-            <div className="mt-2 text-right">
-              <button
-                type="button"
-                onClick={() => setShowTags(!showTags)}
-                className="inline-flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-900 font-bold transition-colors py-1"
-              >
-                <span>💡 {showTags ? 'ヒントを閉じる' : '図案のヒント・キーワードを探す'}</span>
-                <span className="text-[9px] transform transition-transform duration-200">{showTags ? '▲' : '▼'}</span>
-              </button>
-            </div>
+                {/* 図案ヒントの折りたたみアコーディオン */}
+                <div className="mt-2 text-right">
+                  <button
+                    type="button"
+                    onClick={() => setShowTags(!showTags)}
+                    className="inline-flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-900 font-bold transition-colors py-1"
+                  >
+                    <span>💡 {showTags ? 'ヒントを閉じる' : '図案のヒント・キーワードを探す'}</span>
+                    <span className="text-[9px] transform transition-transform duration-200">{showTags ? '▲' : '▼'}</span>
+                  </button>
+                </div>
 
-            {showTags && (
-              <div className="mt-3 p-4 bg-zinc-50 rounded-2xl border border-zinc-200/80 space-y-4 max-h-[260px] overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-200 animate-fade-in">
-                <p className="text-[11px] text-zinc-500 font-medium">クリックすると入力欄にキーワードが追加されます：</p>
-                {TAG_CATEGORIES.map((cat) => (
-                  <div key={cat.title}>
-                    <p className="text-[10px] font-bold text-zinc-400 tracking-wider mb-1.5">{cat.title}</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {cat.items.map((item) => (
-                        <button
-                          key={item.label}
-                          type="button"
-                          onClick={() => handleTagClick(item)}
-                          className="px-3 py-1 bg-white border border-zinc-200 rounded-full text-[11px] font-medium text-zinc-600 hover:bg-zinc-900 hover:text-white hover:border-zinc-900 transition-all duration-150"
+                {showTags && (
+                  <div className="mt-3 p-4 bg-zinc-50 rounded-2xl border border-zinc-200/80 space-y-4 max-h-[260px] overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-200 animate-fade-in">
+                    <p className="text-[11px] text-zinc-500 font-medium">クリックすると入力欄にキーワードが追加されます：</p>
+                    {TAG_CATEGORIES.map((cat) => (
+                      <div key={cat.title}>
+                        <p className="text-[10px] font-bold text-zinc-400 tracking-wider mb-1.5">{cat.title}</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {cat.items.map((item) => (
+                            <button
+                              key={item.label}
+                              type="button"
+                              onClick={() => handleTagClick(item)}
+                              className="px-3 py-1 bg-white border border-zinc-200 rounded-full text-[11px] font-medium text-zinc-600 hover:bg-zinc-900 hover:text-white hover:border-zinc-900 transition-all duration-150"
+                            >
+                              {item.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* 弐. 配色・地色 */}
+              <div className="pt-2 border-t border-zinc-100">
+                <div className="flex justify-between items-baseline mb-3">
+                  <div>
+                    <label className="block text-xs font-bold text-zinc-900 tracking-wider">
+                      02. 配色・地色 <span className="text-[10px] text-zinc-400 font-normal">（迷ったら選択 / 複数OK）</span>
+                    </label>
+                    <p className="text-[11px] text-zinc-400 mt-0.5">※上の入力欄に「地色は白」のように書くこともできます</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowColorPalette(!showColorPalette)}
+                    className="inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-900 font-bold transition-colors"
+                  >
+                    <span>🎨 {showColorPalette ? 'パレットを閉じる' : '色見本から選ぶ (102色)'}</span>
+                    <span className="text-[9px] transform transition-transform duration-200">{showColorPalette ? '▲' : '▼'}</span>
+                  </button>
+                </div>
+
+                {/* 選択中の色バッジ一覧 */}
+                <div className="flex flex-wrap items-center gap-2 min-h-[32px]">
+                  {selectedColors.length === 0 ? (
+                    <span className="text-xs text-zinc-400 italic">指定なし（入力欄の指定、またはAIの配色におまかせ）</span>
+                  ) : (
+                    <>
+                      {selectedColors.map((col) => (
+                        <span
+                          key={col.name}
+                          onClick={() => handleColorToggle(col)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border shadow-sm cursor-pointer hover:opacity-80 transition-opacity"
+                          style={{
+                            backgroundColor: col.hex,
+                            color: col.isDark ? '#fff' : '#000',
+                            borderColor: 'rgba(0,0,0,0.1)'
+                          }}
                         >
-                          {item.label}
-                        </button>
+                          {col.name.split(' ')[0]}
+                          <span className="text-[10px] opacity-70">✕</span>
+                        </span>
                       ))}
+                      <button
+                        type="button"
+                        onClick={() => setSelectedColors([])}
+                        className="text-[10px] text-zinc-400 hover:text-zinc-700 underline ml-1"
+                      >
+                        リセット
+                      </button>
+                    </>
+                  )}
+                </div>
+
+                {/* 色パレット */}
+                {showColorPalette && (
+                  <div className="mt-3 p-4 bg-zinc-50 rounded-2xl border border-zinc-200/80 animate-fade-in">
+                    <p className="text-[10px] text-zinc-500 font-medium mb-3">タップして選択（最大3色まで組み合わせ可能）：</p>
+                    <div className="max-h-[240px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-zinc-200">
+                      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                        {TRADITIONAL_COLORS.map((col) => {
+                          const isSelected = selectedColors.some((c) => c.name === col.name);
+                          return (
+                            <button
+                              key={col.name}
+                              type="button"
+                              onClick={() => handleColorToggle(col)}
+                              className={`relative h-12 rounded-xl p-2 flex flex-col justify-end text-left transition-all duration-200 ${
+                                isSelected
+                                  ? 'ring-2 ring-offset-2 ring-zinc-950 scale-95 shadow-md font-black'
+                                  : 'border border-zinc-200/50 hover:scale-105'
+                              }`}
+                              style={{ backgroundColor: col.hex }}
+                            >
+                              <span className={`text-[9px] font-bold tracking-wider truncate leading-tight flex items-center justify-between ${col.isDark ? 'text-white' : 'text-zinc-900'}`}>
+                                {col.name.split(' ')[0]}
+                                {isSelected && <span>✓</span>}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
-                ))}
+                )}
               </div>
-            )}
-          </div>
 
-          {/* 弐. 配色・地色 */}
-          <div className="pt-2 border-t border-zinc-100">
-            <div className="flex justify-between items-baseline mb-3">
-              <div>
-                <label className="block text-xs font-bold text-zinc-900 tracking-wider">
-                  02. 配色・地色 <span className="text-[10px] text-zinc-400 font-normal">（迷ったら選択 / 複数OK）</span>
-                </label>
-                <p className="text-[11px] text-zinc-400 mt-0.5">※上の入力欄に「地色は白」のように書くこともできます</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowColorPalette(!showColorPalette)}
-                className="inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-900 font-bold transition-colors"
-              >
-                <span>🎨 {showColorPalette ? 'パレットを閉じる' : '色見本から選ぶ (102色)'}</span>
-                <span className="text-[9px] transform transition-transform duration-200">{showColorPalette ? '▲' : '▼'}</span>
-              </button>
-            </div>
+              {/* 参. 形式と密度 */}
+              <div className="grid sm:grid-cols-2 gap-6 pt-2 border-t border-zinc-100">
+                <div>
+                  <label className="block text-xs font-bold text-zinc-800 tracking-wider mb-3">
+                    03. 柄の配置・密度
+                  </label>
+                  <div className="flex flex-col gap-2">
+                    {[
+                      { id: '四方柄（上下なし・散らし柄）', label: '四方柄（上下なし・裁断しやすい）' },
+                      { id: '総柄（ぎっしり華やか）', label: '総柄（ぎっしり華やか）' },
+                      { id: '飛び柄（余白のある小紋）', label: '飛び柄（余白のある小紋）' },
+                      { id: 'お太鼓柄（ワンポイント/1枚絵）', label: 'お太鼓柄（ワンポイント/1枚絵）' }
+                    ].map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => setDensity(item.id)}
+                        className={`py-2.5 px-3.5 rounded-xl text-xs font-bold tracking-wider transition-all duration-200 text-left ${
+                          density === item.id
+                            ? 'bg-zinc-900 text-white shadow-sm'
+                            : 'bg-zinc-50 text-zinc-600 hover:bg-zinc-100'
+                        }`}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
-            {/* 選択中の色バッジ一覧 */}
-            <div className="flex flex-wrap items-center gap-2 min-h-[32px]">
-              {selectedColors.length === 0 ? (
-                <span className="text-xs text-zinc-400 italic">指定なし（入力欄の指定、またはAIの配色におまかせ）</span>
-              ) : (
-                <>
-                  {selectedColors.map((col) => (
-                    <span
-                      key={col.name}
-                      onClick={() => handleColorToggle(col)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border shadow-sm cursor-pointer hover:opacity-80 transition-opacity"
-                      style={{
-                        backgroundColor: col.hex,
-                        color: col.isDark ? '#fff' : '#000',
-                        borderColor: 'rgba(0,0,0,0.1)'
-                      }}
-                    >
-                      {col.name.split(' ')[0]}
-                      <span className="text-[10px] opacity-70">✕</span>
-                    </span>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={() => setSelectedColors([])}
-                    className="text-[10px] text-zinc-400 hover:text-zinc-700 underline ml-1"
-                  >
-                    リセット
-                  </button>
-                </>
-              )}
-            </div>
-
-            {/* 色パレット */}
-            {showColorPalette && (
-              <div className="mt-3 p-4 bg-zinc-50 rounded-2xl border border-zinc-200/80 animate-fade-in">
-                <p className="text-[10px] text-zinc-500 font-medium mb-3">タップして選択（最大3色まで組み合わせ可能）：</p>
-                <div className="max-h-[240px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-zinc-200">
-                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                    {TRADITIONAL_COLORS.map((col) => {
-                      const isSelected = selectedColors.some((c) => c.name === col.name);
-                      return (
-                        <button
-                          key={col.name}
-                          type="button"
-                          onClick={() => handleColorToggle(col)}
-                          className={`relative h-12 rounded-xl p-2 flex flex-col justify-end text-left transition-all duration-200 ${
-                            isSelected
-                              ? 'ring-2 ring-offset-2 ring-zinc-950 scale-95 shadow-md font-black'
-                              : 'border border-zinc-200/50 hover:scale-105'
-                          }`}
-                          style={{ backgroundColor: col.hex }}
-                        >
-                          <span className={`text-[9px] font-bold tracking-wider truncate leading-tight flex items-center justify-between ${col.isDark ? 'text-white' : 'text-zinc-900'}`}>
-                            {col.name.split(' ')[0]}
-                            {isSelected && <span>✓</span>}
-                          </span>
-                        </button>
-                      );
-                    })}
+                <div>
+                  <label className="block text-xs font-bold text-zinc-800 tracking-wider mb-3">
+                    04. 形式・アスペクト比
+                  </label>
+                  <div className="flex flex-col gap-2">
+                    {[
+                      { id: 'square', label: '正方形 (小物・お太鼓・リピート用)' },
+                      { id: 'hanhaba', label: '半幅帯 (横長 16:9)' },
+                      { id: 'tanmono', label: '反物・着尺 (縦長 9:16)' },
+                    ].map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => setItemType(item.id)}
+                        className={`py-2.5 px-3.5 rounded-xl text-xs font-bold tracking-wider transition-all duration-200 text-left ${
+                          itemType === item.id
+                            ? 'bg-zinc-900 text-white shadow-sm'
+                            : 'bg-zinc-50 text-zinc-600 hover:bg-zinc-100'
+                        }`}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
                   </div>
                 </div>
               </div>
-            )}
-          </div>
 
-          {/* 参. 形式と密度 */}
-          <div className="grid sm:grid-cols-2 gap-6 pt-2 border-t border-zinc-100">
-            <div>
-              <label className="block text-xs font-bold text-zinc-800 tracking-wider mb-3">
-                03. 柄の配置・密度
-              </label>
-              <div className="flex flex-col gap-2">
-                {[
-                  { id: '四方柄（上下なし・散らし柄）', label: '四方柄（上下なし・裁断しやすい）' },
-                  { id: '総柄（ぎっしり華やか）', label: '総柄（ぎっしり華やか）' },
-                  { id: '飛び柄（余白のある小紋）', label: '飛び柄（余白のある小紋）' },
-                  { id: 'お太鼓柄（ワンポイント/1枚絵）', label: 'お太鼓柄（ワンポイント/1枚絵）' }
-                ].map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => setDensity(item.id)}
-                    className={`py-2.5 px-3.5 rounded-xl text-xs font-bold tracking-wider transition-all duration-200 text-left ${
-                      density === item.id
-                        ? 'bg-zinc-900 text-white shadow-sm'
-                        : 'bg-zinc-50 text-zinc-600 hover:bg-zinc-100'
-                    }`}
+              {/* 伍. 図案銘 */}
+              <div className="pt-2 border-t border-zinc-100">
+                <label className="block text-xs font-bold text-zinc-800 tracking-wider mb-2">
+                  05. 図案銘 <span className="text-[10px] text-zinc-400 font-normal">（任意・作品タイトル）</span>
+                </label>
+                <input
+                  type="text"
+                  className="w-full rounded-xl border border-zinc-200 p-3 bg-zinc-50/50 text-sm focus:outline-none focus:border-zinc-900 focus:bg-white transition-all duration-200"
+                  placeholder="例：遊泳金魚図"
+                  value={patternTitle}
+                  onChange={(e) => setPatternTitle(e.target.value)}
+                  disabled={loading}
+                />
+              </div>
+
+              {/* 回復呪文お知らせバナー */}
+              <div className="p-4 bg-zinc-50 rounded-xl text-center border border-zinc-200 shadow-sm">
+                <p className="mb-1 text-xs font-bold text-zinc-800">
+                  ⚠️ 3回じゃ理想の柄が作れない方へ
+                </p>
+                <p className="mb-3 text-[11px] text-zinc-500">
+                  本気でお誂えをご検討中の方限定で、生成回数をリセットできる【回復呪文】をお渡しします。
+                </p>
+                <a 
+                  href="https://store.gofukuyasan.com/html/email.html" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="inline-block px-4 py-2 bg-zinc-800 text-white no-underline rounded-lg text-xs font-bold hover:bg-zinc-700 transition-colors"
+                >
+                  ✉️ 回復呪文をリクエストする（お問い合わせフォームへ）
+                </a>
+              </div>
+
+              {/* 同意と生成ボタン */}
+              <div className="pt-2 border-t border-zinc-100">
+                <label className="flex items-start gap-3 cursor-pointer select-none mb-6 group">
+                  <input
+                    type="checkbox"
+                    checked={agreed}
+                    onChange={(e) => setAgreed(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900 transition-colors"
+                  />
+                  <span className="text-[11px] text-zinc-500 leading-relaxed group-hover:text-zinc-800 transition-colors">
+                    生成された図案はAIによるアイデアイメージであり、実際の生地制作・捺染時には工房の職人の手でデータ調整が行われること、および公序良俗・権利侵害のない利用に同意します。
+                  </span>
+                </label>
+
+                {errorMsg && (
+                  <div className="mb-6 p-4 bg-red-50 text-red-600 text-xs rounded-xl font-bold tracking-wide">
+                    {errorMsg}
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={handleGenerate}
+                  disabled={loading || remainingCount === 0}
+                  className={`w-full py-4 sm:py-5 rounded-2xl font-black text-sm tracking-widest uppercase transition-all duration-300 flex items-center justify-center gap-3 ${
+                    remainingCount === 0
+                      ? 'bg-zinc-100 text-zinc-400 cursor-not-allowed'
+                      : 'bg-zinc-950 text-white hover:bg-zinc-800 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed'
+                  }`}
+                >
+                  {loading ? (
+                    <div className="flex flex-col items-center gap-1.5">
+                      <span>{LOADING_STEPS[loadingStep]}</span>
+                      <span className="text-[9px] text-zinc-400 font-normal">PROCESSING...</span>
+                    </div>
+                  ) : (
+                    <span>
+                      {remainingCount === 0
+                        ? '本日の上限に達しました (3/3)'
+                        : `図案を描き出す (残り ${remainingCount ?? 3} 回)`}
+                    </span>
+                  )}
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="space-y-6 animate-fade-in">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-zinc-900 mb-2">柄の種類</label>
+                  <select 
+                    value={geoPatternType} 
+                    onChange={(e) => setGeoPatternType(e.target.value as 'stripe' | 'dot')}
+                    className="w-full rounded-xl border border-zinc-200 p-3 bg-zinc-50 text-sm focus:border-zinc-900 focus:outline-none"
                   >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-zinc-800 tracking-wider mb-3">
-                04. 形式・アスペクト比
-              </label>
-              <div className="flex flex-col gap-2">
-                {[
-                  { id: 'square', label: '正方形 (小物・お太鼓・リピート用)' },
-                  { id: 'hanhaba', label: '半幅帯 (横長 16:9)' },
-                  { id: 'tanmono', label: '反物・着尺 (縦長 9:16)' },
-                ].map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => setItemType(item.id)}
-                    className={`py-2.5 px-3.5 rounded-xl text-xs font-bold tracking-wider transition-all duration-200 text-left ${
-                      itemType === item.id
-                        ? 'bg-zinc-900 text-white shadow-sm'
-                        : 'bg-zinc-50 text-zinc-600 hover:bg-zinc-100'
-                    }`}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* 伍. 図案銘 */}
-          <div className="pt-2 border-t border-zinc-100">
-            <label className="block text-xs font-bold text-zinc-800 tracking-wider mb-2">
-              05. 図案銘 <span className="text-[10px] text-zinc-400 font-normal">（任意・作品タイトル）</span>
-            </label>
-            <input
-              type="text"
-              className="w-full rounded-xl border border-zinc-200 p-3 bg-zinc-50/50 text-sm focus:outline-none focus:border-zinc-900 focus:bg-white transition-all duration-200"
-              placeholder="例：遊泳金魚図"
-              value={patternTitle}
-              onChange={(e) => setPatternTitle(e.target.value)}
-              disabled={loading}
-            />
-          </div>
-
-          {/* 回復呪文お知らせバナー */}
-          <div className="p-4 bg-zinc-50 rounded-xl text-center border border-zinc-200 shadow-sm">
-            <p className="mb-1 text-xs font-bold text-zinc-800">
-              ⚠️ 3回じゃ理想の柄が作れない方へ
-            </p>
-            <p className="mb-3 text-[11px] text-zinc-500">
-              本気でお誂えをご検討中の方限定で、生成回数をリセットできる【回復呪文】をお渡しします。
-            </p>
-            <a 
-              href="https://store.gofukuyasan.com/html/email.html" 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              className="inline-block px-4 py-2 bg-zinc-800 text-white no-underline rounded-lg text-xs font-bold hover:bg-zinc-700 transition-colors"
-            >
-              ✉️ 回復呪文をリクエストする（お問い合わせフォームへ）
-            </a>
-          </div>
-
-          {/* 同意と生成ボタン */}
-          <div className="pt-2 border-t border-zinc-100">
-            <label className="flex items-start gap-3 cursor-pointer select-none mb-6 group">
-              <input
-                type="checkbox"
-                checked={agreed}
-                onChange={(e) => setAgreed(e.target.checked)}
-                className="mt-0.5 h-4 w-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900 transition-colors"
-              />
-              <span className="text-[11px] text-zinc-500 leading-relaxed group-hover:text-zinc-800 transition-colors">
-                生成された図案はAIによるアイデアイメージであり、実際の生地制作・捺染時には工房の職人の手でデータ調整が行われること、および公序良俗・権利侵害のない利用に同意します。
-              </span>
-            </label>
-
-            {errorMsg && (
-              <div className="mb-6 p-4 bg-red-50 text-red-600 text-xs rounded-xl font-bold tracking-wide">
-                {errorMsg}
-              </div>
-            )}
-
-            <button
-              type="button"
-              onClick={handleGenerate}
-              disabled={loading || remainingCount === 0}
-              className={`w-full py-4 sm:py-5 rounded-2xl font-black text-sm tracking-widest uppercase transition-all duration-300 flex items-center justify-center gap-3 ${
-                remainingCount === 0
-                  ? 'bg-zinc-100 text-zinc-400 cursor-not-allowed'
-                  : 'bg-zinc-950 text-white hover:bg-zinc-800 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed'
-              }`}
-            >
-              {loading ? (
-                <div className="flex flex-col items-center gap-1.5">
-                  <span>{LOADING_STEPS[loadingStep]}</span>
-                  <span className="text-[9px] text-zinc-400 font-normal">PROCESSING...</span>
+                    <option value="stripe">縞（ストライプ）</option>
+                    <option value="dot">水玉（ドット）</option>
+                  </select>
                 </div>
-              ) : (
-                <span>
-                  {remainingCount === 0
-                    ? '本日の上限に達しました (3/3)'
-                    : `図案を描き出す (残り ${remainingCount ?? 3} 回)`}
-                </span>
-              )}
-            </button>
-          </div>
+                {geoPatternType === 'stripe' ? (
+                  <div>
+                    <label className="block text-xs font-bold text-zinc-900 mb-2">縞の向き</label>
+                    <select 
+                      value={stripeDir} 
+                      onChange={(e) => setStripeDir(e.target.value as StripeDirection)}
+                      className="w-full rounded-xl border border-zinc-200 p-3 bg-zinc-50 text-sm focus:border-zinc-900 focus:outline-none"
+                    >
+                      <option value="vertical">縦縞（滝縞）</option>
+                      <option value="horizontal">横縞（ボーダー）</option>
+                      <option value="diagonal">斜め（右上がり）</option>
+                    </select>
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-xs font-bold text-zinc-900 mb-2">配置</label>
+                    <select 
+                      value={dotLayout} 
+                      onChange={(e) => setDotLayout(e.target.value as DotLayout)}
+                      className="w-full rounded-xl border border-zinc-200 p-3 bg-zinc-50 text-sm focus:border-zinc-900 focus:outline-none"
+                    >
+                      <option value="staggered">千鳥（互い違い）</option>
+                      <option value="grid">正方格子</option>
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-4 pt-4 border-t border-zinc-100">
+                <label className="block text-xs font-bold text-zinc-900">サイズ調整（リアルタイム）</label>
+                
+                {geoPatternType === 'stripe' ? (
+                  <>
+                    <div>
+                      <span className="text-[10px] text-zinc-500">線の太さ: {lineWidth}px</span>
+                      <input type="range" min="1" max="100" value={lineWidth} onChange={(e) => setLineWidth(Number(e.target.value))} className="w-full" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-zinc-500">間隔: {gapWidth}px</span>
+                      <input type="range" min="1" max="100" value={gapWidth} onChange={(e) => setGapWidth(Number(e.target.value))} className="w-full" />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <span className="text-[10px] text-zinc-500">水玉の大きさ: {dotRadius}px</span>
+                      <input type="range" min="2" max="60" value={dotRadius} onChange={(e) => setDotRadius(Number(e.target.value))} className="w-full" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-zinc-500">間隔: {gapWidth}px</span>
+                      <input type="range" min="0" max="120" value={gapWidth} onChange={(e) => setGapWidth(Number(e.target.value))} className="w-full" />
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-zinc-100">
+                <div>
+                  <label className="block text-[10px] font-bold text-zinc-900 mb-1">地色 (HEX)</label>
+                  <input type="color" value={geoBgColor} onChange={(e) => setGeoBgColor(e.target.value)} className="w-full h-10 rounded-xl cursor-pointer" />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-zinc-900 mb-1">柄色 (HEX)</label>
+                  <input type="color" value={geoPatternColor} onChange={(e) => setGeoPatternColor(e.target.value)} className="w-full h-10 rounded-xl cursor-pointer" />
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-zinc-100">
+                <label className="block text-xs font-bold text-zinc-800 tracking-wider mb-2">05. 図案銘</label>
+                <input
+                  type="text"
+                  className="w-full rounded-xl border border-zinc-200 p-3 bg-zinc-50/50 text-sm focus:outline-none focus:border-zinc-900"
+                  value={patternTitle}
+                  onChange={(e) => setPatternTitle(e.target.value)}
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* 生成結果表示エリア */}
@@ -863,7 +1014,6 @@ export default function Home() {
                       {mockupItem === 'bag' && (
                         <div className="relative w-64 h-64 mx-auto flex items-center justify-center">
                           <div className="relative w-full h-full">
-                            {/* 1. 生成された柄レイヤー（バッグの形に切り抜き） */}
                             <div 
                               className="absolute inset-0 z-0" 
                               style={{ 
@@ -880,8 +1030,6 @@ export default function Home() {
                                 WebkitMaskPosition: 'center',
                               }} 
                             />
-                            
-                            {/* 2. 陰影レイヤー（元のグレーバッグを乗算合成してシワを出す） */}
                             <div 
                               className="absolute inset-0 z-10 pointer-events-none"
                               style={{
@@ -906,7 +1054,6 @@ export default function Home() {
                               backgroundRepeat: 'repeat' 
                             }} 
                           />
-                          {/* クッションの膨らみ陰影 */}
                           <div 
                             className="absolute inset-0 pointer-events-none"
                             style={{
@@ -927,7 +1074,6 @@ export default function Home() {
                               backgroundRepeat: 'repeat' 
                             }} 
                           />
-                          {/* Tシャツ陰影 */}
                           <div 
                             className="absolute inset-0 pointer-events-none"
                             style={{
@@ -945,8 +1091,6 @@ export default function Home() {
               </div>
 
               <div className="p-6 sm:p-8 space-y-4 bg-white">
-                
-                {/* バーチャル化・仮掲載アクションボタン（査察デモのハイライト） */}
                 {previewMode === 'mockup' ? (
                   <div className="p-4 bg-zinc-900 rounded-2xl text-white space-y-3 shadow-lg">
                     <div className="flex justify-between items-center">
@@ -972,7 +1116,6 @@ export default function Home() {
                   </div>
                 ) : (
                   <>
-                    {/* 保存の注意書き */}
                     <div className="bg-orange-50 border border-orange-100 text-orange-800 p-3 rounded-xl text-xs font-bold text-center mb-2 shadow-sm">
                       💡 お気に入りの柄は、次の図案を作る前に「保存」しておきましょう！
                     </div>
@@ -1009,7 +1152,6 @@ export default function Home() {
                   </>
                 )}
 
-                {/* 商用利用・オリジナル生地制作の案内バナー */}
                 <div className="mt-6 p-5 bg-amber-50 rounded-xl border border-amber-100/50 shadow-sm">
                   <h3 className="text-[13px] font-bold text-amber-900 mb-3 flex items-center gap-2">
                     <svg className="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1047,8 +1189,6 @@ export default function Home() {
           </div>
         )}
       </div>
-
-
     </div>
   );
 }
