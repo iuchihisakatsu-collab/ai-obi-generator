@@ -3,7 +3,15 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { useState, useEffect, type MouseEvent, useCallback } from 'react';
-import { generateStripeSvg, generateDotSvg, svgToHighResPng, type StripeDirection, type DotLayout } from './utils/geometricPatterns';
+import { 
+  generateStripeSvg, 
+  generateDotSvg, 
+  generateGridSvg, 
+  generateGinghamSvg, 
+  svgToHighResPng, 
+  type StripeDirection, 
+  type DotLayout 
+} from './utils/geometricPatterns';
 
 // 1日あたりの生成上限回数
 const MAX_GENERATIONS_PER_DAY = 3;
@@ -283,7 +291,7 @@ export default function Home() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('ct334'); 
 
   const [creationMode, setCreationMode] = useState<'ai' | 'geometric'>('ai');
-  const [geoPatternType, setGeoPatternType] = useState<'stripe' | 'dot'>('stripe');
+  const [geoPatternType, setGeoPatternType] = useState<'stripe' | 'dot' | 'grid' | 'gingham'>('stripe');
   const [stripeDir, setStripeDir] = useState<StripeDirection>('vertical');
   const [lineWidth, setLineWidth] = useState(20);
   const [gapWidth, setGapWidth] = useState(30);
@@ -335,9 +343,16 @@ export default function Home() {
   const updateGeometricPattern = useCallback(async () => {
     if (creationMode !== 'geometric') return;
 
-    const svgString = geoPatternType === 'stripe'
-      ? generateStripeSvg({ direction: stripeDir, lineWidth, gap: gapWidth, bgColor: geoBgColor, stripeColor: geoPatternColor })
-      : generateDotSvg({ layout: dotLayout, radius: dotRadius, gap: gapWidth, bgColor: geoBgColor, dotColor: geoPatternColor });
+    let svgString = '';
+    if (geoPatternType === 'stripe') {
+      svgString = generateStripeSvg({ direction: stripeDir, lineWidth, gap: gapWidth, bgColor: geoBgColor, stripeColor: geoPatternColor });
+    } else if (geoPatternType === 'dot') {
+      svgString = generateDotSvg({ layout: dotLayout, radius: dotRadius, gap: gapWidth, bgColor: geoBgColor, dotColor: geoPatternColor });
+    } else if (geoPatternType === 'grid') {
+      svgString = generateGridSvg({ lineWidth, gap: gapWidth, bgColor: geoBgColor, gridColor: geoPatternColor });
+    } else if (geoPatternType === 'gingham') {
+      svgString = generateGinghamSvg({ lineWidth, gap: gapWidth, bgColor: geoBgColor, checkColor: geoPatternColor });
+    }
 
     const svgDataUrl = `data:image/svg+xml;utf8,${encodeURIComponent(svgString)}`;
     setImageUrl(svgDataUrl);
@@ -345,12 +360,22 @@ export default function Home() {
     const highResPng = await svgToHighResPng(svgString, 2400);
     setBlobUrl(highResPng);
     
-    if (!serialNumber.startsWith('GEO-')) {
-      setSerialNumber(`GEO-${Math.floor(1000 + Math.random() * 9000)}`);
-    }
-    if (!patternTitle) {
-      setPatternTitle(geoPatternType === 'stripe' ? '万筋縞' : '千鳥水玉');
-    }
+    setSerialNumber(prev => prev.startsWith('GEO-') ? prev : `GEO-${Math.floor(1000 + Math.random() * 9000)}`);
+    
+    let newTitle = '無題';
+    if (geoPatternType === 'stripe') newTitle = '万筋縞';
+    if (geoPatternType === 'dot') newTitle = '千鳥水玉';
+    if (geoPatternType === 'grid') newTitle = '格子柄';
+    if (geoPatternType === 'gingham') newTitle = 'ギンガムチェック';
+
+    setPatternTitle(prev => {
+      // ユーザーが手入力していない（デフォルトタイトルのいずれか）場合は自動更新する
+      if (!prev || ['万筋縞', '千鳥水玉', '格子柄', 'ギンガムチェック'].includes(prev)) {
+        return newTitle;
+      }
+      return prev;
+    });
+
   }, [creationMode, geoPatternType, stripeDir, lineWidth, gapWidth, dotLayout, dotRadius, geoBgColor, geoPatternColor]);
 
   useEffect(() => {
@@ -531,7 +556,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* モード切替タブを追加 */}
+        {/* モード切替タブ */}
         <div className="flex bg-zinc-100 p-1 rounded-2xl mb-8">
           <button
             type="button"
@@ -583,7 +608,7 @@ export default function Home() {
                   />
                 </div>
 
-                {/* 図案ヒントの折りたたみアコーディオン */}
+                {/* 図案ヒント */}
                 <div className="mt-2 text-right">
                   <button
                     type="button"
@@ -638,7 +663,6 @@ export default function Home() {
                   </button>
                 </div>
 
-                {/* 選択中の色バッジ一覧 */}
                 <div className="flex flex-wrap items-center gap-2 min-h-[32px]">
                   {selectedColors.length === 0 ? (
                     <span className="text-xs text-zinc-400 italic">指定なし（入力欄の指定、またはAIの配色におまかせ）</span>
@@ -670,7 +694,6 @@ export default function Home() {
                   )}
                 </div>
 
-                {/* 色パレット */}
                 {showColorPalette && (
                   <div className="mt-3 p-4 bg-zinc-50 rounded-2xl border border-zinc-200/80 animate-fade-in">
                     <p className="text-[10px] text-zinc-500 font-medium mb-3">タップして選択（最大3色まで組み合わせ可能）：</p>
@@ -774,7 +797,6 @@ export default function Home() {
                 />
               </div>
 
-              {/* 回復呪文お知らせバナー */}
               <div className="p-4 bg-zinc-50 rounded-xl text-center border border-zinc-200 shadow-sm">
                 <p className="mb-1 text-xs font-bold text-zinc-800">
                   ⚠️ 3回じゃ理想の柄が作れない方へ
@@ -792,7 +814,6 @@ export default function Home() {
                 </a>
               </div>
 
-              {/* 同意と生成ボタン */}
               <div className="pt-2 border-t border-zinc-100">
                 <label className="flex items-start gap-3 cursor-pointer select-none mb-6 group">
                   <input
@@ -838,20 +859,23 @@ export default function Home() {
               </div>
             </>
           ) : (
+            /* 幾何学モード UI */
             <div className="space-y-6 animate-fade-in">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-zinc-900 mb-2">柄の種類</label>
                   <select 
                     value={geoPatternType} 
-                    onChange={(e) => setGeoPatternType(e.target.value as 'stripe' | 'dot')}
+                    onChange={(e) => setGeoPatternType(e.target.value as 'stripe' | 'dot' | 'grid' | 'gingham')}
                     className="w-full rounded-xl border border-zinc-200 p-3 bg-zinc-50 text-sm focus:border-zinc-900 focus:outline-none"
                   >
                     <option value="stripe">縞（ストライプ）</option>
                     <option value="dot">水玉（ドット）</option>
+                    <option value="grid">格子（ラインチェック）</option>
+                    <option value="gingham">ギンガムチェック</option>
                   </select>
                 </div>
-                {geoPatternType === 'stripe' ? (
+                {geoPatternType === 'stripe' && (
                   <div>
                     <label className="block text-xs font-bold text-zinc-900 mb-2">縞の向き</label>
                     <select 
@@ -864,7 +888,8 @@ export default function Home() {
                       <option value="diagonal">斜め（右上がり）</option>
                     </select>
                   </div>
-                ) : (
+                )}
+                {geoPatternType === 'dot' && (
                   <div>
                     <label className="block text-xs font-bold text-zinc-900 mb-2">配置</label>
                     <select 
@@ -877,23 +902,16 @@ export default function Home() {
                     </select>
                   </div>
                 )}
+                {/* 格子とギンガムチェック時は2列目を空けてレイアウトを整える */}
+                {(geoPatternType === 'grid' || geoPatternType === 'gingham') && (
+                  <div></div>
+                )}
               </div>
 
               <div className="space-y-4 pt-4 border-t border-zinc-100">
                 <label className="block text-xs font-bold text-zinc-900">サイズ調整（リアルタイム）</label>
                 
-                {geoPatternType === 'stripe' ? (
-                  <>
-                    <div>
-                      <span className="text-[10px] text-zinc-500">線の太さ: {lineWidth}px</span>
-                      <input type="range" min="1" max="100" value={lineWidth} onChange={(e) => setLineWidth(Number(e.target.value))} className="w-full" />
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-zinc-500">間隔: {gapWidth}px</span>
-                      <input type="range" min="1" max="100" value={gapWidth} onChange={(e) => setGapWidth(Number(e.target.value))} className="w-full" />
-                    </div>
-                  </>
-                ) : (
+                {geoPatternType === 'dot' ? (
                   <>
                     <div>
                       <span className="text-[10px] text-zinc-500">水玉の大きさ: {dotRadius}px</span>
@@ -902,6 +920,17 @@ export default function Home() {
                     <div>
                       <span className="text-[10px] text-zinc-500">間隔: {gapWidth}px</span>
                       <input type="range" min="0" max="120" value={gapWidth} onChange={(e) => setGapWidth(Number(e.target.value))} className="w-full" />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <span className="text-[10px] text-zinc-500">線の太さ (バンド幅): {lineWidth}px</span>
+                      <input type="range" min="1" max="100" value={lineWidth} onChange={(e) => setLineWidth(Number(e.target.value))} className="w-full" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-zinc-500">間隔: {gapWidth}px</span>
+                      <input type="range" min="1" max="100" value={gapWidth} onChange={(e) => setGapWidth(Number(e.target.value))} className="w-full" />
                     </div>
                   </>
                 )}
@@ -943,7 +972,6 @@ export default function Home() {
                   <h2 className="text-xl font-black text-zinc-900 tracking-widest">銘：『{finalTitle}』</h2>
                 </div>
                 
-                {/* プレビュー切り替え（モックアップ追加） */}
                 <div className="flex bg-zinc-100 p-1 rounded-xl">
                   <button
                     type="button"
@@ -987,7 +1015,6 @@ export default function Home() {
 
                 {previewMode === 'mockup' && (
                   <div className="w-full flex flex-col items-center animate-fade-in">
-                    {/* アイテム選択スイッチ */}
                     <div className="flex gap-2 mb-6">
                       {[
                         { key: 'bag', label: 'トートバッグ' },
@@ -1009,7 +1036,6 @@ export default function Home() {
                       ))}
                     </div>
 
-                    {/* 立体合成モックアップ本体 */}
                     <div className="relative flex items-center justify-center py-4">
                       {mockupItem === 'bag' && (
                         <div className="relative w-64 h-64 mx-auto flex items-center justify-center">
