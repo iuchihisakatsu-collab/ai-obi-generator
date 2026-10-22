@@ -290,7 +290,7 @@ export default function Home() {
   
   const [geoBgColor, setGeoBgColor] = useState('#fffffc');
   const [geoPatternColor, setGeoPatternColor] = useState('#161616');
-  const [showGeoPaletteFor, setShowGeoPaletteFor] = useState<'bg' | 'pattern' | null>(null); // パレット表示状態
+  const [showGeoPaletteFor, setShowGeoPaletteFor] = useState<'bg' | 'pattern' | null>(null);
   
   const [bgSizeMm, setBgSizeMm] = useState(100);
 
@@ -1292,3 +1292,9 @@ export default function Home() {
                 </div>
               </div>
             </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
