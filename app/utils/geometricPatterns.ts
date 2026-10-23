@@ -33,6 +33,12 @@ export interface GinghamParams {
   checkColor: string;
 }
 
+export interface CheckerParams {
+  blockSize: number;
+  bgColor: string;
+  checkColor: string;
+}
+
 export function generateStripeSvg(params: StripeParams): string {
   const { direction, lineWidth, gap, bgColor, stripeColor } = params;
   const period = lineWidth + gap;
@@ -69,8 +75,7 @@ export function generateDotSvg(params: DotParams): string {
     </svg>`;
   }
 
-  // 千鳥（互い違い）配置：最も美しい正六角形（ヘックス）グリッドによるポルカドット
-  // 横のピッチ幅に対し、縦は sqrt(3) 倍になる長方形のシームレスタイルを作成します
+  // 千鳥（互い違い）配置
   const h = pitch * Math.sqrt(3);
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${pitch}" height="${h}" viewBox="0 0 ${pitch} ${h}">
     <rect width="${pitch}" height="${h}" fill="${bgColor}" />
@@ -99,6 +104,16 @@ export function generateGinghamSvg(params: GinghamParams): string {
     <rect width="${period}" height="${period}" fill="${bgColor}" />
     <rect x="0" y="0" width="${period}" height="${lineWidth}" fill="${checkColor}" fill-opacity="0.5" />
     <rect x="0" y="0" width="${lineWidth}" height="${period}" fill="${checkColor}" fill-opacity="0.5" />
+  </svg>`;
+}
+
+export function generateCheckerSvg(params: CheckerParams): string {
+  const { blockSize, bgColor, checkColor } = params;
+  const period = blockSize * 2;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${period}" height="${period}" viewBox="0 0 ${period} ${period}">
+    <rect width="${period}" height="${period}" fill="${bgColor}" />
+    <rect x="0" y="0" width="${blockSize}" height="${blockSize}" fill="${checkColor}" />
+    <rect x="${blockSize}" y="${blockSize}" width="${blockSize}" height="${blockSize}" fill="${checkColor}" />
   </svg>`;
 }
 
