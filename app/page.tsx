@@ -7,7 +7,8 @@ import {
   generateStripeSvg, 
   generateDotSvg, 
   generateGridSvg, 
-  generateGinghamSvg, 
+  generateGinghamSvg,
+  generateCheckerSvg, 
   svgToHighResPng, 
   type StripeDirection, 
   type DotLayout 
@@ -108,24 +109,24 @@ const TRADITIONAL_COLORS = [
   { name: '鶯色 (うぐいす)', hex: '#928c36', text: '落ち着いたモスグリーン地', isDark: true },
   { name: '苔色 (こけ)', hex: '#69821b', text: '味わい深いディープオリーブ地', isDark: true },
 
-  { name: '甕覗 (かめのぞき)', hex: '#a2d7dd', text: 'ごく淡いアイスブルー地', isDark: false },
-  { name: '白群 (びゃくぐん)', hex: '#83ccd2', text: '淡いペールブルー地', isDark: false },
-  { name: '水色 (みず)', hex: '#bce2e8', text: '澄んだライトブルー地', isDark: false },
-  { name: '勿忘草 (わすれな)', hex: '#89c3eb', text: '可憐なパウダーブルー地', isDark: false },
-  { name: '空色 (そら)', hex: '#a0d8ef', text: '爽やかなスカイブルー地', isDark: false },
-  { name: '露草 (つゆくさ)', hex: '#2ea9df', text: '鮮やかなシアンブルー地', isDark: true },
-  { name: '浅葱 (あさぎ)', hex: '#00a3af', text: '鮮やかな青緑・ターコイズ地', isDark: true },
-  { name: '錆浅葱 (さびあさぎ)', hex: '#5c9291', text: 'くすんだブルーグレー地', isDark: true },
-  { name: '縹色 (はなだ)', hex: '#2792c3', text: '力強いコバルトブルー地', isDark: true },
-  { name: '瑠璃 (るり)', hex: '#1e50a2', text: '鮮やかなロイヤルブルー地', isDark: true },
-  { name: '群青 (ぐんじょう)', hex: '#4c6cb3', text: '鮮やかなウルトラマリン地', isDark: true },
-  { name: '藍色 (あい)', hex: '#163b5c', text: '深いネイビー・藍地', isDark: true },
-  { name: '紺青 (こんじょう)', hex: '#192f60', text: '深みのあるダークネイビー地', isDark: true },
-  { name: '鉄紺 (てっこん)', hex: '#17184b', text: '極めて暗い紫みの紺地', isDark: true },
-  { name: '納戸 (なんど)', hex: '#004055', text: '深みのあるティールブルー地', isDark: true },
-  { name: '碧色 (へきしょく)', hex: '#007380', text: '神秘的なピーコックブルー地', isDark: true },
-  { name: '藍鉄 (あいてつ)', hex: '#393f4c', text: 'スモーキーなアイアンブルー地', isDark: true },
-  { name: '留紺 (とまりこん)', hex: '#1c1c39', text: '漆黒に近い極深紺地', isDark: true },
+  { name: '甕覗 (かめのぞき)', text: 'ごく淡いアイスブルー地', hex: '#a2d7dd', isDark: false },
+  { name: '白群 (びゃくぐん)', text: '淡いペールブルー地', hex: '#83ccd2', isDark: false },
+  { name: '水色 (みず)', text: '澄んだライトブルー地', hex: '#bce2e8', isDark: false },
+  { name: '勿忘草 (わすれな)', text: '可憐なパウダーブルー地', hex: '#89c3eb', isDark: false },
+  { name: '空色 (そら)', text: '爽やかなスカイブルー地', hex: '#a0d8ef', isDark: false },
+  { name: '露草 (つゆくさ)', text: '鮮やかなシアンブルー地', hex: '#2ea9df', isDark: true },
+  { name: '浅葱 (あさぎ)', text: '鮮やかな青緑・ターコイズ地', hex: '#00a3af', isDark: true },
+  { name: '錆浅葱 (さびあさぎ)', text: 'くすんだブルーグレー地', hex: '#5c9291', isDark: true },
+  { name: '縹色 (はなだ)', text: '力強いコバルトブルー地', hex: '#2792c3', isDark: true },
+  { name: '瑠璃 (るり)', text: '鮮やかなロイヤルブルー地', hex: '#1e50a2', isDark: true },
+  { name: '群青 (ぐんじょう)', text: '鮮やかなウルトラマリン地', hex: '#4c6cb3', isDark: true },
+  { name: '藍色 (あい)', text: '深いネイビー・藍地', hex: '#163b5c', isDark: true },
+  { name: '紺青 (こんじょう)', text: '深みのあるダークネイビー地', hex: '#192f60', isDark: true },
+  { name: '鉄紺 (てっこん)', text: '極めて暗い紫みの紺地', hex: '#17184b', isDark: true },
+  { name: '納戸 (なんど)', text: '深みのあるティールブルー地', hex: '#004055', isDark: true },
+  { name: '碧色 (へきしょく)', text: '神秘的なピーコックブルー地', hex: '#007380', isDark: true },
+  { name: '藍鉄 (あいてつ)', text: 'スモーキーなアイアンブルー地', hex: '#393f4c', isDark: true },
+  { name: '留紺 (とまりこん)', text: '漆黒に近い極深紺地', hex: '#1c1c39', isDark: true },
 
   { name: '白藤 (しらふじ)', hex: '#dbd0e6', text: 'ごく淡いペールライラック地', isDark: false },
   { name: '藤色 (ふじ)', hex: '#bbbcde', text: '淡いラベンダー地', isDark: false },
@@ -280,7 +281,7 @@ export default function Home() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('ct334'); 
 
   const [creationMode, setCreationMode] = useState<'ai' | 'geometric'>('ai');
-  const [geoPatternType, setGeoPatternType] = useState<'stripe' | 'dot' | 'grid' | 'gingham'>('stripe');
+  const [geoPatternType, setGeoPatternType] = useState<'stripe' | 'dot' | 'grid' | 'gingham' | 'checker'>('stripe');
   const [stripeDir, setStripeDir] = useState<StripeDirection>('vertical');
   
   const [lineWidth, setLineWidth] = useState(5);
@@ -348,7 +349,6 @@ export default function Home() {
       tileSize = stripeDir === 'diagonal' ? period * 2 : period;
     } else if (geoPatternType === 'dot') {
       svgString = generateDotSvg({ layout: dotLayout, radius: dotRadius, gap: gapWidth, bgColor: geoBgColor, dotColor: geoPatternColor });
-      // 正方格子も千鳥も SVG の横幅は `dotPitch` で統一されたのでこれをそのまま使います
       tileSize = dotPitch; 
     } else if (geoPatternType === 'grid') {
       svgString = generateGridSvg({ lineWidth, gap: gapWidth, bgColor: geoBgColor, gridColor: geoPatternColor });
@@ -356,6 +356,9 @@ export default function Home() {
     } else if (geoPatternType === 'gingham') {
       svgString = generateGinghamSvg({ lineWidth, gap: gapWidth, bgColor: geoBgColor, checkColor: geoPatternColor });
       tileSize = period;
+    } else if (geoPatternType === 'checker') {
+      svgString = generateCheckerSvg({ blockSize: lineWidth, bgColor: geoBgColor, checkColor: geoPatternColor });
+      tileSize = lineWidth * 2;
     }
 
     setBgSizeMm(tileSize);
@@ -373,9 +376,10 @@ export default function Home() {
     if (geoPatternType === 'dot') newTitle = '千鳥水玉';
     if (geoPatternType === 'grid') newTitle = '格子柄';
     if (geoPatternType === 'gingham') newTitle = 'ギンガムチェック';
+    if (geoPatternType === 'checker') newTitle = '市松模様';
 
     setPatternTitle(prev => {
-      if (!prev || ['万筋縞', '千鳥水玉', '格子柄', 'ギンガムチェック'].includes(prev)) {
+      if (!prev || ['万筋縞', '千鳥水玉', '格子柄', 'ギンガムチェック', '市松模様'].includes(prev)) {
         return newTitle;
       }
       return prev;
@@ -874,13 +878,14 @@ export default function Home() {
                   <label className="block text-xs font-bold text-zinc-900 mb-2">柄の種類</label>
                   <select 
                     value={geoPatternType} 
-                    onChange={(e) => setGeoPatternType(e.target.value as 'stripe' | 'dot' | 'grid' | 'gingham')}
+                    onChange={(e) => setGeoPatternType(e.target.value as 'stripe' | 'dot' | 'grid' | 'gingham' | 'checker')}
                     className="w-full rounded-xl border border-zinc-200 p-3 bg-zinc-50 text-sm focus:border-zinc-900 focus:outline-none"
                   >
                     <option value="stripe">縞（ストライプ）</option>
                     <option value="dot">水玉（ドット）</option>
                     <option value="grid">格子（ラインチェック）</option>
                     <option value="gingham">ギンガムチェック</option>
+                    <option value="checker">市松（チェッカー）</option>
                   </select>
                 </div>
                 {geoPatternType === 'stripe' && (
@@ -910,7 +915,7 @@ export default function Home() {
                     </select>
                   </div>
                 )}
-                {(geoPatternType === 'grid' || geoPatternType === 'gingham') && (
+                {(geoPatternType === 'grid' || geoPatternType === 'gingham' || geoPatternType === 'checker') && (
                   <div></div>
                 )}
               </div>
@@ -918,7 +923,7 @@ export default function Home() {
               <div className="space-y-4 pt-4 border-t border-zinc-100">
                 <label className="block text-xs font-bold text-zinc-900 mb-4">サイズ調整（mm指定・実寸連動）</label>
                 
-                {geoPatternType === 'dot' ? (
+                {geoPatternType === 'dot' && (
                   <>
                     <div>
                       <div className="flex justify-between items-end mb-1">
@@ -935,7 +940,19 @@ export default function Home() {
                       <input type="range" min="0" max="100" value={gapWidth} onChange={(e) => setGapWidth(Number(e.target.value))} className="w-full" />
                     </div>
                   </>
-                ) : (
+                )}
+
+                {geoPatternType === 'checker' && (
+                  <div>
+                    <div className="flex justify-between items-end mb-1">
+                      <span className="text-[10px] font-bold text-zinc-500">市松の大きさ（1マス）</span>
+                      <span className="text-sm font-black text-zinc-900">{lineWidth}<span className="text-[10px] font-normal text-zinc-400 ml-0.5">mm</span></span>
+                    </div>
+                    <input type="range" min="1" max="200" value={lineWidth} onChange={(e) => setLineWidth(Number(e.target.value))} className="w-full" />
+                  </div>
+                )}
+
+                {(geoPatternType === 'stripe' || geoPatternType === 'grid' || geoPatternType === 'gingham') && (
                   <>
                     <div>
                       <div className="flex justify-between items-end mb-1">
