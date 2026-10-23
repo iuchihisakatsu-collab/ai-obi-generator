@@ -69,18 +69,16 @@ export function generateDotSvg(params: DotParams): string {
     </svg>`;
   }
 
-  const size = pitch * 2;
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
-    <rect width="${size}" height="${size}" fill="${bgColor}" />
-    <circle cx="${pitch}" cy="${pitch}" r="${radius}" fill="${dotColor}" />
+  // 千鳥（互い違い）配置：最も美しい正六角形（ヘックス）グリッドによるポルカドット
+  // 横のピッチ幅に対し、縦は sqrt(3) 倍になる長方形のシームレスタイルを作成します
+  const h = pitch * Math.sqrt(3);
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${pitch}" height="${h}" viewBox="0 0 ${pitch} ${h}">
+    <rect width="${pitch}" height="${h}" fill="${bgColor}" />
     <circle cx="0" cy="0" r="${radius}" fill="${dotColor}" />
-    <circle cx="${size}" cy="0" r="${radius}" fill="${dotColor}" />
-    <circle cx="0" cy="${size}" r="${radius}" fill="${dotColor}" />
-    <circle cx="${size}" cy="${size}" r="${radius}" fill="${dotColor}" />
     <circle cx="${pitch}" cy="0" r="${radius}" fill="${dotColor}" />
-    <circle cx="${pitch}" cy="${size}" r="${radius}" fill="${dotColor}" />
-    <circle cx="0" cy="${pitch}" r="${radius}" fill="${dotColor}" />
-    <circle cx="${size}" cy="${pitch}" r="${radius}" fill="${dotColor}" />
+    <circle cx="0" cy="${h}" r="${radius}" fill="${dotColor}" />
+    <circle cx="${pitch}" cy="${h}" r="${radius}" fill="${dotColor}" />
+    <circle cx="${pitch / 2}" cy="${h / 2}" r="${radius}" fill="${dotColor}" />
   </svg>`;
 }
 
