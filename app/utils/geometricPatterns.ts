@@ -132,10 +132,20 @@ export async function svgToHighResPng(svgString: string, exportSize = 2400): Pro
         URL.revokeObjectURL(url);
         return reject('Canvas error');
       }
+
+      // === 【超重要】実寸スケール補正 ===
+      // 2400pxのキャンバスを「400mm（40cm）」の反物幅として厳密に定義する。
+      // これにより 1mm = 6px (約152 dpi) となり、印刷スケールと完全一致する。
+      const physicalWidthMm = 400; 
+      const scaleFactor = exportSize / physicalWidthMm; 
+
+      ctx.scale(scaleFactor, scaleFactor);
+
       const pattern = ctx.createPattern(img, 'repeat');
       if (pattern) {
         ctx.fillStyle = pattern;
-        ctx.fillRect(0, 0, exportSize, exportSize);
+        // スケール済みのコンテキストに対し、論理的なミリサイズ（400x400）で塗りつぶす
+        ctx.fillRect(0, 0, physicalWidthMm, physicalWidthMm);
       }
       URL.revokeObjectURL(url);
       resolve(canvas.toDataURL('image/png'));
