@@ -348,7 +348,8 @@ export default function Home() {
       tileSize = stripeDir === 'diagonal' ? period * 2 : period;
     } else if (geoPatternType === 'dot') {
       svgString = generateDotSvg({ layout: dotLayout, radius: dotRadius, gap: gapWidth, bgColor: geoBgColor, dotColor: geoPatternColor });
-      tileSize = dotLayout === 'staggered' ? dotPitch * 2 : dotPitch;
+      // 正方格子も千鳥も SVG の横幅は `dotPitch` で統一されたのでこれをそのまま使います
+      tileSize = dotPitch; 
     } else if (geoPatternType === 'grid') {
       svgString = generateGridSvg({ lineWidth, gap: gapWidth, bgColor: geoBgColor, gridColor: geoPatternColor });
       tileSize = period;
@@ -488,7 +489,7 @@ export default function Home() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${serialNumber || 'pattern'}.png`; // ファイル名が二重にならないように修正
+      a.download = `${serialNumber || 'pattern'}.png`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
