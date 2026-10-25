@@ -4,8 +4,25 @@ export async function POST(req: Request) {
   try {
     const { title, imageUrl, vendor, designFee } = await req.json();
 
-    const shopDomain = process.env.SHOPIFY_STORE_DOMAIN; // 例: your-store.myshopify.com
-    const accessToken = process.env.SHOPIFY_ADMIN_ACCESS_TOKEN;
+    // ★ どんな名前でVercelに登録されていても自動で拾うように拡張
+    const rawDomain =
+      process.env.SHOPIFY_STORE_DOMAIN ||
+      process.env.SHOPIFY_SHOP_DOMAIN ||
+      process.env.SHOPIFY_DOMAIN ||
+      process.env.SHOPIFY_STORE_URL ||
+      process.env.SHOPIFY_URL ||
+      '';
+
+    // https:// や末尾のスラッシュが付いていても自動で除去
+    const shopDomain = rawDomain.replace(/^https?:\/\//, '').replace(/\/$/, '');
+
+    // ★ トークン名も全パターン対応
+    const accessToken =
+      process.env.SHOPIFY_ADMIN_ACCESS_TOKEN ||
+      process.env.SHOPIFY_ACCESS_TOKEN ||
+      process.env.SHOPIFY_TOKEN ||
+      process.env.SHOPIFY_API_KEY ||
+      '';
 
     if (!shopDomain || !accessToken) {
       return NextResponse.json(
@@ -49,7 +66,7 @@ export async function POST(req: Request) {
             name: '展開アイテム・素材',
           },
         ],
-        // ★ ここで各バリエーションに「原価 ＋ デザインフィー」の価格を設定
+        // ★ 各バリエーションに「原価 ＋ デザインフィー」の価格を設定
         variants: [
           {
             option1: '図案データ (商用ライセンス)',
