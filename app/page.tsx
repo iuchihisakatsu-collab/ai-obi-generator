@@ -42,7 +42,7 @@ const TRADITIONAL_COLORS = [
   { name: '甚三紅 (じんざもみ)', hex: '#ee827c', text: '柔らかなサーモンレッド地', isDark: false },
   { name: '緋色 (ひいろ)', hex: '#d3381c', text: '鮮烈なスカーレットレッド地', isDark: true },
   { name: '朱色 (しゅ)', hex: '#ea5532', text: '鮮やかな朱赤地', isDark: true },
-  { name: '紅赤 (べニアカ)', hex: '#e54256', text: '鮮やかなルビーレッド地', isDark: true },
+  { name: '紅赤 (べにあか)', hex: '#e54256', text: '鮮やかなルビーレッド地', isDark: true },
   { name: '真紅 (しんく)', hex: '#a22041', text: '深みのあるピュアレッド地', isDark: true },
   { name: '茜色 (あかね)', hex: '#b7282e', text: '温かみのある茜色地', isDark: true },
   { name: '深緋 (こきひ)', hex: '#8b1e2a', text: '深みのあるボルドー地', isDark: true },
@@ -516,16 +516,18 @@ function HomeContent() {
   const shareText = encodeURIComponent(`「妄想図案帳」で、柄のアイデアを試してみました。\n\n銘：『${finalTitle}』\n配色：${colorSummary}\n\n※AIによるアイデア図案です。実際の生地制作時はスタッフが人の目で調整します。\n\n#妄想図案帳`);
   const shareUrl = typeof window !== 'undefined' ? encodeURIComponent(window.location.href) : '';
   const xShareLink = `https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`;
+  
+  // ★ MakeShopへ渡すパラメータから巨大な img_url を削除し、IDとタイトルのみにする
   const orderUrl = `https://store.gofukuyasan.com/view/item/000000007300?komon_id=${encodeURIComponent(serialNumber)}&title=${encodeURIComponent(finalTitle)}`;
 
   const handleOrderClick = async (e: MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault(); 
     try {
-      // 1. メール送信処理（工場へのバックアップ）
+      // 1. メール送信処理（画像URLはここで直接工場へ送る）
       const response = await fetch('/api/send-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageUrl: blobUrl, komonId: serialNumber, title: finalTitle }),
+        body: JSON.stringify({ imageUrl: blobUrl || imageUrl, komonId: serialNumber, title: finalTitle }),
       });
 
       const result = await response.json();
@@ -535,18 +537,17 @@ function HomeContent() {
         return;
       }
 
-      // 2. クリップボードへの確実なバックアップコピー
-      const copyText = `図案ID: ${serialNumber}\n画像URL: ${blobUrl || imageUrl}`;
+      // 2. クリップボードへのバックアップコピー（巨大なURLはコピーせずIDのみに修正）
+      const copyText = `図案ID: ${serialNumber}\n銘: ${finalTitle}`;
       try {
         await navigator.clipboard.writeText(copyText);
-        alert('【確認】図案のURLをコピーしました！\n\nもしMakeShopの入力欄が空欄だった場合は、このまま「貼り付け（ペースト）」してください。');
+        alert(`【工場へのデータ送信完了】\n図案「${finalTitle}」の高解像度データを工場へ送信しました。\n\n画面切り替え後、MakeShopのシリアル番号欄に「${serialNumber}」が自動入力されているかご確認ください。`);
       } catch (err) {
         console.warn('クリップボードのコピーに失敗しました', err);
       }
 
-      // 3. MakeShopへ遷移（ポップアップブロックを回避するため、同一タブで確実に遷移）
-      const finalOrderUrl = `${orderUrl}&img_url=${encodeURIComponent(blobUrl || imageUrl)}`;
-      window.location.href = finalOrderUrl;
+      // 3. MakeShopへ遷移（ポップアップブロック回避 ＆ 長すぎるURLによるクラッシュ回避）
+      window.location.href = orderUrl;
       
     } catch (err: unknown) {
       console.error(err);
@@ -1273,10 +1274,9 @@ function HomeContent() {
                 )}
               </div>
 
-              {/* ▼▼ アクションエリア（ShopifyとMakeShopで完全出し分け） ▼▼ */}
+              {/* ▼▼ アクションエリア ▼▼ */}
               <div className="p-6 sm:p-8 space-y-4 bg-white">
                 {isShopify ? (
-                  /* ▼▼ 【Shopify用 / プリンタグ見本帳】デザインフィー設定 ＆ 即時登録 ▼▼ */
                   <div className="p-5 bg-zinc-950 rounded-2xl text-white space-y-4 shadow-xl border border-zinc-800">
                     <div className="flex justify-between items-center border-b border-zinc-800 pb-3">
                       <div>
@@ -1288,7 +1288,6 @@ function HomeContent() {
                       </span>
                     </div>
 
-                    {/* デザインフィー設定スライダー（0〜200円） */}
                     <div className="bg-zinc-900 p-4 rounded-xl border border-zinc-800 space-y-2">
                       <div className="flex justify-between items-baseline">
                         <label className="text-xs font-bold text-zinc-300">
@@ -1343,7 +1342,6 @@ function HomeContent() {
                     )}
                   </div>
                 ) : (
-                  /* ▼▼ 【MakeShop用 / ゴフクヤサン本業】のUI ▼▼ */
                   <>
                     <div className="bg-orange-50 border border-orange-100 text-orange-800 p-3 rounded-xl text-xs font-bold text-center mb-2 shadow-sm">
                       💡 お気に入りの柄は、次の図案を作る前に「保存」しておきましょう！
@@ -1372,7 +1370,7 @@ function HomeContent() {
                     </div>
 
                     <a
-                      href={orderUrl}
+                      href="#"
                       onClick={handleOrderClick}
                       className="block w-full py-5 text-center bg-zinc-900 hover:bg-zinc-800 text-white text-sm font-bold tracking-widest uppercase rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 mt-2"
                     >
@@ -1381,7 +1379,6 @@ function HomeContent() {
                   </>
                 )}
 
-                {/* MakeShopアクセス時のみ表示する下部バナー */}
                 {(!isShopify || SHOW_MAKESHOP_LINKS_ON_SHOPIFY) && (
                   <>
                     <div className="mt-6 p-5 bg-amber-50 rounded-xl border border-amber-100/50 shadow-sm">
@@ -1438,3 +1435,7 @@ export default function Home() {
     </Suspense>
   );
 }
+```<FollowUp>
+<Suggest>コードを反映し、MakeShopへエラーなく遷移できるかテストする</Suggest>
+<Suggest>MakeShop側のHTML（自動入力スクリプト）も巨大URL抜き版に書き直してほしい</Suggest>
+</FollowUp>
