@@ -4,14 +4,21 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const code = url.searchParams.get('code');
   const shop = url.searchParams.get('shop') || process.env.SHOPIFY_STORE_DOMAIN;
-
-  if (!code) {
-    return new NextResponse('認可コード(code)が見つかりません。', { status: 400 });
-  }
-
   const clientId = process.env.SHOPIFY_CLIENT_ID;
   const clientSecret = process.env.SHOPIFY_CLIENT_SECRET;
 
+  // 1. 認可コードがない場合：Shopifyの承認画面へ自動でジャンプしてコードを取りに行く
+  if (!code) {
+    if (!shop || !clientId) {
+      return new NextResponse('ストア名またはSHOPIFY_CLIENT_IDが未設定です。', { status: 400 });
+    }
+    const redirectUri = encodeURIComponent(`https://${url.host}/api/shopify/callback`);
+    const scopes = 'write_products,read_products';
+    const authUrl = `https://${shop}/admin/oauth/authorize?client_id=${clientId}&scope=${scopes}&redirect_uri=${redirectUri}`;
+    return NextResponse.redirect(authUrl);
+  }
+
+  // 2. 認可コードを受け取ったら、Shopifyからアクセストークンを取得
   if (!clientId || !clientSecret) {
     return new NextResponse('SHOPIFY_CLIENT_ID または SHOPIFY_CLIENT_SECRET が設定されていません。', { status: 500 });
   }
