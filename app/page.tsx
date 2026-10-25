@@ -3,7 +3,6 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { useState, useEffect, type MouseEvent, useCallback, Suspense } from 'react';
-// 【修正箇所①】URLの末尾（?platform=...）を読み取るための useSearchParams を追加
 import { useSearchParams } from 'next/navigation';
 import { 
   generateStripeSvg, 
@@ -253,18 +252,16 @@ const ALL_CATEGORIES = TAG_CATEGORIES.flatMap(cat => cat.items);
 const LOADING_STEPS = [
   '思い描いた意匠から、図案のアイデアを練り上げています...',
   '色や柄の調和を組み合わせ、反物のイメージを整えています...',
-  '思い描いたイメージを図案帖に描き出しています...',
+  '思い描いたイメージを図案帳に描き出しています...',
   '今回の図案イメージを準備しています...',
-  'もう少しで、図案帖に仕上がります...',
+  'もう少しで、図案帳に仕上がります...',
   '仕上がりを表示する準備をしています...',
 ];
 
 function HomeContent() {
   const searchParams = useSearchParams();
-  const isShopify = searchParams.get('platform') === 'shopify'; // URL末尾が ?platform=shopify ならtrueになる
+  const isShopify = searchParams.get('platform') === 'shopify';
 
-  // 【追加】Shopifyの画面でもゴフクヤサンのリンクを表示するかどうかのスイッチ
-  // true にすると表示され、false にすると隠れます。
   const SHOW_MAKESHOP_LINKS_ON_SHOPIFY = false;
 
   const [motif, setMotif] = useState('');
@@ -284,6 +281,9 @@ function HomeContent() {
   const [mockupSuccess, setMockupSuccess] = useState(false);
   const [serialNumber, setSerialNumber] = useState('');
   
+  // ★ 追加：デザインフィー（初期値100円、0〜200円）
+  const [designFee, setDesignFee] = useState<number>(100);
+
   const [showTags, setShowTags] = useState(false);
   const [showColorPalette, setShowColorPalette] = useState(false);
   const [remainingCount, setRemainingCount] = useState<number | null>(null);
@@ -514,7 +514,7 @@ function HomeContent() {
 
   const finalTitle = patternTitle.trim() || '（無題）';
   const colorSummary = selectedColors.length > 0 ? selectedColors.map(c => c.name.split(' ')[0]).join('・') : '自由配色';
-  const shareText = encodeURIComponent(`「妄想図案帖」で、柄のアイデアを試してみました。\n\n銘：『${finalTitle}』\n配色：${colorSummary}\n\n※AIによるアイデア図案です。実際の生地制作時はスタッフが人の目で調整します。\n\n#妄想図案帖`);
+  const shareText = encodeURIComponent(`「妄想図案帳」で、柄のアイデアを試してみました。\n\n銘：『${finalTitle}』\n配色：${colorSummary}\n\n※AIによるアイデア図案です。実際の生地制作時はスタッフが人の目で調整します。\n\n#妄想図案帳`);
   const shareUrl = typeof window !== 'undefined' ? encodeURIComponent(window.location.href) : '';
   const xShareLink = `https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`;
   const orderUrl = `https://store.gofukuyasan.com/view/item/000000007300?komon_id=${encodeURIComponent(serialNumber)}&title=${encodeURIComponent(finalTitle)}`;
@@ -542,12 +542,11 @@ function HomeContent() {
     }
   };
 
-  // 【修正箇所③】Shopifyへ送信するための実際の処理に書き換えました
+  // ★ Shopify登録処理（デザインフィーを含めて送信）
   const handleVirtualProductSubmit = async () => {
     setMockupSubmitting(true);
     setErrorMsg('');
     try {
-      // route.tsにデータを送信する
       const response = await fetch('/api/shopify-draft', {
         method: 'POST',
         headers: {
@@ -557,6 +556,7 @@ function HomeContent() {
           title: finalTitle,
           imageUrl: blobUrl || imageUrl,
           vendor: 'Printag Creator',
+          designFee: designFee, // 設定したデザインフィーをAPIに渡す
         }),
       });
 
@@ -566,7 +566,7 @@ function HomeContent() {
       }
 
       setMockupSuccess(true);
-      alert(`【バーチャル化完了】\n図案「${finalTitle}」の立体バーチャルサンプルを生成し、Shopifyフロントエンド（仮掲載コレクション）へ連携しました！`);
+      alert(`【登録完了】\n図案「${finalTitle}」（デザインフィー: ¥${designFee}）をShopifyへ下書き登録しました！`);
     } catch (err: any) {
       console.error(err);
       setErrorMsg(err.message || '通信エラーが発生しました。');
@@ -582,14 +582,24 @@ function HomeContent() {
     <div className="min-h-screen bg-[#fafafa] text-zinc-900 p-4 sm:p-8 flex flex-col items-center justify-center font-sans selection:bg-zinc-200">
       <div className="max-w-2xl w-full bg-white rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-zinc-100 p-6 sm:p-12 transition-all duration-300">
         
-        {/* ヘッダーエリア */}
+        {/* ① ヘッダーエリア（Shopify時は「プリンタグ見本帳」・通常時は「妄想図案帳」へ切り替え） */}
         <div className="relative overflow-hidden text-center mb-8 p-8 sm:p-10 bg-zinc-950 text-white rounded-[1.5rem] shadow-xl">
           <div className="relative z-10">
             <h1 className="text-2xl sm:text-3xl font-black tracking-widest text-center leading-tight">
-              妄想図案帖
+              {isShopify ? 'プリンタグ見本帳' : '妄想図案帳'}
             </h1>
             <p className="text-xs text-zinc-400 mt-4 leading-relaxed font-medium tracking-wider">
-              新潟・十日町は着物の産地 着物の配色や柄づくりの知識を生かして、<br className="hidden sm:inline" />思いついた柄のアイデアを試せるAI図案ツールです。
+              {isShopify ? (
+                <>
+                  新潟デジタル捺染工場（モナリザ）直結のテキスタイル制作スタジオ。<br className="hidden sm:inline" />
+                  AIや幾何学文様から図案をデザインし、デザインフィーを設定してShopifyへ即時展開できます。
+                </>
+              ) : (
+                <>
+                  新潟・十日町は着物の産地 着物の配色や柄づくりの知識を生かして、<br className="hidden sm:inline" />
+                  思いついた柄のアイデアを試せるAI図案ツールです。
+                </>
+              )}
             </p>
           </div>
         </div>
@@ -834,22 +844,25 @@ function HomeContent() {
                 />
               </div>
 
-              <div className="p-4 bg-zinc-50 rounded-xl text-center border border-zinc-200 shadow-sm">
-                <p className="mb-1 text-xs font-bold text-zinc-800">
-                  ⚠️ 3回じゃ理想の柄が作れない方へ
-                </p>
-                <p className="mb-3 text-[11px] text-zinc-500">
-                  本気でお誂えをご検討中の方限定で、生成回数をリセットできる【回復呪文】をお渡しします。
-                </p>
-                <a 
-                  href="https://store.gofukuyasan.com/html/email.html" 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
-                  className="inline-block px-4 py-2 bg-zinc-800 text-white no-underline rounded-lg text-xs font-bold hover:bg-zinc-700 transition-colors"
-                >
-                  ✉️ 回復呪文をリクエストする（お問い合わせフォームへ）
-                </a>
-              </div>
+              {/* ゴフクヤサン通常時のみ表示する回復呪文バナー（Shopify時は非表示） */}
+              {!isShopify && (
+                <div className="p-4 bg-zinc-50 rounded-xl text-center border border-zinc-200 shadow-sm">
+                  <p className="mb-1 text-xs font-bold text-zinc-800">
+                    ⚠️ 3回じゃ理想の柄が作れない方へ
+                  </p>
+                  <p className="mb-3 text-[11px] text-zinc-500">
+                    本気でお誂えをご検討中の方限定で、生成回数をリセットできる【回復呪文】をお渡しします。
+                  </p>
+                  <a 
+                    href="https://store.gofukuyasan.com/html/email.html" 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="inline-block px-4 py-2 bg-zinc-800 text-white no-underline rounded-lg text-xs font-bold hover:bg-zinc-700 transition-colors"
+                  >
+                    ✉️ 回復呪文をリクエストする（お問い合わせフォームへ）
+                  </a>
+                </div>
+              )}
 
               <div className="pt-2 border-t border-zinc-100">
                 <label className="flex items-start gap-3 cursor-pointer select-none mb-6 group">
@@ -1002,7 +1015,7 @@ function HomeContent() {
                 )}
               </div>
 
-              {/* カラー選択エリアのリニューアル */}
+              {/* カラー選択エリア */}
               <div className="pt-4 border-t border-zinc-100 space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -1249,37 +1262,77 @@ function HomeContent() {
                 )}
               </div>
 
-              {/* 【修正箇所④】URLの末尾が ?platform=shopify ならShopifyのボタンを、それ以外ならMakeShopのボタンを出す */}
+              {/* ▼▼ アクションエリア（ShopifyとMakeShopで完全出し分け） ▼▼ */}
               <div className="p-6 sm:p-8 space-y-4 bg-white">
                 {isShopify ? (
-                  /* ▼▼ Shopify用（Printag）のUI ▼▼ */
-                  <div className="p-4 bg-zinc-900 rounded-2xl text-white space-y-3 shadow-lg">
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs font-bold tracking-wider text-zinc-300">🏪 Shopify仮掲載連携</span>
-                      <span className="text-[10px] bg-zinc-800 px-2.5 py-0.5 rounded-full text-zinc-300 border border-zinc-700">自動バーチャルサンプル化</span>
+                  /* ▼▼ 【Shopify用 / プリンタグ見本帳】デザインフィー設定 ＆ 即時登録 ▼▼ */
+                  <div className="p-5 bg-zinc-950 rounded-2xl text-white space-y-4 shadow-xl border border-zinc-800">
+                    <div className="flex justify-between items-center border-b border-zinc-800 pb-3">
+                      <div>
+                        <span className="text-[10px] font-mono tracking-widest text-zinc-400 block uppercase">STAGE 02 / SHOPIFY PUBLISH</span>
+                        <h3 className="text-sm font-bold tracking-wider text-white">🏪 デザイン価格設定 ＆ Shopify連携</h3>
+                      </div>
+                      <span className="text-[10px] bg-zinc-800 px-2.5 py-1 rounded text-zinc-300 border border-zinc-700 font-mono">
+                        ON-DEMAND SYNC
+                      </span>
                     </div>
+
+                    {/* デザインフィー設定スライダー（0〜200円） */}
+                    <div className="bg-zinc-900 p-4 rounded-xl border border-zinc-800 space-y-2">
+                      <div className="flex justify-between items-baseline">
+                        <label className="text-xs font-bold text-zinc-300">
+                          デザインフィー（あなたの取り分）
+                        </label>
+                        <div className="text-right">
+                          <span className="text-xl font-black text-sky-400">¥{designFee.toLocaleString()}</span>
+                          <span className="text-[10px] text-zinc-400 ml-1">/ 点</span>
+                        </div>
+                      </div>
+
+                      <input
+                        type="range"
+                        min="0"
+                        max="200"
+                        step="50"
+                        value={designFee}
+                        onChange={(e) => setDesignFee(Number(e.target.value))}
+                        className="w-full h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-sky-400"
+                      />
+
+                      <div className="flex justify-between text-[10px] text-zinc-500 font-medium">
+                        <span>¥0 (原価)</span>
+                        <span>¥50</span>
+                        <span>¥100 (標準)</span>
+                        <span>¥150</span>
+                        <span>¥200 (上限)</span>
+                      </div>
+                      <p className="text-[10px] text-zinc-400 pt-1">
+                        ※AI生成図案のため上限200円となります。トートバッグや生地販売などの派生商品にもこの金額が均一に上乗せ・還元されます。
+                      </p>
+                    </div>
+
                     <button
                       type="button"
                       onClick={handleVirtualProductSubmit}
                       disabled={mockupSubmitting}
-                      className={`w-full py-4 rounded-xl text-xs font-black tracking-widest uppercase transition-all duration-300 ${
+                      className={`w-full py-4 rounded-xl text-xs font-black tracking-widest uppercase transition-all duration-300 shadow-lg ${
                         mockupSuccess 
                           ? 'bg-emerald-600 text-white' 
-                          : 'bg-white text-zinc-900 hover:bg-zinc-100'
+                          : 'bg-white text-zinc-950 hover:bg-zinc-200'
                       }`}
                     >
                       {mockupSubmitting 
-                        ? '3D合成中 ＆ Shopifyへデータ連携中...' 
+                        ? 'Shopifyへ登録中...' 
                         : mockupSuccess 
-                          ? '✓ Shopifyへ仮掲載完了（審査・公開中）' 
-                          : 'この立体サンプルでShopify仮掲載を依頼する'}
+                          ? '✓ Shopifyへ登録完了（下書き）' 
+                          : `この図案（フィー: ¥${designFee}）でShopifyに登録する`}
                     </button>
                     {errorMsg && (
-                      <p className="text-[10px] text-red-400 mt-2 text-center">{errorMsg}</p>
+                      <p className="text-[10px] text-red-400 mt-2 text-center font-bold">{errorMsg}</p>
                     )}
                   </div>
                 ) : (
-                  /* ▼▼ MakeShop用（ゴフクヤサン本業）のUI ▼▼ */
+                  /* ▼▼ 【MakeShop用 / ゴフクヤサン本業】のUI ▼▼ */
                   <>
                     <div className="bg-orange-50 border border-orange-100 text-orange-800 p-3 rounded-xl text-xs font-bold text-center mb-2 shadow-sm">
                       💡 お気に入りの柄は、次の図案を作る前に「保存」しておきましょう！
@@ -1316,9 +1369,8 @@ function HomeContent() {
                     </a>
                   </>
                 )}
-                {/* ▲▲ ここまで出し分け ▲▲ */}
 
-                {/* ▼▼ MakeShopの時だけ表示する下部のバナーとリンク ▼▼ */}
+                {/* MakeShopアクセス時のみ表示する下部バナー */}
                 {(!isShopify || SHOW_MAKESHOP_LINKS_ON_SHOPIFY) && (
                   <>
                     <div className="mt-6 p-5 bg-amber-50 rounded-xl border border-amber-100/50 shadow-sm">
@@ -1364,7 +1416,6 @@ function HomeContent() {
   );
 }
 
-// 【修正箇所⑤】useSearchParamsを使うために全体をSuspenseで囲む必要があります（Next.jsの仕様）
 export default function Home() {
   return (
     <Suspense fallback={
