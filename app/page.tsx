@@ -522,6 +522,7 @@ function HomeContent() {
   const handleOrderClick = async (e: MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault(); 
     try {
+      // 1. メール送信処理（工場へのバックアップ）
       const response = await fetch('/api/send-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -535,7 +536,19 @@ function HomeContent() {
         return;
       }
 
-      window.open(orderUrl, '_blank', 'noopener,noreferrer');
+      // 2. クリップボードへの確実なバックアップコピー
+      const copyText = `図案ID: ${serialNumber}\n画像URL: ${blobUrl || imageUrl}`;
+      try {
+        await navigator.clipboard.writeText(copyText);
+        alert('【確認】図案のURLをコピーしました！\n\nもしMakeShopの入力欄が空欄だった場合は、このまま「貼り付け（ペースト）」してください。');
+      } catch (err) {
+        console.warn('クリップボードのコピーに失敗しました', err);
+      }
+
+      // 3. MakeShopへ遷移（img_url を付与して合流させる）
+      const finalOrderUrl = `${orderUrl}&img_url=${encodeURIComponent(blobUrl || imageUrl)}`;
+      window.open(finalOrderUrl, '_blank', 'noopener,noreferrer');
+      
     } catch (err: unknown) {
       console.error(err);
       setErrorMsg(`通信エラーが発生しました`);
