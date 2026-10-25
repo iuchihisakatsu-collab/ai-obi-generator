@@ -259,7 +259,6 @@ const LOADING_STEPS = [
   '仕上がりを表示する準備をしています...',
 ];
 
-// 【修正箇所②】本丸のコンポーネントを独立させます
 function HomeContent() {
   const searchParams = useSearchParams();
   const isShopify = searchParams.get('platform') === 'shopify'; // URL末尾が ?platform=shopify ならtrueになる
@@ -449,12 +448,7 @@ function HomeContent() {
 
     if (currentCount >= MAX_GENERATIONS_PER_DAY) {
       setRemainingCount(0);
-      alert(`【本日の上限に達しました🙏】
-
-お試しいただきありがとうございます！
-AIのサーバー利用料（課金）が高額になってしまうため、無料での作成は「お一人様1日3回まで」とさせていただいております。
-
-また明日、新しい図案を作りに来てくださいね！`);
+      alert(`【本日の上限に達しました🙏】\n\nお試しいただきありがとうございます！\nAIのサーバー利用料（課金）が高額になってしまうため、無料での作成は「お一人様1日3回まで」とさせていただいております。\n\nまた明日、新しい図案を作りに来てくださいね！`);
       return;
     }
 
@@ -520,14 +514,7 @@ AIのサーバー利用料（課金）が高額になってしまうため、無
 
   const finalTitle = patternTitle.trim() || '（無題）';
   const colorSummary = selectedColors.length > 0 ? selectedColors.map(c => c.name.split(' ')[0]).join('・') : '自由配色';
-  const shareText = encodeURIComponent(`「妄想図案帖」で、柄のアイデアを試してみました。
-
-銘：『${finalTitle}』
-配色：${colorSummary}
-
-※AIによるアイデア図案です。実際の生地制作時はスタッフが人の目で調整します。
-
-#妄想図案帖`);
+  const shareText = encodeURIComponent(`「妄想図案帖」で、柄のアイデアを試してみました。\n\n銘：『${finalTitle}』\n配色：${colorSummary}\n\n※AIによるアイデア図案です。実際の生地制作時はスタッフが人の目で調整します。\n\n#妄想図案帖`);
   const shareUrl = typeof window !== 'undefined' ? encodeURIComponent(window.location.href) : '';
   const xShareLink = `https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`;
   const orderUrl = `https://store.gofukuyasan.com/view/item/000000007300?komon_id=${encodeURIComponent(serialNumber)}&title=${encodeURIComponent(finalTitle)}`;
@@ -560,7 +547,7 @@ AIのサーバー利用料（課金）が高額になってしまうため、無
     setMockupSubmitting(true);
     setErrorMsg('');
     try {
-      // route.ts（これから作るAPI）にデータを送信する
+      // route.tsにデータを送信する
       const response = await fetch('/api/shopify-draft', {
         method: 'POST',
         headers: {
@@ -569,7 +556,7 @@ AIのサーバー利用料（課金）が高額になってしまうため、無
         body: JSON.stringify({
           title: finalTitle,
           imageUrl: blobUrl || imageUrl,
-          vendor: 'Printag Creator', // 必要に応じて書き換えます
+          vendor: 'Printag Creator',
         }),
       });
 
@@ -579,8 +566,7 @@ AIのサーバー利用料（課金）が高額になってしまうため、無
       }
 
       setMockupSuccess(true);
-      alert(`【バーチャル化完了】
-図案「${finalTitle}」の立体バーチャルサンプルを生成し、Shopifyフロントエンド（仮掲載コレクション）へ連携しました！`);
+      alert(`【バーチャル化完了】\n図案「${finalTitle}」の立体バーチャルサンプルを生成し、Shopifyフロントエンド（仮掲載コレクション）へ連携しました！`);
     } catch (err: any) {
       console.error(err);
       setErrorMsg(err.message || '通信エラーが発生しました。');
