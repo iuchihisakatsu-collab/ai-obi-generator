@@ -4,7 +4,6 @@ export async function POST(req: Request) {
   try {
     const { title, imageUrl, vendor, designFee } = await req.json();
 
-    // ★ どんな名前でVercelに登録されていても自動で拾うように拡張
     const rawDomain =
       process.env.SHOPIFY_STORE_DOMAIN ||
       process.env.SHOPIFY_SHOP_DOMAIN ||
@@ -13,10 +12,8 @@ export async function POST(req: Request) {
       process.env.SHOPIFY_URL ||
       '';
 
-    // https:// や末尾のスラッシュが付いていても自動で除去
     const shopDomain = rawDomain.replace(/^https?:\/\//, '').replace(/\/$/, '');
 
-    // ★ トークン名も全パターン対応
     const accessToken =
       process.env.SHOPIFY_ADMIN_ACCESS_TOKEN ||
       process.env.SHOPIFY_ACCESS_TOKEN ||
@@ -31,10 +28,8 @@ export async function POST(req: Request) {
       );
     }
 
-    // デザインフィーの数値化（未指定時は100円）
     const fee = Number(designFee) || 0;
 
-    // ① 各アイテムの原価定義
     const costs = {
       data: 0,       // 図案データ（原価0）
       tote: 2800,    // トートバッグ
@@ -45,7 +40,19 @@ export async function POST(req: Request) {
       silk: 6000,    // 丹後シルク (1m)
     };
 
-    // ② Shopifyの商品登録ペイロード（原価 ＋ フィー を自動計算）
+    // ★ ここを修正：画像がURL形式かBase64形式かを自動判定
+    let imagesPayload: Array<{ src?: string; attachment?: string }> = [];
+    if (imageUrl) {
+      if (imageUrl.startsWith('data:')) {
+        // 幾何学モード等のBase64画像（attachmentとして渡す）
+        const base64Content = imageUrl.split(',')[1] || imageUrl;
+        imagesPayload = [{ attachment: base64Content }];
+      } else if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+        // AI生成等のWeb URL画像（srcとして渡す）
+        imagesPayload = [{ src: imageUrl }];
+      }
+    }
+
     const payload = {
       product: {
         title: title || '無題の図案',
@@ -58,15 +65,14 @@ export async function POST(req: Request) {
         `,
         vendor: vendor || 'Printag Creator',
         product_type: 'テキスタイル図案',
-        status: 'draft', // 下書きとして登録
+        status: 'draft',
         tags: ['先行仮掲載', 'AI生成図案', `Fee_${fee}`],
-        images: imageUrl ? [{ src: imageUrl }] : [],
+        images: imagesPayload,
         options: [
           {
             name: '展開アイテム・素材',
           },
         ],
-        // ★ 各バリエーションに「原価 ＋ デザインフィー」の価格を設定
         variants: [
           {
             option1: '図案データ (商用ライセンス)',
@@ -107,7 +113,6 @@ export async function POST(req: Request) {
       },
     };
 
-    // Shopify Admin API へ送信
     const shopifyRes = await fetch(
       `https://${shopDomain}/admin/api/2024-01/products.json`,
       {
