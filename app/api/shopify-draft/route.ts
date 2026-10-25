@@ -2,90 +2,126 @@ import { NextResponse } from 'next/server';
 
 export async function POST(req: Request) {
   try {
-    const { title, imageUrl, vendor } = await req.json();
+    const { title, imageUrl, vendor, designFee } = await req.json();
 
-    if (!imageUrl) {
-      return NextResponse.json({ error: '画像URLが見つかりません。' }, { status: 400 });
+    const shopDomain = process.env.SHOPIFY_STORE_DOMAIN; // 例: your-store.myshopify.com
+    const accessToken = process.env.SHOPIFY_ADMIN_ACCESS_TOKEN;
+
+    if (!shopDomain || !accessToken) {
+      return NextResponse.json(
+        { error: 'Shopifyの環境変数が設定されていません。' },
+        { status: 500 }
+      );
     }
 
-    const shopifyDomain = process.env.SHOPIFY_STORE_DOMAIN;
-    let accessToken = process.env.SHOPIFY_ACCESS_TOKEN;
-    const clientId = process.env.SHOPIFY_CLIENT_ID;
-    const clientSecret = process.env.SHOPIFY_CLIENT_SECRET;
+    // デザインフィーの数値化（未指定時は100円）
+    const fee = Number(designFee) || 0;
 
-    if (!shopifyDomain) {
-      return NextResponse.json({ error: 'Shopifyのストア名（SHOPIFY_STORE_DOMAIN）が設定されていません。' }, { status: 500 });
-    }
-
-    // 画面手動コピー用トークンがない場合、クライアントIDとシークレットから自動取得
-    if (!accessToken) {
-      if (!clientId || !clientSecret) {
-        return NextResponse.json({ 
-          error: 'ShopifyのAPI設定（クライアントIDまたはシークレット）が不足しています。' 
-        }, { status: 500 });
-      }
-
-      const tokenRes = await fetch(`https://${shopifyDomain}/admin/oauth/access_token`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          grant_type: 'client_credentials',
-          client_id: clientId,
-          client_secret: clientSecret,
-        }),
-      });
-
-      if (!tokenRes.ok) {
-        const tokenErr = await tokenRes.text();
-        console.error('Failed to get access token:', tokenErr);
-        return NextResponse.json({ error: `トークン取得エラー: ${tokenErr}` }, { status: 500 });
-      }
-
-      const tokenData = await tokenRes.json();
-      accessToken = tokenData.access_token;
-    }
-
-    const shopifyUrl = `https://${shopifyDomain}/admin/api/2026-10/products.json`;
-
-    // 画像がBase64（data:image...）か通常のURLかを判定して形式を分ける
-    const isBase64 = imageUrl.startsWith('data:image');
-    const imagePayload = isBase64 
-      ? { attachment: imageUrl.split(',')[1] } 
-      : { src: imageUrl };
-
-    const productData = {
-      product: {
-        title: title || '無題の帯図案',
-        body_html: '<p>妄想図案帖から自動連携されたデザインです。</p>',
-        vendor: vendor || 'Printag Creator',
-        status: 'draft', // 下書きとして作成
-        tags: 'AI図案, Printag連携',
-        images: [ imagePayload ]
-      }
+    // ① 各アイテムの原価定義
+    const costs = {
+      data: 0,       // 図案データ（原価0）
+      tote: 2800,    // トートバッグ
+      cushion: 3200, // クッションカバー
+      scarf: 3800,   // スカーフ
+      cotton: 2000,  // 綿ブロード (1m)
+      poly: 2400,    // ポリエステル (1m)
+      silk: 6000,    // 丹後シルク (1m)
     };
 
-    const response = await fetch(shopifyUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Shopify-Access-Token': accessToken,
+    // ② Shopifyの商品登録ペイロード（原価 ＋ フィー を自動計算）
+    const payload = {
+      product: {
+        title: title || '無題の図案',
+        body_html: `
+          <p><strong>【意匠銘】</strong> ${title || '無題'}</p>
+          <p><strong>【意匠設計】</strong> ${vendor || 'Printag Creator'}</p>
+          <p><strong>【クリエイター還元フィー】</strong> ¥${fee.toLocaleString()} / 点</p>
+          <hr />
+          <p>新潟自社工場のエプソン捺染機「モナリザ」にて高精細ダイレクトプリントを行う受注生産商品です。</p>
+        `,
+        vendor: vendor || 'Printag Creator',
+        product_type: 'テキスタイル図案',
+        status: 'draft', // 下書きとして登録
+        tags: ['先行仮掲載', 'AI生成図案', `Fee_${fee}`],
+        images: imageUrl ? [{ src: imageUrl }] : [],
+        options: [
+          {
+            name: '展開アイテム・素材',
+          },
+        ],
+        // ★ ここで各バリエーションに「原価 ＋ デザインフィー」の価格を設定
+        variants: [
+          {
+            option1: '図案データ (商用ライセンス)',
+            price: String(costs.data + fee),
+            requires_shipping: false,
+          },
+          {
+            option1: 'トートバッグ (キャンバス)',
+            price: String(costs.tote + fee),
+            requires_shipping: true,
+          },
+          {
+            option1: 'クッションカバー (45×45cm)',
+            price: String(costs.cushion + fee),
+            requires_shipping: true,
+          },
+          {
+            option1: 'スカーフ (90×90cm)',
+            price: String(costs.scarf + fee),
+            requires_shipping: true,
+          },
+          {
+            option1: '生地: 綿ブロード (1m単位)',
+            price: String(costs.cotton + fee),
+            requires_shipping: true,
+          },
+          {
+            option1: '生地: ポリエステルちりめん (1m単位)',
+            price: String(costs.poly + fee),
+            requires_shipping: true,
+          },
+          {
+            option1: '生地: 丹後別注シルク (1m単位)',
+            price: String(costs.silk + fee),
+            requires_shipping: true,
+          },
+        ],
       },
-      body: JSON.stringify(productData),
-    });
+    };
 
-    const data = await response.json();
+    // Shopify Admin API へ送信
+    const shopifyRes = await fetch(
+      `https://${shopDomain}/admin/api/2024-01/products.json`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Shopify-Access-Token': accessToken,
+        },
+        body: JSON.stringify(payload),
+      }
+    );
 
-    if (!response.ok) {
+    const data = await shopifyRes.json();
+
+    if (!shopifyRes.ok) {
       console.error('Shopify API Error:', data);
-      return NextResponse.json({ error: `Shopifyエラー: ${JSON.stringify(data)}` }, { status: response.status });
+      return NextResponse.json(
+        { error: data.errors ? JSON.stringify(data.errors) : 'Shopify登録エラー' },
+        { status: shopifyRes.status }
+      );
     }
 
-    return NextResponse.json({ success: true, product: data.product });
-
+    return NextResponse.json({
+      success: true,
+      product: data.product,
+    });
   } catch (error: any) {
-    console.error('Internal Server Error:', error);
-    return NextResponse.json({ error: 'サーバー内部でエラーが発生しました' }, { status: 500 });
+    console.error('API Server Error:', error);
+    return NextResponse.json(
+      { error: error.message || 'サーバーエラーが発生しました' },
+      { status: 500 }
+    );
   }
 }
