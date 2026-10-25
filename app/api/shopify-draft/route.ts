@@ -40,15 +40,20 @@ export async function POST(req: Request) {
       silk: 6000,    // 丹後シルク (1m)
     };
 
-    // ★ ここを修正：画像がURL形式かBase64形式かを自動判定
-    let imagesPayload: Array<{ src?: string; attachment?: string }> = [];
+    // ★ ここを修正：Base64画像に安全な半角英数字のファイル名を必ず付与する
+    let imagesPayload: Array<{ src?: string; attachment?: string; filename?: string }> = [];
     if (imageUrl) {
       if (imageUrl.startsWith('data:')) {
-        // 幾何学モード等のBase64画像（attachmentとして渡す）
-        const base64Content = imageUrl.split(',')[1] || imageUrl;
-        imagesPayload = [{ attachment: base64Content }];
+        // 幾何学モード等のBase64画像
+        const base64Content = imageUrl.includes(',') ? imageUrl.split(',')[1] : imageUrl;
+        imagesPayload = [
+          {
+            attachment: base64Content,
+            filename: `pattern_${Date.now()}.png`, // ← これでShopifyのエラーを回避
+          },
+        ];
       } else if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
-        // AI生成等のWeb URL画像（srcとして渡す）
+        // AI生成等のWeb URL画像
         imagesPayload = [{ src: imageUrl }];
       }
     }
