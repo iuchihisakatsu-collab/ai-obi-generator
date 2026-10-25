@@ -22,7 +22,7 @@ const FORBIDDEN_WORDS = [
   'マリオ', 'mario', 'サンリオ', 'キティ', 'kitty', 'ちいかわ', '鬼滅', '呪術',
   'ワンピース', 'one piece', 'ジブリ', 'トトロ', 'アンパンマン', 'スヌーピー',
   'シャネル', 'chanel', 'ヴィトン', 'vuitton', 'エルメス', 'hermes', 'グッチ', 'gucci',
-  'ナイキ', 'nike', 'アディダス', 'adidas'
+  'ナイキ', 'アディダス', 'adidas'
 ];
 
 const TRADITIONAL_COLORS = [
