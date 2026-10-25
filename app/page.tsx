@@ -519,6 +519,7 @@ function HomeContent() {
   const xShareLink = `https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`;
   const orderUrl = `https://store.gofukuyasan.com/view/item/000000007300?komon_id=${encodeURIComponent(serialNumber)}&title=${encodeURIComponent(finalTitle)}`;
 
+  // ★ 修正箇所：ポップアップブロックを防ぐため同一タブ遷移（window.location.href）に変更
   const handleOrderClick = async (e: MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault(); 
     try {
@@ -545,9 +546,9 @@ function HomeContent() {
         console.warn('クリップボードのコピーに失敗しました', err);
       }
 
-      // 3. MakeShopへ遷移（img_url を付与して合流させる）
+      // 3. MakeShopへ遷移（ポップアップブロックを回避するため、同一タブで確実に遷移）
       const finalOrderUrl = `${orderUrl}&img_url=${encodeURIComponent(blobUrl || imageUrl)}`;
-      window.open(finalOrderUrl, '_blank', 'noopener,noreferrer');
+      window.location.href = finalOrderUrl;
       
     } catch (err: unknown) {
       console.error(err);
@@ -1440,3 +1441,7 @@ export default function Home() {
     </Suspense>
   );
 }
+```<FollowUp>
+<Suggest>コードを貼り替えて、再度MakeShopへ遷移するかテストする</Suggest>
+<Suggest>アラート表示（確認メッセージ）を出さずに即座にMakeShopへ移動させたい</Suggest>
+</FollowUp>
