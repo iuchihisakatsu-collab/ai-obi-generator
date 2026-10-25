@@ -42,7 +42,7 @@ const TRADITIONAL_COLORS = [
   { name: '甚三紅 (じんざもみ)', hex: '#ee827c', text: '柔らかなサーモンレッド地', isDark: false },
   { name: '緋色 (ひいろ)', hex: '#d3381c', text: '鮮烈なスカーレットレッド地', isDark: true },
   { name: '朱色 (しゅ)', hex: '#ea5532', text: '鮮やかな朱赤地', isDark: true },
-  { name: '紅赤 (べにあか)', hex: '#e54256', text: '鮮やかなルビーレッド地', isDark: true },
+  { name: '紅赤 (べニアカ)', hex: '#e54256', text: '鮮やかなルビーレッド地', isDark: true },
   { name: '真紅 (しんく)', hex: '#a22041', text: '深みのあるピュアレッド地', isDark: true },
   { name: '茜色 (あかね)', hex: '#b7282e', text: '温かみのある茜色地', isDark: true },
   { name: '深緋 (こきひ)', hex: '#8b1e2a', text: '深みのあるボルドー地', isDark: true },
@@ -281,7 +281,6 @@ function HomeContent() {
   const [mockupSuccess, setMockupSuccess] = useState(false);
   const [serialNumber, setSerialNumber] = useState('');
   
-  // ★ 追加：デザインフィー（初期値100円、0〜200円）
   const [designFee, setDesignFee] = useState<number>(100);
 
   const [showTags, setShowTags] = useState(false);
@@ -519,7 +518,6 @@ function HomeContent() {
   const xShareLink = `https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`;
   const orderUrl = `https://store.gofukuyasan.com/view/item/000000007300?komon_id=${encodeURIComponent(serialNumber)}&title=${encodeURIComponent(finalTitle)}`;
 
-  // ★ 修正箇所：ポップアップブロックを防ぐため同一タブ遷移（window.location.href）に変更
   const handleOrderClick = async (e: MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault(); 
     try {
@@ -556,7 +554,6 @@ function HomeContent() {
     }
   };
 
-  // ★ Shopify登録処理（デザインフィーを含めて送信）
   const handleVirtualProductSubmit = async () => {
     setMockupSubmitting(true);
     setErrorMsg('');
@@ -570,7 +567,7 @@ function HomeContent() {
           title: finalTitle,
           imageUrl: blobUrl || imageUrl,
           vendor: 'Printag Creator',
-          designFee: designFee, // 設定したデザインフィーをAPIに渡す
+          designFee: designFee,
         }),
       });
 
@@ -596,7 +593,7 @@ function HomeContent() {
     <div className="min-h-screen bg-[#fafafa] text-zinc-900 p-4 sm:p-8 flex flex-col items-center justify-center font-sans selection:bg-zinc-200">
       <div className="max-w-2xl w-full bg-white rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-zinc-100 p-6 sm:p-12 transition-all duration-300">
         
-        {/* ① ヘッダーエリア（Shopify時は「プリンタグ見本帳」・通常時は「妄想図案帳」へ切り替え） */}
+        {/* ① ヘッダーエリア */}
         <div className="relative overflow-hidden text-center mb-8 p-8 sm:p-10 bg-zinc-950 text-white rounded-[1.5rem] shadow-xl">
           <div className="relative z-10">
             <h1 className="text-2xl sm:text-3xl font-black tracking-widest text-center leading-tight">
@@ -858,7 +855,7 @@ function HomeContent() {
                 />
               </div>
 
-              {/* ゴフクヤサン通常時のみ表示する回復呪文バナー（Shopify時は非表示） */}
+              {/* ゴフクヤサン通常時のみ表示する回復呪文バナー */}
               {!isShopify && (
                 <div className="p-4 bg-zinc-50 rounded-xl text-center border border-zinc-200 shadow-sm">
                   <p className="mb-1 text-xs font-bold text-zinc-800">
@@ -1441,7 +1438,3 @@ export default function Home() {
     </Suspense>
   );
 }
-```<FollowUp>
-<Suggest>コードを貼り替えて、再度MakeShopへ遷移するかテストする</Suggest>
-<Suggest>アラート表示（確認メッセージ）を出さずに即座にMakeShopへ移動させたい</Suggest>
-</FollowUp>
