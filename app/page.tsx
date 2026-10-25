@@ -264,6 +264,10 @@ function HomeContent() {
   const searchParams = useSearchParams();
   const isShopify = searchParams.get('platform') === 'shopify'; // URL末尾が ?platform=shopify ならtrueになる
 
+  // 【追加】Shopifyの画面でもゴフクヤサンのリンクを表示するかどうかのスイッチ
+  // true にすると表示され、false にすると隠れます。
+  const SHOW_MAKESHOP_LINKS_ON_SHOPIFY = false;
+
   const [motif, setMotif] = useState('');
   const [selectedColors, setSelectedColors] = useState<typeof TRADITIONAL_COLORS>([]);
   const [density, setDensity] = useState('四方柄（上下なし・散らし柄）');
@@ -1328,38 +1332,43 @@ AIのサーバー利用料（課金）が高額になってしまうため、無
                 )}
                 {/* ▲▲ ここまで出し分け ▲▲ */}
 
-                <div className="mt-6 p-5 bg-amber-50 rounded-xl border border-amber-100/50 shadow-sm">
-                  <h3 className="text-[13px] font-bold text-amber-900 mb-3 flex items-center gap-2">
-                    <svg className="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
-                    クリエイター・作家様へ：オリジナル生地の制作について
-                  </h3>
-                  <ul className="text-xs text-amber-800/80 space-y-2 mb-4 leading-relaxed list-disc list-inside">
-                    <li><strong className="text-amber-900">初回お試しパック（10,000円）：</strong>50cm×112cmの生地1枚＋<span className="underline decoration-amber-300 decoration-2 underline-offset-2">商用利用可能な完全データ（職人による修正済み）</span>をお渡しします。</li>
-                    <li><strong className="text-amber-900">2回目以降（追加オーダー）：</strong>データ修正済みのため、生地のプリント代のみで1m単位から追加発注可能です。</li>
-                    <li><strong className="text-amber-900">5m以上のオーダー：</strong>お得な【卸価格】にて対応いたします。自社ブランドの量産等にぜひご活用ください。</li>
-                  </ul>
-                  <a 
-                    href="https://store.gofukuyasan.com/html/email.html" 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
-                    className="block w-full py-3 text-center bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-bold tracking-wider rounded-lg transition-colors shadow-sm"
-                  >
-                    ✉️ オリジナル生地・商用利用について相談する
-                  </a>
-                </div>
+                {/* ▼▼ MakeShopの時だけ表示する下部のバナーとリンク ▼▼ */}
+                {(!isShopify || SHOW_MAKESHOP_LINKS_ON_SHOPIFY) && (
+                  <>
+                    <div className="mt-6 p-5 bg-amber-50 rounded-xl border border-amber-100/50 shadow-sm">
+                      <h3 className="text-[13px] font-bold text-amber-900 mb-3 flex items-center gap-2">
+                        <svg className="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                        クリエイター・作家様へ：オリジナル生地の制作について
+                      </h3>
+                      <ul className="text-xs text-amber-800/80 space-y-2 mb-4 leading-relaxed list-disc list-inside">
+                        <li><strong className="text-amber-900">初回お試しパック（10,000円）：</strong>50cm×112cmの生地1枚＋<span className="underline decoration-amber-300 decoration-2 underline-offset-2">商用利用可能な完全データ（職人による修正済み）</span>をお渡しします。</li>
+                        <li><strong className="text-amber-900">2回目以降（追加オーダー）：</strong>データ修正済みのため、生地のプリント代のみで1m単位から追加発注可能です。</li>
+                        <li><strong className="text-amber-900">5m以上のオーダー：</strong>お得な【卸価格】にて対応いたします。自社ブランドの量産等にぜひご活用ください。</li>
+                      </ul>
+                      <a 
+                        href="https://store.gofukuyasan.com/html/email.html" 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="block w-full py-3 text-center bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-bold tracking-wider rounded-lg transition-colors shadow-sm"
+                      >
+                        ✉️ オリジナル生地・商用利用について相談する
+                      </a>
+                    </div>
 
-                <div className="text-center pt-6">
-                  <a
-                    href={makeshopCategoryUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[10px] text-zinc-400 hover:text-zinc-800 tracking-widest transition-colors"
-                  >
-                    似たテイストの帯・着物を探す →
-                  </a>
-                </div>
+                    <div className="text-center pt-6">
+                      <a
+                        href={makeshopCategoryUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[10px] text-zinc-400 hover:text-zinc-800 tracking-widest transition-colors"
+                      >
+                        似たテイストの帯・着物を探す →
+                      </a>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
