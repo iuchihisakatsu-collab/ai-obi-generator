@@ -2,7 +2,9 @@
 
 /* eslint-disable @next/next/no-img-element */
 
-import { useState, useEffect, type MouseEvent, useCallback } from 'react';
+import { useState, useEffect, type MouseEvent, useCallback, Suspense } from 'react';
+// 【修正箇所①】URLの末尾（?platform=...）を読み取るための useSearchParams を追加
+import { useSearchParams } from 'next/navigation';
 import { 
   generateStripeSvg, 
   generateDotSvg, 
@@ -257,7 +259,11 @@ const LOADING_STEPS = [
   '仕上がりを表示する準備をしています...',
 ];
 
-export default function Home() {
+// 【修正箇所②】本丸のコンポーネントを独立させます
+function HomeContent() {
+  const searchParams = useSearchParams();
+  const isShopify = searchParams.get('platform') === 'shopify'; // URL末尾が ?platform=shopify ならtrueになる
+
   const [motif, setMotif] = useState('');
   const [selectedColors, setSelectedColors] = useState<typeof TRADITIONAL_COLORS>([]);
   const [density, setDensity] = useState('四方柄（上下なし・散らし柄）');
@@ -439,7 +445,12 @@ export default function Home() {
 
     if (currentCount >= MAX_GENERATIONS_PER_DAY) {
       setRemainingCount(0);
-      alert(`【本日の上限に達しました🙏】\n\nお試しいただきありがとうございます！\nAIのサーバー利用料（課金）が高額になってしまうため、無料での作成は「お一人様1日3回まで」とさせていただいております。\n\nまた明日、新しい図案を作りに来てくださいね！`);
+      alert(`【本日の上限に達しました🙏】
+
+お試しいただきありがとうございます！
+AIのサーバー利用料（課金）が高額になってしまうため、無料での作成は「お一人様1日3回まで」とさせていただいております。
+
+また明日、新しい図案を作りに来てくださいね！`);
       return;
     }
 
@@ -505,7 +516,14 @@ export default function Home() {
 
   const finalTitle = patternTitle.trim() || '（無題）';
   const colorSummary = selectedColors.length > 0 ? selectedColors.map(c => c.name.split(' ')[0]).join('・') : '自由配色';
-  const shareText = encodeURIComponent(`「妄想図案帖」で、柄のアイデアを試してみました。\n\n銘：『${finalTitle}』\n配色：${colorSummary}\n\n※AIによるアイデア図案です。実際の生地制作時はスタッフが人の目で調整します。\n\n#妄想図案帖`);
+  const shareText = encodeURIComponent(`「妄想図案帖」で、柄のアイデアを試してみました。
+
+銘：『${finalTitle}』
+配色：${colorSummary}
+
+※AIによるアイデア図案です。実際の生地制作時はスタッフが人の目で調整します。
+
+#妄想図案帖`);
   const shareUrl = typeof window !== 'undefined' ? encodeURIComponent(window.location.href) : '';
   const xShareLink = `https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`;
   const orderUrl = `https://store.gofukuyasan.com/view/item/000000007300?komon_id=${encodeURIComponent(serialNumber)}&title=${encodeURIComponent(finalTitle)}`;
@@ -533,14 +551,36 @@ export default function Home() {
     }
   };
 
+  // 【修正箇所③】Shopifyへ送信するための実際の処理に書き換えました
   const handleVirtualProductSubmit = async () => {
     setMockupSubmitting(true);
+    setErrorMsg('');
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      // route.ts（これから作るAPI）にデータを送信する
+      const response = await fetch('/api/shopify-draft', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: finalTitle,
+          imageUrl: blobUrl || imageUrl,
+          vendor: 'Printag Creator', // 必要に応じて書き換えます
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Shopifyへの連携に失敗しました');
+      }
+
       setMockupSuccess(true);
-      alert(`【バーチャル化完了】\n図案「${finalTitle}」の立体バーチャルサンプルを生成し、Shopifyフロントエンド（仮掲載コレクション）へ連携しました！`);
-    } catch (err) {
+      alert(`【バーチャル化完了】
+図案「${finalTitle}」の立体バーチャルサンプルを生成し、Shopifyフロントエンド（仮掲載コレクション）へ連携しました！`);
+    } catch (err: any) {
       console.error(err);
+      setErrorMsg(err.message || '通信エラーが発生しました。');
+      alert(`連携エラー: ${err.message}`);
     } finally {
       setMockupSubmitting(false);
     }
@@ -1219,8 +1259,10 @@ export default function Home() {
                 )}
               </div>
 
+              {/* 【修正箇所④】URLの末尾が ?platform=shopify ならShopifyのボタンを、それ以外ならMakeShopのボタンを出す */}
               <div className="p-6 sm:p-8 space-y-4 bg-white">
-                {previewMode === 'mockup' ? (
+                {isShopify ? (
+                  /* ▼▼ Shopify用（Printag）のUI ▼▼ */
                   <div className="p-4 bg-zinc-900 rounded-2xl text-white space-y-3 shadow-lg">
                     <div className="flex justify-between items-center">
                       <span className="text-xs font-bold tracking-wider text-zinc-300">🏪 Shopify仮掲載連携</span>
@@ -1242,8 +1284,12 @@ export default function Home() {
                           ? '✓ Shopifyへ仮掲載完了（審査・公開中）' 
                           : 'この立体サンプルでShopify仮掲載を依頼する'}
                     </button>
+                    {errorMsg && (
+                      <p className="text-[10px] text-red-400 mt-2 text-center">{errorMsg}</p>
+                    )}
                   </div>
                 ) : (
+                  /* ▼▼ MakeShop用（ゴフクヤサン本業）のUI ▼▼ */
                   <>
                     <div className="bg-orange-50 border border-orange-100 text-orange-800 p-3 rounded-xl text-xs font-bold text-center mb-2 shadow-sm">
                       💡 お気に入りの柄は、次の図案を作る前に「保存」しておきましょう！
@@ -1280,6 +1326,7 @@ export default function Home() {
                     </a>
                   </>
                 )}
+                {/* ▲▲ ここまで出し分け ▲▲ */}
 
                 <div className="mt-6 p-5 bg-amber-50 rounded-xl border border-amber-100/50 shadow-sm">
                   <h3 className="text-[13px] font-bold text-amber-900 mb-3 flex items-center gap-2">
@@ -1319,5 +1366,18 @@ export default function Home() {
         )}
       </div>
     </div>
+  );
+}
+
+// 【修正箇所⑤】useSearchParamsを使うために全体をSuspenseで囲む必要があります（Next.jsの仕様）
+export default function Home() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-[#fafafa]">
+        <p className="text-zinc-400 text-sm font-bold tracking-widest">LOADING...</p>
+      </div>
+    }>
+      <HomeContent />
+    </Suspense>
   );
 }
