@@ -49,6 +49,12 @@ export async function POST(req: Request) {
 
     const shopifyUrl = `https://${shopifyDomain}/admin/api/2026-10/products.json`;
 
+    // 画像がBase64（data:image...）か通常のURLかを判定して形式を分ける
+    const isBase64 = imageUrl.startsWith('data:image');
+    const imagePayload = isBase64 
+      ? { attachment: imageUrl.split(',')[1] } 
+      : { src: imageUrl };
+
     const productData = {
       product: {
         title: title || '無題の帯図案',
@@ -56,9 +62,7 @@ export async function POST(req: Request) {
         vendor: vendor || 'Printag Creator',
         status: 'draft', // 下書きとして作成
         tags: 'AI図案, Printag連携',
-        images: [
-          { src: imageUrl }
-        ]
+        images: [ imagePayload ]
       }
     };
 
