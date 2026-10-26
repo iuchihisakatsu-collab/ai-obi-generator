@@ -9,7 +9,7 @@ export async function POST(req: Request) {
 
     await resend.emails.send({
       from: 'onboarding@resend.dev',
-      to: 'iuchi@gofukuyasan.com',
+      to: 'iuchihisakatsu@gmail.com',
       subject: `【図案決定】${title} (${komonId})`,
       html: `
         <h2>小紋図案のお誂え注文が入りました</h2>
