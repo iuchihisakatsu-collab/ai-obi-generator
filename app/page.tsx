@@ -22,7 +22,7 @@ const FORBIDDEN_WORDS = [
   'マリオ', 'mario', 'サンリオ', 'キティ', 'kitty', 'ちいかわ', '鬼滅', '呪術',
   'ワンピース', 'one piece', 'ジブリ', 'トトロ', 'アンパンマン', 'スヌーピー',
   'シャネル', 'chanel', 'ヴィトン', 'vuitton', 'エルメス', 'hermes', 'グッチ', 'gucci',
-  'ナイキ', 'アディダス', 'adidas'
+  'ナイキ', 'nike', 'アディダス', 'adidas'
 ];
 
 const TRADITIONAL_COLORS = [
@@ -1435,7 +1435,3 @@ export default function Home() {
     </Suspense>
   );
 }
-```<FollowUp>
-<Suggest>コードを反映し、MakeShopへエラーなく遷移できるかテストする</Suggest>
-<Suggest>MakeShop側のHTML（自動入力スクリプト）も巨大URL抜き版に書き直してほしい</Suggest>
-</FollowUp>
