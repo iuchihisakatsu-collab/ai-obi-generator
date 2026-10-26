@@ -518,17 +518,35 @@ function HomeContent() {
   const xShareLink = `https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`;
   
   // ★ MakeShopへ渡すパラメータから巨大な img_url を削除し、IDとタイトルのみにする
-
-  const orderUrl = `https://store.gofukuyasan.com/view/item/000000007300?komon_id=${encodeURIComponent(serialNumber)}&title=${encodeURIComponent(finalTitle)}&image_url=${encodeURIComponent(blobUrl || imageUrl)}`;
+  const orderUrl = `https://store.gofukuyasan.com/view/item/000000007300?komon_id=${encodeURIComponent(serialNumber)}&title=${encodeURIComponent(finalTitle)}`;
 
   const handleOrderClick = async (e: MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault(); 
     try {
-      // 1. メール送信処理（画像URLはここで直接工場へ送る）
+      let finalImageUrl = blobUrl || imageUrl;
+
+      // 水玉・幾何学モードで、まだBlob URLになっていない場合（Base64の長い文字列の場合）
+      if (finalImageUrl && finalImageUrl.startsWith('data:')) {
+        const uploadRes = await fetch('/api/upload-blob', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            base64Data: finalImageUrl,
+            filename: `${serialNumber}.png`,
+          }),
+        });
+        const uploadData = await uploadRes.json();
+        if (uploadData.url) {
+          finalImageUrl = uploadData.url;
+          setBlobUrl(uploadData.url); // 状態も更新
+        }
+      }
+
+      // 1. メール送信処理（必ず本物の画像URLを工場へ送る）
       const response = await fetch('/api/send-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageUrl: blobUrl || imageUrl, komonId: serialNumber, title: finalTitle }),
+        body: JSON.stringify({ imageUrl: finalImageUrl, komonId: serialNumber, title: finalTitle }),
       });
 
       const result = await response.json();
@@ -538,7 +556,7 @@ function HomeContent() {
         return;
       }
 
-      // 2. クリップボードへのバックアップコピー（巨大なURLはコピーせずIDのみに修正）
+      // 2. クリップボードへのバックアップコピー
       const copyText = `図案ID: ${serialNumber}\n銘: ${finalTitle}`;
       try {
         await navigator.clipboard.writeText(copyText);
@@ -547,8 +565,9 @@ function HomeContent() {
         console.warn('クリップボードのコピーに失敗しました', err);
       }
 
-      // 3. MakeShopへ遷移（ポップアップブロック回避 ＆ 長すぎるURLによるクラッシュ回避）
-      window.location.href = orderUrl;
+      // 3. MakeShopへ遷移（URLには重たい画像を含めず、IDとタイトルのみ渡して494エラーを回避）
+      const cleanOrderUrl = `https://store.gofukuyasan.com/view/item/000000007300?komon_id=${encodeURIComponent(serialNumber)}&title=${encodeURIComponent(finalTitle)}`;
+      window.location.href = cleanOrderUrl;
       
     } catch (err: unknown) {
       console.error(err);
@@ -886,7 +905,7 @@ function HomeContent() {
                     className="mt-0.5 h-4 w-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900 transition-colors"
                   />
                   <span className="text-[11px] text-zinc-500 leading-relaxed group-hover:text-zinc-800 transition-colors">
-                    生成された図案はAIによるアイデアイメージであり、実際の生地制作・捺染時には工房の職人の手でデータ調整が行われること、および公序良俗・権利侵害のない利用に同意します。
+                    生成された図案はAIによるアイデアイメージであり、実際の生地制作・捺染時には工房の職職人の手でデータ調整が行われること、および公序良俗・権利侵害のない利用に同意します。
                   </span>
                 </label>
 
