@@ -566,7 +566,7 @@ function HomeContent() {
       }
 
       // 3. MakeShopへ遷移（URLには重たい画像を含めず、IDとタイトルのみ渡して494エラーを回避）
-      const cleanOrderUrl = `https://store.gofukuyasan.com/view/item/000000007300?komon_id=${encodeURIComponent(serialNumber)}&title=${encodeURIComponent(finalTitle)}`;
+     const cleanOrderUrl = `https://store.gofukuyasan.com/view/item/000000007300?komon_id=${encodeURIComponent(serialNumber)}&title=${encodeURIComponent(finalTitle)}&image_url=${encodeURIComponent(finalImageUrl)}`;
       window.location.href = cleanOrderUrl;
       
     } catch (err: unknown) {
