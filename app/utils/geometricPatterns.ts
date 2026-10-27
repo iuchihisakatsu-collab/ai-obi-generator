@@ -57,7 +57,6 @@ export function generateDotSvg({
   dotColor: string;
 }): string {
   const r = radius;
-  // ドット直径 ＋ 間隔 ＝ ピッチ
   const pitch = Math.max(1, r * 2 + gap);
 
   if (layout === 'grid') {
@@ -72,9 +71,7 @@ export function generateDotSvg({
     const h = pitch;
     return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
       <rect x="-1" y="-1" width="${w + 2}" height="${h + 2}" fill="${bgColor}" />
-      {/* タイル中心 */}
       <circle cx="${w / 2}" cy="${h / 2}" r="${r}" fill="${dotColor}" />
-      {/* タイル境界・四隅の送り */}
       <circle cx="0" cy="0" r="${r}" fill="${dotColor}" />
       <circle cx="${w}" cy="0" r="${r}" fill="${dotColor}" />
       <circle cx="0" cy="${h}" r="${r}" fill="${dotColor}" />
@@ -148,14 +145,19 @@ export function generateCheckerSvg({
 }
 
 /**
- * SVGを高解像度PNGに変換
+ * SVGを高解像度PNGに変換（Vercel/Next.js ビルド対応）
  */
 export async function svgToHighResPng(svgString: string, size: number = 2400): Promise<string> {
   return new Promise((resolve, reject) => {
+    if (typeof window === 'undefined') {
+      resolve('');
+      return;
+    }
+
     const img = new Image();
     const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
-    const URL = window.URL || window.webkitURL || window;
-    const blobUrl = URL.createObjectURL(svgBlob);
+    const urlHelper = window.URL || (window as unknown as { webkitURL: typeof URL }).webkitURL;
+    const blobUrl = urlHelper.createObjectURL(svgBlob);
 
     img.onload = () => {
       const canvas = document.createElement('canvas');
@@ -163,6 +165,7 @@ export async function svgToHighResPng(svgString: string, size: number = 2400): P
       canvas.height = size;
       const ctx = canvas.getContext('2d');
       if (!ctx) {
+        urlHelper.revokeObjectURL(blobUrl);
         reject(new Error('Canvas context failed'));
         return;
       }
@@ -173,13 +176,15 @@ export async function svgToHighResPng(svgString: string, size: number = 2400): P
       } else {
         ctx.drawImage(img, 0, 0, size, size);
       }
-      URL.revokeObjectURL(blobUrl);
+      urlHelper.revokeObjectURL(blobUrl);
       resolve(canvas.toDataURL('image/png'));
     };
+
     img.onerror = (e) => {
-      URL.revokeObjectURL(blobUrl);
+      urlHelper.revokeObjectURL(blobUrl);
       reject(e);
     };
+
     img.src = blobUrl;
   });
 }
