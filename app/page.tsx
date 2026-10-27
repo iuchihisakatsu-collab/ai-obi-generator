@@ -301,8 +301,7 @@ function HomeContent() {
   
   const [bgSizeMm, setBgSizeMm] = useState(100);
   
-  // ★ 裏地の色と、パレット表示の管理ステート (初期色をベンガラ色に設定)
-  const [obiLiningColor, setObiLiningColor] = useState('#8f2e14');
+  const [obiLiningColor, setObiLiningColor] = useState('#8f2e14'); // デフォルト弁柄
   const [showLiningPalette, setShowLiningPalette] = useState(false);
 
   useEffect(() => {
@@ -1184,7 +1183,8 @@ function HomeContent() {
                       className="w-full max-w-[400px] h-[500px] border border-zinc-300 bg-white"
                       style={{ 
                         backgroundImage: `url(${imageUrl})`, 
-                        backgroundSize: creationMode === 'geometric' ? `${bgSizeMm}px auto` : '200px auto',
+                        // ★ SVGタイリングバグ修正：縦横ガチガチ固定
+                        backgroundSize: creationMode === 'geometric' ? `${bgSizeMm * 4}px ${bgSizeMm * 4}px` : '100% auto',
                         backgroundRepeat: 'repeat'
                       }} 
                     />
@@ -1198,13 +1198,16 @@ function HomeContent() {
                     <div className="relative w-full max-w-[400px] aspect-square mx-auto">
                       {(() => {
                         const PIXELS_PER_CM = 440 / 16.5; 
-                        const geoPatternSize = `${(bgSizeMm / 10) * PIXELS_PER_CM}px auto`;
-                        const aiPatternSize = `${40 * PIXELS_PER_CM}px auto`;
-                        const patternSize = creationMode === 'geometric' ? geoPatternSize : aiPatternSize;
+                        const geoSizePx = (bgSizeMm / 10) * PIXELS_PER_CM;
+                        
+                        // ★ SVGタイリングバグ修正＆AI画像スケール固定（スライダー不要）
+                        const patternSize = creationMode === 'geometric' 
+                          ? `${geoSizePx}px ${geoSizePx}px` 
+                          : `${40 * PIXELS_PER_CM}px auto`;
 
                         return (
                           <div className="relative w-full h-full overflow-hidden">
-                            {/* ★ レイヤー1〜6 (ファイル名を正確に設定し、z-indexをstyleで指定！) */}
+                            {/* ★ レイヤー1〜6 (マスク設定とZ-indexの完璧な適用) */}
                             {[
                               { id: '01', file: 'hanhaba_Layer01.png', z: 0, rot: 93, bgX: '0%', bgY: '0%' },
                               { id: '02', file: 'hanhaba_Layer_02.png', z: 10, rot: 95, bgX: '33%', bgY: '25%' },
