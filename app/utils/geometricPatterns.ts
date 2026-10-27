@@ -1,9 +1,6 @@
 export type StripeDirection = 'vertical' | 'horizontal' | 'diagonal';
 export type DotLayout = 'grid' | 'staggered';
 
-/**
- * 縞（ストライプ）SVG生成
- */
 export function generateStripeSvg({
   direction,
   lineWidth,
@@ -30,7 +27,6 @@ export function generateStripeSvg({
       <rect x="0" y="0" width="${period}" height="${lineWidth}" fill="${stripeColor}" />
     </svg>`;
   } else {
-    // 斜め縞（45度・完全シームレス）
     const size = period * 2;
     return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
       <rect x="-1" y="-1" width="${size + 2}" height="${size + 2}" fill="${bgColor}" />
@@ -40,9 +36,6 @@ export function generateStripeSvg({
   }
 }
 
-/**
- * 水玉（ドット）SVG生成（千鳥の送りズレ・ボーダー化を解消）
- */
 export function generateDotSvg({
   layout,
   radius,
@@ -60,13 +53,11 @@ export function generateDotSvg({
   const pitch = Math.max(1, r * 2 + gap);
 
   if (layout === 'grid') {
-    // 正方格子
     return `<svg xmlns="http://www.w3.org/2000/svg" width="${pitch}" height="${pitch}" viewBox="0 0 ${pitch} ${pitch}">
       <rect x="-1" y="-1" width="${pitch + 2}" height="${pitch + 2}" fill="${bgColor}" />
       <circle cx="${pitch / 2}" cy="${pitch / 2}" r="${r}" fill="${dotColor}" />
     </svg>`;
   } else {
-    // 千鳥（正方千鳥：中心＋四隅による完全シームレス送り）
     const w = pitch;
     const h = pitch;
     return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
@@ -80,9 +71,6 @@ export function generateDotSvg({
   }
 }
 
-/**
- * 格子（ラインチェック）SVG生成
- */
 export function generateGridSvg({
   lineWidth,
   gap,
@@ -102,9 +90,6 @@ export function generateGridSvg({
   </svg>`;
 }
 
-/**
- * ギンガムチェックSVG生成
- */
 export function generateGinghamSvg({
   lineWidth,
   gap,
@@ -124,9 +109,6 @@ export function generateGinghamSvg({
   </svg>`;
 }
 
-/**
- * 市松模様（チェッカー）SVG生成
- */
 export function generateCheckerSvg({
   blockSize,
   bgColor,
@@ -144,9 +126,6 @@ export function generateCheckerSvg({
   </svg>`;
 }
 
-/**
- * SVGを高解像度PNGに変換（Vercel/Next.js ビルド対応）
- */
 export async function svgToHighResPng(svgString: string, size: number = 2400): Promise<string> {
   return new Promise((resolve, reject) => {
     if (typeof window === 'undefined') {
@@ -155,9 +134,7 @@ export async function svgToHighResPng(svgString: string, size: number = 2400): P
     }
 
     const img = new Image();
-    const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
-    const urlHelper = window.URL || (window as unknown as { webkitURL: typeof URL }).webkitURL;
-    const blobUrl = urlHelper.createObjectURL(svgBlob);
+    img.crossOrigin = 'anonymous';
 
     img.onload = () => {
       const canvas = document.createElement('canvas');
@@ -165,26 +142,29 @@ export async function svgToHighResPng(svgString: string, size: number = 2400): P
       canvas.height = size;
       const ctx = canvas.getContext('2d');
       if (!ctx) {
-        urlHelper.revokeObjectURL(blobUrl);
         reject(new Error('Canvas context failed'));
         return;
       }
       const pattern = ctx.createPattern(img, 'repeat');
       if (pattern) {
         ctx.fillStyle = pattern;
-        ctx.fillRect(0, 0, size, size);
+        ctx.save();
+        // ★ 2400pxを「40cm(400mm)」幅とするための実寸スケール補正
+        // SVG上の1ピクセル(1mm)が、PNG出力時に6ピクセルに拡大されるため、送られるデータが小さくなりません
+        const scale = size / 400; 
+        ctx.scale(scale, scale);
+        ctx.fillRect(0, 0, size / scale, size / scale);
+        ctx.restore();
       } else {
         ctx.drawImage(img, 0, 0, size, size);
       }
-      urlHelper.revokeObjectURL(blobUrl);
       resolve(canvas.toDataURL('image/png'));
     };
 
     img.onerror = (e) => {
-      urlHelper.revokeObjectURL(blobUrl);
       reject(e);
     };
 
-    img.src = blobUrl;
+    img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgString)}`;
   });
 }
