@@ -275,7 +275,6 @@ function HomeContent() {
   const [agreed, setAgreed] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   
-  // ★ モックアップとプレビューの状態を統合 (フラットUI用)
   const [displayMode, setDisplayMode] = useState<'fabric' | 'obi' | 'kyobukuro' | 'kimono'>('fabric');
   
   const [mockupSubmitting, setMockupSubmitting] = useState(false);
@@ -301,7 +300,10 @@ function HomeContent() {
   const [showGeoPaletteFor, setShowGeoPaletteFor] = useState<'bg' | 'pattern' | null>(null);
   
   const [bgSizeMm, setBgSizeMm] = useState(100);
+  
+  // ★ 裏地の色と、パレット表示の管理ステート
   const [obiLiningColor, setObiLiningColor] = useState('#161616');
+  const [showLiningPalette, setShowLiningPalette] = useState(false);
 
   useEffect(() => {
     const today = new Date().toISOString().split('T')[0];
@@ -471,7 +473,6 @@ function HomeContent() {
         setBlobUrl(data.blobUrl);   
         setSerialNumber(`KOMON-${Math.floor(1000 + Math.random() * 9000)}`);
         
-        // ★ 生成直後は 40cm反物幅 を初期表示
         setDisplayMode('fabric');
 
         const newCount = currentCount + 1;
@@ -1040,11 +1041,11 @@ function HomeContent() {
                   <div>
                     <label className="block text-[10px] font-bold text-zinc-900 mb-1">地色</label>
                     <div className="flex items-center gap-2">
-                      <input type="color" value={geoBgColor} onChange={(e) => setGeoBgColor(e.target.value)} className="w-12 h-10 cursor-pointer shrink-0 border border-zinc-300 p-0.5" />
+                      <div className="w-8 h-8 shrink-0 border border-zinc-300 p-0.5" style={{ backgroundColor: geoBgColor }}></div>
                       <button
                         type="button"
                         onClick={() => setShowGeoPaletteFor(showGeoPaletteFor === 'bg' ? null : 'bg')}
-                        className={`flex-1 text-[10px] h-10 font-bold transition-all border ${showGeoPaletteFor === 'bg' ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50'}`}
+                        className={`flex-1 text-[10px] h-8 font-bold transition-all border ${showGeoPaletteFor === 'bg' ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50'}`}
                       >
                         🎨 日本の伝統色
                       </button>
@@ -1053,11 +1054,11 @@ function HomeContent() {
                   <div>
                     <label className="block text-[10px] font-bold text-zinc-900 mb-1">柄色</label>
                     <div className="flex items-center gap-2">
-                      <input type="color" value={geoPatternColor} onChange={(e) => setGeoPatternColor(e.target.value)} className="w-12 h-10 cursor-pointer shrink-0 border border-zinc-300 p-0.5" />
+                      <div className="w-8 h-8 shrink-0 border border-zinc-300 p-0.5" style={{ backgroundColor: geoPatternColor }}></div>
                       <button
                         type="button"
                         onClick={() => setShowGeoPaletteFor(showGeoPaletteFor === 'pattern' ? null : 'pattern')}
-                        className={`flex-1 text-[10px] h-10 font-bold transition-all border ${showGeoPaletteFor === 'pattern' ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50'}`}
+                        className={`flex-1 text-[10px] h-8 font-bold transition-all border ${showGeoPaletteFor === 'pattern' ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50'}`}
                       >
                         🎨 日本の伝統色
                       </button>
@@ -1146,12 +1147,11 @@ function HomeContent() {
                     className={`relative px-4 py-2.5 text-xs font-bold tracking-wider transition-all border ${
                       displayMode === 'obi'
                         ? 'bg-zinc-900 text-white border-zinc-900'
-                        : 'bg-white text-zinc-900 border-zinc-900 hover:bg-zinc-100' // 未選択でも目立つ黒枠
+                        : 'bg-white text-zinc-900 border-zinc-900 hover:bg-zinc-100' 
                     }`}
                   >
                     2. 半幅帯 マッピング
                     
-                    {/* ピコッと動くドットとおすすめバッジ (未選択時のみ表示) */}
                     {displayMode !== 'obi' && (
                       <>
                         <span className="absolute -top-1 -right-1 flex h-3 w-3">
@@ -1192,7 +1192,7 @@ function HomeContent() {
                   </div>
                 )}
 
-                {/* 2. 半幅帯 モックアップ (7層構造) */}
+                {/* 2. 半幅帯 モックアップ (7層構造＋送り付け調整) */}
                 {displayMode === 'obi' && (
                   <div className="w-full flex flex-col items-center animate-fade-in">
                     <div className="relative w-full max-w-[400px] aspect-square mx-auto">
@@ -1204,14 +1204,14 @@ function HomeContent() {
 
                         return (
                           <div className="relative w-full h-full overflow-hidden">
-                            {/* Layer01 - 06 */}
+                            {/* ★ レイヤー1〜6 (bgX, bgYで「送り付け」をバラバラに設定！) */}
                             {[
-                              { id: '01', z: 0, rot: 93 },
-                              { id: '02', z: 10, rot: 95 },
-                              { id: '03', z: 20, rot: 97 },
-                              { id: '04', z: 30, rot: 92 },
-                              { id: '05', z: 40, rot: 85 },
-                              { id: '06', z: 50, rot: -1 },
+                              { id: '01', z: 0, rot: 93, bgX: '0%', bgY: '0%' },
+                              { id: '02', z: 10, rot: 95, bgX: '33%', bgY: '25%' },
+                              { id: '03', z: 20, rot: 97, bgX: '66%', bgY: '50%' },
+                              { id: '04', z: 30, rot: 92, bgX: '15%', bgY: '75%' },
+                              { id: '05', z: 40, rot: 85, bgX: '85%', bgY: '15%' },
+                              { id: '06', z: 50, rot: -1, bgX: '45%', bgY: '85%' },
                             ].map((layer) => (
                               <div 
                                 key={layer.id}
@@ -1233,13 +1233,14 @@ function HomeContent() {
                                     backgroundImage: `url(${imageUrl})`, 
                                     backgroundSize: patternSize,
                                     backgroundRepeat: 'repeat',
+                                    backgroundPosition: `${layer.bgX} ${layer.bgY}`, // ★ ここで送り位置を反映
                                     transform: `rotate(${layer.rot}deg)`
                                   }}
                                 />
                               </div>
                             ))}
 
-                            {/* レイヤー7 (裏地・無地カラー) */}
+                            {/* ★ レイヤー7 (裏地・無地カラー) */}
                             <div 
                               className="absolute inset-0 z-60 pointer-events-none" 
                               style={{ 
@@ -1256,7 +1257,7 @@ function HomeContent() {
                               <div 
                                 className="absolute top-1/2 left-1/2 w-[150%] h-[150%] -translate-x-1/2 -translate-y-1/2"
                                 style={{
-                                  backgroundColor: obiLiningColor,
+                                  backgroundColor: obiLiningColor, // ここで裏地色が反映されます
                                   transform: 'rotate(0deg)'
                                 }}
                               />
@@ -1278,16 +1279,54 @@ function HomeContent() {
                       })()}
                     </div>
 
-                    {/* 裏地の色変更UI (フラット) */}
-                    <div className="mt-4 w-full max-w-[400px] flex items-center gap-3 bg-white p-3 border border-zinc-300">
-                      <label className="text-[11px] font-bold text-zinc-700">裏地（折り返し）の色を変更：</label>
-                      <input 
-                        type="color" 
-                        value={obiLiningColor} 
-                        onChange={(e) => setObiLiningColor(e.target.value)}
-                        className="w-10 h-8 cursor-pointer border border-zinc-400 p-0 shrink-0"
-                      />
-                      <span className="text-[10px] text-zinc-400 ml-auto flex-1 text-right">※クリックで選択</span>
+                    {/* ★ 裏地の色変更UI (伝統色パレット仕様) */}
+                    <div className="mt-4 w-full max-w-[400px] bg-white p-3 border border-zinc-300">
+                      <div className="flex items-center gap-3">
+                        <label className="text-[11px] font-bold text-zinc-700">裏地の色を変更：</label>
+                        <div className="flex items-center gap-2 flex-1">
+                          <div 
+                            className="w-8 h-8 shrink-0 border border-zinc-300 p-0.5" 
+                            style={{ backgroundColor: obiLiningColor }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowLiningPalette(!showLiningPalette)}
+                            className={`flex-1 text-[10px] h-8 font-bold transition-all border ${showLiningPalette ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50'}`}
+                          >
+                            🎨 日本の伝統色
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* 裏地用102色パレット */}
+                      {showLiningPalette && (
+                        <div className="mt-3 p-3 bg-zinc-50 border border-zinc-200 animate-fade-in">
+                          <div className="flex justify-between items-center mb-2">
+                            <p className="text-[10px] text-zinc-500 font-bold">裏地の色を選ぶ（102色）：</p>
+                            <button type="button" onClick={() => setShowLiningPalette(false)} className="text-[10px] text-zinc-400 hover:text-zinc-800 font-bold">閉じる ✕</button>
+                          </div>
+                          <div className="max-h-[160px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-zinc-200">
+                            <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5">
+                              {TRADITIONAL_COLORS.map((col) => (
+                                <button
+                                  key={col.name}
+                                  type="button"
+                                  onClick={() => {
+                                    setObiLiningColor(col.hex);
+                                    setShowLiningPalette(false);
+                                  }}
+                                  className="relative h-8 p-1 flex flex-col justify-end text-left transition-all duration-200 border border-zinc-300 hover:bg-zinc-200"
+                                  style={{ backgroundColor: col.hex }}
+                                >
+                                  <span className={`text-[8px] font-bold tracking-wider truncate leading-tight ${col.isDark ? 'text-white' : 'text-zinc-900'}`}>
+                                    {col.name.split(' ')[0]}
+                                  </span>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -1299,10 +1338,12 @@ function HomeContent() {
                   <p className="text-xs font-black text-amber-900 mb-2 flex items-center gap-1.5">
                     <span className="text-[14px]">⚠️</span> 仕上がりイメージについて
                   </p>
-                  <div className="text-[11px] text-amber-900/80 space-y-1.5 font-medium leading-relaxed">
+                  <div className="text-[11px] text-amber-900/90 space-y-1.5 font-medium leading-relaxed">
                     <p>※画面上のマッピング画像はAIによる自動生成（ポン出し）の簡易イメージです。</p>
-                    <p>受注確定後、ご希望の柄配置（柄の出方）などをヒアリングのうえ、工房より<strong className="text-amber-950">本物のシミュレーション画像</strong>をお送りいたします。</p>
-                    <p>そちらの画像で仕上がりにご納得いただいてから、実際のプリント・お仕立て進行となりますのでご安心ください。</p>
+                    <ul className="list-disc list-outside ml-4 space-y-1">
+                      <li>受注確定後、ご希望の柄配置（柄の出方）などをヒアリングのうえ、工房より<strong className="text-amber-950">本物のシミュレーション画像</strong>をお送りいたします。そちらにご納得いただいてから、実際のプリント・お仕立て進行となります。</li>
+                      <li>実際の<strong className="text-amber-950">「裏地」の色はお任せ</strong>となります（画面で選べる裏地色はあくまでシミュレーション用の参考です）。ご希望の色がある場合は、ご注文時のコメント欄にてお聞かせいただければ可能な限り考慮いたします。</li>
+                    </ul>
                   </div>
                 </div>
               )}
