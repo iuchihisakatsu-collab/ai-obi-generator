@@ -66,7 +66,7 @@ const TRADITIONAL_COLORS = [
   { name: '甚三紅 (じんざもみ)', hex: '#ee827c', text: '柔らかなサーモンレッド地', isDark: false },
   { name: '緋色 (ひいろ)', hex: '#d3381c', text: '鮮烈なスカーレットレッド地', isDark: true },
   { name: '朱色 (しゅ)', hex: '#ea5532', text: '鮮やかな朱赤地', isDark: true },
-  { name: '紅赤 (べにあか)', hex: '#e54256', text: '鮮やかなルビーレッド地', isDark: true },
+  { name: '紅赤 (べニアカ)', hex: '#e54256', text: '鮮やかなルビーレッド地', isDark: true },
   { name: '真紅 (しんく)', hex: '#a22041', text: '深みのあるピュアレッド地', isDark: true },
   { name: '茜色 (あかね)', hex: '#b7282e', text: '温かみのある茜色地', isDark: true },
   { name: '深緋 (こきひ)', hex: '#8b1e2a', text: '深みのあるボルドー地', isDark: true },
@@ -374,7 +374,8 @@ function HomeContent() {
     }
   }, [motif]);
 
-  // ★ AI生成画像（16:9）が更新されたら、自動で90度回転させて帯マッピング用にセット
+  // ★ AI生成画像のアスペクト比に応じた適切な処理
+  // 横長（hanhaba: 16:9）の時だけ90度回転させて帯の流れに合わせ、正方形(square)や最初から縦長の反物(tanmono)はそのままの比率を活かす
   useEffect(() => {
     const src = blobUrl || imageUrl;
     if (!src) {
@@ -382,7 +383,7 @@ function HomeContent() {
       return;
     }
 
-    if (creationMode === 'ai') {
+    if (creationMode === 'ai' && itemType === 'hanhaba') {
       rotateImage90Degrees(src)
         .then((rotated) => setRotatedPatternUrl(rotated))
         .catch((err) => {
@@ -392,7 +393,7 @@ function HomeContent() {
     } else {
       setRotatedPatternUrl(src);
     }
-  }, [blobUrl, imageUrl, creationMode]);
+  }, [blobUrl, imageUrl, creationMode, itemType]);
 
   const updateGeometricPattern = useCallback(async () => {
     if (creationMode !== 'geometric') return;
@@ -533,7 +534,7 @@ function HomeContent() {
         }));
         setRemainingCount(Math.max(0, MAX_GENERATIONS_PER_DAY - newCount));
         
-        // ★ 生成完了後、プレビュー領域まで自動スクロール
+        // 生成完了後、プレビュー領域まで自動スクロール
         setTimeout(() => {
           previewRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }, 300);
@@ -662,15 +663,10 @@ function HomeContent() {
   return (
     <div className="min-h-screen bg-[#f4f4f5] text-zinc-900 p-2 sm:p-6 lg:p-8 flex flex-col items-center justify-start font-sans selection:bg-zinc-200">
       
-      {/* 
-        ========================================================
-        スマホの「上下スワイプ地獄」を完全解決するレイアウト
-        モバイルでは、プレビュー領域を上に持ってきて sticky でピン留め！
-        ========================================================
-      */}
+      {/* 2ペイン並列レイアウト（モバイルではプレビューを上部にSticky固定） */}
       <div className="w-full max-w-7xl flex flex-col lg:flex-row gap-4 sm:gap-6 items-start justify-center">
         
-        {/* ▼▼ プレビュー領域（スマホでは sticky top-2 で上部に固定追従！） ▼▼ */}
+        {/* ▼▼ プレビュー領域 ▼▼ */}
         <div 
           ref={previewRef}
           className="w-full lg:w-1/2 shrink-0 sticky top-2 z-30 lg:top-8 flex flex-col gap-3"
@@ -714,7 +710,7 @@ function HomeContent() {
                 </div>
               </div>
 
-              {/* シミュレーション表示コンテナ（スマホでは縦幅を抑えて操作エリアを広く確保） */}
+              {/* シミュレーション表示コンテナ */}
               <div className="bg-[#e4e4e7] flex flex-col items-center justify-center p-2 sm:p-6 relative shadow-inner overflow-hidden">
                 
                 {/* 1. 40cm幅 データ完成図 */}
@@ -724,7 +720,7 @@ function HomeContent() {
                       className="w-full max-w-[320px] sm:max-w-[400px] h-[220px] sm:h-[400px] border border-zinc-300 bg-white shadow-md"
                       style={{ 
                         backgroundImage: `url(${imageUrl})`, 
-                        backgroundSize: creationMode === 'geometric' ? `${bgSizeMm * 4}px ${bgSizeMm * 4}px` : '100% auto',
+                        backgroundSize: creationMode === 'geometric' ? `${bgSizeMm * 4}px auto` : '100% auto',
                         backgroundRepeat: 'repeat',
                         backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff'
                       }} 
@@ -733,32 +729,32 @@ function HomeContent() {
                   </div>
                 )}
 
-                {/* 2. 半幅帯 モックアップ (最新角度微調整 ＆ 実寸パーセントスケール連動版) */}
+                {/* 2. 半幅帯 モックアップ (★ どんなアスペクト比でもアスペクト比を100%保持する auto 指定) */}
                 {displayMode === 'obi' && (
                   <div className="w-full flex flex-col items-center animate-fade-in">
                     <div className="relative w-[210px] sm:w-[340px] aspect-square mx-auto drop-shadow-xl">
                       {(() => {
-                        // ★ 実寸スケール連動（画面サイズに左右されず、帯幅16.5cmに対する実寸mm比率をパーセントで完全同期）
                         // 1200pxモックアップ中で帯幅16.5cmは約440px（36.67%）
-                        const mmToPercent = ((440 / 1200) / 165) * 100; // 1mmあたりのパーセント（約 0.2222%）
+                        const mmToPercent = ((440 / 1200) / 165) * 100;
                         
+                        // ★ 高さを auto にすることで、正方形・16:9・9:16など元画像のアスペクト比を100%歪みなく完全維持！
                         const patternSize = creationMode === 'geometric' 
-                          ? `${bgSizeMm * mmToPercent}% ${bgSizeMm * mmToPercent}%` 
-                          : `${400 * mmToPercent}% ${400 * mmToPercent}%`; // AI小紋40cm
+                          ? `${bgSizeMm * mmToPercent}% auto` 
+                          : `${400 * mmToPercent}% auto`; // 40cm幅基準
                         
-                        // 幾何学モードは1タイルのSVGを使い、AIモードは90度回転PNGを使用
+                        // 幾何学モードは1タイルのSVG、AIモードは（hanhabaなら90度回転済み）テクスチャ
                         const effectivePatternUrl = creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl);
-                        const v = '10'; // キャッシュ強制更新
+                        const v = '11'; // キャッシュ強制更新
 
                         return (
                           <div className="relative w-full h-full overflow-hidden">
-                            {/* ★ レイヤー1〜6 (1度単位で精査した本来の微傾斜で、全パーツ縦方向にスーッと通す) */}
+                            {/* ★ レイヤー1〜6 (1度単位の微傾斜で、全パーツ縦方向にスーッと通す) */}
                             {[
                               { id: '01', file: 'hanhaba_Layer01.png', z: 10, rot: 2,   bgX: '12%', bgY: '34%' },
-                              { id: '02', file: 'hanhaba_Layer02.png', z: 20, rot: 1,   bgX: '45%', bgY: '67%' }, // 垂直に対して+1°微傾斜
-                              { id: '03', file: 'hanhaba_Layer03.png', z: 30, rot: 8,   bgX: '78%', bgY: '12%' }, // 垂直に対して+8°微傾斜
-                              { id: '04', file: 'hanhaba_Layer04.png', z: 40, rot: -1,  bgX: '23%', bgY: '89%' }, // 垂直に対して-1°微傾斜
-                              { id: '05', file: 'hanhaba_Layer05.png', z: 50, rot: -12, bgX: '56%', bgY: '45%' }, // 羽根の斜め
+                              { id: '02', file: 'hanhaba_Layer02.png', z: 20, rot: 1,   bgX: '45%', bgY: '67%' },
+                              { id: '03', file: 'hanhaba_Layer03.png', z: 30, rot: 8,   bgX: '78%', bgY: '12%' },
+                              { id: '04', file: 'hanhaba_Layer04.png', z: 40, rot: -1,  bgX: '23%', bgY: '89%' },
+                              { id: '05', file: 'hanhaba_Layer05.png', z: 50, rot: -12, bgX: '56%', bgY: '45%' },
                               { id: '06', file: 'hanhaba_Layer06.png', z: 60, rot: -3,  bgX: '89%', bgY: '23%' },
                             ].map((layer) => (
                               <div 
@@ -795,7 +791,7 @@ function HomeContent() {
                               </div>
                             ))}
 
-                            {/* ★ レイヤー7 (裏地) + 白浮きしない上品な薄銀鼠グレー下地 */}
+                            {/* ★ レイヤー7 (裏地) + 薄銀鼠グレー下地 */}
                             <div 
                               className="absolute inset-0 pointer-events-none" 
                               style={{ 
@@ -810,7 +806,6 @@ function HomeContent() {
                                 WebkitMaskPosition: 'center',
                               }}
                             >
-                              {/* 黒を遮断しつつ落ち着いたトーンに馴染ませる薄グレー */}
                               <div 
                                 style={{
                                   position: 'absolute',
@@ -856,13 +851,12 @@ function HomeContent() {
           )}
         </div>
 
-        {/* ▼▼ 左側（モバイルでは下側）：操作パネル（入力・スライダー・ボタン） ▼▼ */}
+        {/* ▼▼ 操作パネル ▼▼ */}
         <div className="w-full lg:w-1/2 bg-white border border-zinc-200 p-4 sm:p-8 lg:p-10 shrink-0 shadow-sm z-10">
           
           {/* ① ヘッダーエリア */}
           <div className="text-center mb-6 sm:mb-8 p-5 sm:p-8 bg-zinc-950 text-white shadow-inner">
             <h1 className="text-xl sm:text-2xl font-black tracking-widest text-center leading-tight">
-              {/* ★ トップページタイトル修正 */}
               {isShopify ? 'プリンタグ見本帳' : '妄想きもの図案帳'}
             </h1>
             <p className="text-[11px] sm:text-xs text-zinc-400 mt-3 leading-relaxed font-medium tracking-wider">
@@ -1162,7 +1156,7 @@ function HomeContent() {
                 </div>
               </>
             ) : (
-              /* 幾何学モード UI (スマホで上の帯を見ながらリアルタイム調整可能！) */
+              /* 幾何学モード UI */
               <div className="space-y-5 animate-fade-in">
                 <div className="bg-zinc-50 border border-zinc-200 text-zinc-800 p-3 text-xs shadow-sm">
                   <p className="font-bold text-[11px] mb-0.5">💡 使い放題モード</p>
