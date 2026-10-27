@@ -15,7 +15,6 @@ import {
   type DotLayout 
 } from './utils/geometricPatterns';
 
-// 16:9横長AI画像を時計回りに90度回転させて縦長DataURLに変換する関数
 async function rotateImage90Degrees(imageUrl: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -66,7 +65,7 @@ const TRADITIONAL_COLORS = [
   { name: '甚三紅 (じんざもみ)', hex: '#ee827c', text: '柔らかなサーモンレッド地', isDark: false },
   { name: '緋色 (ひいろ)', hex: '#d3381c', text: '鮮烈なスカーレットレッド地', isDark: true },
   { name: '朱色 (しゅ)', hex: '#ea5532', text: '鮮やかな朱赤地', isDark: true },
-  { name: '紅赤 (べニアカ)', hex: '#e54256', text: '鮮やかなルビーレッド地', isDark: true },
+  { name: '紅赤 (べにあか)', hex: '#e54256', text: '鮮やかなルビーレッド地', isDark: true },
   { name: '真紅 (しんく)', hex: '#a22041', text: '深みのあるピュアレッド地', isDark: true },
   { name: '茜色 (あかね)', hex: '#b7282e', text: '温かみのある茜色地', isDark: true },
   { name: '深緋 (こきひ)', hex: '#8b1e2a', text: '深みのあるボルドー地', isDark: true },
@@ -289,7 +288,8 @@ function HomeContent() {
 
   const [motif, setMotif] = useState('');
   const [selectedColors, setSelectedColors] = useState<typeof TRADITIONAL_COLORS>([]);
-  const [density, setDensity] = useState('四方柄（上下なし・散らし柄）');
+  
+  const [density, setDensity] = useState('四方柄（上下なし）');
   const [itemType, setItemType] = useState('hanhaba'); 
   const [patternTitle, setPatternTitle] = useState('');
   const [loading, setLoading] = useState(false);
@@ -324,14 +324,10 @@ function HomeContent() {
   const [showGeoPaletteFor, setShowGeoPaletteFor] = useState<'bg' | 'pattern' | null>(null);
   
   const [bgSizeMm, setBgSizeMm] = useState(100);
-  
-  const [obiLiningColor, setObiLiningColor] = useState('#8f2e14'); // デフォルト弁柄
+  const [obiLiningColor, setObiLiningColor] = useState('#8f2e14'); 
   const [showLiningPalette, setShowLiningPalette] = useState(false);
 
-  // ★ 半幅帯マッピング用テクスチャ（AI画像の場合は90度回転済み）
   const [rotatedPatternUrl, setRotatedPatternUrl] = useState<string>('');
-
-  // ★ プレビュー領域へのスクロール用Ref
   const previewRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -374,8 +370,6 @@ function HomeContent() {
     }
   }, [motif]);
 
-  // ★ AI生成画像のアスペクト比に応じた適切な処理
-  // 横長（hanhaba: 16:9）の時だけ90度回転させて帯の流れに合わせ、正方形(square)や最初から縦長の反物(tanmono)はそのままの比率を活かす
   useEffect(() => {
     const src = blobUrl || imageUrl;
     if (!src) {
@@ -425,7 +419,6 @@ function HomeContent() {
     const svgDataUrl = `data:image/svg+xml;utf8,${encodeURIComponent(svgString)}`;
     setImageUrl(svgDataUrl);
     
-    // SVGをPNGに変換してタイリングバグを防ぐ
     const highResPng = await svgToHighResPng(svgString, 2400);
     setBlobUrl(highResPng);
     setSerialNumber(prev => prev.startsWith('GEO-') ? prev : `GEO-${Math.floor(1000 + Math.random() * 9000)}`);
@@ -534,7 +527,6 @@ function HomeContent() {
         }));
         setRemainingCount(Math.max(0, MAX_GENERATIONS_PER_DAY - newCount));
         
-        // 生成完了後、プレビュー領域まで自動スクロール
         setTimeout(() => {
           previewRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }, 300);
@@ -577,6 +569,7 @@ function HomeContent() {
   const handleOrderClick = async (e: MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault(); 
     try {
+      // blobUrl は生成された元画像（40cm幅/18cm高の平面データ）
       let finalImageUrl = blobUrl || imageUrl;
 
       if (finalImageUrl && finalImageUrl.startsWith('data:')) {
@@ -611,7 +604,7 @@ function HomeContent() {
       const copyText = `図案ID: ${serialNumber}\n銘: ${finalTitle}`;
       try {
         await navigator.clipboard.writeText(copyText);
-        alert(`【工場へのデータ送信完了】\n図案「${finalTitle}」の高解像度データを工場へ送信しました。\n\n画面切り替え後、MakeShopのシリアル番号欄に「${serialNumber}」が自動入力されているかご確認ください。`);
+        alert(`【工場へのデータ送信完了】\n図案「${finalTitle}」の高解像度データ（平面）を職人へ送信しました。\n\n画面切り替え後、MakeShopのシリアル番号欄に「${serialNumber}」が自動入力されているかご確認ください。`);
       } catch (err) {
         console.warn('クリップボードのコピーに失敗しました', err);
       }
@@ -662,11 +655,8 @@ function HomeContent() {
 
   return (
     <div className="min-h-screen bg-[#f4f4f5] text-zinc-900 p-2 sm:p-6 lg:p-8 flex flex-col items-center justify-start font-sans selection:bg-zinc-200">
-      
-      {/* 2ペイン並列レイアウト（モバイルではプレビューを上部にSticky固定） */}
       <div className="w-full max-w-7xl flex flex-col lg:flex-row gap-4 sm:gap-6 items-start justify-center">
         
-        {/* ▼▼ プレビュー領域 ▼▼ */}
         <div 
           ref={previewRef}
           className="w-full lg:w-1/2 shrink-0 sticky top-2 z-30 lg:top-8 flex flex-col gap-3"
@@ -674,7 +664,6 @@ function HomeContent() {
           {imageUrl && (
             <div className="bg-white border border-zinc-300 shadow-xl overflow-hidden animate-fade-in">
               
-              {/* コンパクトヘッダー */}
               <div className="px-3 py-2 sm:p-4 border-b border-zinc-200 bg-zinc-50/90 flex justify-between items-center">
                 <div>
                   <span className="text-[8px] sm:text-[9px] font-mono font-bold tracking-widest text-zinc-400 block">
@@ -694,7 +683,7 @@ function HomeContent() {
                         : 'bg-white text-zinc-800 border-zinc-300'
                     }`}
                   >
-                    半幅帯
+                    半幅帯プレビュー
                   </button>
                   <button
                     type="button"
@@ -705,50 +694,57 @@ function HomeContent() {
                         : 'bg-white text-zinc-600 border-zinc-300'
                     }`}
                   >
-                    40cm幅
+                    平面データ(原寸確認)
                   </button>
                 </div>
               </div>
 
-              {/* シミュレーション表示コンテナ */}
               <div className="bg-[#e4e4e7] flex flex-col items-center justify-center p-2 sm:p-6 relative shadow-inner overflow-hidden">
                 
-                {/* 1. 40cm幅 データ完成図 */}
                 {displayMode === 'fabric' && (
                   <div className="flex flex-col items-center w-full animate-fade-in">
-                    <div 
-                      className="w-full max-w-[320px] sm:max-w-[400px] h-[220px] sm:h-[400px] border border-zinc-300 bg-white shadow-md"
-                      style={{ 
-                        backgroundImage: `url(${imageUrl})`, 
-                        backgroundSize: creationMode === 'geometric' ? `${bgSizeMm * 4}px auto` : '100% auto',
-                        backgroundRepeat: 'repeat',
-                        backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff'
-                      }} 
-                    />
-                    <p className="text-[9px] sm:text-[10px] text-zinc-500 mt-2 font-medium">※枠幅を実際の約40cmとした原寸シミュレーション</p>
+                    <div className="relative">
+                      <div 
+                        className="w-full max-w-[320px] sm:max-w-[400px] h-[220px] sm:h-[400px] border border-zinc-300 bg-white shadow-md relative"
+                        style={{ 
+                          backgroundImage: `url(${imageUrl})`, 
+                          backgroundSize: creationMode === 'geometric' ? `${bgSizeMm * 4}px auto` : '100% auto',
+                          backgroundRepeat: 'repeat',
+                          backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff'
+                        }} 
+                      >
+                        <div className="absolute inset-0 m-auto border-[1.5px] border-dashed border-zinc-950/40 pointer-events-none" 
+                             style={{ height: '45%' }} 
+                        />
+                        <span className="absolute top-[28%] left-2 bg-white/80 px-1 text-[8px] sm:text-[9px] font-bold text-zinc-600">
+                          18cmガイド
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <p className="text-[9px] sm:text-[10px] text-zinc-500 mt-3 font-medium bg-white/80 px-2 py-1 rounded">
+                      {itemType === 'hanhaba' 
+                        ? '※指定サイズ「高さ18cm」での原寸シミュレーション（工房へはこの平面データが送信されます）'
+                        : '※指定サイズ「幅40cm」での原寸シミュレーション（工房へはこの平面データが送信されます）'}
+                    </p>
                   </div>
                 )}
 
-                {/* 2. 半幅帯 モックアップ (★ どんなアスペクト比でもアスペクト比を100%保持する auto 指定) */}
                 {displayMode === 'obi' && (
                   <div className="w-full flex flex-col items-center animate-fade-in">
                     <div className="relative w-[210px] sm:w-[340px] aspect-square mx-auto drop-shadow-xl">
                       {(() => {
-                        // 1200pxモックアップ中で帯幅16.5cmは約440px（36.67%）
                         const mmToPercent = ((440 / 1200) / 165) * 100;
                         
-                        // ★ 高さを auto にすることで、正方形・16:9・9:16など元画像のアスペクト比を100%歪みなく完全維持！
                         const patternSize = creationMode === 'geometric' 
                           ? `${bgSizeMm * mmToPercent}% auto` 
-                          : `${400 * mmToPercent}% auto`; // 40cm幅基準
+                          : `${400 * mmToPercent}% auto`;
                         
-                        // 幾何学モードは1タイルのSVG、AIモードは（hanhabaなら90度回転済み）テクスチャ
                         const effectivePatternUrl = creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl);
-                        const v = '11'; // キャッシュ強制更新
+                        const v = '11';
 
                         return (
                           <div className="relative w-full h-full overflow-hidden">
-                            {/* ★ レイヤー1〜6 (1度単位の微傾斜で、全パーツ縦方向にスーッと通す) */}
                             {[
                               { id: '01', file: 'hanhaba_Layer01.png', z: 10, rot: 2,   bgX: '12%', bgY: '34%' },
                               { id: '02', file: 'hanhaba_Layer02.png', z: 20, rot: 1,   bgX: '45%', bgY: '67%' },
@@ -791,7 +787,6 @@ function HomeContent() {
                               </div>
                             ))}
 
-                            {/* ★ レイヤー7 (裏地) + 薄銀鼠グレー下地 */}
                             <div 
                               className="absolute inset-0 pointer-events-none" 
                               style={{ 
@@ -828,7 +823,6 @@ function HomeContent() {
                               />
                             </div>
 
-                            {/* 影・シワレイヤー (hanhaba_Layer_kage.png) */}
                             <div 
                               className="absolute inset-0 pointer-events-none"
                               style={{
@@ -851,10 +845,8 @@ function HomeContent() {
           )}
         </div>
 
-        {/* ▼▼ 操作パネル ▼▼ */}
         <div className="w-full lg:w-1/2 bg-white border border-zinc-200 p-4 sm:p-8 lg:p-10 shrink-0 shadow-sm z-10">
           
-          {/* ① ヘッダーエリア */}
           <div className="text-center mb-6 sm:mb-8 p-5 sm:p-8 bg-zinc-950 text-white shadow-inner">
             <h1 className="text-xl sm:text-2xl font-black tracking-widest text-center leading-tight">
               {isShopify ? 'プリンタグ見本帳' : '妄想きもの図案帳'}
@@ -874,7 +866,6 @@ function HomeContent() {
             </p>
           </div>
 
-          {/* モード切替タブ */}
           <div className="flex bg-zinc-50 border border-zinc-200 p-1 mb-6 shadow-sm">
             <button
               type="button"
@@ -899,7 +890,6 @@ function HomeContent() {
           <div className="space-y-6">
             {creationMode === 'ai' ? (
               <>
-                {/* 壱. プロンプト自由入力 */}
                 <div>
                   <div className="flex justify-between items-baseline mb-2">
                     <label className="block text-xs font-bold text-zinc-900 tracking-wider">
@@ -961,7 +951,6 @@ function HomeContent() {
                   )}
                 </div>
 
-                {/* 弐. 配色・地色 */}
                 <div className="pt-2 border-t border-zinc-100">
                   <div className="flex justify-between items-baseline mb-2">
                     <div>
@@ -1039,7 +1028,6 @@ function HomeContent() {
                   )}
                 </div>
 
-                {/* 参. 形式と密度 */}
                 <div className="grid grid-cols-2 gap-3 pt-2 border-t border-zinc-100">
                   <div>
                     <label className="block text-xs font-bold text-zinc-800 tracking-wider mb-2">
@@ -1047,10 +1035,9 @@ function HomeContent() {
                     </label>
                     <div className="flex flex-col gap-1.5">
                       {[
-                        { id: '四方柄（上下なし・散らし柄）', label: '四方柄（上下なし）' },
-                        { id: '総柄（ぎっしり華やか）', label: '総柄（ぎっしり）' },
-                        { id: '飛び柄（余白のある小紋）', label: '飛び柄（余白あり）' },
-                        { id: 'お太鼓柄（ワンポイント/1枚絵）', label: 'お太鼓（1枚絵）' }
+                        { id: '四方柄（上下なし）', label: '小紋・四方柄（上下なし）' },
+                        { id: '飛び柄（余白あり）', label: '飛び柄（余白スッキリ）' },
+                        { id: 'お太鼓柄（ワンポイント/1枚絵）', label: 'お太鼓柄（ワンポイント）' }
                       ].map((item) => (
                         <button
                           key={item.id}
@@ -1074,9 +1061,9 @@ function HomeContent() {
                     </label>
                     <div className="flex flex-col gap-1.5">
                       {[
-                        { id: 'hanhaba', label: '半幅帯 (横長 16:9)' },
-                        { id: 'square', label: '正方形 (お太鼓・リピート)' },
-                        { id: 'tanmono', label: '反物 (縦長 9:16)' },
+                        { id: 'hanhaba', label: '半幅帯 (高さ18cm基準 / 16:9)' },
+                        { id: 'square', label: '正方形 (40cm角基準 / 1:1)' },
+                        { id: 'tanmono', label: '反物 (幅40cm基準 / 9:16)' },
                       ].map((item) => (
                         <button
                           key={item.id}
@@ -1095,7 +1082,6 @@ function HomeContent() {
                   </div>
                 </div>
 
-                {/* 伍. 図案銘 */}
                 <div className="pt-2 border-t border-zinc-100">
                   <label className="block text-xs font-bold text-zinc-800 tracking-wider mb-1">
                     05. 図案銘 <span className="text-[10px] text-zinc-400 font-normal">（作品タイトル）</span>
@@ -1110,7 +1096,6 @@ function HomeContent() {
                   />
                 </div>
 
-                {/* 利用同意＆生成ボタン */}
                 <div className="pt-2 border-t border-zinc-100">
                   <label className="flex items-start gap-2.5 cursor-pointer select-none mb-4 group">
                     <input
@@ -1156,11 +1141,10 @@ function HomeContent() {
                 </div>
               </>
             ) : (
-              /* 幾何学モード UI */
               <div className="space-y-5 animate-fade-in">
                 <div className="bg-zinc-50 border border-zinc-200 text-zinc-800 p-3 text-xs shadow-sm">
                   <p className="font-bold text-[11px] mb-0.5">💡 使い放題モード</p>
-                  <p className="text-[10px] opacity-90">上の帯プレビューを見ながら、サイズや色を自由にいじって遊んでみてください。</p>
+                  <p className="text-[10px] opacity-90">上のプレビューを見ながら、サイズや色を自由にいじって遊んでみてください。</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -1207,7 +1191,6 @@ function HomeContent() {
                   )}
                 </div>
 
-                {/* スライダーエリア */}
                 <div className="space-y-3.5 pt-3 border-t border-zinc-100">
                   <label className="block text-xs font-bold text-zinc-900 mb-2">サイズ調整（mm実寸連動）</label>
                   
@@ -1260,7 +1243,6 @@ function HomeContent() {
                   )}
                 </div>
 
-                {/* カラー選択 */}
                 <div className="pt-3 border-t border-zinc-100 space-y-3">
                   <div className="grid grid-cols-2 gap-3">
                     <div>
@@ -1322,7 +1304,6 @@ function HomeContent() {
                   )}
                 </div>
 
-                {/* 裏地色変更UI */}
                 <div className="pt-3 border-t border-zinc-100">
                   <div className="flex items-center gap-2">
                     <label className="text-[10px] font-bold text-zinc-700 whitespace-nowrap">裏地の色：</label>
@@ -1383,7 +1364,6 @@ function HomeContent() {
               </div>
             )}
 
-            {/* 保存・注文アクションボタン */}
             {imageUrl && (
               <div className="pt-4 border-t border-zinc-200 space-y-3">
                 <div className="grid grid-cols-2 gap-2">
