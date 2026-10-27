@@ -106,7 +106,7 @@ const TRADITIONAL_COLORS = [
   { name: '菜の花 (なのはな)', hex: '#ffec47', text: '明るいカナリアイエロー地', isDark: false },
   { name: '蒲公英 (たんぽぽ)', hex: '#ffd900', text: '鮮やかなビビッドイエロー地', isDark: false },
   { name: '山吹 (やまぶき)', hex: '#f8b500', text: '華やかな黄金・マスタード地', isDark: true },
-  { name: '鬱金 (うcon)', hex: '#fabf14', text: '温かみのあるサフランイエロー地', isDark: false },
+  { name: '鬱金 (うこん)', hex: '#fabf14', text: '温かみのあるサフランイエロー地', isDark: false },
   { name: '芥子 (からし)', hex: '#d0af4c', text: '渋い辛子色地', isDark: false },
   { name: '金茶 (きんちゃ)', hex: '#c7802d', text: '深みのあるゴールデンブラウン地', isDark: true },
   { name: '黄土 (おうど)', hex: '#c39143', text: '落ち着きのあるオーカー地', isDark: true },
@@ -155,7 +155,7 @@ const TRADITIONAL_COLORS = [
   { name: '白藤 (しらふじ)', hex: '#dbd0e6', text: 'ごく淡いペールライラック地', isDark: false },
   { name: '藤色 (ふじ)', hex: '#bbbcde', text: '淡いラベンダー地', isDark: false },
   { name: '紫苑 (しおん)', hex: '#8f77b5', text: '澄んだライトバイオレット地', isDark: true },
-  { name: '菖蒲 (あやめ)', hex: '#cc7eb1', text: '明るいオーキッドパープル地', isDark: true },
+  { name: '菖蒲 (あやme)', hex: '#cc7eb1', text: '明るいオーキッドパープル地', isDark: true },
   { name: '竜胆 (りんどう)', hex: '#9079ad', text: '上品なアメジストパープル地', isDark: true },
   { name: '桔梗 (ききょう)', hex: '#5654a2', text: '鮮やかな青紫・バイオレット地', isDark: true },
   { name: '江戸紫 (えど)', hex: '#745399', text: '濃い赤紫地', isDark: true },
@@ -290,10 +290,7 @@ function HomeContent() {
   const [selectedColors, setSelectedColors] = useState<typeof TRADITIONAL_COLORS>([]);
   
   const [density, setDensity] = useState('四方柄（上下なし）');
-  
-  // ★ アイテム選択のState (現在はhanhabaのみ有効)
   const [itemType, setItemType] = useState<'hanhaba' | 'kyobukuro' | 'kimono'>('hanhaba'); 
-  
   const [patternTitle, setPatternTitle] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
@@ -302,8 +299,8 @@ function HomeContent() {
   const [agreed, setAgreed] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   
-  // ★ モード選択のState (3タブ構成)
-  const [displayMode, setDisplayMode] = useState<'mockup' | 'trim' | 'fabric'>('mockup');
+  // ★ プレビュータブの表示状態（分かりやすい構成に再編）
+  const [displayMode, setDisplayMode] = useState<'hanhaba' | 'trim' | 'fabric'>('hanhaba');
   
   const [mockupSubmitting, setMockupSubmitting] = useState(false);
   const [mockupSuccess, setMockupSuccess] = useState(false);
@@ -370,7 +367,7 @@ function HomeContent() {
       localStorage.removeItem('komon_generations');
       setRemainingCount(MAX_GENERATIONS_PER_DAY);
       setMotif('');
-      alert('【管理者モード】本日の生成回数を全回復しました！✨');
+      alert('【管理者モード】本日の生成回数を全回復しました。');
     }
   }, [motif]);
 
@@ -494,7 +491,7 @@ function HomeContent() {
 
     if (currentCount >= MAX_GENERATIONS_PER_DAY) {
       setRemainingCount(0);
-      alert(`【本日の上限に達しました🙏】\n\nお試しいただきありがとうございます！\nAIのサーバー利用料（課金）が高額になってしまうため、無料での作成は「お一人様1日3回まで」とさせていただいております。\n\nまた明日、新しい図案を作りに来てくださいね！`);
+      alert(`[本日の上限に達しました]\n\nお試しいただきありがとうございます。\nAIのサーバー利用料（課金）が高額になってしまうため、無料での作成は「お一人様1日3回まで」とさせていただいております。\n\nまた明日、新しい図案を作りに来てください。`);
       return;
     }
 
@@ -522,7 +519,7 @@ function HomeContent() {
         setBlobUrl(data.blobUrl);   
         setSerialNumber(`KOMON-${Math.floor(1000 + Math.random() * 9000)}`);
         
-        setDisplayMode('mockup'); // 生成後はモックアップタブへ
+        setDisplayMode('hanhaba'); // 生成後はデフォルトでモックアップ表示へ
 
         const newCount = currentCount + 1;
         localStorage.setItem('komon_generations', JSON.stringify({
@@ -607,7 +604,7 @@ function HomeContent() {
       const copyText = `図案ID: ${serialNumber}\n銘: ${finalTitle}`;
       try {
         await navigator.clipboard.writeText(copyText);
-        alert(`【工場へのデータ送信完了】\n図案「${finalTitle}」の高解像度データ（平面）を職人へ送信しました。\n\n画面切り替え後、MakeShopのシリアル番号欄に「${serialNumber}」が自動入力されているかご確認ください。`);
+        alert(`[工場へのデータ送信完了]\n図案「${finalTitle}」の高解像度データ（平面）を職人へ送信しました。\n\n画面切り替え後、MakeShopのシリアル番号欄に「${serialNumber}」が自動入力されているかご確認ください。`);
       } catch (err) {
         console.warn('クリップボードのコピーに失敗しました', err);
       }
@@ -644,7 +641,7 @@ function HomeContent() {
       }
 
       setMockupSuccess(true);
-      alert(`【登録完了】\n図案「${finalTitle}」（デザインフィー: ¥${designFee}）をShopifyへ下書き登録しました！`);
+      alert(`[登録完了]\n図案「${finalTitle}」（デザインフィー: ¥${designFee}）をShopifyへ下書き登録しました。`);
     } catch (err: any) {
       console.error(err);
       setErrorMsg(err.message || '通信エラーが発生しました。');
@@ -681,49 +678,76 @@ function HomeContent() {
                 </div>
               </div>
 
-              {/* ★ 2段タブナビゲーション（下段：表示形式の切り替え） */}
-              <div className="px-2 py-2 sm:p-3 border-b border-zinc-200 bg-zinc-100/80 flex gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => setDisplayMode('mockup')}
-                  className={`flex-1 px-1 py-1.5 sm:py-2 text-[10px] sm:text-xs font-bold tracking-wider transition-all border rounded-sm ${
-                    displayMode === 'mockup'
-                      ? 'bg-zinc-900 text-white border-zinc-900 shadow'
-                      : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50'
-                  }`}
-                >
-                  🎀 着用イメージ
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDisplayMode('trim')}
-                  className={`flex-1 px-1 py-1.5 sm:py-2 text-[10px] sm:text-xs font-bold tracking-wider transition-all border rounded-sm ${
-                    displayMode === 'trim'
-                      ? 'bg-zinc-900 text-white border-zinc-900 shadow'
-                      : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50'
-                  }`}
-                >
-                  📏 18cm裁断イメージ
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDisplayMode('fabric')}
-                  className={`flex-1 px-1 py-1.5 sm:py-2 text-[10px] sm:text-xs font-bold tracking-wider transition-all border rounded-sm ${
-                    displayMode === 'fabric'
-                      ? 'bg-zinc-900 text-white border-zinc-900 shadow'
-                      : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50'
-                  }`}
-                >
-                  📜 40cm全体データ
-                </button>
+              {/* ★ 新しい2段構えのナビゲーション（絵文字廃止・スッキリしたプロ仕様） */}
+              <div className="px-3 py-3 border-b border-zinc-200 bg-zinc-100 flex flex-col gap-3">
+                {/* 上段：マッピング（着用シミュレーション） */}
+                <div>
+                  <div className="text-[9px] font-bold text-zinc-500 mb-1.5 tracking-wider">マッピング確認 (着用シミュレーション)</div>
+                  <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
+                    <button
+                      type="button"
+                      onClick={() => setDisplayMode('hanhaba')}
+                      className={`shrink-0 px-3 py-1.5 text-[10px] sm:text-xs font-bold tracking-wider transition-all border rounded-sm ${
+                        displayMode === 'hanhaba'
+                          ? 'bg-zinc-900 text-white border-zinc-900 shadow'
+                          : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50'
+                      }`}
+                    >
+                      半幅帯マッピング
+                    </button>
+                    <button
+                      type="button"
+                      disabled
+                      className="shrink-0 px-3 py-1.5 text-[10px] sm:text-xs font-bold tracking-wider transition-all border rounded-sm bg-zinc-200 text-zinc-400 border-zinc-300 cursor-not-allowed opacity-70"
+                    >
+                      京袋帯マッピング (準備中)
+                    </button>
+                    <button
+                      type="button"
+                      disabled
+                      className="shrink-0 px-3 py-1.5 text-[10px] sm:text-xs font-bold tracking-wider transition-all border rounded-sm bg-zinc-200 text-zinc-400 border-zinc-300 cursor-not-allowed opacity-70"
+                    >
+                      着物マッピング (準備中)
+                    </button>
+                  </div>
+                </div>
+
+                {/* 下段：平面データ（仕上がり・データ確認） */}
+                <div>
+                  <div className="text-[9px] font-bold text-zinc-500 mb-1.5 tracking-wider">データ確認 (仕上がり・反物全体)</div>
+                  <div className="flex gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setDisplayMode('trim')}
+                      className={`flex-1 px-3 py-1.5 text-[10px] sm:text-xs font-bold tracking-wider transition-all border rounded-sm ${
+                        displayMode === 'trim'
+                          ? 'bg-zinc-900 text-white border-zinc-900 shadow'
+                          : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50'
+                      }`}
+                    >
+                      18cm裁断イメージ
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDisplayMode('fabric')}
+                      className={`flex-1 px-3 py-1.5 text-[10px] sm:text-xs font-bold tracking-wider transition-all border rounded-sm ${
+                        displayMode === 'fabric'
+                          ? 'bg-zinc-900 text-white border-zinc-900 shadow'
+                          : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50'
+                      }`}
+                    >
+                      40cm全体データ
+                    </button>
+                  </div>
+                </div>
               </div>
 
-              <div className="bg-[#e4e4e7] flex flex-col items-center justify-center p-3 sm:p-6 relative shadow-inner overflow-hidden">
+              <div className="bg-[#e4e4e7] flex flex-col items-center justify-center p-3 sm:p-6 relative shadow-inner overflow-hidden min-h-[300px]">
                 
                 {/* ======================================================== */}
-                {/* 1. モックアップ (着用イメージ) */}
+                {/* 1. モックアップ (半幅帯着用イメージ) */}
                 {/* ======================================================== */}
-                {displayMode === 'mockup' && (
+                {displayMode === 'hanhaba' && (
                   <div className="w-full flex flex-col items-center animate-fade-in">
                     <div className="relative w-[210px] sm:w-[340px] aspect-square mx-auto drop-shadow-xl">
                       {(() => {
@@ -837,28 +861,32 @@ function HomeContent() {
                 )}
 
                 {/* ======================================================== */}
-                {/* 2. トリム (18cm 裁断イメージ) */}
+                {/* 2. トリム (18cm 裁断イメージ - 90度回転) */}
                 {/* ======================================================== */}
                 {displayMode === 'trim' && (
                   <div className="w-full flex flex-col items-center animate-fade-in">
+                    
+                    {/* ★ 40:18の横長枠の中で、柄を90度回転させて「帯として巻いた時の流れ」を正確に再現 */}
                     <div 
-                      className="w-full max-w-[280px] sm:max-w-[400px] border border-zinc-300 bg-white shadow-md relative overflow-hidden"
-                      style={{ aspectRatio: '40 / 18' }} // ★ ここがキモ：40cm幅から18cm分だけを切り抜く黄金比
+                      className="relative w-[280px] sm:w-[400px] mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden"
+                      style={{ aspectRatio: '40 / 18' }}
                     >
-                      <div 
-                        className="absolute inset-0"
-                        style={{
-                          backgroundImage: `url(${creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl)})`, 
-                          backgroundSize: creationMode === 'geometric' ? `${(bgSizeMm / 400) * 100}% auto` : '100% auto',
-                          backgroundPosition: 'center center',
-                          backgroundRepeat: 'repeat',
-                          backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff'
-                        }}
-                      />
+                      <div className="absolute top-1/2 left-1/2 w-full aspect-square -translate-x-1/2 -translate-y-1/2 -rotate-90">
+                        <div 
+                          className="w-full h-full"
+                          style={{
+                            backgroundImage: `url(${creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl)})`, 
+                            backgroundSize: creationMode === 'geometric' ? `${(bgSizeMm / 400) * 100}% auto` : '100% auto',
+                            backgroundPosition: 'center center',
+                            backgroundRepeat: 'repeat',
+                            backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff'
+                          }}
+                        />
+                      </div>
                     </div>
                     
                     <p className="text-[9px] sm:text-[10px] text-zinc-500 mt-4 font-medium bg-white/80 px-2 py-1 rounded text-center leading-relaxed">
-                      ※ 幅40cmの反物データから、<strong className="text-zinc-900">帯幅(約18cm)</strong>に裁断した場合のトリミング・イメージです。<br />
+                      ※ 帯として横に巻いた時の向き（90度回転）を想定した裁断イメージです。<br />
                       （表示されている範囲が帯の表面として仕立てられます）
                     </p>
                   </div>
@@ -868,8 +896,10 @@ function HomeContent() {
                 {/* 3. ファブリック (40cm 全体データ) */}
                 {/* ======================================================== */}
                 {displayMode === 'fabric' && (
-                  <div className="w-full flex flex-col items-center animate-fade-in">
-                    <div className="w-full max-w-[280px] sm:max-w-[400px] aspect-square border border-zinc-300 bg-white shadow-md relative overflow-hidden">
+                  <div className="flex flex-col items-center w-full animate-fade-in">
+                    
+                    {/* ★ ペチャンコにならないよう、固定幅＋aspect-square を直接指定 */}
+                    <div className="relative w-[260px] sm:w-[400px] aspect-square mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden">
                       <div 
                         className="absolute inset-0"
                         style={{
@@ -880,10 +910,21 @@ function HomeContent() {
                           backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff'
                         }}
                       />
+                      
+                      <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 border-y-[1.5px] border-dashed border-zinc-900/60 pointer-events-none flex flex-col justify-between" 
+                           style={{ height: '45%' }} 
+                      >
+                        <div className="bg-white/95 px-1.5 py-0.5 text-[9px] font-bold text-zinc-700 self-start shadow-sm rounded-br">
+                          ↑ 帯幅 18cm カットライン
+                        </div>
+                        <div className="bg-white/95 px-1.5 py-0.5 text-[9px] font-bold text-zinc-700 self-start shadow-sm rounded-tr">
+                          ↓ 帯幅 18cm カットライン
+                        </div>
+                      </div>
                     </div>
                     
-                    <p className="text-[9px] sm:text-[10px] text-zinc-500 mt-4 font-medium bg-white/80 px-2 py-1 rounded text-center leading-relaxed">
-                      ※ <strong className="text-zinc-900">幅40cmの反物全体</strong>の原寸シミュレーション。<br />
+                    <p className="text-[9px] sm:text-[10px] text-zinc-500 mt-3 font-medium bg-white/80 px-2 py-1 rounded text-center leading-relaxed">
+                      ※ 枠全体を「幅40cmの反物」とした原寸シミュレーション。<br />
                       （工場・職人へはこの平面データが送信され、プリントされます）
                     </p>
                   </div>
@@ -925,7 +966,7 @@ function HomeContent() {
                 creationMode === 'ai' ? 'bg-zinc-900 text-white shadow' : 'text-zinc-500 hover:text-zinc-800'
               }`}
             >
-              ✨ AI妄想モード
+              AI妄想モード
             </button>
             <button
               type="button"
@@ -934,7 +975,7 @@ function HomeContent() {
                 creationMode === 'geometric' ? 'bg-zinc-900 text-white shadow' : 'text-zinc-500 hover:text-zinc-800'
               }`}
             >
-              📐 格子・水玉製作所
+              格子・水玉製作所
             </button>
           </div>
 
@@ -973,7 +1014,7 @@ function HomeContent() {
                       onClick={() => setShowTags(!showTags)}
                       className="inline-flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-900 font-bold transition-colors py-1"
                     >
-                      <span>💡 {showTags ? 'ヒントを閉じる' : '図案のヒント・キーワードを探す'}</span>
+                      <span>{showTags ? 'ヒントを閉じる' : '図案のヒント・キーワードを探す'}</span>
                       <span className="text-[9px] transform transition-transform duration-200">{showTags ? '▲' : '▼'}</span>
                     </button>
                   </div>
@@ -1014,7 +1055,7 @@ function HomeContent() {
                       onClick={() => setShowColorPalette(!showColorPalette)}
                       className="inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-900 font-bold transition-colors"
                     >
-                      <span>🎨 {showColorPalette ? '閉じる' : '色見本から選ぶ (102色)'}</span>
+                      <span>{showColorPalette ? '閉じる' : '色見本から選ぶ (102色)'}</span>
                     </button>
                   </div>
 
@@ -1106,7 +1147,6 @@ function HomeContent() {
                     </div>
                   </div>
 
-                  {/* ★ 将来の拡張に向けたアイテム選択タブ (ダミーはグレーアウト) */}
                   <div>
                     <label className="block text-xs font-bold text-zinc-800 tracking-wider mb-2">
                       04. 作成するアイテム
@@ -1202,7 +1242,7 @@ function HomeContent() {
             ) : (
               <div className="space-y-5 animate-fade-in">
                 <div className="bg-zinc-50 border border-zinc-200 text-zinc-800 p-3 text-xs shadow-sm">
-                  <p className="font-bold text-[11px] mb-0.5">💡 使い放題モード</p>
+                  <p className="font-bold text-[11px] mb-0.5">使い放題モード</p>
                   <p className="text-[10px] opacity-90">上のプレビューを見ながら、サイズや色を自由にいじって遊んでみてください。</p>
                 </div>
 
@@ -1313,7 +1353,7 @@ function HomeContent() {
                           onClick={() => setShowGeoPaletteFor(showGeoPaletteFor === 'bg' ? null : 'bg')}
                           className={`flex-1 text-[10px] h-7 font-bold transition-all border shadow-sm ${showGeoPaletteFor === 'bg' ? 'bg-zinc-900 text-white' : 'bg-white text-zinc-600 border-zinc-300'}`}
                         >
-                          🎨 伝統色
+                          伝統色
                         </button>
                       </div>
                     </div>
@@ -1326,7 +1366,7 @@ function HomeContent() {
                           onClick={() => setShowGeoPaletteFor(showGeoPaletteFor === 'pattern' ? null : 'pattern')}
                           className={`flex-1 text-[10px] h-7 font-bold transition-all border shadow-sm ${showGeoPaletteFor === 'pattern' ? 'bg-zinc-900 text-white' : 'bg-white text-zinc-600 border-zinc-300'}`}
                         >
-                          🎨 伝統色
+                          伝統色
                         </button>
                       </div>
                     </div>
@@ -1376,7 +1416,7 @@ function HomeContent() {
                         onClick={() => setShowLiningPalette(!showLiningPalette)}
                         className={`flex-1 text-[10px] h-7 font-bold transition-all border shadow-sm ${showLiningPalette ? 'bg-zinc-900 text-white' : 'bg-white text-zinc-600 border-zinc-300'}`}
                       >
-                        🎨 日本の伝統色
+                        伝統色
                       </button>
                     </div>
                   </div>
@@ -1441,7 +1481,7 @@ function HomeContent() {
                     rel="noopener noreferrer"
                     className="py-3 text-center bg-[#1DA1F2] hover:bg-[#1a8cd8] text-white text-xs font-bold tracking-widest transition-colors flex items-center justify-center gap-1.5 shadow-sm"
                   >
-                    𝕏でシェア
+                    Xでシェア
                   </a>
                 </div>
 
