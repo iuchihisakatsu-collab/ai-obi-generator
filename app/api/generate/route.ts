@@ -18,7 +18,7 @@ export async function POST(req: Request) {
       basicPattern = 'none', 
       patternScale = 'medium', 
       colors = ['#ffffff', '#000000'], 
-      density, 
+      density = '', 
       itemType 
     } = await req.json();
 
@@ -80,14 +80,17 @@ ABSOLUTELY NO gradients, NO 3D shading, NO drop shadows, NO textures, NO hand-dr
       // --- パターンB：フリーワードモチーフ生成（既存ロジック・汎用化版） ---
       let baseInstruction = "Flat overhead shot, 2D textile graphic design. Intended for high-end digital textile printing. High resolution, crisp details, vivid color separation, no halftone dots. ";
       
-      // 柄の密度による分岐
+      // 柄の密度による分岐（フロントエンドの文言ゆれに対応できるよう includes で判定）
       let layoutInstruction = "";
-      if (density === 'ワンポイント・パネル柄') {
+      if (density.includes('ワンポイント') || density.includes('お太鼓柄') || density === 'ワンポイント・パネル柄') {
         layoutInstruction = "NON-SEAMLESS. A single, large, central one-point motif illustration placed exactly in the middle of the solid background. This is a standalone picture, NOT a repeating pattern. Do NOT repeat the motif. Leave abundant solid negative space around the central element.";
-      } else if (density === '四方柄・散らし柄') {
+      } else if (density.includes('四方柄') || density === '四方柄・散らし柄') {
+        // ★ 四方柄の強化：モチーフの上下反転・多方向回転を強制し、全部上向きになる癖を排除
         baseInstruction += "Perfectly seamless repeating pattern. ";
-        layoutInstruction = "Tossed pattern, scattered layout, non-directional, no clear top or bottom. Motifs are rotated and distributed evenly in all directions.";
-      } else if (density === 'シームレス総柄') {
+        layoutInstruction = `True omnidirectional / non-directional toss pattern (shihō-gara). 
+CRITICAL COMPOSITION RULE: Motifs MUST be randomly and dynamically rotated at various angles (some pointing upwards, some completely upside-down / inverted 180°, and others tilted 45°, 90°, or 135° in all four directions). 
+ABSOLUTELY NO uniform upright orientation. The fabric pattern must look perfectly balanced, seamless, and natural when rotated upside down or viewed from any angle. Motifs are scattered and distributed evenly across the canvas.`;
+      } else if (density.includes('総柄') || density === 'シームレス総柄') {
         baseInstruction += "Perfectly seamless repeating pattern. ";
         layoutInstruction = "Continuous all-over repeating pattern, densely packed motifs, rich and gorgeous layout with minimal negative space.";
       } else {
