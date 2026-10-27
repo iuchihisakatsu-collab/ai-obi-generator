@@ -1192,7 +1192,7 @@ function HomeContent() {
                   </div>
                 )}
 
-{/* 2. 半幅帯 モックアップ (新ファイル名・アンダーバー統一版) */}
+{/* 2. 半幅帯 モックアップ (タイリング途切れ修正・PNG優先・アンダーバーなし統一版) */}
                 {displayMode === 'obi' && (
                   <div className="w-full flex flex-col items-center animate-fade-in">
                     <div className="relative w-full max-w-[400px] aspect-square mx-auto">
@@ -1204,11 +1204,13 @@ function HomeContent() {
                           ? `${geoSizePx}px ${geoSizePx}px` 
                           : `${40 * PIXELS_PER_CM}px ${40 * PIXELS_PER_CM}px`;
                         
-                        const v = '5'; // 新規アップロード画像の強制読み込み
+                        // ★ SVGタイリング途切れ防止：PNGデータ（blobUrl）を優先して背景に適用
+                        const effectivePatternUrl = blobUrl || imageUrl;
+                        const v = '6';
 
                         return (
                           <div className="relative w-full h-full overflow-hidden">
-                            {/* ★ レイヤー1〜6 (アンダーバーなし統一) */}
+                            {/* ★ レイヤー1〜6 (アンダーバーなし統一・独立角度＆送り付け) */}
                             {[
                               { id: '01', file: 'hanhaba_Layer01.png', z: 10, rot: 2, bgX: '12%', bgY: '34%' },
                               { id: '02', file: 'hanhaba_Layer02.png', z: 20, rot: 88, bgX: '45%', bgY: '67%' },
@@ -1235,7 +1237,7 @@ function HomeContent() {
                                 <div 
                                   className="absolute top-1/2 left-1/2 w-[150%] h-[150%] -translate-x-1/2 -translate-y-1/2"
                                   style={{
-                                    backgroundImage: `url(${imageUrl})`, 
+                                    backgroundImage: `url(${effectivePatternUrl})`, 
                                     backgroundSize: patternSize,
                                     backgroundRepeat: 'repeat',
                                     backgroundPosition: `${layer.bgX} ${layer.bgY}`, 
@@ -1266,7 +1268,7 @@ function HomeContent() {
                               />
                             </div>
 
-                            {/* 影・シワレイヤー (hanhaba_Layerkage.png) */}
+                            {/* 影・シワレイヤー */}
                             <div 
                               className="absolute inset-0 pointer-events-none"
                               style={{
@@ -1283,9 +1285,7 @@ function HomeContent() {
                       })()}
                     </div>
 
-                    {/* ★ 裏地の色変更UI (以下の既存コードに続きます) */}
-
-                    {/* ★ 裏地の色変更UI (伝統色パレット仕様) */}
+                    {/* ★ 裏地の色変更UI */}
                     <div className="mt-4 w-full max-w-[400px] bg-white p-3 border border-zinc-300">
                       <div className="flex items-center gap-3">
                         <label className="text-[11px] font-bold text-zinc-700">裏地の色を変更：</label>
@@ -1336,7 +1336,6 @@ function HomeContent() {
                     </div>
                   </div>
                 )}
-              </div>
               
               {/* ▼ ポン出し注釈 (帯・着物タブを選択した時のみ表示) ▼ */}
               {displayMode !== 'fabric' && (
