@@ -301,8 +301,8 @@ function HomeContent() {
   
   const [bgSizeMm, setBgSizeMm] = useState(100);
   
-  // ★ 裏地の色と、パレット表示の管理ステート
-  const [obiLiningColor, setObiLiningColor] = useState('#161616');
+  // ★ 裏地の色と、パレット表示の管理ステート (初期色をベンガラ色に設定)
+  const [obiLiningColor, setObiLiningColor] = useState('#8f2e14');
   const [showLiningPalette, setShowLiningPalette] = useState(false);
 
   useEffect(() => {
@@ -1140,7 +1140,7 @@ function HomeContent() {
                     1. 40cm幅 (データ完成図)
                   </button>
                   
-                  {/* ★ 半幅帯タブ：フラットな黒枠と目立つバッジで誘導 */}
+                  {/* ★ 半幅帯タブ */}
                   <button
                     type="button"
                     onClick={() => setDisplayMode('obi')}
@@ -1204,21 +1204,22 @@ function HomeContent() {
 
                         return (
                           <div className="relative w-full h-full overflow-hidden">
-                            {/* ★ レイヤー1〜6 (bgX, bgYで「送り付け」をバラバラに設定！) */}
+                            {/* ★ レイヤー1〜6 (ファイル名を正確に設定し、z-indexをstyleで指定！) */}
                             {[
-                              { id: '01', z: 0, rot: 93, bgX: '0%', bgY: '0%' },
-                              { id: '02', z: 10, rot: 95, bgX: '33%', bgY: '25%' },
-                              { id: '03', z: 20, rot: 97, bgX: '66%', bgY: '50%' },
-                              { id: '04', z: 30, rot: 92, bgX: '15%', bgY: '75%' },
-                              { id: '05', z: 40, rot: 85, bgX: '85%', bgY: '15%' },
-                              { id: '06', z: 50, rot: -1, bgX: '45%', bgY: '85%' },
+                              { id: '01', file: 'hanhaba_Layer01.png', z: 0, rot: 93, bgX: '0%', bgY: '0%' },
+                              { id: '02', file: 'hanhaba_Layer_02.png', z: 10, rot: 95, bgX: '33%', bgY: '25%' },
+                              { id: '03', file: 'hanhaba_Layer_03.png', z: 20, rot: 97, bgX: '66%', bgY: '50%' },
+                              { id: '04', file: 'hanhaba_Layer_04.png', z: 30, rot: 92, bgX: '15%', bgY: '75%' },
+                              { id: '05', file: 'hanhaba_Layer_05.png', z: 40, rot: 85, bgX: '85%', bgY: '15%' },
+                              { id: '06', file: 'hanhaba_Layer_06.png', z: 50, rot: -1, bgX: '45%', bgY: '85%' },
                             ].map((layer) => (
                               <div 
                                 key={layer.id}
-                                className={`absolute inset-0 z-[${layer.z}] pointer-events-none`} 
+                                className="absolute inset-0 pointer-events-none" 
                                 style={{ 
-                                  maskImage: `url('/hanhaba_Layer${layer.id}.png')`,
-                                  WebkitMaskImage: `url('/hanhaba_Layer${layer.id}.png')`,
+                                  zIndex: layer.z,
+                                  maskImage: `url('/${layer.file}')`,
+                                  WebkitMaskImage: `url('/${layer.file}')`,
                                   maskSize: 'contain',
                                   WebkitMaskSize: 'contain',
                                   maskRepeat: 'no-repeat',
@@ -1233,7 +1234,7 @@ function HomeContent() {
                                     backgroundImage: `url(${imageUrl})`, 
                                     backgroundSize: patternSize,
                                     backgroundRepeat: 'repeat',
-                                    backgroundPosition: `${layer.bgX} ${layer.bgY}`, // ★ ここで送り位置を反映
+                                    backgroundPosition: `${layer.bgX} ${layer.bgY}`, 
                                     transform: `rotate(${layer.rot}deg)`
                                   }}
                                 />
@@ -1242,8 +1243,9 @@ function HomeContent() {
 
                             {/* ★ レイヤー7 (裏地・無地カラー) */}
                             <div 
-                              className="absolute inset-0 z-60 pointer-events-none" 
+                              className="absolute inset-0 pointer-events-none" 
                               style={{ 
+                                zIndex: 60,
                                 maskImage: `url('/hanhaba_Layer_07.png')`,
                                 WebkitMaskImage: `url('/hanhaba_Layer_07.png')`,
                                 maskSize: 'contain',
@@ -1257,7 +1259,7 @@ function HomeContent() {
                               <div 
                                 className="absolute top-1/2 left-1/2 w-[150%] h-[150%] -translate-x-1/2 -translate-y-1/2"
                                 style={{
-                                  backgroundColor: obiLiningColor, // ここで裏地色が反映されます
+                                  backgroundColor: obiLiningColor,
                                   transform: 'rotate(0deg)'
                                 }}
                               />
@@ -1265,8 +1267,9 @@ function HomeContent() {
 
                             {/* 影・シワレイヤー（一番上・乗算） */}
                             <div 
-                              className="absolute inset-0 z-[70] pointer-events-none"
+                              className="absolute inset-0 pointer-events-none"
                               style={{
+                                zIndex: 70,
                                 backgroundImage: `url('/hanhaba_Layer_kage.png')`,
                                 backgroundSize: 'contain',
                                 backgroundPosition: 'center',
