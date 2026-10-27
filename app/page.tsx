@@ -704,28 +704,36 @@ function HomeContent() {
                   <div className="flex flex-col items-center w-full animate-fade-in">
                     <div className="relative">
                       <div 
-                        className="w-full max-w-[320px] sm:max-w-[400px] h-[220px] sm:h-[400px] border border-zinc-300 bg-white shadow-md relative"
-                        style={{ 
-                          backgroundImage: `url(${imageUrl})`, 
-                          // ★ 縮尺潰れ解消：画面の4pxを1mmとし、肉眼のスケール（100%原寸）で切り抜いて表示
-                          backgroundSize: creationMode === 'geometric' ? `${bgSizeMm * 4}px auto` : '1600px auto',
-                          backgroundRepeat: 'repeat',
-                          backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff'
-                        }} 
+                        className="w-full max-w-[320px] sm:max-w-[400px] aspect-square border border-zinc-300 bg-white shadow-md relative overflow-hidden"
                       >
-                        <div className="absolute inset-0 m-auto border-[1.5px] border-dashed border-zinc-950/40 pointer-events-none" 
-                             style={{ height: '45%' }} 
+                        {/* ★ AIも幾何学も、100%（実寸）の縮尺で表示。帯と同じ「回転済みデータ」を参照 */}
+                        <div 
+                          className="absolute inset-0"
+                          style={{
+                            backgroundImage: `url(${creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl)})`, 
+                            backgroundSize: creationMode === 'geometric' ? `${(bgSizeMm / 400) * 100}% auto` : '100% auto',
+                            backgroundPosition: 'center',
+                            backgroundRepeat: 'repeat',
+                            backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff'
+                          }}
                         />
-                        <span className="absolute top-[28%] left-2 bg-white/80 px-1 text-[8px] sm:text-[9px] font-bold text-zinc-600">
-                          18cmガイド
-                        </span>
+                        
+                        {/* ★ 邪魔にならない「18cmカットライン」のスリット */}
+                        <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 border-y-2 border-dashed border-zinc-900/50 pointer-events-none flex flex-col justify-between" 
+                             style={{ height: '45%' }} 
+                        >
+                          <div className="bg-white/90 px-1.5 py-0.5 text-[9px] font-bold text-zinc-700 self-start shadow-sm rounded-br">
+                            ↑ 帯幅 18cm カットライン
+                          </div>
+                          <div className="bg-white/90 px-1.5 py-0.5 text-[9px] font-bold text-zinc-700 self-start shadow-sm rounded-tr">
+                            ↓ 帯幅 18cm カットライン
+                          </div>
+                        </div>
                       </div>
                     </div>
                     
                     <p className="text-[9px] sm:text-[10px] text-zinc-500 mt-3 font-medium bg-white/80 px-2 py-1 rounded">
-                      {itemType === 'hanhaba' 
-                        ? '※指定サイズ「高さ18cm」での原寸シミュレーション（工房へはこの平面データが送信されます）'
-                        : '※指定サイズ「幅40cm」での原寸シミュレーション（工房へはこの平面データが送信されます）'}
+                      ※ 枠全体を「幅40cmの反物」とした原寸シミュレーション（工房へはこの平面データが送信されます）
                     </p>
                   </div>
                 )}
