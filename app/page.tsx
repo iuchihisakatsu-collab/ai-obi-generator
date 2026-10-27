@@ -373,6 +373,8 @@ function HomeContent() {
     setBgSizeMm(tileSize);
     const svgDataUrl = `data:image/svg+xml;utf8,${encodeURIComponent(svgString)}`;
     setImageUrl(svgDataUrl);
+    
+    // SVGをPNGに変換してタイリングバグを防ぐ
     const highResPng = await svgToHighResPng(svgString, 2400);
     setBlobUrl(highResPng);
     setSerialNumber(prev => prev.startsWith('GEO-') ? prev : `GEO-${Math.floor(1000 + Math.random() * 9000)}`);
@@ -1183,7 +1185,6 @@ function HomeContent() {
                       className="w-full max-w-[400px] h-[500px] border border-zinc-300 bg-white"
                       style={{ 
                         backgroundImage: `url(${imageUrl})`, 
-                        // ★ SVGタイリングバグ修正：縦横ガチガチ固定
                         backgroundSize: creationMode === 'geometric' ? `${bgSizeMm * 4}px ${bgSizeMm * 4}px` : '100% auto',
                         backgroundRepeat: 'repeat'
                       }} 
@@ -1192,7 +1193,7 @@ function HomeContent() {
                   </div>
                 )}
 
-{/* 2. 半幅帯 モックアップ (タイリング途切れ修正・PNG優先・アンダーバーなし統一版) */}
+                {/* 2. 半幅帯 モックアップ (タイリング途切れ修正・PNG優先・アンダーバーなし統一版) */}
                 {displayMode === 'obi' && (
                   <div className="w-full flex flex-col items-center animate-fade-in">
                     <div className="relative w-full max-w-[400px] aspect-square mx-auto">
@@ -1336,6 +1337,7 @@ function HomeContent() {
                     </div>
                   </div>
                 )}
+              </div>
               
               {/* ▼ ポン出し注釈 (帯・着物タブを選択した時のみ表示) ▼ */}
               {displayMode !== 'fabric' && (
