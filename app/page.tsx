@@ -569,7 +569,6 @@ function HomeContent() {
   const handleOrderClick = async (e: MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault(); 
     try {
-      // blobUrl は生成された元画像（40cm幅/18cm高の平面データ）
       let finalImageUrl = blobUrl || imageUrl;
 
       if (finalImageUrl && finalImageUrl.startsWith('data:')) {
@@ -708,7 +707,8 @@ function HomeContent() {
                         className="w-full max-w-[320px] sm:max-w-[400px] h-[220px] sm:h-[400px] border border-zinc-300 bg-white shadow-md relative"
                         style={{ 
                           backgroundImage: `url(${imageUrl})`, 
-                          backgroundSize: creationMode === 'geometric' ? `${bgSizeMm * 4}px auto` : '100% auto',
+                          // ★ 縮尺潰れ解消：画面の4pxを1mmとし、肉眼のスケール（100%原寸）で切り抜いて表示
+                          backgroundSize: creationMode === 'geometric' ? `${bgSizeMm * 4}px auto` : '1600px auto',
                           backgroundRepeat: 'repeat',
                           backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff'
                         }} 
