@@ -1192,7 +1192,7 @@ function HomeContent() {
                   </div>
                 )}
 
-                {/* 2. 半幅帯 モックアップ (7層構造＋送り付け調整) */}
+                {/* 2. 半幅帯 モックアップ (真のレイヤー構造・キャッシュ対策済み) */}
                 {displayMode === 'obi' && (
                   <div className="w-full flex flex-col items-center animate-fade-in">
                     <div className="relative w-full max-w-[400px] aspect-square mx-auto">
@@ -1200,29 +1200,57 @@ function HomeContent() {
                         const PIXELS_PER_CM = 440 / 16.5; 
                         const geoSizePx = (bgSizeMm / 10) * PIXELS_PER_CM;
                         
-                        // ★ SVGタイリングバグ修正＆AI画像スケール固定（スライダー不要）
+                        // ★ SVGタイリングバグ修正＆AI画像スケール固定
                         const patternSize = creationMode === 'geometric' 
                           ? `${geoSizePx}px ${geoSizePx}px` 
-                          : `${40 * PIXELS_PER_CM}px auto`;
+                          : `${40 * PIXELS_PER_CM}px ${40 * PIXELS_PER_CM}px`; // autoではなくガチガチに固定
+                        
+                        const v = '3'; // キャッシュ強制クリア用のおまじない
 
                         return (
                           <div className="relative w-full h-full overflow-hidden">
-                            {/* ★ レイヤー1〜6 (マスク設定とZ-indexの完璧な適用) */}
+                            {/* ★ レイヤー0 (ベース全体を影レイヤーから錬成) */}
+                            <div 
+                              className="absolute inset-0 pointer-events-none" 
+                              style={{ 
+                                zIndex: 0,
+                                maskImage: `url('/hanhaba_Layer_kage.png?v=${v}')`,
+                                WebkitMaskImage: `url('/hanhaba_Layer_kage.png?v=${v}')`,
+                                maskSize: 'contain',
+                                WebkitMaskSize: 'contain',
+                                maskRepeat: 'no-repeat',
+                                WebkitMaskRepeat: 'no-repeat',
+                                maskPosition: 'center',
+                                WebkitMaskPosition: 'center',
+                              }}
+                            >
+                              <div 
+                                className="absolute top-1/2 left-1/2 w-[150%] h-[150%] -translate-x-1/2 -translate-y-1/2"
+                                style={{
+                                  backgroundImage: `url(${imageUrl})`, 
+                                  backgroundSize: patternSize,
+                                  backgroundRepeat: 'repeat',
+                                  backgroundPosition: '0% 0%', 
+                                }}
+                              />
+                            </div>
+
+                            {/* ★ レイヤー1〜6 (ヒダやフラップを個別に重ねる) */}
                             {[
-                              { id: '01', file: 'hanhaba_Layer01.png', z: 0, rot: 93, bgX: '0%', bgY: '0%' },
-                              { id: '02', file: 'hanhaba_Layer_02.png', z: 10, rot: 95, bgX: '33%', bgY: '25%' },
-                              { id: '03', file: 'hanhaba_Layer_03.png', z: 20, rot: 97, bgX: '66%', bgY: '50%' },
-                              { id: '04', file: 'hanhaba_Layer_04.png', z: 30, rot: 92, bgX: '15%', bgY: '75%' },
-                              { id: '05', file: 'hanhaba_Layer_05.png', z: 40, rot: 85, bgX: '85%', bgY: '15%' },
-                              { id: '06', file: 'hanhaba_Layer_06.png', z: 50, rot: -1, bgX: '45%', bgY: '85%' },
+                              { id: '01', file: 'hanhaba_Layer01.png', z: 10, rot: 93, bgX: '10%', bgY: '10%' },
+                              { id: '02', file: 'hanhaba_Layer_02.png', z: 20, rot: 95, bgX: '33%', bgY: '25%' },
+                              { id: '03', file: 'hanhaba_Layer_03.png', z: 30, rot: 97, bgX: '66%', bgY: '50%' },
+                              { id: '04', file: 'hanhaba_Layer_04.png', z: 40, rot: 92, bgX: '15%', bgY: '75%' },
+                              { id: '05', file: 'hanhaba_Layer_05.png', z: 50, rot: 85, bgX: '85%', bgY: '15%' },
+                              { id: '06', file: 'hanhaba_Layer_06.png', z: 60, rot: -1, bgX: '45%', bgY: '85%' },
                             ].map((layer) => (
                               <div 
                                 key={layer.id}
                                 className="absolute inset-0 pointer-events-none" 
                                 style={{ 
                                   zIndex: layer.z,
-                                  maskImage: `url('/${layer.file}')`,
-                                  WebkitMaskImage: `url('/${layer.file}')`,
+                                  maskImage: `url('/${layer.file}?v=${v}')`,
+                                  WebkitMaskImage: `url('/${layer.file}?v=${v}')`,
                                   maskSize: 'contain',
                                   WebkitMaskSize: 'contain',
                                   maskRepeat: 'no-repeat',
@@ -1248,9 +1276,9 @@ function HomeContent() {
                             <div 
                               className="absolute inset-0 pointer-events-none" 
                               style={{ 
-                                zIndex: 60,
-                                maskImage: `url('/hanhaba_Layer_07.png')`,
-                                WebkitMaskImage: `url('/hanhaba_Layer_07.png')`,
+                                zIndex: 65,
+                                maskImage: `url('/hanhaba_Layer_07.png?v=${v}')`,
+                                WebkitMaskImage: `url('/hanhaba_Layer_07.png?v=${v}')`,
                                 maskSize: 'contain',
                                 WebkitMaskSize: 'contain',
                                 maskRepeat: 'no-repeat',
@@ -1263,7 +1291,6 @@ function HomeContent() {
                                 className="absolute top-1/2 left-1/2 w-[150%] h-[150%] -translate-x-1/2 -translate-y-1/2"
                                 style={{
                                   backgroundColor: obiLiningColor,
-                                  transform: 'rotate(0deg)'
                                 }}
                               />
                             </div>
@@ -1273,7 +1300,7 @@ function HomeContent() {
                               className="absolute inset-0 pointer-events-none"
                               style={{
                                 zIndex: 70,
-                                backgroundImage: `url('/hanhaba_Layer_kage.png')`,
+                                backgroundImage: `url('/hanhaba_Layer_kage.png?v=${v}')`,
                                 backgroundSize: 'contain',
                                 backgroundPosition: 'center',
                                 backgroundRepeat: 'no-repeat',
