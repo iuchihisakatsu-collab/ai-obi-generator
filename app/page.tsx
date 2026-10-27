@@ -1192,7 +1192,7 @@ function HomeContent() {
                   </div>
                 )}
 
-{/* 2. 半幅帯 モックアップ (完全独立レイヤー＋送り付け・角度調整) */}
+{/* 2. 半幅帯 モックアップ (新ファイル名・アンダーバー統一版) */}
                 {displayMode === 'obi' && (
                   <div className="w-full flex flex-col items-center animate-fade-in">
                     <div className="relative w-full max-w-[400px] aspect-square mx-auto">
@@ -1204,20 +1204,18 @@ function HomeContent() {
                           ? `${geoSizePx}px ${geoSizePx}px` 
                           : `${40 * PIXELS_PER_CM}px ${40 * PIXELS_PER_CM}px`;
                         
-                        const v = '4'; // キャッシュ対策
+                        const v = '5'; // 新規アップロード画像の強制読み込み
 
                         return (
                           <div className="relative w-full h-full overflow-hidden">
-                            {/* ★ レイヤー1〜6 (完全に独立させ、個別に角度と送り付けを適用) */}
+                            {/* ★ レイヤー1〜6 (アンダーバーなし統一) */}
                             {[
-                              // ※rot: 角度, bgX/bgY: 柄のズレ位置
-                              // 画像を見ながら推測で入れています。もし「ここは縦縞にしたい」等あれば rot を 0 付近に、「横縞にしたい」なら 90 付近に変更してください。
                               { id: '01', file: 'hanhaba_Layer01.png', z: 10, rot: 2, bgX: '12%', bgY: '34%' },
-                              { id: '02', file: 'hanhaba_Layer_02.png', z: 20, rot: 88, bgX: '45%', bgY: '67%' },
-                              { id: '03', file: 'hanhaba_Layer_03.png', z: 30, rot: 94, bgX: '78%', bgY: '12%' },
-                              { id: '04', file: 'hanhaba_Layer_04.png', z: 40, rot: 86, bgX: '23%', bgY: '89%' },
-                              { id: '05', file: 'hanhaba_Layer_05.png', z: 50, rot: -12, bgX: '56%', bgY: '45%' },
-                              { id: '06', file: 'hanhaba_Layer_06.png', z: 60, rot: -3, bgX: '89%', bgY: '23%' },
+                              { id: '02', file: 'hanhaba_Layer02.png', z: 20, rot: 88, bgX: '45%', bgY: '67%' },
+                              { id: '03', file: 'hanhaba_Layer03.png', z: 30, rot: 94, bgX: '78%', bgY: '12%' },
+                              { id: '04', file: 'hanhaba_Layer04.png', z: 40, rot: 86, bgX: '23%', bgY: '89%' },
+                              { id: '05', file: 'hanhaba_Layer05.png', z: 50, rot: -12, bgX: '56%', bgY: '45%' },
+                              { id: '06', file: 'hanhaba_Layer06.png', z: 60, rot: -3, bgX: '89%', bgY: '23%' },
                             ].map((layer) => (
                               <div 
                                 key={layer.id}
@@ -1247,13 +1245,13 @@ function HomeContent() {
                               </div>
                             ))}
 
-                            {/* ★ レイヤー7 (裏地・無地カラー) */}
+                            {/* ★ レイヤー7 (裏地) */}
                             <div 
                               className="absolute inset-0 pointer-events-none" 
                               style={{ 
                                 zIndex: 65,
-                                maskImage: `url('/hanhaba_Layer_07.png?v=${v}')`,
-                                WebkitMaskImage: `url('/hanhaba_Layer_07.png?v=${v}')`,
+                                maskImage: `url('/hanhaba_Layer07.png?v=${v}')`,
+                                WebkitMaskImage: `url('/hanhaba_Layer07.png?v=${v}')`,
                                 maskSize: 'contain',
                                 WebkitMaskSize: 'contain',
                                 maskRepeat: 'no-repeat',
@@ -1268,12 +1266,12 @@ function HomeContent() {
                               />
                             </div>
 
-                            {/* 影・シワレイヤー（一番上・乗算） */}
+                            {/* 影・シワレイヤー (hanhaba_Layerkage.png) */}
                             <div 
                               className="absolute inset-0 pointer-events-none"
                               style={{
                                 zIndex: 70,
-                                backgroundImage: `url('/hanhaba_Layer_kage.png?v=${v}')`,
+                                backgroundImage: `url('/hanhaba_Layerkage.png?v=${v}')`,
                                 backgroundSize: 'contain',
                                 backgroundPosition: 'center',
                                 backgroundRepeat: 'no-repeat',
