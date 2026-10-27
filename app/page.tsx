@@ -15,6 +15,30 @@ import {
   type DotLayout 
 } from './utils/geometricPatterns';
 
+// 16:9などの横長AI画像を時計回りに90度回転させて縦長DataURLに変換する関数
+async function rotateImage90Degrees(imageUrl: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalHeight;
+      canvas.height = img.naturalWidth;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        reject(new Error('Canvas context failed'));
+        return;
+      }
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.rotate((90 * Math.PI) / 180);
+      ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
+      resolve(canvas.toDataURL('image/png'));
+    };
+    img.onerror = (e) => reject(e);
+    img.src = imageUrl;
+  });
+}
+
 const MAX_GENERATIONS_PER_DAY = 3;
 
 const FORBIDDEN_WORDS = [
@@ -42,7 +66,7 @@ const TRADITIONAL_COLORS = [
   { name: '甚三紅 (じんざもみ)', hex: '#ee827c', text: '柔らかなサーモンレッド地', isDark: false },
   { name: '緋色 (ひいろ)', hex: '#d3381c', text: '鮮烈なスカーレットレッド地', isDark: true },
   { name: '朱色 (しゅ)', hex: '#ea5532', text: '鮮やかな朱赤地', isDark: true },
-  { name: '紅赤 (べにあか)', hex: '#e54256', text: '鮮やかなルビーレッド地', isDark: true },
+  { name: '紅赤 (べニアカ)', hex: '#e54256', text: '鮮やかなルビーレッド地', isDark: true },
   { name: '真紅 (しんく)', hex: '#a22041', text: '深みのあるピュアレッド地', isDark: true },
   { name: '茜色 (あかね)', hex: '#b7282e', text: '温かみのある茜色地', isDark: true },
   { name: '深緋 (こきひ)', hex: '#8b1e2a', text: '深みのあるボルドー地', isDark: true },
@@ -304,6 +328,9 @@ function HomeContent() {
   const [obiLiningColor, setObiLiningColor] = useState('#8f2e14'); // デフォルト弁柄
   const [showLiningPalette, setShowLiningPalette] = useState(false);
 
+  // ★ 半幅帯マッピング用テクスチャ（AI画像の場合は90度回転済み）
+  const [rotatedPatternUrl, setRotatedPatternUrl] = useState<string>('');
+
   useEffect(() => {
     const today = new Date().toISOString().split('T')[0];
     const storedData = localStorage.getItem('komon_generations');
@@ -343,6 +370,26 @@ function HomeContent() {
       alert('【管理者モード】本日の生成回数を全回復しました！✨');
     }
   }, [motif]);
+
+  // ★ AI生成画像（16:9）が更新されたら、自動で90度回転させて帯マッピング用にセット
+  useEffect(() => {
+    const src = blobUrl || imageUrl;
+    if (!src) {
+      setRotatedPatternUrl('');
+      return;
+    }
+
+    if (creationMode === 'ai') {
+      rotateImage90Degrees(src)
+        .then((rotated) => setRotatedPatternUrl(rotated))
+        .catch((err) => {
+          console.error('画像90度回転に失敗:', err);
+          setRotatedPatternUrl(src);
+        });
+    } else {
+      setRotatedPatternUrl(src);
+    }
+  }, [blobUrl, imageUrl, creationMode]);
 
   const updateGeometricPattern = useCallback(async () => {
     if (creationMode !== 'geometric') return;
@@ -897,7 +944,7 @@ function HomeContent() {
                     className="mt-0.5 h-4 w-4 border-zinc-300 text-zinc-900 focus:ring-zinc-900 transition-colors"
                   />
                   <span className="text-[11px] text-zinc-500 leading-relaxed group-hover:text-zinc-800 transition-colors">
-                    生成された図案はAIによるアイデアイメージであり、実際の生地制作・捺染時には工房の職職人の手でデータ調整が行われること、および公序良俗・権利侵害のない利用に同意します。
+                    生成された図案はAIによるアイデアイメージであり、実際の生地制作・捺染時には工房の職人の手でデータ調整が行われること、および公序良俗・権利侵害のない利用に同意します。
                   </span>
                 </label>
 
@@ -1186,14 +1233,15 @@ function HomeContent() {
                       style={{ 
                         backgroundImage: `url(${imageUrl})`, 
                         backgroundSize: creationMode === 'geometric' ? `${bgSizeMm * 4}px ${bgSizeMm * 4}px` : '100% auto',
-                        backgroundRepeat: 'repeat'
+                        backgroundRepeat: 'repeat',
+                        backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff'
                       }} 
                     />
                     <p className="text-[11px] text-zinc-500 mt-4 font-medium">※画面上の枠幅を「実際の約40cm」とした場合の、仕上がり原寸大シミュレーション</p>
                   </div>
                 )}
 
-                {/* 2. 半幅帯 モックアップ (座標ズレ完全解消・全パーツ全面カバー版) */}
+                {/* 2. 半幅帯 モックアップ (最新角度微調整 ＆ 16:9 90度回転適用版) */}
                 {displayMode === 'obi' && (
                   <div className="w-full flex flex-col items-center animate-fade-in">
                     <div className="relative w-full max-w-[400px] aspect-square mx-auto">
@@ -1205,19 +1253,20 @@ function HomeContent() {
                           ? `${geoSizePx}px ${geoSizePx}px` 
                           : `${40 * PIXELS_PER_CM}px ${40 * PIXELS_PER_CM}px`;
                         
-                        const effectivePatternUrl = blobUrl || imageUrl;
-                        const v = '7'; // キャッシュ強制更新
+                        // AI画像は90度回転済み、幾何学はそのままのテクスチャ
+                        const effectivePatternUrl = rotatedPatternUrl || blobUrl || imageUrl;
+                        const v = '8'; // キャッシュ強制更新
 
                         return (
                           <div className="relative w-full h-full overflow-hidden">
-                            {/* ★ レイヤー1〜6 (top/left: -25% で確実に全体をすっぽり覆う) */}
+                            {/* ★ レイヤー1〜6 (加算角度を反映：02: 91°, 03: 98°, 04: 89°) */}
                             {[
-                              { id: '01', file: 'hanhaba_Layer01.png', z: 10, rot: 2, bgX: '12%', bgY: '34%' },
-                              { id: '02', file: 'hanhaba_Layer02.png', z: 20, rot: 88, bgX: '45%', bgY: '67%' },
-                              { id: '03', file: 'hanhaba_Layer03.png', z: 30, rot: 94, bgX: '78%', bgY: '12%' },
-                              { id: '04', file: 'hanhaba_Layer04.png', z: 40, rot: 86, bgX: '23%', bgY: '89%' },
+                              { id: '01', file: 'hanhaba_Layer01.png', z: 10, rot: 2,  bgX: '12%', bgY: '34%' },
+                              { id: '02', file: 'hanhaba_Layer02.png', z: 20, rot: 91, bgX: '45%', bgY: '67%' }, // 88 + 3
+                              { id: '03', file: 'hanhaba_Layer03.png', z: 30, rot: 98, bgX: '78%', bgY: '12%' }, // 94 + 4
+                              { id: '04', file: 'hanhaba_Layer04.png', z: 40, rot: 89, bgX: '23%', bgY: '89%' }, // 86 + 3
                               { id: '05', file: 'hanhaba_Layer05.png', z: 50, rot: -12, bgX: '56%', bgY: '45%' },
-                              { id: '06', file: 'hanhaba_Layer06.png', z: 60, rot: -3, bgX: '89%', bgY: '23%' },
+                              { id: '06', file: 'hanhaba_Layer06.png', z: 60, rot: -3,  bgX: '89%', bgY: '23%' },
                             ].map((layer) => (
                               <div 
                                 key={layer.id}
@@ -1246,7 +1295,9 @@ function HomeContent() {
                                     backgroundRepeat: 'repeat',
                                     backgroundPosition: `${layer.bgX} ${layer.bgY}`, 
                                     transform: `rotate(${layer.rot}deg)`,
-                                    transformOrigin: 'center center'
+                                    transformOrigin: 'center center',
+                                    // サブピクセルによる白ライン防止（隙間に地色を敷く）
+                                    backgroundColor: creationMode === 'geometric' ? geoBgColor : 'transparent'
                                   }}
                                 />
                               </div>
