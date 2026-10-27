@@ -276,7 +276,8 @@ function HomeContent() {
   const [agreed, setAgreed] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [previewMode, setPreviewMode] = useState<'pattern' | 'fabric' | 'mockup'>('pattern');
-  const [mockupItem, setMockupItem] = useState<'bag' | 'cushion' | 'tshirt'>('bag');
+  // ★ obi (半幅帯) を追加
+  const [mockupItem, setMockupItem] = useState<'bag' | 'cushion' | 'tshirt' | 'obi'>('bag');
   const [mockupSubmitting, setMockupSubmitting] = useState(false);
   const [mockupSuccess, setMockupSuccess] = useState(false);
   const [serialNumber, setSerialNumber] = useState('');
@@ -1197,7 +1198,8 @@ function HomeContent() {
                       {[
                         { key: 'bag', label: 'トートバッグ' },
                         { key: 'cushion', label: 'クッション' },
-                        { key: 'tshirt', label: 'Tシャツ' }
+                        { key: 'tshirt', label: 'Tシャツ' },
+                        { key: 'obi', label: '半幅帯' } // ★ 半幅帯タブを追加
                       ].map((item) => (
                         <button
                           key={item.key}
@@ -1214,7 +1216,7 @@ function HomeContent() {
                       ))}
                     </div>
 
-                    <div className="relative flex items-center justify-center py-4">
+                    <div className="relative flex items-center justify-center py-4 w-full">
                       {mockupItem === 'bag' && (
                         <div className="relative w-64 h-64 mx-auto flex items-center justify-center">
                           <div className="relative w-full h-full">
@@ -1285,6 +1287,117 @@ function HomeContent() {
                               mixBlendMode: 'multiply'
                             }}
                           />
+                        </div>
+                      )}
+
+                      {/* ★ 追加：半幅帯モックアップ (多層パーツ構造) */}
+                      {mockupItem === 'obi' && (
+                        <div className="relative w-full max-w-[400px] aspect-square mx-auto">
+                          {(() => {
+                            // 実際の半幅帯の幅(16.5cm) = キャンバス上の440px
+                            const PIXELS_PER_CM = 440 / 16.5; 
+
+                            // ① 幾何学モード：指定されたミリ数(bgSizeMm)を現実の寸法に合わせてマッピング
+                            const geoPatternSize = `${(bgSizeMm / 10) * PIXELS_PER_CM}px auto`;
+
+                            // ② AI図案モード：AI画像1枚を現実の反物幅(約40cm)として扱う場合
+                            const aiPatternSize = `${40 * PIXELS_PER_CM}px auto`;
+
+                            const patternSize = creationMode === 'geometric' ? geoPatternSize : aiPatternSize;
+
+                            return (
+                              <div className="relative w-full h-full overflow-hidden">
+                                
+                                {/* 1. たれ先パーツ（一番奥） */}
+                                <div 
+                                  className="absolute inset-0 z-0 pointer-events-none" 
+                                  style={{ 
+                                    maskImage: `url('/hanhaba_mask_tare.png')`,
+                                    WebkitMaskImage: `url('/hanhaba_mask_tare.png')`,
+                                    maskSize: 'contain',
+                                    WebkitMaskSize: 'contain',
+                                    maskRepeat: 'no-repeat',
+                                    WebkitMaskRepeat: 'no-repeat',
+                                    maskPosition: 'center',
+                                    WebkitMaskPosition: 'center',
+                                  }}
+                                >
+                                  <div 
+                                    className="absolute top-1/2 left-1/2 w-[150%] h-[150%] -translate-x-1/2 -translate-y-1/2"
+                                    style={{
+                                      backgroundImage: `url(${imageUrl})`, 
+                                      backgroundSize: patternSize,
+                                      backgroundRepeat: 'repeat',
+                                      transform: 'rotate(0deg)'
+                                    }}
+                                  />
+                                </div>
+
+                                {/* 2. 結び目パーツ（中間） */}
+                                <div 
+                                  className="absolute inset-0 z-10 pointer-events-none" 
+                                  style={{ 
+                                    maskImage: `url('/hanhaba_mask_knot.png')`,
+                                    WebkitMaskImage: `url('/hanhaba_mask_knot.png')`,
+                                    maskSize: 'contain',
+                                    WebkitMaskSize: 'contain',
+                                    maskRepeat: 'no-repeat',
+                                    WebkitMaskRepeat: 'no-repeat',
+                                    maskPosition: 'center',
+                                    WebkitMaskPosition: 'center',
+                                  }}
+                                >
+                                  <div 
+                                    className="absolute top-1/2 left-1/2 w-[150%] h-[150%] -translate-x-1/2 -translate-y-1/2"
+                                    style={{
+                                      backgroundImage: `url(${imageUrl})`, 
+                                      backgroundSize: patternSize,
+                                      backgroundRepeat: 'repeat',
+                                      transform: 'rotate(-15deg)'
+                                    }}
+                                  />
+                                </div>
+
+                                {/* 3. 前帯パーツ（手前） */}
+                                <div 
+                                  className="absolute inset-0 z-20 pointer-events-none" 
+                                  style={{ 
+                                    maskImage: `url('/hanhaba_mask_front.png')`,
+                                    WebkitMaskImage: `url('/hanhaba_mask_front.png')`,
+                                    maskSize: 'contain',
+                                    WebkitMaskSize: 'contain',
+                                    maskRepeat: 'no-repeat',
+                                    WebkitMaskRepeat: 'no-repeat',
+                                    maskPosition: 'center',
+                                    WebkitMaskPosition: 'center',
+                                  }}
+                                >
+                                  <div 
+                                    className="absolute top-1/2 left-1/2 w-[150%] h-[150%] -translate-x-1/2 -translate-y-1/2"
+                                    style={{
+                                      backgroundImage: `url(${imageUrl})`, 
+                                      backgroundSize: patternSize,
+                                      backgroundRepeat: 'repeat',
+                                      transform: 'rotate(0deg)'
+                                    }}
+                                  />
+                                </div>
+
+                                {/* 4. 影・シワレイヤー（一番上に「乗算」で重ねる） */}
+                                <div 
+                                  className="absolute inset-0 z-30 pointer-events-none"
+                                  style={{
+                                    backgroundImage: `url('/hanhaba_shadow.png')`,
+                                    backgroundSize: 'contain',
+                                    backgroundPosition: 'center',
+                                    backgroundRepeat: 'no-repeat',
+                                    mixBlendMode: 'multiply'
+                                  }}
+                                />
+                                
+                              </div>
+                            );
+                          })()}
                         </div>
                       )}
                     </div>
