@@ -106,7 +106,7 @@ const TRADITIONAL_COLORS = [
   { name: '菜の花 (なのはな)', hex: '#ffec47', text: '明るいカナリアイエロー地', isDark: false },
   { name: '蒲公英 (たんぽぽ)', hex: '#ffd900', text: '鮮やかなビビッドイエロー地', isDark: false },
   { name: '山吹 (やまぶき)', hex: '#f8b500', text: '華やかな黄金・マスタード地', isDark: true },
-  { name: '鬱金 (うこん)', hex: '#fabf14', text: '温かみのあるサフランイエロー地', isDark: false },
+  { name: '鬱金 (うcon)', hex: '#fabf14', text: '温かみのあるサフランイエロー地', isDark: false },
   { name: '芥子 (からし)', hex: '#d0af4c', text: '渋い辛子色地', isDark: false },
   { name: '金茶 (きんちゃ)', hex: '#c7802d', text: '深みのあるゴールデンブラウン地', isDark: true },
   { name: '黄土 (おうど)', hex: '#c39143', text: '落ち着きのあるオーカー地', isDark: true },
@@ -290,7 +290,10 @@ function HomeContent() {
   const [selectedColors, setSelectedColors] = useState<typeof TRADITIONAL_COLORS>([]);
   
   const [density, setDensity] = useState('四方柄（上下なし）');
-  const [itemType, setItemType] = useState('hanhaba'); 
+  
+  // ★ アイテム選択のState (現在はhanhabaのみ有効)
+  const [itemType, setItemType] = useState<'hanhaba' | 'kyobukuro' | 'kimono'>('hanhaba'); 
+  
   const [patternTitle, setPatternTitle] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
@@ -299,7 +302,8 @@ function HomeContent() {
   const [agreed, setAgreed] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   
-  const [displayMode, setDisplayMode] = useState<'fabric' | 'obi' | 'kyobukuro' | 'kimono'>('obi');
+  // ★ モード選択のState (3タブ構成)
+  const [displayMode, setDisplayMode] = useState<'mockup' | 'trim' | 'fabric'>('mockup');
   
   const [mockupSubmitting, setMockupSubmitting] = useState(false);
   const [mockupSuccess, setMockupSuccess] = useState(false);
@@ -518,7 +522,7 @@ function HomeContent() {
         setBlobUrl(data.blobUrl);   
         setSerialNumber(`KOMON-${Math.floor(1000 + Math.random() * 9000)}`);
         
-        setDisplayMode('obi');
+        setDisplayMode('mockup'); // 生成後はモックアップタブへ
 
         const newCount = currentCount + 1;
         localStorage.setItem('komon_generations', JSON.stringify({
@@ -656,6 +660,9 @@ function HomeContent() {
     <div className="min-h-screen bg-[#f4f4f5] text-zinc-900 p-2 sm:p-6 lg:p-8 flex flex-col items-center justify-start font-sans selection:bg-zinc-200">
       <div className="w-full max-w-7xl flex flex-col lg:flex-row gap-4 sm:gap-6 items-start justify-center">
         
+        {/* ======================================================== */}
+        {/* ▼▼ プレビュー領域（スマホでは sticky top-2 で上部に固定） ▼▼ */}
+        {/* ======================================================== */}
         <div 
           ref={previewRef}
           className="w-full lg:w-1/2 shrink-0 sticky top-2 z-30 lg:top-8 flex flex-col gap-3"
@@ -663,7 +670,7 @@ function HomeContent() {
           {imageUrl && (
             <div className="bg-white border border-zinc-300 shadow-xl overflow-hidden animate-fade-in">
               
-              <div className="px-3 py-2 sm:p-4 border-b border-zinc-200 bg-zinc-50/90 flex justify-between items-center">
+              <div className="px-3 py-2 sm:px-4 sm:py-3 border-b border-zinc-200 bg-zinc-50 flex justify-between items-center">
                 <div>
                   <span className="text-[8px] sm:text-[9px] font-mono font-bold tracking-widest text-zinc-400 block">
                     ID: {serialNumber}
@@ -672,78 +679,55 @@ function HomeContent() {
                     銘：『{finalTitle}』
                   </h2>
                 </div>
-                <div className="flex gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => setDisplayMode('obi')}
-                    className={`px-2.5 py-1 text-[10px] sm:text-xs font-bold tracking-wider transition-all border ${
-                      displayMode === 'obi'
-                        ? 'bg-zinc-900 text-white border-zinc-900 shadow'
-                        : 'bg-white text-zinc-800 border-zinc-300'
-                    }`}
-                  >
-                    半幅帯プレビュー
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setDisplayMode('fabric')}
-                    className={`px-2.5 py-1 text-[10px] sm:text-xs font-bold tracking-wider transition-all border ${
-                      displayMode === 'fabric'
-                        ? 'bg-zinc-900 text-white border-zinc-900 shadow'
-                        : 'bg-white text-zinc-600 border-zinc-300'
-                    }`}
-                  >
-                    平面データ(原寸確認)
-                  </button>
-                </div>
               </div>
 
-              <div className="bg-[#e4e4e7] flex flex-col items-center justify-center p-2 sm:p-6 relative shadow-inner overflow-hidden">
-                
-                {displayMode === 'fabric' && (
-                  <div className="flex flex-col items-center w-full animate-fade-in">
-                    <div className="relative">
-                      <div 
-                        className="w-full max-w-[320px] sm:max-w-[400px] aspect-square border border-zinc-300 bg-white shadow-md relative overflow-hidden"
-                      >
-                        {/* ★ AIも幾何学も、100%（実寸）の縮尺で表示。帯と同じ「回転済みデータ」を参照 */}
-                        <div 
-                          className="absolute inset-0"
-                          style={{
-                            backgroundImage: `url(${creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl)})`, 
-                            backgroundSize: creationMode === 'geometric' ? `${(bgSizeMm / 400) * 100}% auto` : '100% auto',
-                            backgroundPosition: 'center',
-                            backgroundRepeat: 'repeat',
-                            backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff'
-                          }}
-                        />
-                        
-                        {/* ★ 邪魔にならない「18cmカットライン」のスリット */}
-                        <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 border-y-2 border-dashed border-zinc-900/50 pointer-events-none flex flex-col justify-between" 
-                             style={{ height: '45%' }} 
-                        >
-                          <div className="bg-white/90 px-1.5 py-0.5 text-[9px] font-bold text-zinc-700 self-start shadow-sm rounded-br">
-                            ↑ 帯幅 18cm カットライン
-                          </div>
-                          <div className="bg-white/90 px-1.5 py-0.5 text-[9px] font-bold text-zinc-700 self-start shadow-sm rounded-tr">
-                            ↓ 帯幅 18cm カットライン
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <p className="text-[9px] sm:text-[10px] text-zinc-500 mt-3 font-medium bg-white/80 px-2 py-1 rounded">
-                      ※ 枠全体を「幅40cmの反物」とした原寸シミュレーション（工房へはこの平面データが送信されます）
-                    </p>
-                  </div>
-                )}
+              {/* ★ 2段タブナビゲーション（下段：表示形式の切り替え） */}
+              <div className="px-2 py-2 sm:p-3 border-b border-zinc-200 bg-zinc-100/80 flex gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setDisplayMode('mockup')}
+                  className={`flex-1 px-1 py-1.5 sm:py-2 text-[10px] sm:text-xs font-bold tracking-wider transition-all border rounded-sm ${
+                    displayMode === 'mockup'
+                      ? 'bg-zinc-900 text-white border-zinc-900 shadow'
+                      : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50'
+                  }`}
+                >
+                  🎀 着用イメージ
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDisplayMode('trim')}
+                  className={`flex-1 px-1 py-1.5 sm:py-2 text-[10px] sm:text-xs font-bold tracking-wider transition-all border rounded-sm ${
+                    displayMode === 'trim'
+                      ? 'bg-zinc-900 text-white border-zinc-900 shadow'
+                      : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50'
+                  }`}
+                >
+                  📏 18cm裁断イメージ
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDisplayMode('fabric')}
+                  className={`flex-1 px-1 py-1.5 sm:py-2 text-[10px] sm:text-xs font-bold tracking-wider transition-all border rounded-sm ${
+                    displayMode === 'fabric'
+                      ? 'bg-zinc-900 text-white border-zinc-900 shadow'
+                      : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50'
+                  }`}
+                >
+                  📜 40cm全体データ
+                </button>
+              </div>
 
-                {displayMode === 'obi' && (
+              <div className="bg-[#e4e4e7] flex flex-col items-center justify-center p-3 sm:p-6 relative shadow-inner overflow-hidden">
+                
+                {/* ======================================================== */}
+                {/* 1. モックアップ (着用イメージ) */}
+                {/* ======================================================== */}
+                {displayMode === 'mockup' && (
                   <div className="w-full flex flex-col items-center animate-fade-in">
                     <div className="relative w-[210px] sm:w-[340px] aspect-square mx-auto drop-shadow-xl">
                       {(() => {
                         const mmToPercent = ((440 / 1200) / 165) * 100;
-                        
                         const patternSize = creationMode === 'geometric' 
                           ? `${bgSizeMm * mmToPercent}% auto` 
                           : `${400 * mmToPercent}% auto`;
@@ -846,6 +830,62 @@ function HomeContent() {
                         );
                       })()}
                     </div>
+                    <p className="text-[9px] sm:text-[10px] text-zinc-500 mt-4 font-medium bg-white/80 px-2 py-1 rounded text-center">
+                      ※ 帯を結んだ際の柄の出方を想定したシミュレーション
+                    </p>
+                  </div>
+                )}
+
+                {/* ======================================================== */}
+                {/* 2. トリム (18cm 裁断イメージ) */}
+                {/* ======================================================== */}
+                {displayMode === 'trim' && (
+                  <div className="w-full flex flex-col items-center animate-fade-in">
+                    <div 
+                      className="w-full max-w-[280px] sm:max-w-[400px] border border-zinc-300 bg-white shadow-md relative overflow-hidden"
+                      style={{ aspectRatio: '40 / 18' }} // ★ ここがキモ：40cm幅から18cm分だけを切り抜く黄金比
+                    >
+                      <div 
+                        className="absolute inset-0"
+                        style={{
+                          backgroundImage: `url(${creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl)})`, 
+                          backgroundSize: creationMode === 'geometric' ? `${(bgSizeMm / 400) * 100}% auto` : '100% auto',
+                          backgroundPosition: 'center center',
+                          backgroundRepeat: 'repeat',
+                          backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff'
+                        }}
+                      />
+                    </div>
+                    
+                    <p className="text-[9px] sm:text-[10px] text-zinc-500 mt-4 font-medium bg-white/80 px-2 py-1 rounded text-center leading-relaxed">
+                      ※ 幅40cmの反物データから、<strong className="text-zinc-900">帯幅(約18cm)</strong>に裁断した場合のトリミング・イメージです。<br />
+                      （表示されている範囲が帯の表面として仕立てられます）
+                    </p>
+                  </div>
+                )}
+
+                {/* ======================================================== */}
+                {/* 3. ファブリック (40cm 全体データ) */}
+                {/* ======================================================== */}
+                {displayMode === 'fabric' && (
+                  <div className="w-full flex flex-col items-center animate-fade-in">
+                    <div className="w-full max-w-[280px] sm:max-w-[400px] aspect-square border border-zinc-300 bg-white shadow-md relative overflow-hidden">
+                      <div 
+                        className="absolute inset-0"
+                        style={{
+                          backgroundImage: `url(${creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl)})`, 
+                          backgroundSize: creationMode === 'geometric' ? `${(bgSizeMm / 400) * 100}% auto` : '100% auto',
+                          backgroundPosition: 'center',
+                          backgroundRepeat: 'repeat',
+                          backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff'
+                        }}
+                      />
+                    </div>
+                    
+                    <p className="text-[9px] sm:text-[10px] text-zinc-500 mt-4 font-medium bg-white/80 px-2 py-1 rounded text-center leading-relaxed">
+                      ※ <strong className="text-zinc-900">幅40cmの反物全体</strong>の原寸シミュレーション。<br />
+                      （工場・職人へはこの平面データが送信され、プリントされます）
+                    </p>
                   </div>
                 )}
               </div>
@@ -853,6 +893,9 @@ function HomeContent() {
           )}
         </div>
 
+        {/* ======================================================== */}
+        {/* ▼▼ 操作パネル ▼▼ */}
+        {/* ======================================================== */}
         <div className="w-full lg:w-1/2 bg-white border border-zinc-200 p-4 sm:p-8 lg:p-10 shrink-0 shadow-sm z-10">
           
           <div className="text-center mb-6 sm:mb-8 p-5 sm:p-8 bg-zinc-950 text-white shadow-inner">
@@ -1063,29 +1106,37 @@ function HomeContent() {
                     </div>
                   </div>
 
+                  {/* ★ 将来の拡張に向けたアイテム選択タブ (ダミーはグレーアウト) */}
                   <div>
                     <label className="block text-xs font-bold text-zinc-800 tracking-wider mb-2">
-                      04. 形式
+                      04. 作成するアイテム
                     </label>
                     <div className="flex flex-col gap-1.5">
-                      {[
-                        { id: 'hanhaba', label: '半幅帯 (高さ18cm基準 / 16:9)' },
-                        { id: 'square', label: '正方形 (40cm角基準 / 1:1)' },
-                        { id: 'tanmono', label: '反物 (幅40cm基準 / 9:16)' },
-                      ].map((item) => (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => setItemType(item.id)}
-                          className={`py-2 px-2.5 text-[11px] font-bold tracking-wider transition-all text-left border ${
-                            itemType === item.id
-                              ? 'bg-zinc-900 text-white border-zinc-900 shadow'
-                              : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50 shadow-sm'
-                          }`}
-                        >
-                          {item.label}
-                        </button>
-                      ))}
+                      <button
+                        type="button"
+                        onClick={() => setItemType('hanhaba')}
+                        className={`py-2 px-2.5 text-[11px] font-bold tracking-wider transition-all text-left border ${
+                          itemType === 'hanhaba'
+                            ? 'bg-zinc-900 text-white border-zinc-900 shadow'
+                            : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50 shadow-sm'
+                        }`}
+                      >
+                        半幅帯 (仕上がり18cm)
+                      </button>
+                      <button
+                        type="button"
+                        disabled
+                        className="py-2 px-2.5 text-[11px] font-bold tracking-wider text-left border bg-zinc-100 text-zinc-400 border-zinc-200 cursor-not-allowed opacity-70"
+                      >
+                        京袋帯 (準備中)
+                      </button>
+                      <button
+                        type="button"
+                        disabled
+                        className="py-2 px-2.5 text-[11px] font-bold tracking-wider text-left border bg-zinc-100 text-zinc-400 border-zinc-200 cursor-not-allowed opacity-70"
+                      >
+                        着物 (準備中)
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -1372,6 +1423,7 @@ function HomeContent() {
               </div>
             )}
 
+            {/* 保存・注文アクションボタン */}
             {imageUrl && (
               <div className="pt-4 border-t border-zinc-200 space-y-3">
                 <div className="grid grid-cols-2 gap-2">
