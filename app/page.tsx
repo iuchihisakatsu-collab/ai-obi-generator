@@ -1193,7 +1193,7 @@ function HomeContent() {
                   </div>
                 )}
 
-                {/* 2. 半幅帯 モックアップ (タイリング途切れ修正・PNG優先・アンダーバーなし統一版) */}
+{/* 2. 半幅帯 モックアップ (座標ズレ完全解消・全パーツ全面カバー版) */}
                 {displayMode === 'obi' && (
                   <div className="w-full flex flex-col items-center animate-fade-in">
                     <div className="relative w-full max-w-[400px] aspect-square mx-auto">
@@ -1205,13 +1205,12 @@ function HomeContent() {
                           ? `${geoSizePx}px ${geoSizePx}px` 
                           : `${40 * PIXELS_PER_CM}px ${40 * PIXELS_PER_CM}px`;
                         
-                        // ★ SVGタイリング途切れ防止：PNGデータ（blobUrl）を優先して背景に適用
                         const effectivePatternUrl = blobUrl || imageUrl;
-                        const v = '6';
+                        const v = '7'; // キャッシュ強制更新
 
                         return (
                           <div className="relative w-full h-full overflow-hidden">
-                            {/* ★ レイヤー1〜6 (アンダーバーなし統一・独立角度＆送り付け) */}
+                            {/* ★ レイヤー1〜6 (top/left: -25% で確実に全体をすっぽり覆う) */}
                             {[
                               { id: '01', file: 'hanhaba_Layer01.png', z: 10, rot: 2, bgX: '12%', bgY: '34%' },
                               { id: '02', file: 'hanhaba_Layer02.png', z: 20, rot: 88, bgX: '45%', bgY: '67%' },
@@ -1236,13 +1235,18 @@ function HomeContent() {
                                 }}
                               >
                                 <div 
-                                  className="absolute top-1/2 left-1/2 w-[150%] h-[150%] -translate-x-1/2 -translate-y-1/2"
                                   style={{
+                                    position: 'absolute',
+                                    top: '-25%',
+                                    left: '-25%',
+                                    width: '150%',
+                                    height: '150%',
                                     backgroundImage: `url(${effectivePatternUrl})`, 
                                     backgroundSize: patternSize,
                                     backgroundRepeat: 'repeat',
                                     backgroundPosition: `${layer.bgX} ${layer.bgY}`, 
-                                    transform: `rotate(${layer.rot}deg)`
+                                    transform: `rotate(${layer.rot}deg)`,
+                                    transformOrigin: 'center center'
                                   }}
                                 />
                               </div>
@@ -1264,17 +1268,23 @@ function HomeContent() {
                               }}
                             >
                               <div 
-                                className="absolute top-1/2 left-1/2 w-[150%] h-[150%] -translate-x-1/2 -translate-y-1/2"
-                                style={{ backgroundColor: obiLiningColor }}
+                                style={{
+                                  position: 'absolute',
+                                  top: '-25%',
+                                  left: '-25%',
+                                  width: '150%',
+                                  height: '150%',
+                                  backgroundColor: obiLiningColor,
+                                }}
                               />
                             </div>
 
-                            {/* 影・シワレイヤー */}
+                            {/* 影・シワレイヤー (hanhaba_Layer_kage.png) */}
                             <div 
                               className="absolute inset-0 pointer-events-none"
                               style={{
                                 zIndex: 70,
-                                backgroundImage: `url('/hanhaba_Layerkage.png?v=${v}')`,
+                                backgroundImage: `url('/hanhaba_Layer_kage.png?v=${v}')`,
                                 backgroundSize: 'contain',
                                 backgroundPosition: 'center',
                                 backgroundRepeat: 'no-repeat',
@@ -1337,7 +1347,6 @@ function HomeContent() {
                     </div>
                   </div>
                 )}
-              </div>
               
               {/* ▼ ポン出し注釈 (帯・着物タブを選択した時のみ表示) ▼ */}
               {displayMode !== 'fabric' && (
