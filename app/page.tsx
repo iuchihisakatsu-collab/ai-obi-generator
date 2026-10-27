@@ -2,7 +2,7 @@
 
 /* eslint-disable @next/next/no-img-element */
 
-import { useState, useEffect, type MouseEvent, useCallback, Suspense } from 'react';
+import { useState, useEffect, type MouseEvent, useCallback, Suspense, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { 
   generateStripeSvg, 
@@ -331,6 +331,9 @@ function HomeContent() {
   // ★ 半幅帯マッピング用テクスチャ（AI画像の場合は90度回転済み）
   const [rotatedPatternUrl, setRotatedPatternUrl] = useState<string>('');
 
+  // ★ プレビュー領域へのスクロール用Ref
+  const previewRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     const today = new Date().toISOString().split('T')[0];
     const storedData = localStorage.getItem('komon_generations');
@@ -529,6 +532,11 @@ function HomeContent() {
           count: newCount
         }));
         setRemainingCount(Math.max(0, MAX_GENERATIONS_PER_DAY - newCount));
+        
+        // ★ 生成完了後、プレビュー領域まで自動スクロール（スマホ向けUX向上）
+        setTimeout(() => {
+          previewRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 300);
       } else {
         setErrorMsg(data.error || '図案の生成に失敗しました。');
       }
@@ -561,7 +569,7 @@ function HomeContent() {
 
   const finalTitle = patternTitle.trim() || '（無題）';
   const colorSummary = selectedColors.length > 0 ? selectedColors.map(c => c.name.split(' ')[0]).join('・') : '自由配色';
-  const shareText = encodeURIComponent(`「妄想図案帳」で、柄のアイデアを試してみました。\n\n銘：『${finalTitle}』\n配色：${colorSummary}\n\n※AIによるアイデア図案です。実際の生地制作時はスタッフが人の目で調整します。\n\n#妄想図案帳`);
+  const shareText = encodeURIComponent(`「妄想きもの図案帳」で、柄のアイデアを試してみました。\n\n銘：『${finalTitle}』\n配色：${colorSummary}\n\n※AIによるアイデア図案です。実際の生地制作時はスタッフが人の目で調整します。\n\n#妄想図案帳`);
   const shareUrl = typeof window !== 'undefined' ? encodeURIComponent(window.location.href) : '';
   const xShareLink = `https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`;
   
@@ -653,583 +661,584 @@ function HomeContent() {
 
   return (
     <div className="min-h-screen bg-[#f4f4f5] text-zinc-900 p-4 sm:p-8 flex flex-col items-center justify-center font-sans selection:bg-zinc-200">
-      <div className="max-w-2xl w-full bg-white border border-zinc-200 p-6 sm:p-12">
+      
+      {/* 2ペイン並列レイアウト */}
+      <div className="w-full max-w-7xl flex flex-col lg:flex-row gap-6 items-start justify-center">
         
-        {/* ① ヘッダーエリア */}
-        <div className="text-center mb-8 p-8 sm:p-10 bg-zinc-950 text-white">
-          <h1 className="text-2xl sm:text-3xl font-black tracking-widest text-center leading-tight">
-            {isShopify ? 'プリンタグ見本帳' : '妄想図案帳'}
-          </h1>
-          <p className="text-xs text-zinc-400 mt-4 leading-relaxed font-medium tracking-wider">
-            {isShopify ? (
-              <>
-                新潟デジタル捺染工場（モナリザ）直結のテキスタイル制作スタジオ。<br className="hidden sm:inline" />
-                AIや幾何学文様から図案をデザインし、デザインフィーを設定してShopifyへ即時展開できます。
-              </>
-            ) : (
-              <>
-                新潟・十日町は着物の産地 着物の配色や柄づくりの知識を生かして、<br className="hidden sm:inline" />
-                思いついた柄のアイデアを試せるAI図案ツールです。
-              </>
-            )}
-          </p>
-        </div>
+        {/* 左側：操作パネル（入力・設定） */}
+        <div className="w-full lg:w-1/2 bg-white border border-zinc-200 p-6 sm:p-10 shrink-0 shadow-sm z-10">
+          
+          {/* ① ヘッダーエリア */}
+          <div className="text-center mb-8 p-6 sm:p-8 bg-zinc-950 text-white shadow-inner">
+            <h1 className="text-2xl sm:text-3xl font-black tracking-widest text-center leading-tight">
+              {/* ★ トップページタイトル修正 */}
+              {isShopify ? 'プリンタグ見本帳' : '妄想きもの図案帳'}
+            </h1>
+            <p className="text-xs text-zinc-400 mt-4 leading-relaxed font-medium tracking-wider">
+              {isShopify ? (
+                <>
+                  新潟デジタル捺染工場（モナリザ）直結のテキスタイル制作スタジオ。<br className="hidden sm:inline" />
+                  AIや幾何学文様から図案をデザインし、デザインフィーを設定してShopifyへ即時展開できます。
+                </>
+              ) : (
+                <>
+                  新潟・十日町は着物の産地 着物の配色や柄づくりの知識を生かして、<br className="hidden sm:inline" />
+                  思いついた柄のアイデアを試せるAI図案ツールです。
+                </>
+              )}
+            </p>
+          </div>
 
-        {/* モード切替タブ */}
-        <div className="flex bg-zinc-50 border border-zinc-200 p-1 mb-8">
-          <button
-            type="button"
-            onClick={() => setCreationMode('ai')}
-            className={`flex-1 py-3 text-xs font-black tracking-wider transition-all ${
-              creationMode === 'ai' ? 'bg-zinc-900 text-white' : 'text-zinc-500 hover:text-zinc-800'
-            }`}
-          >
-            ✨ AI妄想モード
-          </button>
-          <button
-            type="button"
-            onClick={() => setCreationMode('geometric')}
-            className={`flex-1 py-3 text-xs font-black tracking-wider transition-all ${
-              creationMode === 'geometric' ? 'bg-zinc-900 text-white' : 'text-zinc-500 hover:text-zinc-800'
-            }`}
-          >
-            📐 格子・水玉製作所
-          </button>
-        </div>
+          {/* モード切替タブ */}
+          <div className="flex bg-zinc-50 border border-zinc-200 p-1 mb-8 shadow-sm">
+            <button
+              type="button"
+              onClick={() => setCreationMode('ai')}
+              className={`flex-1 py-3 text-xs font-black tracking-wider transition-all ${
+                creationMode === 'ai' ? 'bg-zinc-900 text-white shadow' : 'text-zinc-500 hover:text-zinc-800'
+              }`}
+            >
+              ✨ AI妄想モード
+            </button>
+            <button
+              type="button"
+              onClick={() => setCreationMode('geometric')}
+              className={`flex-1 py-3 text-xs font-black tracking-wider transition-all ${
+                creationMode === 'geometric' ? 'bg-zinc-900 text-white shadow' : 'text-zinc-500 hover:text-zinc-800'
+              }`}
+            >
+              📐 格子・水玉製作所
+            </button>
+          </div>
 
-        <div className="space-y-8">
-          {creationMode === 'ai' ? (
-            <>
-              {/* 壱. プロンプト自由入力 */}
-              <div>
-                <div className="flex justify-between items-baseline mb-2">
-                  <label className="block text-xs font-bold text-zinc-900 tracking-wider">
-                    01. 図案のイメージ・プロンプト <span className="text-[10px] text-zinc-400 font-normal">（自由に入力してください）</span>
-                  </label>
-                  {motif && (
-                    <button 
-                      onClick={() => setMotif('')} 
-                      className="text-[10px] font-bold text-zinc-400 hover:text-zinc-800 tracking-widest uppercase transition-colors"
+          <div className="space-y-8">
+            {creationMode === 'ai' ? (
+              <>
+                {/* 壱. プロンプト自由入力 */}
+                <div>
+                  <div className="flex justify-between items-baseline mb-2">
+                    <label className="block text-xs font-bold text-zinc-900 tracking-wider">
+                      01. 図案のイメージ・プロンプト <span className="text-[10px] text-zinc-400 font-normal">（自由に入力してください）</span>
+                    </label>
+                    {motif && (
+                      <button 
+                        onClick={() => setMotif('')} 
+                        className="text-[10px] font-bold text-zinc-400 hover:text-zinc-800 tracking-widest uppercase transition-colors"
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                  
+                  <div className="relative">
+                    <textarea
+                      className="w-full border border-zinc-300 p-4 bg-white text-sm focus:outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 resize-none transition-all duration-200 leading-relaxed font-medium shadow-sm"
+                      rows={4}
+                      value={motif}
+                      onChange={(e) => setMotif(e.target.value)}
+                      placeholder="例：上から見た金魚。赤い金魚と黒出目金。水草。地色は白、ターコイズの流水柄。版画・切り絵風、ミッドセンチュリー"
+                      disabled={loading}
+                    />
+                  </div>
+
+                  <div className="mt-2 text-right">
+                    <button
+                      type="button"
+                      onClick={() => setShowTags(!showTags)}
+                      className="inline-flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-900 font-bold transition-colors py-1"
                     >
-                      Clear
+                      <span>💡 {showTags ? 'ヒントを閉じる' : '図案のヒント・キーワードを探す'}</span>
+                      <span className="text-[9px] transform transition-transform duration-200">{showTags ? '▲' : '▼'}</span>
                     </button>
+                  </div>
+
+                  {showTags && (
+                    <div className="mt-3 p-4 bg-zinc-50 border border-zinc-200 space-y-4 max-h-[260px] overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-200 animate-fade-in shadow-inner">
+                      <p className="text-[11px] text-zinc-500 font-medium">クリックすると入力欄にキーワードが追加されます：</p>
+                      {TAG_CATEGORIES.map((cat) => (
+                        <div key={cat.title}>
+                          <p className="text-[10px] font-bold text-zinc-400 tracking-wider mb-1.5">{cat.title}</p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {cat.items.map((item) => (
+                              <button
+                                key={item.label}
+                                type="button"
+                                onClick={() => handleTagClick(item)}
+                                className="px-3 py-1 bg-white border border-zinc-200 text-[11px] font-medium text-zinc-600 hover:bg-zinc-900 hover:text-white transition-all duration-150 shadow-sm hover:shadow"
+                              >
+                                {item.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
-                
-                <div className="relative">
-                  <textarea
-                    className="w-full border border-zinc-300 p-4 bg-white text-sm focus:outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 resize-none transition-all duration-200 leading-relaxed font-medium"
-                    rows={4}
-                    value={motif}
-                    onChange={(e) => setMotif(e.target.value)}
-                    placeholder="例：上から見た金魚。赤い金魚と黒出目金。水草。地色は白、ターコイズの流水柄。版画・切り絵風、ミッドセンチュリー"
+
+                {/* 弐. 配色・地色 */}
+                <div className="pt-2 border-t border-zinc-100">
+                  <div className="flex justify-between items-baseline mb-3">
+                    <div>
+                      <label className="block text-xs font-bold text-zinc-900 tracking-wider">
+                        02. 配色・地色 <span className="text-[10px] text-zinc-400 font-normal">（迷ったら選択 / 複数OK）</span>
+                      </label>
+                      <p className="text-[11px] text-zinc-400 mt-0.5">※上の入力欄に「地色は白」のように書くこともできます</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowColorPalette(!showColorPalette)}
+                      className="inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-900 font-bold transition-colors"
+                    >
+                      <span>🎨 {showColorPalette ? 'パレットを閉じる' : '色見本から選ぶ (102色)'}</span>
+                      <span className="text-[9px] transform transition-transform duration-200">{showColorPalette ? '▲' : '▼'}</span>
+                    </button>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2 min-h-[32px]">
+                    {selectedColors.length === 0 ? (
+                      <span className="text-xs text-zinc-400 italic">指定なし（入力欄の指定、またはAIの配色におまかせ）</span>
+                    ) : (
+                      <>
+                        {selectedColors.map((col) => (
+                          <span
+                            key={col.name}
+                            onClick={() => handleColorToggle(col)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold border cursor-pointer hover:opacity-80 transition-opacity shadow-sm"
+                            style={{
+                              backgroundColor: col.hex,
+                              color: col.isDark ? '#fff' : '#000',
+                              borderColor: 'rgba(0,0,0,0.1)'
+                            }}
+                          >
+                            {col.name.split(' ')[0]}
+                            <span className="text-[10px] opacity-70">✕</span>
+                          </span>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() => setSelectedColors([])}
+                          className="text-[10px] text-zinc-400 hover:text-zinc-700 underline ml-1"
+                        >
+                          リセット
+                        </button>
+                      </>
+                    )}
+                  </div>
+
+                  {showColorPalette && (
+                    <div className="mt-3 p-4 bg-zinc-50 border border-zinc-200 animate-fade-in shadow-inner">
+                      <p className="text-[10px] text-zinc-500 font-medium mb-3">タップして選択（最大3色まで組み合わせ可能）：</p>
+                      <div className="max-h-[240px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-zinc-200">
+                        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                          {TRADITIONAL_COLORS.map((col) => {
+                            const isSelected = selectedColors.some((c) => c.name === col.name);
+                            return (
+                              <button
+                                key={col.name}
+                                type="button"
+                                onClick={() => handleColorToggle(col)}
+                                className={`relative h-12 p-2 flex flex-col justify-end text-left transition-all duration-200 ${
+                                  isSelected
+                                    ? 'ring-2 ring-offset-2 ring-zinc-950 scale-95 font-black'
+                                    : 'border border-zinc-200/50 hover:scale-105 shadow-sm'
+                                }`}
+                                style={{ backgroundColor: col.hex }}
+                              >
+                                <span className={`text-[9px] font-bold tracking-wider truncate leading-tight flex items-center justify-between ${col.isDark ? 'text-white' : 'text-zinc-900'}`}>
+                                  {col.name.split(' ')[0]}
+                                  {isSelected && <span>✓</span>}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* 参. 形式と密度 */}
+                <div className="grid sm:grid-cols-2 gap-6 pt-2 border-t border-zinc-100">
+                  <div>
+                    <label className="block text-xs font-bold text-zinc-800 tracking-wider mb-3">
+                      03. 柄の配置・密度
+                    </label>
+                    <div className="flex flex-col gap-2">
+                      {[
+                        { id: '四方柄（上下なし・散らし柄）', label: '四方柄（上下なし・裁断しやすい）' },
+                        { id: '総柄（ぎっしり華やか）', label: '総柄（ぎっしり華やか）' },
+                        { id: '飛び柄（余白のある小紋）', label: '飛び柄（余白のある小紋）' },
+                        { id: 'お太鼓柄（ワンポイント/1枚絵）', label: 'お太鼓柄（ワンポイント/1枚絵）' }
+                      ].map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => setDensity(item.id)}
+                          className={`py-2.5 px-3.5 text-xs font-bold tracking-wider transition-all duration-200 text-left border ${
+                            density === item.id
+                              ? 'bg-zinc-900 text-white border-zinc-900 shadow'
+                              : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50 shadow-sm'
+                          }`}
+                        >
+                          {item.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-zinc-800 tracking-wider mb-3">
+                      04. 形式・アスペクト比
+                    </label>
+                    <div className="flex flex-col gap-2">
+                      {[
+                        { id: 'square', label: '正方形 (小物・お太鼓・リピート用)' },
+                        { id: 'hanhaba', label: '半幅帯 (横長 16:9)' },
+                        { id: 'tanmono', label: '反物・着尺 (縦長 9:16)' },
+                      ].map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => setItemType(item.id)}
+                          className={`py-2.5 px-3.5 text-xs font-bold tracking-wider transition-all duration-200 text-left border ${
+                            itemType === item.id
+                              ? 'bg-zinc-900 text-white border-zinc-900 shadow'
+                              : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50 shadow-sm'
+                          }`}
+                        >
+                          {item.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 伍. 図案銘 */}
+                <div className="pt-2 border-t border-zinc-100">
+                  <label className="block text-xs font-bold text-zinc-800 tracking-wider mb-2">
+                    05. 図案銘 <span className="text-[10px] text-zinc-400 font-normal">（任意・作品タイトル）</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full border border-zinc-300 p-3 bg-zinc-50 text-sm focus:outline-none focus:border-zinc-900 focus:bg-white transition-all duration-200 shadow-sm"
+                    placeholder="例：遊泳金魚図"
+                    value={patternTitle}
+                    onChange={(e) => setPatternTitle(e.target.value)}
                     disabled={loading}
                   />
                 </div>
 
-                <div className="mt-2 text-right">
-                  <button
-                    type="button"
-                    onClick={() => setShowTags(!showTags)}
-                    className="inline-flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-900 font-bold transition-colors py-1"
-                  >
-                    <span>💡 {showTags ? 'ヒントを閉じる' : '図案のヒント・キーワードを探す'}</span>
-                    <span className="text-[9px] transform transition-transform duration-200">{showTags ? '▲' : '▼'}</span>
-                  </button>
-                </div>
-
-                {showTags && (
-                  <div className="mt-3 p-4 bg-zinc-50 border border-zinc-200 space-y-4 max-h-[260px] overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-200 animate-fade-in">
-                    <p className="text-[11px] text-zinc-500 font-medium">クリックすると入力欄にキーワードが追加されます：</p>
-                    {TAG_CATEGORIES.map((cat) => (
-                      <div key={cat.title}>
-                        <p className="text-[10px] font-bold text-zinc-400 tracking-wider mb-1.5">{cat.title}</p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {cat.items.map((item) => (
-                            <button
-                              key={item.label}
-                              type="button"
-                              onClick={() => handleTagClick(item)}
-                              className="px-3 py-1 bg-white border border-zinc-200 text-[11px] font-medium text-zinc-600 hover:bg-zinc-900 hover:text-white transition-all duration-150"
-                            >
-                              {item.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
+                {/* ゴフクヤサン通常時のみ表示する回復呪文バナー */}
+                {!isShopify && (
+                  <div className="p-4 bg-zinc-50 border border-zinc-200 text-center shadow-inner">
+                    <p className="mb-1 text-xs font-bold text-zinc-800">
+                      ⚠️ 3回じゃ理想の柄が作れない方へ
+                    </p>
+                    <p className="mb-3 text-[11px] text-zinc-500">
+                      本気でお誂えをご検討中の方限定で、生成回数をリセットできる【回復呪文】をお渡しします。
+                    </p>
+                    <a 
+                      href="https://store.gofukuyasan.com/html/email.html" 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="inline-block px-4 py-2 bg-zinc-800 text-white no-underline text-xs font-bold hover:bg-zinc-700 transition-colors shadow-sm"
+                    >
+                      ✉️ 回復呪文をリクエストする（お問い合わせフォームへ）
+                    </a>
                   </div>
                 )}
-              </div>
 
-              {/* 弐. 配色・地色 */}
-              <div className="pt-2 border-t border-zinc-100">
-                <div className="flex justify-between items-baseline mb-3">
-                  <div>
-                    <label className="block text-xs font-bold text-zinc-900 tracking-wider">
-                      02. 配色・地色 <span className="text-[10px] text-zinc-400 font-normal">（迷ったら選択 / 複数OK）</span>
-                    </label>
-                    <p className="text-[11px] text-zinc-400 mt-0.5">※上の入力欄に「地色は白」のように書くこともできます</p>
-                  </div>
+                <div className="pt-2 border-t border-zinc-100">
+                  <label className="flex items-start gap-3 cursor-pointer select-none mb-6 group">
+                    <input
+                      type="checkbox"
+                      checked={agreed}
+                      onChange={(e) => setAgreed(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 border-zinc-300 text-zinc-900 focus:ring-zinc-900 transition-colors cursor-pointer"
+                    />
+                    <span className="text-[11px] text-zinc-500 leading-relaxed group-hover:text-zinc-800 transition-colors">
+                      生成された図案はAIによるアイデアイメージであり、実際の生地制作・捺染時には工房の職人の手でデータ調整が行われること、および公序良俗・権利侵害のない利用に同意します。
+                    </span>
+                  </label>
+
+                  {errorMsg && (
+                    <div className="mb-6 p-4 bg-red-50 text-red-600 border border-red-200 text-xs font-bold tracking-wide shadow-sm">
+                      {errorMsg}
+                    </div>
+                  )}
+
                   <button
                     type="button"
-                    onClick={() => setShowColorPalette(!showColorPalette)}
-                    className="inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-900 font-bold transition-colors"
+                    onClick={handleGenerate}
+                    disabled={loading || remainingCount === 0}
+                    className={`w-full py-4 sm:py-5 font-black text-sm tracking-widest uppercase transition-all duration-300 flex items-center justify-center gap-3 shadow-md ${
+                      remainingCount === 0
+                        ? 'bg-zinc-100 text-zinc-400 border border-zinc-200 cursor-not-allowed'
+                        : 'bg-zinc-950 text-white hover:bg-zinc-800 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed'
+                    }`}
                   >
-                    <span>🎨 {showColorPalette ? 'パレットを閉じる' : '色見本から選ぶ (102色)'}</span>
-                    <span className="text-[9px] transform transition-transform duration-200">{showColorPalette ? '▲' : '▼'}</span>
+                    {loading ? (
+                      <div className="flex flex-col items-center gap-1.5">
+                        <span>{LOADING_STEPS[loadingStep]}</span>
+                        <span className="text-[9px] text-zinc-400 font-normal">PROCESSING...</span>
+                      </div>
+                    ) : (
+                      <span>
+                        {remainingCount === 0
+                          ? '本日の上限に達しました (3/3)'
+                          : `図案を描き出す (残り ${remainingCount ?? 3} 回)`}
+                      </span>
+                    )}
                   </button>
                 </div>
+              </>
+            ) : (
+              /* 幾何学モード UI */
+              <div className="space-y-6 animate-fade-in">
+                <div className="bg-zinc-50 border border-zinc-200 text-zinc-800 p-4 text-xs mb-4 shadow-sm">
+                  <p className="font-bold mb-1">💡 このモードは使い放題です</p>
+                  <p className="text-[11px] opacity-90">AI生成枠（1日3回）を消費しません。納得いくまで何度でもサイズや色を調整して遊んでみてください。</p>
+                </div>
 
-                <div className="flex flex-wrap items-center gap-2 min-h-[32px]">
-                  {selectedColors.length === 0 ? (
-                    <span className="text-xs text-zinc-400 italic">指定なし（入力欄の指定、またはAIの配色におまかせ）</span>
-                  ) : (
-                    <>
-                      {selectedColors.map((col) => (
-                        <span
-                          key={col.name}
-                          onClick={() => handleColorToggle(col)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold border cursor-pointer hover:opacity-80 transition-opacity"
-                          style={{
-                            backgroundColor: col.hex,
-                            color: col.isDark ? '#fff' : '#000',
-                            borderColor: 'rgba(0,0,0,0.1)'
-                          }}
-                        >
-                          {col.name.split(' ')[0]}
-                          <span className="text-[10px] opacity-70">✕</span>
-                        </span>
-                      ))}
-                      <button
-                        type="button"
-                        onClick={() => setSelectedColors([])}
-                        className="text-[10px] text-zinc-400 hover:text-zinc-700 underline ml-1"
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-zinc-900 mb-2">柄の種類</label>
+                    <select 
+                      value={geoPatternType} 
+                      onChange={(e) => setGeoPatternType(e.target.value as 'stripe' | 'dot' | 'grid' | 'gingham' | 'checker')}
+                      className="w-full border border-zinc-300 p-3 bg-white text-sm focus:border-zinc-900 focus:outline-none shadow-sm"
+                    >
+                      <option value="stripe">縞（ストライプ）</option>
+                      <option value="dot">水玉（ドット）</option>
+                      <option value="grid">格子（ラインチェック）</option>
+                      <option value="gingham">ギンガムチェック</option>
+                      <option value="checker">市松（チェッカー）</option>
+                    </select>
+                  </div>
+                  {geoPatternType === 'stripe' && (
+                    <div>
+                      <label className="block text-xs font-bold text-zinc-900 mb-2">縞の向き</label>
+                      <select 
+                        value={stripeDir} 
+                        onChange={(e) => setStripeDir(e.target.value as StripeDirection)}
+                        className="w-full border border-zinc-300 p-3 bg-white text-sm focus:border-zinc-900 focus:outline-none shadow-sm"
                       >
-                        リセット
-                      </button>
+                        <option value="vertical">縦縞（滝縞）</option>
+                        <option value="horizontal">横縞（ボーダー）</option>
+                        <option value="diagonal">斜め（右上がり）</option>
+                      </select>
+                    </div>
+                  )}
+                  {geoPatternType === 'dot' && (
+                    <div>
+                      <label className="block text-xs font-bold text-zinc-900 mb-2">配置</label>
+                      <select 
+                        value={dotLayout} 
+                        onChange={(e) => setDotLayout(e.target.value as DotLayout)}
+                        className="w-full border border-zinc-300 p-3 bg-white text-sm focus:border-zinc-900 focus:outline-none shadow-sm"
+                      >
+                        <option value="staggered">千鳥（互い違い）</option>
+                        <option value="grid">正方格子</option>
+                      </select>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-4 pt-4 border-t border-zinc-100">
+                  <label className="block text-xs font-bold text-zinc-900 mb-4">サイズ調整（mm指定・実寸連動）</label>
+                  
+                  {geoPatternType === 'dot' && (
+                    <>
+                      <div>
+                        <div className="flex justify-between items-end mb-1">
+                          <span className="text-[10px] font-bold text-zinc-500">水玉の大きさ（直径）</span>
+                          <span className="text-sm font-black text-zinc-900">{dotRadius * 2}<span className="text-[10px] font-normal text-zinc-400 ml-0.5">mm</span></span>
+                        </div>
+                        <input type="range" min="1" max="50" value={dotRadius} onChange={(e) => setDotRadius(Number(e.target.value))} className="w-full cursor-pointer accent-zinc-900" />
+                      </div>
+                      <div>
+                        <div className="flex justify-between items-end mb-1">
+                          <span className="text-[10px] font-bold text-zinc-500">間隔（余白）</span>
+                          <span className="text-sm font-black text-zinc-900">{gapWidth}<span className="text-[10px] font-normal text-zinc-400 ml-0.5">mm</span></span>
+                        </div>
+                        <input type="range" min="0" max="100" value={gapWidth} onChange={(e) => setGapWidth(Number(e.target.value))} className="w-full cursor-pointer accent-zinc-900" />
+                      </div>
+                    </>
+                  )}
+
+                  {geoPatternType === 'checker' && (
+                    <div>
+                      <div className="flex justify-between items-end mb-1">
+                        <span className="text-[10px] font-bold text-zinc-500">市松の大きさ（1マス）</span>
+                        <span className="text-sm font-black text-zinc-900">{lineWidth}<span className="text-[10px] font-normal text-zinc-400 ml-0.5">mm</span></span>
+                      </div>
+                      <input type="range" min="1" max="200" value={lineWidth} onChange={(e) => setLineWidth(Number(e.target.value))} className="w-full cursor-pointer accent-zinc-900" />
+                    </div>
+                  )}
+
+                  {(geoPatternType === 'stripe' || geoPatternType === 'grid' || geoPatternType === 'gingham') && (
+                    <>
+                      <div>
+                        <div className="flex justify-between items-end mb-1">
+                          <span className="text-[10px] font-bold text-zinc-500">線の太さ</span>
+                          <span className="text-sm font-black text-zinc-900">{lineWidth}<span className="text-[10px] font-normal text-zinc-400 ml-0.5">mm</span></span>
+                        </div>
+                        <input type="range" min="1" max="100" value={lineWidth} onChange={(e) => setLineWidth(Number(e.target.value))} className="w-full cursor-pointer accent-zinc-900" />
+                      </div>
+                      <div>
+                        <div className="flex justify-between items-end mb-1">
+                          <span className="text-[10px] font-bold text-zinc-500">間隔（余白）</span>
+                          <span className="text-sm font-black text-zinc-900">{gapWidth}<span className="text-[10px] font-normal text-zinc-400 ml-0.5">mm</span></span>
+                        </div>
+                        <input type="range" min="0" max="200" value={gapWidth} onChange={(e) => setGapWidth(Number(e.target.value))} className="w-full cursor-pointer accent-zinc-900" />
+                      </div>
                     </>
                   )}
                 </div>
 
-                {showColorPalette && (
-                  <div className="mt-3 p-4 bg-zinc-50 border border-zinc-200 animate-fade-in">
-                    <p className="text-[10px] text-zinc-500 font-medium mb-3">タップして選択（最大3色まで組み合わせ可能）：</p>
-                    <div className="max-h-[240px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-zinc-200">
-                      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                        {TRADITIONAL_COLORS.map((col) => {
-                          const isSelected = selectedColors.some((c) => c.name === col.name);
-                          return (
+                {/* カラー選択エリア */}
+                <div className="pt-4 border-t border-zinc-100 space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[10px] font-bold text-zinc-900 mb-1">地色</label>
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 shrink-0 border border-zinc-300 p-0.5 shadow-sm" style={{ backgroundColor: geoBgColor }}></div>
+                        <button
+                          type="button"
+                          onClick={() => setShowGeoPaletteFor(showGeoPaletteFor === 'bg' ? null : 'bg')}
+                          className={`flex-1 text-[10px] h-8 font-bold transition-all border shadow-sm ${showGeoPaletteFor === 'bg' ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50'}`}
+                        >
+                          🎨 日本の伝統色
+                        </button>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-zinc-900 mb-1">柄色</label>
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 shrink-0 border border-zinc-300 p-0.5 shadow-sm" style={{ backgroundColor: geoPatternColor }}></div>
+                        <button
+                          type="button"
+                          onClick={() => setShowGeoPaletteFor(showGeoPaletteFor === 'pattern' ? null : 'pattern')}
+                          className={`flex-1 text-[10px] h-8 font-bold transition-all border shadow-sm ${showGeoPaletteFor === 'pattern' ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50'}`}
+                        >
+                          🎨 日本の伝統色
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 102色パレットの表示領域 */}
+                  {showGeoPaletteFor && (
+                    <div className="p-4 bg-zinc-50 border border-zinc-200 animate-fade-in shadow-inner">
+                      <div className="flex justify-between items-center mb-3">
+                        <p className="text-[10px] text-zinc-500 font-bold">
+                          {showGeoPaletteFor === 'bg' ? '地色' : '柄色'}を選ぶ（102色）：
+                        </p>
+                        <button type="button" onClick={() => setShowGeoPaletteFor(null)} className="text-[10px] text-zinc-400 hover:text-zinc-800 font-bold">閉じる ✕</button>
+                      </div>
+                      <div className="max-h-[240px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-zinc-200">
+                        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                          {TRADITIONAL_COLORS.map((col) => (
                             <button
                               key={col.name}
                               type="button"
-                              onClick={() => handleColorToggle(col)}
-                              className={`relative h-12 p-2 flex flex-col justify-end text-left transition-all duration-200 ${
-                                isSelected
-                                  ? 'ring-2 ring-offset-2 ring-zinc-950 scale-95 font-black'
-                                  : 'border border-zinc-200/50 hover:scale-105'
-                              }`}
+                              onClick={() => {
+                                if (showGeoPaletteFor === 'bg') setGeoBgColor(col.hex);
+                                if (showGeoPaletteFor === 'pattern') setGeoPatternColor(col.hex);
+                                setShowGeoPaletteFor(null);
+                              }}
+                              className="relative h-12 p-2 flex flex-col justify-end text-left transition-all duration-200 border border-zinc-300 hover:bg-zinc-200 shadow-sm hover:shadow"
                               style={{ backgroundColor: col.hex }}
                             >
-                              <span className={`text-[9px] font-bold tracking-wider truncate leading-tight flex items-center justify-between ${col.isDark ? 'text-white' : 'text-zinc-900'}`}>
+                              <span className={`text-[9px] font-bold tracking-wider truncate leading-tight ${col.isDark ? 'text-white' : 'text-zinc-900'}`}>
                                 {col.name.split(' ')[0]}
-                                {isSelected && <span>✓</span>}
                               </span>
                             </button>
-                          );
-                        })}
+                          ))}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
-              </div>
-
-              {/* 参. 形式と密度 */}
-              <div className="grid sm:grid-cols-2 gap-6 pt-2 border-t border-zinc-100">
-                <div>
-                  <label className="block text-xs font-bold text-zinc-800 tracking-wider mb-3">
-                    03. 柄の配置・密度
-                  </label>
-                  <div className="flex flex-col gap-2">
-                    {[
-                      { id: '四方柄（上下なし・散らし柄）', label: '四方柄（上下なし・裁断しやすい）' },
-                      { id: '総柄（ぎっしり華やか）', label: '総柄（ぎっしり華やか）' },
-                      { id: '飛び柄（余白のある小紋）', label: '飛び柄（余白のある小紋）' },
-                      { id: 'お太鼓柄（ワンポイント/1枚絵）', label: 'お太鼓柄（ワンポイント/1枚絵）' }
-                    ].map((item) => (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => setDensity(item.id)}
-                        className={`py-2.5 px-3.5 text-xs font-bold tracking-wider transition-all duration-200 text-left border ${
-                          density === item.id
-                            ? 'bg-zinc-900 text-white border-zinc-900'
-                            : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50'
-                        }`}
-                      >
-                        {item.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-zinc-800 tracking-wider mb-3">
-                    04. 形式・アスペクト比
-                  </label>
-                  <div className="flex flex-col gap-2">
-                    {[
-                      { id: 'square', label: '正方形 (小物・お太鼓・リピート用)' },
-                      { id: 'hanhaba', label: '半幅帯 (横長 16:9)' },
-                      { id: 'tanmono', label: '反物・着尺 (縦長 9:16)' },
-                    ].map((item) => (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => setItemType(item.id)}
-                        className={`py-2.5 px-3.5 text-xs font-bold tracking-wider transition-all duration-200 text-left border ${
-                          itemType === item.id
-                            ? 'bg-zinc-900 text-white border-zinc-900'
-                            : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50'
-                        }`}
-                      >
-                        {item.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* 伍. 図案銘 */}
-              <div className="pt-2 border-t border-zinc-100">
-                <label className="block text-xs font-bold text-zinc-800 tracking-wider mb-2">
-                  05. 図案銘 <span className="text-[10px] text-zinc-400 font-normal">（任意・作品タイトル）</span>
-                </label>
-                <input
-                  type="text"
-                  className="w-full border border-zinc-300 p-3 bg-zinc-50 text-sm focus:outline-none focus:border-zinc-900 focus:bg-white transition-all duration-200"
-                  placeholder="例：遊泳金魚図"
-                  value={patternTitle}
-                  onChange={(e) => setPatternTitle(e.target.value)}
-                  disabled={loading}
-                />
-              </div>
-
-              {/* ゴフクヤサン通常時のみ表示する回復呪文バナー */}
-              {!isShopify && (
-                <div className="p-4 bg-zinc-50 border border-zinc-200 text-center">
-                  <p className="mb-1 text-xs font-bold text-zinc-800">
-                    ⚠️ 3回じゃ理想の柄が作れない方へ
-                  </p>
-                  <p className="mb-3 text-[11px] text-zinc-500">
-                    本気でお誂えをご検討中の方限定で、生成回数をリセットできる【回復呪文】をお渡しします。
-                  </p>
-                  <a 
-                    href="https://store.gofukuyasan.com/html/email.html" 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
-                    className="inline-block px-4 py-2 bg-zinc-800 text-white no-underline text-xs font-bold hover:bg-zinc-700 transition-colors"
-                  >
-                    ✉️ 回復呪文をリクエストする（お問い合わせフォームへ）
-                  </a>
-                </div>
-              )}
-
-              <div className="pt-2 border-t border-zinc-100">
-                <label className="flex items-start gap-3 cursor-pointer select-none mb-6 group">
-                  <input
-                    type="checkbox"
-                    checked={agreed}
-                    onChange={(e) => setAgreed(e.target.checked)}
-                    className="mt-0.5 h-4 w-4 border-zinc-300 text-zinc-900 focus:ring-zinc-900 transition-colors"
-                  />
-                  <span className="text-[11px] text-zinc-500 leading-relaxed group-hover:text-zinc-800 transition-colors">
-                    生成された図案はAIによるアイデアイメージであり、実際の生地制作・捺染時には工房の職人の手でデータ調整が行われること、および公序良俗・権利侵害のない利用に同意します。
-                  </span>
-                </label>
-
-                {errorMsg && (
-                  <div className="mb-6 p-4 bg-red-50 text-red-600 border border-red-200 text-xs font-bold tracking-wide">
-                    {errorMsg}
-                  </div>
-                )}
-
-                <button
-                  type="button"
-                  onClick={handleGenerate}
-                  disabled={loading || remainingCount === 0}
-                  className={`w-full py-4 sm:py-5 font-black text-sm tracking-widest uppercase transition-all duration-300 flex items-center justify-center gap-3 ${
-                    remainingCount === 0
-                      ? 'bg-zinc-100 text-zinc-400 border border-zinc-200 cursor-not-allowed'
-                      : 'bg-zinc-950 text-white hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed'
-                  }`}
-                >
-                  {loading ? (
-                    <div className="flex flex-col items-center gap-1.5">
-                      <span>{LOADING_STEPS[loadingStep]}</span>
-                      <span className="text-[9px] text-zinc-400 font-normal">PROCESSING...</span>
-                    </div>
-                  ) : (
-                    <span>
-                      {remainingCount === 0
-                        ? '本日の上限に達しました (3/3)'
-                        : `図案を描き出す (残り ${remainingCount ?? 3} 回)`}
-                    </span>
                   )}
-                </button>
-              </div>
-            </>
-          ) : (
-            /* 幾何学モード UI */
-            <div className="space-y-6 animate-fade-in">
-              <div className="bg-zinc-50 border border-zinc-200 text-zinc-800 p-4 text-xs mb-4">
-                <p className="font-bold mb-1">💡 このモードは使い放題です</p>
-                <p className="text-[11px] opacity-90">AI生成枠（1日3回）を消費しません。納得いくまで何度でもサイズや色を調整して遊んでみてください。</p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-zinc-900 mb-2">柄の種類</label>
-                  <select 
-                    value={geoPatternType} 
-                    onChange={(e) => setGeoPatternType(e.target.value as 'stripe' | 'dot' | 'grid' | 'gingham' | 'checker')}
-                    className="w-full border border-zinc-300 p-3 bg-white text-sm focus:border-zinc-900 focus:outline-none"
-                  >
-                    <option value="stripe">縞（ストライプ）</option>
-                    <option value="dot">水玉（ドット）</option>
-                    <option value="grid">格子（ラインチェック）</option>
-                    <option value="gingham">ギンガムチェック</option>
-                    <option value="checker">市松（チェッカー）</option>
-                  </select>
-                </div>
-                {geoPatternType === 'stripe' && (
-                  <div>
-                    <label className="block text-xs font-bold text-zinc-900 mb-2">縞の向き</label>
-                    <select 
-                      value={stripeDir} 
-                      onChange={(e) => setStripeDir(e.target.value as StripeDirection)}
-                      className="w-full border border-zinc-300 p-3 bg-white text-sm focus:border-zinc-900 focus:outline-none"
-                    >
-                      <option value="vertical">縦縞（滝縞）</option>
-                      <option value="horizontal">横縞（ボーダー）</option>
-                      <option value="diagonal">斜め（右上がり）</option>
-                    </select>
-                  </div>
-                )}
-                {geoPatternType === 'dot' && (
-                  <div>
-                    <label className="block text-xs font-bold text-zinc-900 mb-2">配置</label>
-                    <select 
-                      value={dotLayout} 
-                      onChange={(e) => setDotLayout(e.target.value as DotLayout)}
-                      className="w-full border border-zinc-300 p-3 bg-white text-sm focus:border-zinc-900 focus:outline-none"
-                    >
-                      <option value="staggered">千鳥（互い違い）</option>
-                      <option value="grid">正方格子</option>
-                    </select>
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-4 pt-4 border-t border-zinc-100">
-                <label className="block text-xs font-bold text-zinc-900 mb-4">サイズ調整（mm指定・実寸連動）</label>
-                
-                {geoPatternType === 'dot' && (
-                  <>
-                    <div>
-                      <div className="flex justify-between items-end mb-1">
-                        <span className="text-[10px] font-bold text-zinc-500">水玉の大きさ（直径）</span>
-                        <span className="text-sm font-black text-zinc-900">{dotRadius * 2}<span className="text-[10px] font-normal text-zinc-400 ml-0.5">mm</span></span>
-                      </div>
-                      <input type="range" min="1" max="50" value={dotRadius} onChange={(e) => setDotRadius(Number(e.target.value))} className="w-full" />
-                    </div>
-                    <div>
-                      <div className="flex justify-between items-end mb-1">
-                        <span className="text-[10px] font-bold text-zinc-500">間隔（余白）</span>
-                        <span className="text-sm font-black text-zinc-900">{gapWidth}<span className="text-[10px] font-normal text-zinc-400 ml-0.5">mm</span></span>
-                      </div>
-                      <input type="range" min="0" max="100" value={gapWidth} onChange={(e) => setGapWidth(Number(e.target.value))} className="w-full" />
-                    </div>
-                  </>
-                )}
-
-                {geoPatternType === 'checker' && (
-                  <div>
-                    <div className="flex justify-between items-end mb-1">
-                      <span className="text-[10px] font-bold text-zinc-500">市松の大きさ（1マス）</span>
-                      <span className="text-sm font-black text-zinc-900">{lineWidth}<span className="text-[10px] font-normal text-zinc-400 ml-0.5">mm</span></span>
-                    </div>
-                    <input type="range" min="1" max="200" value={lineWidth} onChange={(e) => setLineWidth(Number(e.target.value))} className="w-full" />
-                  </div>
-                )}
-
-                {(geoPatternType === 'stripe' || geoPatternType === 'grid' || geoPatternType === 'gingham') && (
-                  <>
-                    <div>
-                      <div className="flex justify-between items-end mb-1">
-                        <span className="text-[10px] font-bold text-zinc-500">線の太さ</span>
-                        <span className="text-sm font-black text-zinc-900">{lineWidth}<span className="text-[10px] font-normal text-zinc-400 ml-0.5">mm</span></span>
-                      </div>
-                      <input type="range" min="1" max="100" value={lineWidth} onChange={(e) => setLineWidth(Number(e.target.value))} className="w-full" />
-                    </div>
-                    <div>
-                      <div className="flex justify-between items-end mb-1">
-                        <span className="text-[10px] font-bold text-zinc-500">間隔（余白）</span>
-                        <span className="text-sm font-black text-zinc-900">{gapWidth}<span className="text-[10px] font-normal text-zinc-400 ml-0.5">mm</span></span>
-                      </div>
-                      <input type="range" min="0" max="200" value={gapWidth} onChange={(e) => setGapWidth(Number(e.target.value))} className="w-full" />
-                    </div>
-                  </>
-                )}
-              </div>
-
-              {/* カラー選択エリア */}
-              <div className="pt-4 border-t border-zinc-100 space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-[10px] font-bold text-zinc-900 mb-1">地色</label>
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 shrink-0 border border-zinc-300 p-0.5" style={{ backgroundColor: geoBgColor }}></div>
-                      <button
-                        type="button"
-                        onClick={() => setShowGeoPaletteFor(showGeoPaletteFor === 'bg' ? null : 'bg')}
-                        className={`flex-1 text-[10px] h-8 font-bold transition-all border ${showGeoPaletteFor === 'bg' ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50'}`}
-                      >
-                        🎨 日本の伝統色
-                      </button>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-zinc-900 mb-1">柄色</label>
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 shrink-0 border border-zinc-300 p-0.5" style={{ backgroundColor: geoPatternColor }}></div>
-                      <button
-                        type="button"
-                        onClick={() => setShowGeoPaletteFor(showGeoPaletteFor === 'pattern' ? null : 'pattern')}
-                        className={`flex-1 text-[10px] h-8 font-bold transition-all border ${showGeoPaletteFor === 'pattern' ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50'}`}
-                      >
-                        🎨 日本の伝統色
-                      </button>
-                    </div>
-                  </div>
                 </div>
 
-                {/* 102色パレットの表示領域 */}
-                {showGeoPaletteFor && (
-                  <div className="p-4 bg-zinc-50 border border-zinc-200 animate-fade-in">
-                    <div className="flex justify-between items-center mb-3">
-                      <p className="text-[10px] text-zinc-500 font-bold">
-                        {showGeoPaletteFor === 'bg' ? '地色' : '柄色'}を選ぶ（102色）：
-                      </p>
-                      <button type="button" onClick={() => setShowGeoPaletteFor(null)} className="text-[10px] text-zinc-400 hover:text-zinc-800 font-bold">閉じる ✕</button>
-                    </div>
-                    <div className="max-h-[240px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-zinc-200">
-                      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                        {TRADITIONAL_COLORS.map((col) => (
-                          <button
-                            key={col.name}
-                            type="button"
-                            onClick={() => {
-                              if (showGeoPaletteFor === 'bg') setGeoBgColor(col.hex);
-                              if (showGeoPaletteFor === 'pattern') setGeoPatternColor(col.hex);
-                              setShowGeoPaletteFor(null);
-                            }}
-                            className="relative h-12 p-2 flex flex-col justify-end text-left transition-all duration-200 border border-zinc-300 hover:bg-zinc-200"
-                            style={{ backgroundColor: col.hex }}
-                          >
-                            <span className={`text-[9px] font-bold tracking-wider truncate leading-tight ${col.isDark ? 'text-white' : 'text-zinc-900'}`}>
-                              {col.name.split(' ')[0]}
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
+                <div className="pt-2 border-t border-zinc-100">
+                  <label className="block text-xs font-bold text-zinc-800 tracking-wider mb-2">05. 図案銘</label>
+                  <input
+                    type="text"
+                    className="w-full border border-zinc-300 p-3 bg-zinc-50 text-sm focus:outline-none focus:border-zinc-900 shadow-sm"
+                    value={patternTitle}
+                    onChange={(e) => setPatternTitle(e.target.value)}
+                  />
+                </div>
               </div>
-
-              <div className="pt-2 border-t border-zinc-100">
-                <label className="block text-xs font-bold text-zinc-800 tracking-wider mb-2">05. 図案銘</label>
-                <input
-                  type="text"
-                  className="w-full border border-zinc-300 p-3 bg-zinc-50 text-sm focus:outline-none focus:border-zinc-900"
-                  value={patternTitle}
-                  onChange={(e) => setPatternTitle(e.target.value)}
-                />
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
-        {/* ▼▼ 生成結果表示エリア (フラットUI) ▼▼ */}
-        {imageUrl && (
-          <div className="mt-12 pt-12 border-t border-zinc-200 animate-fade-in">
-            <div className="bg-white border border-zinc-300">
+        {/* 右側：プレビュー＆アクションエリア */}
+        <div 
+          ref={previewRef}
+          className="w-full lg:w-1/2 shrink-0 lg:sticky lg:top-8 flex flex-col gap-6"
+        >
+          {/* ▼▼ 生成結果表示エリア (フラットUI) ▼▼ */}
+          {imageUrl ? (
+            <div className="bg-white border border-zinc-300 shadow-md animate-fade-in">
               
-              <div className="p-6 sm:p-8 border-b border-zinc-200">
-                <span className="inline-block text-[9px] font-mono font-bold tracking-widest text-zinc-400 mb-2">
+              <div className="p-4 sm:p-6 border-b border-zinc-200 bg-zinc-50/50">
+                <span className="inline-block text-[9px] font-mono font-bold tracking-widest text-zinc-400 mb-1">
                   ID: {serialNumber}
                 </span>
-                <h2 className="text-xl font-black text-zinc-900 tracking-widest">銘：『{finalTitle}』</h2>
+                <h2 className="text-lg font-black text-zinc-900 tracking-widest leading-tight">銘：『{finalTitle}』</h2>
               </div>
 
               {/* フラットなプレビュー切り替えタブ */}
-              <div className="p-4 sm:px-8 bg-zinc-50 border-b border-zinc-200">
+              <div className="p-3 sm:px-6 bg-zinc-50 border-b border-zinc-200">
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
                     onClick={() => setDisplayMode('fabric')}
-                    className={`px-4 py-2.5 text-xs font-bold tracking-wider transition-all border ${
+                    className={`px-3 py-2 text-[11px] font-bold tracking-wider transition-all border ${
                       displayMode === 'fabric'
-                        ? 'bg-zinc-900 text-white border-zinc-900'
-                        : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-100'
+                        ? 'bg-zinc-900 text-white border-zinc-900 shadow'
+                        : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-100 shadow-sm'
                     }`}
                   >
-                    1. 40cm幅 (データ完成図)
+                    1. 40cm幅
                   </button>
                   
                   {/* ★ 半幅帯タブ */}
                   <button
                     type="button"
                     onClick={() => setDisplayMode('obi')}
-                    className={`relative px-4 py-2.5 text-xs font-bold tracking-wider transition-all border ${
+                    className={`relative px-3 py-2 text-[11px] font-bold tracking-wider transition-all border ${
                       displayMode === 'obi'
-                        ? 'bg-zinc-900 text-white border-zinc-900'
-                        : 'bg-white text-zinc-900 border-zinc-900 hover:bg-zinc-100' 
+                        ? 'bg-zinc-900 text-white border-zinc-900 shadow'
+                        : 'bg-white text-zinc-900 border-zinc-900 hover:bg-zinc-100 shadow-sm' 
                     }`}
                   >
-                    2. 半幅帯 マッピング
+                    2. 半幅帯
                     
                     {displayMode !== 'obi' && (
                       <>
-                        <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                        <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
                           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#ea5532] opacity-75"></span>
-                          <span className="relative inline-flex rounded-full h-3 w-3 bg-[#ea5532]"></span>
-                        </span>
-                        <span className="absolute -top-3 -right-2 bg-[#ea5532] text-white text-[9px] px-1.5 py-0.5 font-black tracking-widest shadow-sm">
-                          おすすめ
+                          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#ea5532]"></span>
                         </span>
                       </>
                     )}
-                  </button>
-                  
-                  <button disabled className="px-4 py-2.5 text-xs font-bold tracking-wider border bg-zinc-50 text-zinc-400 border-zinc-200 cursor-not-allowed">
-                    3. 京袋帯 (準備中)
-                  </button>
-                  <button disabled className="px-4 py-2.5 text-xs font-bold tracking-wider border bg-zinc-50 text-zinc-400 border-zinc-200 cursor-not-allowed">
-                    4. 着物 (準備中)
                   </button>
                 </div>
               </div>
 
               {/* 画像・モックアップ表示コンテナ */}
-              <div className="bg-[#f4f4f5] flex flex-col items-center justify-center min-h-[420px] p-6 relative">
+              <div className="bg-[#e4e4e7] flex flex-col items-center justify-center min-h-[300px] sm:min-h-[420px] p-4 sm:p-6 relative shadow-inner overflow-hidden">
                 
                 {/* 1. 40cm幅 データ完成図 */}
                 {displayMode === 'fabric' && (
                   <div className="flex flex-col items-center w-full animate-fade-in">
                     <div 
-                      className="w-full max-w-[400px] h-[500px] border border-zinc-300 bg-white"
+                      className="w-full max-w-[400px] h-[350px] sm:h-[450px] border border-zinc-300 bg-white shadow-md"
                       style={{ 
                         backgroundImage: `url(${imageUrl})`, 
                         backgroundSize: creationMode === 'geometric' ? `${bgSizeMm * 4}px ${bgSizeMm * 4}px` : '100% auto',
@@ -1237,14 +1246,14 @@ function HomeContent() {
                         backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff'
                       }} 
                     />
-                    <p className="text-[11px] text-zinc-500 mt-4 font-medium">※画面上の枠幅を「実際の約40cm」とした場合の、仕上がり原寸大シミュレーション</p>
+                    <p className="text-[10px] sm:text-[11px] text-zinc-500 mt-3 font-medium bg-white/80 px-2 py-1 rounded">※画面上の枠幅を「実際の約40cm」とした場合の、仕上がり原寸大シミュレーション</p>
                   </div>
                 )}
 
                 {/* 2. 半幅帯 モックアップ (最新角度微調整 ＆ 16:9 90度回転適用版) */}
                 {displayMode === 'obi' && (
                   <div className="w-full flex flex-col items-center animate-fade-in">
-                    <div className="relative w-full max-w-[400px] aspect-square mx-auto">
+                    <div className="relative w-full max-w-[360px] aspect-square mx-auto drop-shadow-xl">
                       {(() => {
                         const PIXELS_PER_CM = 440 / 16.5; 
                         const geoSizePx = (bgSizeMm / 10) * PIXELS_PER_CM;
@@ -1253,20 +1262,20 @@ function HomeContent() {
                           ? `${geoSizePx}px ${geoSizePx}px` 
                           : `${40 * PIXELS_PER_CM}px ${40 * PIXELS_PER_CM}px`;
                         
-                        // AI画像は90度回転済み、幾何学はそのままのテクスチャ
-                        const effectivePatternUrl = rotatedPatternUrl || blobUrl || imageUrl;
-                        const v = '8'; // キャッシュ強制更新
+                        // ★ スマホ等での縮小バグ防止：幾何学モードは1リピートのSVGを直接使い、AIモードは90度回転PNGを使用
+                        const effectivePatternUrl = creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl);
+                        const v = '9'; // キャッシュ強制更新
 
                         return (
                           <div className="relative w-full h-full overflow-hidden">
-                            {/* ★ レイヤー1〜6 (加算角度を反映：02: 91°, 03: 98°, 04: 89°) */}
+                            {/* ★ レイヤー1〜6 (加算角度を反映し、ストライプが縦に通るように01と06も90度起こす) */}
                             {[
-                              { id: '01', file: 'hanhaba_Layer01.png', z: 10, rot: 2,  bgX: '12%', bgY: '34%' },
+                              { id: '01', file: 'hanhaba_Layer01.png', z: 10, rot: 92, bgX: '12%', bgY: '34%' }, // 2 + 90
                               { id: '02', file: 'hanhaba_Layer02.png', z: 20, rot: 91, bgX: '45%', bgY: '67%' }, // 88 + 3
                               { id: '03', file: 'hanhaba_Layer03.png', z: 30, rot: 98, bgX: '78%', bgY: '12%' }, // 94 + 4
                               { id: '04', file: 'hanhaba_Layer04.png', z: 40, rot: 89, bgX: '23%', bgY: '89%' }, // 86 + 3
-                              { id: '05', file: 'hanhaba_Layer05.png', z: 50, rot: -12, bgX: '56%', bgY: '45%' },
-                              { id: '06', file: 'hanhaba_Layer06.png', z: 60, rot: -3,  bgX: '89%', bgY: '23%' },
+                              { id: '05', file: 'hanhaba_Layer05.png', z: 50, rot: -12, bgX: '56%', bgY: '45%' }, // 羽根の斜めはそのまま
+                              { id: '06', file: 'hanhaba_Layer06.png', z: 60, rot: 87, bgX: '89%', bgY: '23%' }, // -3 + 90
                             ].map((layer) => (
                               <div 
                                 key={layer.id}
@@ -1303,7 +1312,7 @@ function HomeContent() {
                               </div>
                             ))}
 
-                            {/* ★ レイヤー7 (裏地) */}
+                            {/* ★ レイヤー7 (裏地) + 白浮きしない上品な薄グレーアンダーコート */}
                             <div 
                               className="absolute inset-0 pointer-events-none" 
                               style={{ 
@@ -1318,6 +1327,18 @@ function HomeContent() {
                                 WebkitMaskPosition: 'center',
                               }}
                             >
+                              {/* 下地の黒を遮断しつつ白浮きしないアンダーコート（薄い銀鼠グレー） */}
+                              <div 
+                                style={{
+                                  position: 'absolute',
+                                  top: '-25%',
+                                  left: '-25%',
+                                  width: '150%',
+                                  height: '150%',
+                                  backgroundColor: '#d4d4d8', 
+                                }}
+                              />
+                              {/* 指定された裏地色 */}
                               <div 
                                 style={{
                                   position: 'absolute',
@@ -1348,18 +1369,18 @@ function HomeContent() {
                     </div>
 
                     {/* ★ 裏地の色変更UI */}
-                    <div className="mt-4 w-full max-w-[400px] bg-white p-3 border border-zinc-300">
-                      <div className="flex items-center gap-3">
-                        <label className="text-[11px] font-bold text-zinc-700">裏地の色を変更：</label>
-                        <div className="flex items-center gap-2 flex-1">
+                    <div className="mt-4 w-full max-w-[360px] bg-white p-2 sm:p-3 border border-zinc-300 shadow-sm">
+                      <div className="flex items-center gap-2 sm:gap-3">
+                        <label className="text-[10px] sm:text-[11px] font-bold text-zinc-700 whitespace-nowrap">裏地の色を変更：</label>
+                        <div className="flex items-center gap-1.5 sm:gap-2 flex-1">
                           <div 
-                            className="w-8 h-8 shrink-0 border border-zinc-300 p-0.5" 
+                            className="w-6 h-6 sm:w-8 sm:h-8 shrink-0 border border-zinc-300 p-0.5 shadow-inner" 
                             style={{ backgroundColor: obiLiningColor }}
                           />
                           <button
                             type="button"
                             onClick={() => setShowLiningPalette(!showLiningPalette)}
-                            className={`flex-1 text-[10px] h-8 font-bold transition-all border ${showLiningPalette ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50'}`}
+                            className={`flex-1 text-[9px] sm:text-[10px] h-6 sm:h-8 font-bold transition-all border shadow-sm ${showLiningPalette ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50'}`}
                           >
                             🎨 日本の伝統色
                           </button>
@@ -1368,13 +1389,13 @@ function HomeContent() {
 
                       {/* 裏地用102色パレット */}
                       {showLiningPalette && (
-                        <div className="mt-3 p-3 bg-zinc-50 border border-zinc-200 animate-fade-in">
+                        <div className="mt-3 p-3 bg-zinc-50 border border-zinc-200 animate-fade-in shadow-inner">
                           <div className="flex justify-between items-center mb-2">
                             <p className="text-[10px] text-zinc-500 font-bold">裏地の色を選ぶ（102色）：</p>
                             <button type="button" onClick={() => setShowLiningPalette(false)} className="text-[10px] text-zinc-400 hover:text-zinc-800 font-bold">閉じる ✕</button>
                           </div>
                           <div className="max-h-[160px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-zinc-200">
-                            <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5">
+                            <div className="grid grid-cols-4 sm:grid-cols-5 gap-1.5">
                               {TRADITIONAL_COLORS.map((col) => (
                                 <button
                                   key={col.name}
@@ -1383,7 +1404,7 @@ function HomeContent() {
                                     setObiLiningColor(col.hex);
                                     setShowLiningPalette(false);
                                   }}
-                                  className="relative h-8 p-1 flex flex-col justify-end text-left transition-all duration-200 border border-zinc-300 hover:bg-zinc-200"
+                                  className="relative h-8 p-1 flex flex-col justify-end text-left transition-all duration-200 border border-zinc-300 hover:bg-zinc-200 shadow-sm hover:shadow"
                                   style={{ backgroundColor: col.hex }}
                                 >
                                   <span className={`text-[8px] font-bold tracking-wider truncate leading-tight ${col.isDark ? 'text-white' : 'text-zinc-900'}`}>
@@ -1402,42 +1423,42 @@ function HomeContent() {
               
               {/* ▼ ポン出し注釈 (帯・着物タブを選択した時のみ表示) ▼ */}
               {displayMode !== 'fabric' && (
-                <div className="p-4 sm:px-8 bg-amber-50/50 border-t border-b border-zinc-200">
-                  <p className="text-xs font-black text-amber-900 mb-2 flex items-center gap-1.5">
+                <div className="p-4 sm:px-6 bg-amber-50/50 border-t border-b border-zinc-200">
+                  <p className="text-xs font-black text-amber-900 mb-1.5 flex items-center gap-1.5">
                     <span className="text-[14px]">⚠️</span> 仕上がりイメージについて
                   </p>
-                  <div className="text-[11px] text-amber-900/90 space-y-1.5 font-medium leading-relaxed">
-                    <p>※画面上のマッピング画像はAIによる自動生成（ポン出し）の簡易イメージです。</p>
-                    <ul className="list-disc list-outside ml-4 space-y-1">
-                      <li>受注確定後、ご希望の柄配置（柄の出方）などをヒアリングのうえ、工房より<strong className="text-amber-950">本物のシミュレーション画像</strong>をお送りいたします。そちらにご納得いただいてから、実際のプリント・お仕立て進行となります。</li>
-                      <li>実際の<strong className="text-amber-950">「裏地」の色はお任せ</strong>となります（画面で選べる裏地色はあくまでシミュレーション用の参考です）。ご希望の色がある場合は、ご注文時のコメント欄にてお聞かせいただければ可能な限り考慮いたします。</li>
+                  <div className="text-[10px] sm:text-[11px] text-amber-900/90 space-y-1 font-medium leading-relaxed">
+                    <p>※画面上のマッピング画像はAIによる自動生成の簡易イメージです。</p>
+                    <ul className="list-disc list-outside ml-3.5 space-y-1 mt-1">
+                      <li>受注確定後、ご希望の柄配置などをヒアリングのうえ、工房より<strong className="text-amber-950">本物のシミュレーション画像</strong>をお送りいたします。</li>
+                      <li>実際の<strong className="text-amber-950">「裏地」の色はお任せ</strong>となります（画面で選べる裏地色はあくまでシミュレーション用の参考です）。ご希望の色がある場合はご注文時にお聞かせください。</li>
                     </ul>
                   </div>
                 </div>
               )}
 
               {/* ▼▼ アクションエリア ▼▼ */}
-              <div className="p-6 sm:p-8 space-y-4 bg-white">
+              <div className="p-4 sm:p-6 space-y-4 bg-white">
                 {isShopify ? (
-                  <div className="p-5 bg-zinc-950 text-white space-y-4 border border-zinc-800">
+                  <div className="p-4 sm:p-5 bg-zinc-950 text-white space-y-4 border border-zinc-800 shadow-md">
                     <div className="flex justify-between items-center border-b border-zinc-800 pb-3">
                       <div>
-                        <span className="text-[10px] font-mono tracking-widest text-zinc-400 block uppercase">STAGE 02 / SHOPIFY PUBLISH</span>
-                        <h3 className="text-sm font-bold tracking-wider text-white">🏪 デザイン価格設定 ＆ Shopify連携</h3>
+                        <span className="text-[9px] sm:text-[10px] font-mono tracking-widest text-zinc-400 block uppercase">STAGE 02 / SHOPIFY PUBLISH</span>
+                        <h3 className="text-xs sm:text-sm font-bold tracking-wider text-white">🏪 デザイン価格設定 ＆ Shopify連携</h3>
                       </div>
-                      <span className="text-[10px] bg-zinc-800 px-2.5 py-1 text-zinc-300 border border-zinc-700 font-mono">
+                      <span className="text-[9px] sm:text-[10px] bg-zinc-800 px-2 py-1 text-zinc-300 border border-zinc-700 font-mono hidden sm:inline-block">
                         ON-DEMAND SYNC
                       </span>
                     </div>
 
-                    <div className="bg-zinc-900 p-4 border border-zinc-800 space-y-2">
+                    <div className="bg-zinc-900 p-3 sm:p-4 border border-zinc-800 space-y-2 shadow-inner">
                       <div className="flex justify-between items-baseline">
-                        <label className="text-xs font-bold text-zinc-300">
+                        <label className="text-[11px] sm:text-xs font-bold text-zinc-300">
                           デザインフィー（あなたの取り分）
                         </label>
                         <div className="text-right">
-                          <span className="text-xl font-black text-sky-400">¥{designFee.toLocaleString()}</span>
-                          <span className="text-[10px] text-zinc-400 ml-1">/ 点</span>
+                          <span className="text-lg sm:text-xl font-black text-sky-400">¥{designFee.toLocaleString()}</span>
+                          <span className="text-[9px] sm:text-[10px] text-zinc-400 ml-1">/ 点</span>
                         </div>
                       </div>
 
@@ -1451,23 +1472,20 @@ function HomeContent() {
                         className="w-full h-2 bg-zinc-800 appearance-none cursor-pointer accent-sky-400"
                       />
 
-                      <div className="flex justify-between text-[10px] text-zinc-500 font-medium">
-                        <span>¥0 (原価)</span>
+                      <div className="flex justify-between text-[9px] sm:text-[10px] text-zinc-500 font-medium">
+                        <span>¥0</span>
                         <span>¥50</span>
-                        <span>¥100 (標準)</span>
+                        <span>¥100</span>
                         <span>¥150</span>
-                        <span>¥200 (上限)</span>
+                        <span>¥200</span>
                       </div>
-                      <p className="text-[10px] text-zinc-400 pt-1">
-                        ※AI生成図案のため上限200円となります。着物や帯などの派生商品にもこの金額が均一に上乗せ・還元されます。
-                      </p>
                     </div>
 
                     <button
                       type="button"
                       onClick={handleVirtualProductSubmit}
                       disabled={mockupSubmitting}
-                      className={`w-full py-4 text-xs font-black tracking-widest uppercase transition-all duration-300 border ${
+                      className={`w-full py-3 sm:py-4 text-[11px] sm:text-xs font-black tracking-widest uppercase transition-all duration-300 border shadow-md ${
                         mockupSuccess 
                           ? 'bg-emerald-600 text-white border-emerald-700' 
                           : 'bg-white text-zinc-950 border-zinc-900 hover:bg-zinc-100'
@@ -1485,17 +1503,13 @@ function HomeContent() {
                   </div>
                 ) : (
                   <>
-                    <div className="bg-zinc-50 border border-zinc-200 text-zinc-800 p-3 text-xs font-bold text-center mb-2">
-                      💡 お気に入りの柄は、次の図案を作る前に「保存」しておきましょう！
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                    <div className="grid grid-cols-2 gap-2 sm:gap-4">
                       <button
                         type="button"
                         onClick={handleDownload}
-                        className="w-full py-4 text-center border border-zinc-900 bg-white hover:bg-zinc-50 text-zinc-900 text-xs font-bold tracking-widest transition-all flex items-center justify-center gap-2"
+                        className="w-full py-3 sm:py-4 text-center border border-zinc-900 bg-white hover:bg-zinc-50 text-zinc-900 text-[10px] sm:text-xs font-bold tracking-widest transition-all flex items-center justify-center gap-1.5 sm:gap-2 shadow-sm"
                       >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                         </svg>
                         画像を保存
@@ -1505,7 +1519,7 @@ function HomeContent() {
                         href={xShareLink}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="w-full py-4 text-center bg-[#1DA1F2] hover:bg-[#1a8cd8] text-white text-xs font-bold tracking-widest transition-colors flex items-center justify-center gap-2"
+                        className="w-full py-3 sm:py-4 text-center bg-[#1DA1F2] hover:bg-[#1a8cd8] text-white text-[10px] sm:text-xs font-bold tracking-widest transition-colors flex items-center justify-center gap-1.5 sm:gap-2 shadow-sm"
                       >
                         𝕏でシェア
                       </a>
@@ -1514,7 +1528,7 @@ function HomeContent() {
                     <a
                       href="#"
                       onClick={handleOrderClick}
-                      className="block w-full py-5 text-center bg-zinc-900 hover:bg-zinc-800 text-white text-sm font-bold tracking-widest uppercase transition-all duration-300 mt-2"
+                      className="block w-full py-4 sm:py-5 text-center bg-zinc-900 hover:bg-zinc-800 text-white text-xs sm:text-sm font-bold tracking-widest uppercase transition-all duration-300 mt-2 shadow-md hover:shadow-lg"
                     >
                       この図案でお誂えを申し込む
                     </a>
@@ -1523,31 +1537,30 @@ function HomeContent() {
 
                 {(!isShopify || SHOW_MAKESHOP_LINKS_ON_SHOPIFY) && (
                   <>
-                    <div className="mt-6 p-5 bg-zinc-50 border border-zinc-200">
-                      <h3 className="text-[13px] font-bold text-zinc-900 mb-3 flex items-center gap-2">
-                        クリエイター・作家様へ：オリジナル生地の制作について
+                    <div className="mt-4 sm:mt-6 p-4 sm:p-5 bg-zinc-50 border border-zinc-200 shadow-inner">
+                      <h3 className="text-[11px] sm:text-[13px] font-bold text-zinc-900 mb-2 sm:mb-3 flex items-center gap-2">
+                        クリエイター・作家様へ：オリジナル生地制作
                       </h3>
-                      <ul className="text-xs text-zinc-600 space-y-2 mb-4 leading-relaxed list-disc list-inside">
-                        <li><strong className="text-zinc-900">初回お試しパック（10,000円）：</strong>50cm×112cmの生地1枚＋<span className="underline decoration-zinc-300 decoration-2 underline-offset-2">商用利用可能な完全データ（職人による修正済み）</span>をお渡しします。</li>
-                        <li><strong className="text-zinc-900">2回目以降（追加オーダー）：</strong>データ修正済みのため、生地のプリント代のみで1m単位から追加発注可能です。</li>
-                        <li><strong className="text-zinc-900">5m以上のオーダー：</strong>お得な【卸価格】にて対応いたします。自社ブランドの量産等にぜひご活用ください。</li>
+                      <ul className="text-[10px] sm:text-xs text-zinc-600 space-y-1.5 sm:space-y-2 mb-3 sm:mb-4 leading-relaxed list-disc list-inside">
+                        <li><strong className="text-zinc-900">初回お試しパック（10,000円）：</strong>50cm×112cmの生地1枚＋<span className="underline decoration-zinc-300 decoration-2 underline-offset-2">商用利用可能な完全データ</span>をお渡し。</li>
+                        <li><strong className="text-zinc-900">2回目以降：</strong>生地のプリント代のみで1m単位から追加発注可能。</li>
                       </ul>
                       <a 
                         href="https://store.gofukuyasan.com/html/email.html" 
                         target="_blank" 
                         rel="noopener noreferrer" 
-                        className="block w-full py-3 text-center bg-zinc-800 hover:bg-zinc-700 text-white text-[11px] font-bold tracking-wider transition-colors"
+                        className="block w-full py-2.5 sm:py-3 text-center bg-zinc-800 hover:bg-zinc-700 text-white text-[10px] sm:text-[11px] font-bold tracking-wider transition-colors shadow-sm"
                       >
                         ✉️ オリジナル生地・商用利用について相談する
                       </a>
                     </div>
 
-                    <div className="text-center pt-6">
+                    <div className="text-center pt-4 sm:pt-6">
                       <a
                         href={makeshopCategoryUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-[10px] text-zinc-400 hover:text-zinc-800 tracking-widest transition-colors"
+                        className="text-[9px] sm:text-[10px] text-zinc-400 hover:text-zinc-800 tracking-widest transition-colors"
                       >
                         似たテイストの帯・着物を探す →
                       </a>
@@ -1556,8 +1569,18 @@ function HomeContent() {
                 )}
               </div>
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="hidden lg:flex w-full h-[500px] border-2 border-dashed border-zinc-200 bg-white/50 items-center justify-center flex-col gap-4">
+              <div className="w-16 h-16 rounded-full bg-zinc-100 flex items-center justify-center">
+                <span className="text-2xl">✨</span>
+              </div>
+              <p className="text-xs font-bold text-zinc-400 tracking-widest uppercase">Preview Area</p>
+              <p className="text-[10px] text-zinc-400 max-w-[200px] text-center leading-relaxed">
+                ここに生成された図案や帯のシミュレーションが表示されます
+              </p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
