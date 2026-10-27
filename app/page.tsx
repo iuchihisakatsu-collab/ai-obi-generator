@@ -261,13 +261,12 @@ const LOADING_STEPS = [
 function HomeContent() {
   const searchParams = useSearchParams();
   const isShopify = searchParams.get('platform') === 'shopify';
-
   const SHOW_MAKESHOP_LINKS_ON_SHOPIFY = false;
 
   const [motif, setMotif] = useState('');
   const [selectedColors, setSelectedColors] = useState<typeof TRADITIONAL_COLORS>([]);
   const [density, setDensity] = useState('四方柄（上下なし・散らし柄）');
-  const [itemType, setItemType] = useState('square'); 
+  const [itemType, setItemType] = useState('hanhaba'); 
   const [patternTitle, setPatternTitle] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
@@ -275,13 +274,13 @@ function HomeContent() {
   const [blobUrl, setBlobUrl] = useState('');    
   const [agreed, setAgreed] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-  const [previewMode, setPreviewMode] = useState<'pattern' | 'fabric' | 'mockup'>('pattern');
-  // ★ obi (半幅帯) を追加
-  const [mockupItem, setMockupItem] = useState<'bag' | 'cushion' | 'tshirt' | 'obi'>('bag');
+  
+  // ★ モックアップとプレビューの状態を統合 (フラットUI用)
+  const [displayMode, setDisplayMode] = useState<'fabric' | 'obi' | 'kyobukuro' | 'kimono'>('fabric');
+  
   const [mockupSubmitting, setMockupSubmitting] = useState(false);
   const [mockupSuccess, setMockupSuccess] = useState(false);
   const [serialNumber, setSerialNumber] = useState('');
-  
   const [designFee, setDesignFee] = useState<number>(100);
 
   const [showTags, setShowTags] = useState(false);
@@ -292,7 +291,6 @@ function HomeContent() {
   const [creationMode, setCreationMode] = useState<'ai' | 'geometric'>('ai');
   const [geoPatternType, setGeoPatternType] = useState<'stripe' | 'dot' | 'grid' | 'gingham' | 'checker'>('stripe');
   const [stripeDir, setStripeDir] = useState<StripeDirection>('vertical');
-  
   const [lineWidth, setLineWidth] = useState(5);
   const [gapWidth, setGapWidth] = useState(10);
   const [dotRadius, setDotRadius] = useState(5);
@@ -303,6 +301,7 @@ function HomeContent() {
   const [showGeoPaletteFor, setShowGeoPaletteFor] = useState<'bg' | 'pattern' | null>(null);
   
   const [bgSizeMm, setBgSizeMm] = useState(100);
+  const [obiLiningColor, setObiLiningColor] = useState('#161616');
 
   useEffect(() => {
     const today = new Date().toISOString().split('T')[0];
@@ -371,13 +370,10 @@ function HomeContent() {
     }
 
     setBgSizeMm(tileSize);
-
     const svgDataUrl = `data:image/svg+xml;utf8,${encodeURIComponent(svgString)}`;
     setImageUrl(svgDataUrl);
-
     const highResPng = await svgToHighResPng(svgString, 2400);
     setBlobUrl(highResPng);
-    
     setSerialNumber(prev => prev.startsWith('GEO-') ? prev : `GEO-${Math.floor(1000 + Math.random() * 9000)}`);
     
     let newTitle = '無題';
@@ -393,7 +389,6 @@ function HomeContent() {
       }
       return prev;
     });
-
   }, [creationMode, geoPatternType, stripeDir, lineWidth, gapWidth, dotLayout, dotRadius, geoBgColor, geoPatternColor]);
 
   useEffect(() => {
@@ -475,6 +470,9 @@ function HomeContent() {
         setImageUrl(data.imageUrl); 
         setBlobUrl(data.blobUrl);   
         setSerialNumber(`KOMON-${Math.floor(1000 + Math.random() * 9000)}`);
+        
+        // ★ 生成直後は 40cm反物幅 を初期表示
+        setDisplayMode('fabric');
 
         const newCount = currentCount + 1;
         localStorage.setItem('komon_generations', JSON.stringify({
@@ -518,15 +516,11 @@ function HomeContent() {
   const shareUrl = typeof window !== 'undefined' ? encodeURIComponent(window.location.href) : '';
   const xShareLink = `https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`;
   
-  // ★ MakeShopへ渡すパラメータから巨大な img_url を削除し、IDとタイトルのみにする
-  const orderUrl = `https://store.gofukuyasan.com/view/item/000000007300?komon_id=${encodeURIComponent(serialNumber)}&title=${encodeURIComponent(finalTitle)}`;
-
   const handleOrderClick = async (e: MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault(); 
     try {
       let finalImageUrl = blobUrl || imageUrl;
 
-      // 水玉・幾何学モードで、まだBlob URLになっていない場合（Base64の長い文字列の場合）
       if (finalImageUrl && finalImageUrl.startsWith('data:')) {
         const uploadRes = await fetch('/api/upload-blob', {
           method: 'POST',
@@ -539,11 +533,10 @@ function HomeContent() {
         const uploadData = await uploadRes.json();
         if (uploadData.url) {
           finalImageUrl = uploadData.url;
-          setBlobUrl(uploadData.url); // 状態も更新
+          setBlobUrl(uploadData.url); 
         }
       }
 
-      // 1. メール送信処理（必ず本物の画像URLを工場へ送る）
       const response = await fetch('/api/send-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -557,7 +550,6 @@ function HomeContent() {
         return;
       }
 
-      // 2. クリップボードへのバックアップコピー
       const copyText = `図案ID: ${serialNumber}\n銘: ${finalTitle}`;
       try {
         await navigator.clipboard.writeText(copyText);
@@ -566,7 +558,6 @@ function HomeContent() {
         console.warn('クリップボードのコピーに失敗しました', err);
       }
 
-      // 3. MakeShopへ遷移（URLには重たい画像を含めず、IDとタイトルのみ渡して494エラーを回避）
      const cleanOrderUrl = `https://store.gofukuyasan.com/view/item/000000007300?komon_id=${encodeURIComponent(serialNumber)}&title=${encodeURIComponent(finalTitle)}&image_url=${encodeURIComponent(finalImageUrl)}`;
       window.location.href = cleanOrderUrl;
       
@@ -612,38 +603,36 @@ function HomeContent() {
   const makeshopCategoryUrl = `https://store.gofukuyasan.com/view/category/${selectedCategoryId}`;
 
   return (
-    <div className="min-h-screen bg-[#fafafa] text-zinc-900 p-4 sm:p-8 flex flex-col items-center justify-center font-sans selection:bg-zinc-200">
-      <div className="max-w-2xl w-full bg-white rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-zinc-100 p-6 sm:p-12 transition-all duration-300">
+    <div className="min-h-screen bg-[#f4f4f5] text-zinc-900 p-4 sm:p-8 flex flex-col items-center justify-center font-sans selection:bg-zinc-200">
+      <div className="max-w-2xl w-full bg-white border border-zinc-200 p-6 sm:p-12">
         
         {/* ① ヘッダーエリア */}
-        <div className="relative overflow-hidden text-center mb-8 p-8 sm:p-10 bg-zinc-950 text-white rounded-[1.5rem] shadow-xl">
-          <div className="relative z-10">
-            <h1 className="text-2xl sm:text-3xl font-black tracking-widest text-center leading-tight">
-              {isShopify ? 'プリンタグ見本帳' : '妄想図案帳'}
-            </h1>
-            <p className="text-xs text-zinc-400 mt-4 leading-relaxed font-medium tracking-wider">
-              {isShopify ? (
-                <>
-                  新潟デジタル捺染工場（モナリザ）直結のテキスタイル制作スタジオ。<br className="hidden sm:inline" />
-                  AIや幾何学文様から図案をデザインし、デザインフィーを設定してShopifyへ即時展開できます。
-                </>
-              ) : (
-                <>
-                  新潟・十日町は着物の産地 着物の配色や柄づくりの知識を生かして、<br className="hidden sm:inline" />
-                  思いついた柄のアイデアを試せるAI図案ツールです。
-                </>
-              )}
-            </p>
-          </div>
+        <div className="text-center mb-8 p-8 sm:p-10 bg-zinc-950 text-white">
+          <h1 className="text-2xl sm:text-3xl font-black tracking-widest text-center leading-tight">
+            {isShopify ? 'プリンタグ見本帳' : '妄想図案帳'}
+          </h1>
+          <p className="text-xs text-zinc-400 mt-4 leading-relaxed font-medium tracking-wider">
+            {isShopify ? (
+              <>
+                新潟デジタル捺染工場（モナリザ）直結のテキスタイル制作スタジオ。<br className="hidden sm:inline" />
+                AIや幾何学文様から図案をデザインし、デザインフィーを設定してShopifyへ即時展開できます。
+              </>
+            ) : (
+              <>
+                新潟・十日町は着物の産地 着物の配色や柄づくりの知識を生かして、<br className="hidden sm:inline" />
+                思いついた柄のアイデアを試せるAI図案ツールです。
+              </>
+            )}
+          </p>
         </div>
 
         {/* モード切替タブ */}
-        <div className="flex bg-zinc-100 p-1 rounded-2xl mb-8">
+        <div className="flex bg-zinc-50 border border-zinc-200 p-1 mb-8">
           <button
             type="button"
             onClick={() => setCreationMode('ai')}
-            className={`flex-1 py-3 text-xs font-black tracking-wider rounded-xl transition-all ${
-              creationMode === 'ai' ? 'bg-zinc-950 text-white shadow-md' : 'text-zinc-500 hover:text-zinc-800'
+            className={`flex-1 py-3 text-xs font-black tracking-wider transition-all ${
+              creationMode === 'ai' ? 'bg-zinc-900 text-white' : 'text-zinc-500 hover:text-zinc-800'
             }`}
           >
             ✨ AI妄想モード
@@ -651,8 +640,8 @@ function HomeContent() {
           <button
             type="button"
             onClick={() => setCreationMode('geometric')}
-            className={`flex-1 py-3 text-xs font-black tracking-wider rounded-xl transition-all ${
-              creationMode === 'geometric' ? 'bg-zinc-950 text-white shadow-md' : 'text-zinc-500 hover:text-zinc-800'
+            className={`flex-1 py-3 text-xs font-black tracking-wider transition-all ${
+              creationMode === 'geometric' ? 'bg-zinc-900 text-white' : 'text-zinc-500 hover:text-zinc-800'
             }`}
           >
             📐 格子・水玉製作所
@@ -680,7 +669,7 @@ function HomeContent() {
                 
                 <div className="relative">
                   <textarea
-                    className="w-full rounded-2xl border-2 border-zinc-200 p-4 bg-white text-sm focus:outline-none focus:border-zinc-900 focus:ring-0 resize-none transition-all duration-200 leading-relaxed shadow-sm font-medium"
+                    className="w-full border border-zinc-300 p-4 bg-white text-sm focus:outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 resize-none transition-all duration-200 leading-relaxed font-medium"
                     rows={4}
                     value={motif}
                     onChange={(e) => setMotif(e.target.value)}
@@ -701,7 +690,7 @@ function HomeContent() {
                 </div>
 
                 {showTags && (
-                  <div className="mt-3 p-4 bg-zinc-50 rounded-2xl border border-zinc-200/80 space-y-4 max-h-[260px] overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-200 animate-fade-in">
+                  <div className="mt-3 p-4 bg-zinc-50 border border-zinc-200 space-y-4 max-h-[260px] overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-200 animate-fade-in">
                     <p className="text-[11px] text-zinc-500 font-medium">クリックすると入力欄にキーワードが追加されます：</p>
                     {TAG_CATEGORIES.map((cat) => (
                       <div key={cat.title}>
@@ -712,7 +701,7 @@ function HomeContent() {
                               key={item.label}
                               type="button"
                               onClick={() => handleTagClick(item)}
-                              className="px-3 py-1 bg-white border border-zinc-200 rounded-full text-[11px] font-medium text-zinc-600 hover:bg-zinc-900 hover:text-white hover:border-zinc-900 transition-all duration-150"
+                              className="px-3 py-1 bg-white border border-zinc-200 text-[11px] font-medium text-zinc-600 hover:bg-zinc-900 hover:text-white transition-all duration-150"
                             >
                               {item.label}
                             </button>
@@ -752,7 +741,7 @@ function HomeContent() {
                         <span
                           key={col.name}
                           onClick={() => handleColorToggle(col)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border shadow-sm cursor-pointer hover:opacity-80 transition-opacity"
+                          className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold border cursor-pointer hover:opacity-80 transition-opacity"
                           style={{
                             backgroundColor: col.hex,
                             color: col.isDark ? '#fff' : '#000',
@@ -775,7 +764,7 @@ function HomeContent() {
                 </div>
 
                 {showColorPalette && (
-                  <div className="mt-3 p-4 bg-zinc-50 rounded-2xl border border-zinc-200/80 animate-fade-in">
+                  <div className="mt-3 p-4 bg-zinc-50 border border-zinc-200 animate-fade-in">
                     <p className="text-[10px] text-zinc-500 font-medium mb-3">タップして選択（最大3色まで組み合わせ可能）：</p>
                     <div className="max-h-[240px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-zinc-200">
                       <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
@@ -786,9 +775,9 @@ function HomeContent() {
                               key={col.name}
                               type="button"
                               onClick={() => handleColorToggle(col)}
-                              className={`relative h-12 rounded-xl p-2 flex flex-col justify-end text-left transition-all duration-200 ${
+                              className={`relative h-12 p-2 flex flex-col justify-end text-left transition-all duration-200 ${
                                 isSelected
-                                  ? 'ring-2 ring-offset-2 ring-zinc-950 scale-95 shadow-md font-black'
+                                  ? 'ring-2 ring-offset-2 ring-zinc-950 scale-95 font-black'
                                   : 'border border-zinc-200/50 hover:scale-105'
                               }`}
                               style={{ backgroundColor: col.hex }}
@@ -823,10 +812,10 @@ function HomeContent() {
                         key={item.id}
                         type="button"
                         onClick={() => setDensity(item.id)}
-                        className={`py-2.5 px-3.5 rounded-xl text-xs font-bold tracking-wider transition-all duration-200 text-left ${
+                        className={`py-2.5 px-3.5 text-xs font-bold tracking-wider transition-all duration-200 text-left border ${
                           density === item.id
-                            ? 'bg-zinc-900 text-white shadow-sm'
-                            : 'bg-zinc-50 text-zinc-600 hover:bg-zinc-100'
+                            ? 'bg-zinc-900 text-white border-zinc-900'
+                            : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50'
                         }`}
                       >
                         {item.label}
@@ -849,10 +838,10 @@ function HomeContent() {
                         key={item.id}
                         type="button"
                         onClick={() => setItemType(item.id)}
-                        className={`py-2.5 px-3.5 rounded-xl text-xs font-bold tracking-wider transition-all duration-200 text-left ${
+                        className={`py-2.5 px-3.5 text-xs font-bold tracking-wider transition-all duration-200 text-left border ${
                           itemType === item.id
-                            ? 'bg-zinc-900 text-white shadow-sm'
-                            : 'bg-zinc-50 text-zinc-600 hover:bg-zinc-100'
+                            ? 'bg-zinc-900 text-white border-zinc-900'
+                            : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50'
                         }`}
                       >
                         {item.label}
@@ -869,7 +858,7 @@ function HomeContent() {
                 </label>
                 <input
                   type="text"
-                  className="w-full rounded-xl border border-zinc-200 p-3 bg-zinc-50/50 text-sm focus:outline-none focus:border-zinc-900 focus:bg-white transition-all duration-200"
+                  className="w-full border border-zinc-300 p-3 bg-zinc-50 text-sm focus:outline-none focus:border-zinc-900 focus:bg-white transition-all duration-200"
                   placeholder="例：遊泳金魚図"
                   value={patternTitle}
                   onChange={(e) => setPatternTitle(e.target.value)}
@@ -879,7 +868,7 @@ function HomeContent() {
 
               {/* ゴフクヤサン通常時のみ表示する回復呪文バナー */}
               {!isShopify && (
-                <div className="p-4 bg-zinc-50 rounded-xl text-center border border-zinc-200 shadow-sm">
+                <div className="p-4 bg-zinc-50 border border-zinc-200 text-center">
                   <p className="mb-1 text-xs font-bold text-zinc-800">
                     ⚠️ 3回じゃ理想の柄が作れない方へ
                   </p>
@@ -890,7 +879,7 @@ function HomeContent() {
                     href="https://store.gofukuyasan.com/html/email.html" 
                     target="_blank" 
                     rel="noopener noreferrer" 
-                    className="inline-block px-4 py-2 bg-zinc-800 text-white no-underline rounded-lg text-xs font-bold hover:bg-zinc-700 transition-colors"
+                    className="inline-block px-4 py-2 bg-zinc-800 text-white no-underline text-xs font-bold hover:bg-zinc-700 transition-colors"
                   >
                     ✉️ 回復呪文をリクエストする（お問い合わせフォームへ）
                   </a>
@@ -903,7 +892,7 @@ function HomeContent() {
                     type="checkbox"
                     checked={agreed}
                     onChange={(e) => setAgreed(e.target.checked)}
-                    className="mt-0.5 h-4 w-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900 transition-colors"
+                    className="mt-0.5 h-4 w-4 border-zinc-300 text-zinc-900 focus:ring-zinc-900 transition-colors"
                   />
                   <span className="text-[11px] text-zinc-500 leading-relaxed group-hover:text-zinc-800 transition-colors">
                     生成された図案はAIによるアイデアイメージであり、実際の生地制作・捺染時には工房の職職人の手でデータ調整が行われること、および公序良俗・権利侵害のない利用に同意します。
@@ -911,7 +900,7 @@ function HomeContent() {
                 </label>
 
                 {errorMsg && (
-                  <div className="mb-6 p-4 bg-red-50 text-red-600 text-xs rounded-xl font-bold tracking-wide">
+                  <div className="mb-6 p-4 bg-red-50 text-red-600 border border-red-200 text-xs font-bold tracking-wide">
                     {errorMsg}
                   </div>
                 )}
@@ -920,10 +909,10 @@ function HomeContent() {
                   type="button"
                   onClick={handleGenerate}
                   disabled={loading || remainingCount === 0}
-                  className={`w-full py-4 sm:py-5 rounded-2xl font-black text-sm tracking-widest uppercase transition-all duration-300 flex items-center justify-center gap-3 ${
+                  className={`w-full py-4 sm:py-5 font-black text-sm tracking-widest uppercase transition-all duration-300 flex items-center justify-center gap-3 ${
                     remainingCount === 0
-                      ? 'bg-zinc-100 text-zinc-400 cursor-not-allowed'
-                      : 'bg-zinc-950 text-white hover:bg-zinc-800 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed'
+                      ? 'bg-zinc-100 text-zinc-400 border border-zinc-200 cursor-not-allowed'
+                      : 'bg-zinc-950 text-white hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed'
                   }`}
                 >
                   {loading ? (
@@ -944,7 +933,7 @@ function HomeContent() {
           ) : (
             /* 幾何学モード UI */
             <div className="space-y-6 animate-fade-in">
-              <div className="bg-emerald-50 border border-emerald-100 text-emerald-800 p-4 rounded-xl text-xs shadow-sm mb-4">
+              <div className="bg-zinc-50 border border-zinc-200 text-zinc-800 p-4 text-xs mb-4">
                 <p className="font-bold mb-1">💡 このモードは使い放題です</p>
                 <p className="text-[11px] opacity-90">AI生成枠（1日3回）を消費しません。納得いくまで何度でもサイズや色を調整して遊んでみてください。</p>
               </div>
@@ -955,7 +944,7 @@ function HomeContent() {
                   <select 
                     value={geoPatternType} 
                     onChange={(e) => setGeoPatternType(e.target.value as 'stripe' | 'dot' | 'grid' | 'gingham' | 'checker')}
-                    className="w-full rounded-xl border border-zinc-200 p-3 bg-zinc-50 text-sm focus:border-zinc-900 focus:outline-none"
+                    className="w-full border border-zinc-300 p-3 bg-white text-sm focus:border-zinc-900 focus:outline-none"
                   >
                     <option value="stripe">縞（ストライプ）</option>
                     <option value="dot">水玉（ドット）</option>
@@ -970,7 +959,7 @@ function HomeContent() {
                     <select 
                       value={stripeDir} 
                       onChange={(e) => setStripeDir(e.target.value as StripeDirection)}
-                      className="w-full rounded-xl border border-zinc-200 p-3 bg-zinc-50 text-sm focus:border-zinc-900 focus:outline-none"
+                      className="w-full border border-zinc-300 p-3 bg-white text-sm focus:border-zinc-900 focus:outline-none"
                     >
                       <option value="vertical">縦縞（滝縞）</option>
                       <option value="horizontal">横縞（ボーダー）</option>
@@ -984,15 +973,12 @@ function HomeContent() {
                     <select 
                       value={dotLayout} 
                       onChange={(e) => setDotLayout(e.target.value as DotLayout)}
-                      className="w-full rounded-xl border border-zinc-200 p-3 bg-zinc-50 text-sm focus:border-zinc-900 focus:outline-none"
+                      className="w-full border border-zinc-300 p-3 bg-white text-sm focus:border-zinc-900 focus:outline-none"
                     >
                       <option value="staggered">千鳥（互い違い）</option>
                       <option value="grid">正方格子</option>
                     </select>
                   </div>
-                )}
-                {(geoPatternType === 'grid' || geoPatternType === 'gingham' || geoPatternType === 'checker') && (
-                  <div></div>
                 )}
               </div>
 
@@ -1054,26 +1040,26 @@ function HomeContent() {
                   <div>
                     <label className="block text-[10px] font-bold text-zinc-900 mb-1">地色</label>
                     <div className="flex items-center gap-2">
-                      <input type="color" value={geoBgColor} onChange={(e) => setGeoBgColor(e.target.value)} className="w-12 h-10 rounded-xl cursor-pointer shrink-0 border border-zinc-200 p-0.5" />
+                      <input type="color" value={geoBgColor} onChange={(e) => setGeoBgColor(e.target.value)} className="w-12 h-10 cursor-pointer shrink-0 border border-zinc-300 p-0.5" />
                       <button
                         type="button"
                         onClick={() => setShowGeoPaletteFor(showGeoPaletteFor === 'bg' ? null : 'bg')}
-                        className={`flex-1 text-[10px] h-10 rounded-xl font-bold transition-all border ${showGeoPaletteFor === 'bg' ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50'}`}
+                        className={`flex-1 text-[10px] h-10 font-bold transition-all border ${showGeoPaletteFor === 'bg' ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50'}`}
                       >
-                        🎨 日本の伝統色から選ぶ
+                        🎨 日本の伝統色
                       </button>
                     </div>
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold text-zinc-900 mb-1">柄色</label>
                     <div className="flex items-center gap-2">
-                      <input type="color" value={geoPatternColor} onChange={(e) => setGeoPatternColor(e.target.value)} className="w-12 h-10 rounded-xl cursor-pointer shrink-0 border border-zinc-200 p-0.5" />
+                      <input type="color" value={geoPatternColor} onChange={(e) => setGeoPatternColor(e.target.value)} className="w-12 h-10 cursor-pointer shrink-0 border border-zinc-300 p-0.5" />
                       <button
                         type="button"
                         onClick={() => setShowGeoPaletteFor(showGeoPaletteFor === 'pattern' ? null : 'pattern')}
-                        className={`flex-1 text-[10px] h-10 rounded-xl font-bold transition-all border ${showGeoPaletteFor === 'pattern' ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50'}`}
+                        className={`flex-1 text-[10px] h-10 font-bold transition-all border ${showGeoPaletteFor === 'pattern' ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50'}`}
                       >
-                        🎨 日本の伝統色から選ぶ
+                        🎨 日本の伝統色
                       </button>
                     </div>
                   </div>
@@ -1081,7 +1067,7 @@ function HomeContent() {
 
                 {/* 102色パレットの表示領域 */}
                 {showGeoPaletteFor && (
-                  <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-200/80 animate-fade-in">
+                  <div className="p-4 bg-zinc-50 border border-zinc-200 animate-fade-in">
                     <div className="flex justify-between items-center mb-3">
                       <p className="text-[10px] text-zinc-500 font-bold">
                         {showGeoPaletteFor === 'bg' ? '地色' : '柄色'}を選ぶ（102色）：
@@ -1099,7 +1085,7 @@ function HomeContent() {
                               if (showGeoPaletteFor === 'pattern') setGeoPatternColor(col.hex);
                               setShowGeoPaletteFor(null);
                             }}
-                            className="relative h-12 rounded-xl p-2 flex flex-col justify-end text-left transition-all duration-200 border border-zinc-200/50 hover:scale-105"
+                            className="relative h-12 p-2 flex flex-col justify-end text-left transition-all duration-200 border border-zinc-300 hover:bg-zinc-200"
                             style={{ backgroundColor: col.hex }}
                           >
                             <span className={`text-[9px] font-bold tracking-wider truncate leading-tight ${col.isDark ? 'text-white' : 'text-zinc-900'}`}>
@@ -1117,7 +1103,7 @@ function HomeContent() {
                 <label className="block text-xs font-bold text-zinc-800 tracking-wider mb-2">05. 図案銘</label>
                 <input
                   type="text"
-                  className="w-full rounded-xl border border-zinc-200 p-3 bg-zinc-50/50 text-sm focus:outline-none focus:border-zinc-900"
+                  className="w-full border border-zinc-300 p-3 bg-zinc-50 text-sm focus:outline-none focus:border-zinc-900"
                   value={patternTitle}
                   onChange={(e) => setPatternTitle(e.target.value)}
                 />
@@ -1126,302 +1112,216 @@ function HomeContent() {
           )}
         </div>
 
-        {/* 生成結果表示エリア */}
+        {/* ▼▼ 生成結果表示エリア (フラットUI) ▼▼ */}
         {imageUrl && (
-          <div className="mt-12 pt-12 border-t border-zinc-100 animate-fade-in">
-            <div className="bg-white rounded-3xl border border-zinc-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden">
-              <div className="p-6 sm:p-8 pb-6 border-b border-zinc-50 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
-                <div>
-                  <span className="inline-block text-[9px] font-mono font-bold tracking-widest text-zinc-400 mb-2">
-                    ID: {serialNumber}
-                  </span>
-                  <h2 className="text-xl font-black text-zinc-900 tracking-widest">銘：『{finalTitle}』</h2>
-                </div>
-                
-                {/* プレビュー切り替えタブ */}
-                <div className="flex bg-zinc-100 p-1 rounded-xl">
+          <div className="mt-12 pt-12 border-t border-zinc-200 animate-fade-in">
+            <div className="bg-white border border-zinc-300">
+              
+              <div className="p-6 sm:p-8 border-b border-zinc-200">
+                <span className="inline-block text-[9px] font-mono font-bold tracking-widest text-zinc-400 mb-2">
+                  ID: {serialNumber}
+                </span>
+                <h2 className="text-xl font-black text-zinc-900 tracking-widest">銘：『{finalTitle}』</h2>
+              </div>
+
+              {/* フラットなプレビュー切り替えタブ */}
+              <div className="p-4 sm:px-8 bg-zinc-50 border-b border-zinc-200">
+                <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
-                    onClick={() => setPreviewMode('pattern')}
-                    className={`text-xs px-3.5 py-1.5 rounded-lg font-bold tracking-wider transition-all duration-200 ${previewMode === 'pattern' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
+                    onClick={() => setDisplayMode('fabric')}
+                    className={`px-4 py-2.5 text-xs font-bold tracking-wider transition-all border ${
+                      displayMode === 'fabric'
+                        ? 'bg-zinc-900 text-white border-zinc-900'
+                        : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-100'
+                    }`}
                   >
-                    図案 (1リピート)
+                    1. 40cm幅 (データ完成図)
                   </button>
+                  
+                  {/* ★ 半幅帯タブ：フラットな黒枠と目立つバッジで誘導 */}
                   <button
                     type="button"
-                    onClick={() => setPreviewMode('fabric')}
-                    className={`text-xs px-3.5 py-1.5 rounded-lg font-bold tracking-wider transition-all duration-200 ${previewMode === 'fabric' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
+                    onClick={() => setDisplayMode('obi')}
+                    className={`relative px-4 py-2.5 text-xs font-bold tracking-wider transition-all border ${
+                      displayMode === 'obi'
+                        ? 'bg-zinc-900 text-white border-zinc-900'
+                        : 'bg-white text-zinc-900 border-zinc-900 hover:bg-zinc-100' // 未選択でも目立つ黒枠
+                    }`}
                   >
-                    原寸大・反物 (約40cm幅)
+                    2. 半幅帯 マッピング
+                    
+                    {/* ピコッと動くドットとおすすめバッジ (未選択時のみ表示) */}
+                    {displayMode !== 'obi' && (
+                      <>
+                        <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#ea5532] opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-3 w-3 bg-[#ea5532]"></span>
+                        </span>
+                        <span className="absolute -top-3 -right-2 bg-[#ea5532] text-white text-[9px] px-1.5 py-0.5 font-black tracking-widest shadow-sm">
+                          おすすめ
+                        </span>
+                      </>
+                    )}
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setPreviewMode('mockup')}
-                    className={`text-xs px-3.5 py-1.5 rounded-lg font-bold tracking-wider transition-all duration-200 ${previewMode === 'mockup' ? 'bg-zinc-900 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
-                  >
-                    3Dモックアップ
+                  
+                  <button disabled className="px-4 py-2.5 text-xs font-bold tracking-wider border bg-zinc-50 text-zinc-400 border-zinc-200 cursor-not-allowed">
+                    3. 京袋帯 (準備中)
+                  </button>
+                  <button disabled className="px-4 py-2.5 text-xs font-bold tracking-wider border bg-zinc-50 text-zinc-400 border-zinc-200 cursor-not-allowed">
+                    4. 着物 (準備中)
                   </button>
                 </div>
               </div>
 
               {/* 画像・モックアップ表示コンテナ */}
-              <div className="bg-zinc-50/70 flex flex-col items-center justify-center min-h-[420px] p-6 relative">
+              <div className="bg-[#f4f4f5] flex flex-col items-center justify-center min-h-[420px] p-6 relative">
                 
-                {previewMode === 'pattern' && (
-                  <div className="flex flex-col items-center">
-                    <img src={imageUrl} alt={finalTitle} className="w-full max-w-sm h-auto object-contain rounded-xl shadow-sm border border-zinc-200/50" />
-                    {creationMode === 'geometric' && (
-                      <p className="text-[11px] text-zinc-400 mt-4 font-medium">※この1枚のタイル（最小単位）をシームレスに敷き詰めて生地を作ります</p>
-                    )}
-                  </div>
-                )}
-
-                {previewMode === 'fabric' && (
-                  <div className="flex flex-col items-center w-full">
+                {/* 1. 40cm幅 データ完成図 */}
+                {displayMode === 'fabric' && (
+                  <div className="flex flex-col items-center w-full animate-fade-in">
                     <div 
-                      className="w-full max-w-[400px] h-[500px] rounded-xl shadow-[0_0_15px_rgba(0,0,0,0.1)] border border-zinc-200"
+                      className="w-full max-w-[400px] h-[500px] border border-zinc-300 bg-white"
                       style={{ 
                         backgroundImage: `url(${imageUrl})`, 
                         backgroundSize: creationMode === 'geometric' ? `${bgSizeMm}px auto` : '200px auto',
                         backgroundRepeat: 'repeat'
                       }} 
                     />
-                    {creationMode === 'geometric' && (
-                      <p className="text-[11px] text-zinc-400 mt-4 font-medium">※画面上の枠幅を「実際の約40cm」とした場合の、仕上がり原寸大シミュレーション</p>
-                    )}
+                    <p className="text-[11px] text-zinc-500 mt-4 font-medium">※画面上の枠幅を「実際の約40cm」とした場合の、仕上がり原寸大シミュレーション</p>
                   </div>
                 )}
 
-                {previewMode === 'mockup' && (
+                {/* 2. 半幅帯 モックアップ (7層構造) */}
+                {displayMode === 'obi' && (
                   <div className="w-full flex flex-col items-center animate-fade-in">
-                    <div className="flex gap-2 mb-6">
-                      {[
-                        { key: 'bag', label: 'トートバッグ' },
-                        { key: 'cushion', label: 'クッション' },
-                        { key: 'tshirt', label: 'Tシャツ' },
-                        { key: 'obi', label: '半幅帯' } // ★ 半幅帯タブを追加
-                      ].map((item) => (
-                        <button
-                          key={item.key}
-                          type="button"
-                          onClick={() => setMockupItem(item.key as any)}
-                          className={`px-4 py-1.5 rounded-full text-xs font-bold tracking-wider transition-all ${
-                            mockupItem === item.key
-                              ? 'bg-zinc-900 text-white shadow-md'
-                              : 'bg-white text-zinc-600 border border-zinc-200 hover:bg-zinc-100'
-                          }`}
-                        >
-                          {item.label}
-                        </button>
-                      ))}
-                    </div>
+                    <div className="relative w-full max-w-[400px] aspect-square mx-auto">
+                      {(() => {
+                        const PIXELS_PER_CM = 440 / 16.5; 
+                        const geoPatternSize = `${(bgSizeMm / 10) * PIXELS_PER_CM}px auto`;
+                        const aiPatternSize = `${40 * PIXELS_PER_CM}px auto`;
+                        const patternSize = creationMode === 'geometric' ? geoPatternSize : aiPatternSize;
 
-                    <div className="relative flex items-center justify-center py-4 w-full">
-                      {mockupItem === 'bag' && (
-                        <div className="relative w-64 h-64 mx-auto flex items-center justify-center">
-                          <div className="relative w-full h-full">
+                        return (
+                          <div className="relative w-full h-full overflow-hidden">
+                            {/* Layer01 - 06 */}
+                            {[
+                              { id: '01', z: 0, rot: 93 },
+                              { id: '02', z: 10, rot: 95 },
+                              { id: '03', z: 20, rot: 97 },
+                              { id: '04', z: 30, rot: 92 },
+                              { id: '05', z: 40, rot: 85 },
+                              { id: '06', z: 50, rot: -1 },
+                            ].map((layer) => (
+                              <div 
+                                key={layer.id}
+                                className={`absolute inset-0 z-[${layer.z}] pointer-events-none`} 
+                                style={{ 
+                                  maskImage: `url('/hanhaba_Layer${layer.id}.png')`,
+                                  WebkitMaskImage: `url('/hanhaba_Layer${layer.id}.png')`,
+                                  maskSize: 'contain',
+                                  WebkitMaskSize: 'contain',
+                                  maskRepeat: 'no-repeat',
+                                  WebkitMaskRepeat: 'no-repeat',
+                                  maskPosition: 'center',
+                                  WebkitMaskPosition: 'center',
+                                }}
+                              >
+                                <div 
+                                  className="absolute top-1/2 left-1/2 w-[150%] h-[150%] -translate-x-1/2 -translate-y-1/2"
+                                  style={{
+                                    backgroundImage: `url(${imageUrl})`, 
+                                    backgroundSize: patternSize,
+                                    backgroundRepeat: 'repeat',
+                                    transform: `rotate(${layer.rot}deg)`
+                                  }}
+                                />
+                              </div>
+                            ))}
+
+                            {/* レイヤー7 (裏地・無地カラー) */}
                             <div 
-                              className="absolute inset-0 z-0" 
+                              className="absolute inset-0 z-60 pointer-events-none" 
                               style={{ 
-                                backgroundImage: `url(${imageUrl})`, 
-                                backgroundSize: creationMode === 'geometric' ? `${bgSizeMm * 0.64}px auto` : '120px auto',
-                                backgroundRepeat: 'repeat',
-                                maskImage: `url('/bag-mockup.png')`,
-                                WebkitMaskImage: `url('/bag-mockup.png')`,
+                                maskImage: `url('/hanhaba_Layer_07.png')`,
+                                WebkitMaskImage: `url('/hanhaba_Layer_07.png')`,
                                 maskSize: 'contain',
                                 WebkitMaskSize: 'contain',
                                 maskRepeat: 'no-repeat',
                                 WebkitMaskRepeat: 'no-repeat',
                                 maskPosition: 'center',
                                 WebkitMaskPosition: 'center',
-                              }} 
-                            />
+                              }}
+                            >
+                              <div 
+                                className="absolute top-1/2 left-1/2 w-[150%] h-[150%] -translate-x-1/2 -translate-y-1/2"
+                                style={{
+                                  backgroundColor: obiLiningColor,
+                                  transform: 'rotate(0deg)'
+                                }}
+                              />
+                            </div>
+
+                            {/* 影・シワレイヤー（一番上・乗算） */}
                             <div 
-                              className="absolute inset-0 z-10 pointer-events-none"
+                              className="absolute inset-0 z-[70] pointer-events-none"
                               style={{
-                                backgroundImage: `url('/bag-mockup.png')`,
+                                backgroundImage: `url('/hanhaba_Layer_kage.png')`,
                                 backgroundSize: 'contain',
-                                backgroundRepeat: 'no-repeat',
                                 backgroundPosition: 'center',
+                                backgroundRepeat: 'no-repeat',
                                 mixBlendMode: 'multiply'
                               }}
                             />
                           </div>
-                        </div>
-                      )}
-
-                      {mockupItem === 'cushion' && (
-                        <div className="relative w-64 h-64 rounded-[2.5rem] overflow-hidden shadow-2xl border border-zinc-200/80 bg-zinc-100">
-                          <div 
-                            className="absolute inset-0" 
-                            style={{ 
-                              backgroundImage: `url(${imageUrl})`, 
-                              backgroundSize: creationMode === 'geometric' ? `${bgSizeMm * 0.56}px auto` : '130px auto',
-                              backgroundRepeat: 'repeat' 
-                            }} 
-                          />
-                          <div 
-                            className="absolute inset-0 pointer-events-none"
-                            style={{
-                              background: 'radial-gradient(circle at 45% 45%, rgba(255,255,255,0.65) 0%, rgba(0,0,0,0.1) 55%, rgba(0,0,0,0.6) 100%)',
-                              mixBlendMode: 'multiply'
-                            }}
-                          />
-                        </div>
-                      )}
-
-                      {mockupItem === 'tshirt' && (
-                        <div className="relative w-64 h-72 rounded-t-2xl rounded-b-lg overflow-hidden shadow-2xl border border-zinc-200/80 bg-zinc-100">
-                          <div 
-                            className="absolute inset-0" 
-                            style={{ 
-                              backgroundImage: `url(${imageUrl})`, 
-                              backgroundSize: creationMode === 'geometric' ? `${bgSizeMm * 0.51}px auto` : '150px auto',
-                              backgroundRepeat: 'repeat' 
-                            }} 
-                          />
-                          <div 
-                            className="absolute inset-0 pointer-events-none"
-                            style={{
-                              background: 'radial-gradient(circle at 50% 0%, rgba(255,255,255,0.9) 16%, transparent 17%), linear-gradient(to right, rgba(0,0,0,0.3) 0%, transparent 22%, transparent 78%, rgba(0,0,0,0.3) 100%)',
-                              mixBlendMode: 'multiply'
-                            }}
-                          />
-                        </div>
-                      )}
-
-                      {/* ★ 追加：半幅帯モックアップ (多層パーツ構造) */}
-                      {mockupItem === 'obi' && (
-                        <div className="relative w-full max-w-[400px] aspect-square mx-auto">
-                          {(() => {
-                            // 実際の半幅帯の幅(16.5cm) = キャンバス上の440px
-                            const PIXELS_PER_CM = 440 / 16.5; 
-
-                            // ① 幾何学モード：指定されたミリ数(bgSizeMm)を現実の寸法に合わせてマッピング
-                            const geoPatternSize = `${(bgSizeMm / 10) * PIXELS_PER_CM}px auto`;
-
-                            // ② AI図案モード：AI画像1枚を現実の反物幅(約40cm)として扱う場合
-                            const aiPatternSize = `${40 * PIXELS_PER_CM}px auto`;
-
-                            const patternSize = creationMode === 'geometric' ? geoPatternSize : aiPatternSize;
-
-                            return (
-                              <div className="relative w-full h-full overflow-hidden">
-                                
-                                {/* 1. たれ先パーツ（一番奥） */}
-                                <div 
-                                  className="absolute inset-0 z-0 pointer-events-none" 
-                                  style={{ 
-                                    maskImage: `url('/hanhaba_mask_tare.png')`,
-                                    WebkitMaskImage: `url('/hanhaba_mask_tare.png')`,
-                                    maskSize: 'contain',
-                                    WebkitMaskSize: 'contain',
-                                    maskRepeat: 'no-repeat',
-                                    WebkitMaskRepeat: 'no-repeat',
-                                    maskPosition: 'center',
-                                    WebkitMaskPosition: 'center',
-                                  }}
-                                >
-                                  <div 
-                                    className="absolute top-1/2 left-1/2 w-[150%] h-[150%] -translate-x-1/2 -translate-y-1/2"
-                                    style={{
-                                      backgroundImage: `url(${imageUrl})`, 
-                                      backgroundSize: patternSize,
-                                      backgroundRepeat: 'repeat',
-                                      transform: 'rotate(0deg)'
-                                    }}
-                                  />
-                                </div>
-
-                                {/* 2. 結び目パーツ（中間） */}
-                                <div 
-                                  className="absolute inset-0 z-10 pointer-events-none" 
-                                  style={{ 
-                                    maskImage: `url('/hanhaba_mask_knot.png')`,
-                                    WebkitMaskImage: `url('/hanhaba_mask_knot.png')`,
-                                    maskSize: 'contain',
-                                    WebkitMaskSize: 'contain',
-                                    maskRepeat: 'no-repeat',
-                                    WebkitMaskRepeat: 'no-repeat',
-                                    maskPosition: 'center',
-                                    WebkitMaskPosition: 'center',
-                                  }}
-                                >
-                                  <div 
-                                    className="absolute top-1/2 left-1/2 w-[150%] h-[150%] -translate-x-1/2 -translate-y-1/2"
-                                    style={{
-                                      backgroundImage: `url(${imageUrl})`, 
-                                      backgroundSize: patternSize,
-                                      backgroundRepeat: 'repeat',
-                                      transform: 'rotate(-15deg)'
-                                    }}
-                                  />
-                                </div>
-
-                                {/* 3. 前帯パーツ（手前） */}
-                                <div 
-                                  className="absolute inset-0 z-20 pointer-events-none" 
-                                  style={{ 
-                                    maskImage: `url('/hanhaba_mask_front.png')`,
-                                    WebkitMaskImage: `url('/hanhaba_mask_front.png')`,
-                                    maskSize: 'contain',
-                                    WebkitMaskSize: 'contain',
-                                    maskRepeat: 'no-repeat',
-                                    WebkitMaskRepeat: 'no-repeat',
-                                    maskPosition: 'center',
-                                    WebkitMaskPosition: 'center',
-                                  }}
-                                >
-                                  <div 
-                                    className="absolute top-1/2 left-1/2 w-[150%] h-[150%] -translate-x-1/2 -translate-y-1/2"
-                                    style={{
-                                      backgroundImage: `url(${imageUrl})`, 
-                                      backgroundSize: patternSize,
-                                      backgroundRepeat: 'repeat',
-                                      transform: 'rotate(0deg)'
-                                    }}
-                                  />
-                                </div>
-
-                                {/* 4. 影・シワレイヤー（一番上に「乗算」で重ねる） */}
-                                <div 
-                                  className="absolute inset-0 z-30 pointer-events-none"
-                                  style={{
-                                    backgroundImage: `url('/hanhaba_shadow.png')`,
-                                    backgroundSize: 'contain',
-                                    backgroundPosition: 'center',
-                                    backgroundRepeat: 'no-repeat',
-                                    mixBlendMode: 'multiply'
-                                  }}
-                                />
-                                
-                              </div>
-                            );
-                          })()}
-                        </div>
-                      )}
+                        );
+                      })()}
                     </div>
 
-                    <p className="text-[11px] text-zinc-400 mt-3 font-medium">※設定したミリ単位を実際の製品サイズ（トート40cm幅等）に割り当てたシミュレーション</p>
+                    {/* 裏地の色変更UI (フラット) */}
+                    <div className="mt-4 w-full max-w-[400px] flex items-center gap-3 bg-white p-3 border border-zinc-300">
+                      <label className="text-[11px] font-bold text-zinc-700">裏地（折り返し）の色を変更：</label>
+                      <input 
+                        type="color" 
+                        value={obiLiningColor} 
+                        onChange={(e) => setObiLiningColor(e.target.value)}
+                        className="w-10 h-8 cursor-pointer border border-zinc-400 p-0 shrink-0"
+                      />
+                      <span className="text-[10px] text-zinc-400 ml-auto flex-1 text-right">※クリックで選択</span>
+                    </div>
                   </div>
                 )}
               </div>
+              
+              {/* ▼ ポン出し注釈 (帯・着物タブを選択した時のみ表示) ▼ */}
+              {displayMode !== 'fabric' && (
+                <div className="p-4 sm:px-8 bg-amber-50/50 border-t border-b border-zinc-200">
+                  <p className="text-xs font-black text-amber-900 mb-2 flex items-center gap-1.5">
+                    <span className="text-[14px]">⚠️</span> 仕上がりイメージについて
+                  </p>
+                  <div className="text-[11px] text-amber-900/80 space-y-1.5 font-medium leading-relaxed">
+                    <p>※画面上のマッピング画像はAIによる自動生成（ポン出し）の簡易イメージです。</p>
+                    <p>受注確定後、ご希望の柄配置（柄の出方）などをヒアリングのうえ、工房より<strong className="text-amber-950">本物のシミュレーション画像</strong>をお送りいたします。</p>
+                    <p>そちらの画像で仕上がりにご納得いただいてから、実際のプリント・お仕立て進行となりますのでご安心ください。</p>
+                  </div>
+                </div>
+              )}
 
               {/* ▼▼ アクションエリア ▼▼ */}
               <div className="p-6 sm:p-8 space-y-4 bg-white">
                 {isShopify ? (
-                  <div className="p-5 bg-zinc-950 rounded-2xl text-white space-y-4 shadow-xl border border-zinc-800">
+                  <div className="p-5 bg-zinc-950 text-white space-y-4 border border-zinc-800">
                     <div className="flex justify-between items-center border-b border-zinc-800 pb-3">
                       <div>
                         <span className="text-[10px] font-mono tracking-widest text-zinc-400 block uppercase">STAGE 02 / SHOPIFY PUBLISH</span>
                         <h3 className="text-sm font-bold tracking-wider text-white">🏪 デザイン価格設定 ＆ Shopify連携</h3>
                       </div>
-                      <span className="text-[10px] bg-zinc-800 px-2.5 py-1 rounded text-zinc-300 border border-zinc-700 font-mono">
+                      <span className="text-[10px] bg-zinc-800 px-2.5 py-1 text-zinc-300 border border-zinc-700 font-mono">
                         ON-DEMAND SYNC
                       </span>
                     </div>
 
-                    <div className="bg-zinc-900 p-4 rounded-xl border border-zinc-800 space-y-2">
+                    <div className="bg-zinc-900 p-4 border border-zinc-800 space-y-2">
                       <div className="flex justify-between items-baseline">
                         <label className="text-xs font-bold text-zinc-300">
                           デザインフィー（あなたの取り分）
@@ -1439,7 +1339,7 @@ function HomeContent() {
                         step="50"
                         value={designFee}
                         onChange={(e) => setDesignFee(Number(e.target.value))}
-                        className="w-full h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-sky-400"
+                        className="w-full h-2 bg-zinc-800 appearance-none cursor-pointer accent-sky-400"
                       />
 
                       <div className="flex justify-between text-[10px] text-zinc-500 font-medium">
@@ -1450,7 +1350,7 @@ function HomeContent() {
                         <span>¥200 (上限)</span>
                       </div>
                       <p className="text-[10px] text-zinc-400 pt-1">
-                        ※AI生成図案のため上限200円となります。トートバッグや生地販売などの派生商品にもこの金額が均一に上乗せ・還元されます。
+                        ※AI生成図案のため上限200円となります。着物や帯などの派生商品にもこの金額が均一に上乗せ・還元されます。
                       </p>
                     </div>
 
@@ -1458,10 +1358,10 @@ function HomeContent() {
                       type="button"
                       onClick={handleVirtualProductSubmit}
                       disabled={mockupSubmitting}
-                      className={`w-full py-4 rounded-xl text-xs font-black tracking-widest uppercase transition-all duration-300 shadow-lg ${
+                      className={`w-full py-4 text-xs font-black tracking-widest uppercase transition-all duration-300 border ${
                         mockupSuccess 
-                          ? 'bg-emerald-600 text-white' 
-                          : 'bg-white text-zinc-950 hover:bg-zinc-200'
+                          ? 'bg-emerald-600 text-white border-emerald-700' 
+                          : 'bg-white text-zinc-950 border-zinc-900 hover:bg-zinc-100'
                       }`}
                     >
                       {mockupSubmitting 
@@ -1476,7 +1376,7 @@ function HomeContent() {
                   </div>
                 ) : (
                   <>
-                    <div className="bg-orange-50 border border-orange-100 text-orange-800 p-3 rounded-xl text-xs font-bold text-center mb-2 shadow-sm">
+                    <div className="bg-zinc-50 border border-zinc-200 text-zinc-800 p-3 text-xs font-bold text-center mb-2">
                       💡 お気に入りの柄は、次の図案を作る前に「保存」しておきましょう！
                     </div>
 
@@ -1484,7 +1384,7 @@ function HomeContent() {
                       <button
                         type="button"
                         onClick={handleDownload}
-                        className="w-full py-4 text-center border-2 border-zinc-900 bg-white hover:bg-zinc-50 text-zinc-900 text-xs font-bold tracking-widest rounded-xl transition-all shadow-sm flex items-center justify-center gap-2"
+                        className="w-full py-4 text-center border border-zinc-900 bg-white hover:bg-zinc-50 text-zinc-900 text-xs font-bold tracking-widest transition-all flex items-center justify-center gap-2"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -1496,7 +1396,7 @@ function HomeContent() {
                         href={xShareLink}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="w-full py-4 text-center bg-[#1DA1F2] hover:bg-[#1a8cd8] text-white text-xs font-bold tracking-widest rounded-xl transition-colors flex items-center justify-center gap-2"
+                        className="w-full py-4 text-center bg-[#1DA1F2] hover:bg-[#1a8cd8] text-white text-xs font-bold tracking-widest transition-colors flex items-center justify-center gap-2"
                       >
                         𝕏でシェア
                       </a>
@@ -1505,7 +1405,7 @@ function HomeContent() {
                     <a
                       href="#"
                       onClick={handleOrderClick}
-                      className="block w-full py-5 text-center bg-zinc-900 hover:bg-zinc-800 text-white text-sm font-bold tracking-widest uppercase rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 mt-2"
+                      className="block w-full py-5 text-center bg-zinc-900 hover:bg-zinc-800 text-white text-sm font-bold tracking-widest uppercase transition-all duration-300 mt-2"
                     >
                       この図案でお誂えを申し込む
                     </a>
@@ -1514,23 +1414,20 @@ function HomeContent() {
 
                 {(!isShopify || SHOW_MAKESHOP_LINKS_ON_SHOPIFY) && (
                   <>
-                    <div className="mt-6 p-5 bg-amber-50 rounded-xl border border-amber-100/50 shadow-sm">
-                      <h3 className="text-[13px] font-bold text-amber-900 mb-3 flex items-center gap-2">
-                        <svg className="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
+                    <div className="mt-6 p-5 bg-zinc-50 border border-zinc-200">
+                      <h3 className="text-[13px] font-bold text-zinc-900 mb-3 flex items-center gap-2">
                         クリエイター・作家様へ：オリジナル生地の制作について
                       </h3>
-                      <ul className="text-xs text-amber-800/80 space-y-2 mb-4 leading-relaxed list-disc list-inside">
-                        <li><strong className="text-amber-900">初回お試しパック（10,000円）：</strong>50cm×112cmの生地1枚＋<span className="underline decoration-amber-300 decoration-2 underline-offset-2">商用利用可能な完全データ（職人による修正済み）</span>をお渡しします。</li>
-                        <li><strong className="text-amber-900">2回目以降（追加オーダー）：</strong>データ修正済みのため、生地のプリント代のみで1m単位から追加発注可能です。</li>
-                        <li><strong className="text-amber-900">5m以上のオーダー：</strong>お得な【卸価格】にて対応いたします。自社ブランドの量産等にぜひご活用ください。</li>
+                      <ul className="text-xs text-zinc-600 space-y-2 mb-4 leading-relaxed list-disc list-inside">
+                        <li><strong className="text-zinc-900">初回お試しパック（10,000円）：</strong>50cm×112cmの生地1枚＋<span className="underline decoration-zinc-300 decoration-2 underline-offset-2">商用利用可能な完全データ（職人による修正済み）</span>をお渡しします。</li>
+                        <li><strong className="text-zinc-900">2回目以降（追加オーダー）：</strong>データ修正済みのため、生地のプリント代のみで1m単位から追加発注可能です。</li>
+                        <li><strong className="text-zinc-900">5m以上のオーダー：</strong>お得な【卸価格】にて対応いたします。自社ブランドの量産等にぜひご活用ください。</li>
                       </ul>
                       <a 
                         href="https://store.gofukuyasan.com/html/email.html" 
                         target="_blank" 
                         rel="noopener noreferrer" 
-                        className="block w-full py-3 text-center bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-bold tracking-wider rounded-lg transition-colors shadow-sm"
+                        className="block w-full py-3 text-center bg-zinc-800 hover:bg-zinc-700 text-white text-[11px] font-bold tracking-wider transition-colors"
                       >
                         ✉️ オリジナル生地・商用利用について相談する
                       </a>
@@ -1560,7 +1457,7 @@ function HomeContent() {
 export default function Home() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-[#fafafa]">
+      <div className="min-h-screen flex items-center justify-center bg-[#f4f4f5]">
         <p className="text-zinc-400 text-sm font-bold tracking-widest">LOADING...</p>
       </div>
     }>
