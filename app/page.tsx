@@ -1192,7 +1192,7 @@ function HomeContent() {
                   </div>
                 )}
 
-                {/* 2. 半幅帯 モックアップ (真のレイヤー構造・キャッシュ対策済み) */}
+{/* 2. 半幅帯 モックアップ (完全独立レイヤー＋送り付け・角度調整) */}
                 {displayMode === 'obi' && (
                   <div className="w-full flex flex-col items-center animate-fade-in">
                     <div className="relative w-full max-w-[400px] aspect-square mx-auto">
@@ -1200,49 +1200,24 @@ function HomeContent() {
                         const PIXELS_PER_CM = 440 / 16.5; 
                         const geoSizePx = (bgSizeMm / 10) * PIXELS_PER_CM;
                         
-                        // ★ SVGタイリングバグ修正＆AI画像スケール固定
                         const patternSize = creationMode === 'geometric' 
                           ? `${geoSizePx}px ${geoSizePx}px` 
-                          : `${40 * PIXELS_PER_CM}px ${40 * PIXELS_PER_CM}px`; // autoではなくガチガチに固定
+                          : `${40 * PIXELS_PER_CM}px ${40 * PIXELS_PER_CM}px`;
                         
-                        const v = '3'; // キャッシュ強制クリア用のおまじない
+                        const v = '4'; // キャッシュ対策
 
                         return (
                           <div className="relative w-full h-full overflow-hidden">
-                            {/* ★ レイヤー0 (ベース全体を影レイヤーから錬成) */}
-                            <div 
-                              className="absolute inset-0 pointer-events-none" 
-                              style={{ 
-                                zIndex: 0,
-                                maskImage: `url('/hanhaba_Layer_kage.png?v=${v}')`,
-                                WebkitMaskImage: `url('/hanhaba_Layer_kage.png?v=${v}')`,
-                                maskSize: 'contain',
-                                WebkitMaskSize: 'contain',
-                                maskRepeat: 'no-repeat',
-                                WebkitMaskRepeat: 'no-repeat',
-                                maskPosition: 'center',
-                                WebkitMaskPosition: 'center',
-                              }}
-                            >
-                              <div 
-                                className="absolute top-1/2 left-1/2 w-[150%] h-[150%] -translate-x-1/2 -translate-y-1/2"
-                                style={{
-                                  backgroundImage: `url(${imageUrl})`, 
-                                  backgroundSize: patternSize,
-                                  backgroundRepeat: 'repeat',
-                                  backgroundPosition: '0% 0%', 
-                                }}
-                              />
-                            </div>
-
-                            {/* ★ レイヤー1〜6 (ヒダやフラップを個別に重ねる) */}
+                            {/* ★ レイヤー1〜6 (完全に独立させ、個別に角度と送り付けを適用) */}
                             {[
-                              { id: '01', file: 'hanhaba_Layer01.png', z: 10, rot: 93, bgX: '10%', bgY: '10%' },
-                              { id: '02', file: 'hanhaba_Layer_02.png', z: 20, rot: 95, bgX: '33%', bgY: '25%' },
-                              { id: '03', file: 'hanhaba_Layer_03.png', z: 30, rot: 97, bgX: '66%', bgY: '50%' },
-                              { id: '04', file: 'hanhaba_Layer_04.png', z: 40, rot: 92, bgX: '15%', bgY: '75%' },
-                              { id: '05', file: 'hanhaba_Layer_05.png', z: 50, rot: 85, bgX: '85%', bgY: '15%' },
-                              { id: '06', file: 'hanhaba_Layer_06.png', z: 60, rot: -1, bgX: '45%', bgY: '85%' },
+                              // ※rot: 角度, bgX/bgY: 柄のズレ位置
+                              // 画像を見ながら推測で入れています。もし「ここは縦縞にしたい」等あれば rot を 0 付近に、「横縞にしたい」なら 90 付近に変更してください。
+                              { id: '01', file: 'hanhaba_Layer01.png', z: 10, rot: 2, bgX: '12%', bgY: '34%' },
+                              { id: '02', file: 'hanhaba_Layer_02.png', z: 20, rot: 88, bgX: '45%', bgY: '67%' },
+                              { id: '03', file: 'hanhaba_Layer_03.png', z: 30, rot: 94, bgX: '78%', bgY: '12%' },
+                              { id: '04', file: 'hanhaba_Layer_04.png', z: 40, rot: 86, bgX: '23%', bgY: '89%' },
+                              { id: '05', file: 'hanhaba_Layer_05.png', z: 50, rot: -12, bgX: '56%', bgY: '45%' },
+                              { id: '06', file: 'hanhaba_Layer_06.png', z: 60, rot: -3, bgX: '89%', bgY: '23%' },
                             ].map((layer) => (
                               <div 
                                 key={layer.id}
@@ -1289,9 +1264,7 @@ function HomeContent() {
                             >
                               <div 
                                 className="absolute top-1/2 left-1/2 w-[150%] h-[150%] -translate-x-1/2 -translate-y-1/2"
-                                style={{
-                                  backgroundColor: obiLiningColor,
-                                }}
+                                style={{ backgroundColor: obiLiningColor }}
                               />
                             </div>
 
@@ -1311,6 +1284,8 @@ function HomeContent() {
                         );
                       })()}
                     </div>
+
+                    {/* ★ 裏地の色変更UI (以下の既存コードに続きます) */}
 
                     {/* ★ 裏地の色変更UI (伝統色パレット仕様) */}
                     <div className="mt-4 w-full max-w-[400px] bg-white p-3 border border-zinc-300">
