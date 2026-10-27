@@ -1193,7 +1193,7 @@ function HomeContent() {
                   </div>
                 )}
 
-{/* 2. 半幅帯 モックアップ (座標ズレ完全解消・全パーツ全面カバー版) */}
+                {/* 2. 半幅帯 モックアップ (座標ズレ完全解消・全パーツ全面カバー版) */}
                 {displayMode === 'obi' && (
                   <div className="w-full flex flex-col items-center animate-fade-in">
                     <div className="relative w-full max-w-[400px] aspect-square mx-auto">
@@ -1347,6 +1347,7 @@ function HomeContent() {
                     </div>
                   </div>
                 )}
+              </div>
               
               {/* ▼ ポン出し注釈 (帯・着物タブを選択した時のみ表示) ▼ */}
               {displayMode !== 'fabric' && (
