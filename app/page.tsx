@@ -84,7 +84,7 @@ async function renderTiledGeometricPng(
   });
 }
 
-// ★ 半幅帯用：幅18cm（1080x2400px）の縦長プリントデータPNGを自動生成する関数
+// 半幅帯用：幅18cm（1080x2400px）の縦長プリントデータPNGを自動生成する関数
 async function render18cmPrintDataPng(
   patternUrl: string,
   creationMode: 'ai' | 'geometric',
@@ -109,7 +109,7 @@ async function render18cmPrintDataPng(
         ctx.fillRect(0, 0, 1080, 2400);
 
         if (creationMode === 'geometric') {
-          const pxPerMm = 6; // 1080 / 180 = 6px/mm
+          const pxPerMm = 6;
           const tileSizePx = Math.max(1, bgSizeMm * pxPerMm);
           const tileCanvas = document.createElement('canvas');
           tileCanvas.width = tileSizePx;
@@ -709,7 +709,7 @@ function HomeContent() {
     }
   };
 
-  // ★ 全アイテム共通の完全実寸マッピング合成画像ダウンロード
+  // 全アイテム共通の実寸マッピング合成画像ダウンロード
   const handleDownloadMapping = async () => {
     if (!previewContainerRef.current || (itemType !== 'hanhaba' && itemType !== 'kyobukuro')) return;
     try {
@@ -739,14 +739,9 @@ function HomeContent() {
       const patternImg = await loadImage(effectivePatternUrl);
 
       // ★ 全アイテム共通：統一黄金スケール (27 / 11 px/mm)
+      // 半幅帯・京袋帯・着物すべてで同一の180mm原寸基準を適用
       const pxPerMm = 27 / 11;
-      let bgWidth = 0;
-      if (itemType === 'hanhaba') {
-        bgWidth = creationMode === 'geometric' ? (bgSizeMm * pxPerMm) : (180 * pxPerMm);
-      } else {
-        // 京袋帯・着物 (反物幅400mm基準)
-        bgWidth = creationMode === 'geometric' ? (bgSizeMm * pxPerMm) : (400 * pxPerMm);
-      }
+      const bgWidth = creationMode === 'geometric' ? (bgSizeMm * pxPerMm) : (180 * pxPerMm);
 
       const bgScale = bgWidth / Math.max(1, patternImg.width);
       const bgHeight = patternImg.height * bgScale;
@@ -896,7 +891,7 @@ function HomeContent() {
   const shareUrl = typeof window !== 'undefined' ? encodeURIComponent(window.location.href) : '';
   const xShareLink = `https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`;
   
-  // ★ 半幅帯は18cm縦長データ、京袋帯・着物は40cmデータをMakeShopに投げる
+  // 半幅帯は18cm縦長データ、京袋帯・着物は40cmデータをMakeShopに投げる
   const handleOrderClick = async (e: MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault(); 
     try {
@@ -910,7 +905,7 @@ function HomeContent() {
         setSerialNumber(validSerial);
       }
 
-      // ★ 半幅帯の場合：幅18cmの縦長プリントデータPNGを生成してBlobへ送る
+      // 半幅帯の場合：幅18cmの縦長プリントデータPNGを生成してBlobへ送る
       if (itemType === 'hanhaba') {
         const sourceFor18cm = creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl);
         const png18cm = await render18cmPrintDataPng(sourceFor18cm, creationMode, bgSizeMm, geoBgColor);
@@ -992,7 +987,7 @@ function HomeContent() {
                 </div>
               </div>
 
-              {/* ★ アイテム直感切替バー（半幅帯 / 京袋帯 / 着物） */}
+              {/* アイテム直感切替バー（半幅帯 / 京袋帯 / 着物） */}
               <div className="px-3 py-2 bg-zinc-900 text-white flex items-center justify-between">
                 <span className="text-[10px] font-bold text-zinc-400 tracking-wider">仕立てアイテム：</span>
                 <div className="flex gap-1">
@@ -1077,12 +1072,11 @@ function HomeContent() {
                 {displayMode === 'mockup' && (
                   <div className="w-full flex flex-col items-center animate-fade-in">
                     
-                    {/* 半幅帯マッピング（完全実寸ロック版） */}
+                    {/* 半幅帯マッピング（統一実寸ロック：180mm基準） */}
                     {itemType === 'hanhaba' && (
                       <>
                         <div ref={previewContainerRef} className="relative w-[210px] sm:w-[340px] aspect-square mx-auto drop-shadow-xl">
                           {(() => {
-                            // ★ 統一黄金スケール（180mm基準）
                             const patternSize = creationMode === 'geometric' 
                               ? `${bgSizeMm * UNIVERSAL_SCALE_FACTOR}% auto` 
                               : `${180 * UNIVERSAL_SCALE_FACTOR}% auto`;
@@ -1205,15 +1199,15 @@ function HomeContent() {
                       </>
                     )}
 
-                    {/* ★ 京袋帯マッピング（統一実寸ロック版） */}
+                    {/* ★ 京袋帯マッピング（統一実寸ロック：半幅帯と等倍完全同期） */}
                     {itemType === 'kyobukuro' && (
                       <>
                         <div ref={previewContainerRef} className="relative w-[210px] sm:w-[340px] aspect-square mx-auto drop-shadow-xl">
                           {(() => {
-                            // ★ 統一黄金スケール（400mm反物基準：半幅帯と1ミリの狂いもなく完全同期）
+                            // ★ 半幅帯と全く同一の180mm原寸基準を適用（お太鼓31cmの中にうさぎが4〜5匹収まる）
                             const patternSize = creationMode === 'geometric' 
                               ? `${bgSizeMm * UNIVERSAL_SCALE_FACTOR}% auto` 
-                              : `${400 * UNIVERSAL_SCALE_FACTOR}% auto`;
+                              : `${180 * UNIVERSAL_SCALE_FACTOR}% auto`;
                             
                             const effectivePatternUrl = creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl);
                             const v = '21'; 
@@ -1315,7 +1309,7 @@ function HomeContent() {
                       </>
                     )}
 
-                    {/* ★ 着物マッピング（将来用：400mm反物基準でスケール完全同期） */}
+                    {/* 着物マッピング（将来用） */}
                     {itemType === 'kimono' && (
                       <div className="w-full max-w-[300px] aspect-square bg-zinc-200 border-2 border-dashed border-zinc-400 flex items-center justify-center">
                         <span className="text-zinc-500 font-bold text-sm tracking-widest">着物マッピング準備中</span>
@@ -1324,7 +1318,7 @@ function HomeContent() {
                   </div>
                 )}
 
-                {/* 2. トリム表示 (京袋帯のみ) */}
+                {/* 2. トリム表示 (京袋帯のみ：実寸等倍スケールに同期) */}
                 {displayMode === 'trim' && itemType === 'kyobukuro' && (
                   <div className="w-full flex flex-col items-center animate-fade-in">
                     <div 
@@ -1335,7 +1329,10 @@ function HomeContent() {
                         className="absolute inset-0"
                         style={{
                           backgroundImage: `url(${creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl)})`, 
-                          backgroundSize: creationMode === 'geometric' ? `${(bgSizeMm / 400) * 100}% auto` : '100% auto',
+                          // ★ 180mm原寸基準に合わせて等倍敷き詰め (180 / 400 = 45%)
+                          backgroundSize: creationMode === 'geometric' 
+                            ? `${(bgSizeMm / 400) * 100}% auto` 
+                            : `${(180 / 400) * 100}% auto`,
                           backgroundPosition: 'center center',
                           backgroundRepeat: 'repeat',
                           backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff'
