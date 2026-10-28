@@ -14,6 +14,7 @@ import {
   type StripeDirection, 
   type DotLayout 
 } from './utils/geometricPatterns';
+import html2canvas from 'html2canvas';
 
 async function rotateImage90Degrees(imageUrl: string): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -155,7 +156,7 @@ const TRADITIONAL_COLORS = [
   { name: '白藤 (しらふじ)', hex: '#dbd0e6', text: 'ごく淡いペールライラック地', isDark: false },
   { name: '藤色 (ふじ)', hex: '#bbbcde', text: '淡いラベンダー地', isDark: false },
   { name: '紫苑 (しおん)', hex: '#8f77b5', text: '澄んだライトバイオレット地', isDark: true },
-  { name: '菖蒲 (あやme)', hex: '#cc7eb1', text: '明るいオーキッドパープル地', isDark: true },
+  { name: '菖蒲 (あやめ)', hex: '#cc7eb1', text: '明るいオーキッドパープル地', isDark: true },
   { name: '竜胆 (りんどう)', hex: '#9079ad', text: '上品なアメジストパープル地', isDark: true },
   { name: '桔梗 (ききょう)', hex: '#5654a2', text: '鮮やかな青紫・バイオレット地', isDark: true },
   { name: '江戸紫 (えど)', hex: '#745399', text: '濃い赤紫地', isDark: true },
@@ -284,7 +285,6 @@ const LOADING_STEPS = [
 function HomeContent() {
   const searchParams = useSearchParams();
   const isShopify = searchParams.get('platform') === 'shopify';
-  const SHOW_MAKESHOP_LINKS_ON_SHOPIFY = false;
 
   const [motif, setMotif] = useState('');
   const [selectedColors, setSelectedColors] = useState<typeof TRADITIONAL_COLORS>([]);
@@ -299,7 +299,6 @@ function HomeContent() {
   const [agreed, setAgreed] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   
-  // ★ プレビュータブの表示状態（分かりやすい構成に再編）
   const [displayMode, setDisplayMode] = useState<'hanhaba' | 'trim' | 'fabric'>('hanhaba');
   
   const [mockupSubmitting, setMockupSubmitting] = useState(false);
@@ -312,7 +311,8 @@ function HomeContent() {
   const [remainingCount, setRemainingCount] = useState<number | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('ct334'); 
 
-  const [creationMode, setCreationMode] = useState<'ai' | 'geometric'>('ai');
+  // ★ デフォルトを幾何学モードに変更
+  const [creationMode, setCreationMode] = useState<'ai' | 'geometric'>('geometric');
   const [geoPatternType, setGeoPatternType] = useState<'stripe' | 'dot' | 'grid' | 'gingham' | 'checker'>('stripe');
   const [stripeDir, setStripeDir] = useState<StripeDirection>('vertical');
   const [lineWidth, setLineWidth] = useState(5);
@@ -329,7 +329,9 @@ function HomeContent() {
   const [showLiningPalette, setShowLiningPalette] = useState(false);
 
   const [rotatedPatternUrl, setRotatedPatternUrl] = useState<string>('');
+  
   const previewRef = useRef<HTMLDivElement>(null);
+  const previewContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const today = new Date().toISOString().split('T')[0];
@@ -519,7 +521,7 @@ function HomeContent() {
         setBlobUrl(data.blobUrl);   
         setSerialNumber(`KOMON-${Math.floor(1000 + Math.random() * 9000)}`);
         
-        setDisplayMode('hanhaba'); // 生成後はデフォルトでモックアップ表示へ
+        setDisplayMode('hanhaba');
 
         const newCount = currentCount + 1;
         localStorage.setItem('komon_generations', JSON.stringify({
@@ -541,7 +543,7 @@ function HomeContent() {
     setLoading(false);
   };
 
-  const handleDownload = async () => {
+  const handleDownloadOriginal = async () => {
     const targetUrl = blobUrl || imageUrl;
     if (!targetUrl) return;
 
@@ -558,6 +560,27 @@ function HomeContent() {
       window.URL.revokeObjectURL(url);
     } catch {
       window.open(targetUrl, '_blank', 'noopener,noreferrer');
+    }
+  };
+
+  // ★ 追加：マッピング画像のダウンロード機能 (html2canvas使用)
+  const handleDownloadMapping = async () => {
+    if (!previewContainerRef.current) return;
+    try {
+      const canvas = await html2canvas(previewContainerRef.current, {
+        backgroundColor: null,
+        scale: 2, // 高画質化
+      });
+      const url = canvas.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${serialNumber || 'mapping'}_preview.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch (err) {
+      console.error('マッピング画像の保存に失敗しました:', err);
+      alert('プレビュー画像の保存に失敗しました。');
     }
   };
 
@@ -651,15 +674,10 @@ function HomeContent() {
     }
   };
 
-  const makeshopCategoryUrl = `https://store.gofukuyasan.com/view/category/${selectedCategoryId}`;
-
   return (
     <div className="min-h-screen bg-[#f4f4f5] text-zinc-900 p-2 sm:p-6 lg:p-8 flex flex-col items-center justify-start font-sans selection:bg-zinc-200">
       <div className="w-full max-w-7xl flex flex-col lg:flex-row gap-4 sm:gap-6 items-start justify-center">
         
-        {/* ======================================================== */}
-        {/* ▼▼ プレビュー領域（スマホでは sticky top-2 で上部に固定） ▼▼ */}
-        {/* ======================================================== */}
         <div 
           ref={previewRef}
           className="w-full lg:w-1/2 shrink-0 sticky top-2 z-30 lg:top-8 flex flex-col gap-3"
@@ -678,9 +696,7 @@ function HomeContent() {
                 </div>
               </div>
 
-              {/* ★ 新しい2段構えのナビゲーション（絵文字廃止・スッキリしたプロ仕様） */}
               <div className="px-3 py-3 border-b border-zinc-200 bg-zinc-100 flex flex-col gap-3">
-                {/* 上段：マッピング（着用シミュレーション） */}
                 <div>
                   <div className="text-[9px] font-bold text-zinc-500 mb-1.5 tracking-wider">マッピング確認 (着用シミュレーション)</div>
                   <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
@@ -712,7 +728,6 @@ function HomeContent() {
                   </div>
                 </div>
 
-                {/* 下段：平面データ（仕上がり・データ確認） */}
                 <div>
                   <div className="text-[9px] font-bold text-zinc-500 mb-1.5 tracking-wider">データ確認 (仕上がり・反物全体)</div>
                   <div className="flex gap-1.5">
@@ -725,7 +740,7 @@ function HomeContent() {
                           : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50'
                       }`}
                     >
-                      18cm裁断イメージ
+                      18cm裁断イメージ (半幅帯プリントサイズ)
                     </button>
                     <button
                       type="button"
@@ -736,7 +751,7 @@ function HomeContent() {
                           : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50'
                       }`}
                     >
-                      40cm全体データ
+                      40cm全体データ (京袋帯・反物サイズ)
                     </button>
                   </div>
                 </div>
@@ -744,12 +759,11 @@ function HomeContent() {
 
               <div className="bg-[#e4e4e7] flex flex-col items-center justify-center p-3 sm:p-6 relative shadow-inner overflow-hidden min-h-[300px]">
                 
-                {/* ======================================================== */}
                 {/* 1. モックアップ (半幅帯着用イメージ) */}
-                {/* ======================================================== */}
                 {displayMode === 'hanhaba' && (
                   <div className="w-full flex flex-col items-center animate-fade-in">
-                    <div className="relative w-[210px] sm:w-[340px] aspect-square mx-auto drop-shadow-xl">
+                    {/* ★ キャプチャ用のラッパー */}
+                    <div ref={previewContainerRef} className="relative w-[210px] sm:w-[340px] aspect-square mx-auto drop-shadow-xl">
                       {(() => {
                         const mmToPercent = ((440 / 1200) / 165) * 100;
                         const patternSize = creationMode === 'geometric' 
@@ -757,14 +771,15 @@ function HomeContent() {
                           : `${400 * mmToPercent}% auto`;
                         
                         const effectivePatternUrl = creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl);
-                        const v = '11';
+                        const v = '12';
 
                         return (
                           <div className="relative w-full h-full overflow-hidden">
                             {[
                               { id: '01', file: 'hanhaba_Layer01.png', z: 10, rot: 2,   bgX: '12%', bgY: '34%' },
                               { id: '02', file: 'hanhaba_Layer02.png', z: 20, rot: 1,   bgX: '45%', bgY: '67%' },
-                              { id: '03', file: 'hanhaba_Layer03.png', z: 30, rot: 8,   bgX: '78%', bgY: '12%' },
+                              // ★ ご指摘の箇所 (Layer03): 縦縞が横縞(90度)にならないよう修正
+                              { id: '03', file: 'hanhaba_Layer03.png', z: 30, rot: 8,  bgX: '78%', bgY: '12%' },
                               { id: '04', file: 'hanhaba_Layer04.png', z: 40, rot: -1,  bgX: '23%', bgY: '89%' },
                               { id: '05', file: 'hanhaba_Layer05.png', z: 50, rot: -12, bgX: '56%', bgY: '45%' },
                               { id: '06', file: 'hanhaba_Layer06.png', z: 60, rot: -3,  bgX: '89%', bgY: '23%' },
@@ -854,19 +869,28 @@ function HomeContent() {
                         );
                       })()}
                     </div>
+                    
+                    {/* ★ 追加：マッピング画像のダウンロードボタン */}
+                    <div className="mt-3">
+                      <button
+                        type="button"
+                        onClick={handleDownloadMapping}
+                        className="px-3 py-1.5 bg-zinc-900 text-white text-[10px] sm:text-xs font-bold tracking-wider rounded-sm shadow-sm hover:bg-zinc-800 transition-colors"
+                      >
+                        ↓ マッピング画像を保存
+                      </button>
+                    </div>
+
                     <p className="text-[9px] sm:text-[10px] text-zinc-500 mt-4 font-medium bg-white/80 px-2 py-1 rounded text-center">
                       ※ 帯を結んだ際の柄の出方を想定したシミュレーション
                     </p>
                   </div>
                 )}
 
-                {/* ======================================================== */}
                 {/* 2. トリム (18cm 裁断イメージ - 90度回転) */}
-                {/* ======================================================== */}
                 {displayMode === 'trim' && (
                   <div className="w-full flex flex-col items-center animate-fade-in">
                     
-                    {/* ★ 40:18の横長枠の中で、柄を90度回転させて「帯として巻いた時の流れ」を正確に再現 */}
                     <div 
                       className="relative w-[280px] sm:w-[400px] mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden"
                       style={{ aspectRatio: '40 / 18' }}
@@ -892,13 +916,9 @@ function HomeContent() {
                   </div>
                 )}
 
-                {/* ======================================================== */}
-                {/* 3. ファブリック (40cm 全体データ) */}
-                {/* ======================================================== */}
+                {/* 3. ファブリック (40cm 全体データ + 縦カットライン) */}
                 {displayMode === 'fabric' && (
                   <div className="flex flex-col items-center w-full animate-fade-in">
-                    
-                    {/* ★ ペチャンコにならないよう、固定幅＋aspect-square を直接指定 */}
                     <div className="relative w-[260px] sm:w-[400px] aspect-square mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden">
                       <div 
                         className="absolute inset-0"
@@ -911,14 +931,15 @@ function HomeContent() {
                         }}
                       />
                       
-                      <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 border-y-[1.5px] border-dashed border-zinc-900/60 pointer-events-none flex flex-col justify-between" 
-                           style={{ height: '45%' }} 
+                      {/* ★ 縦方向の18cmカットライン */}
+                      <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 border-x-[1.5px] border-dashed border-zinc-900/60 pointer-events-none flex justify-between" 
+                           style={{ width: '45%' }} 
                       >
-                        <div className="bg-white/95 px-1.5 py-0.5 text-[9px] font-bold text-zinc-700 self-start shadow-sm rounded-br">
-                          ↑ 帯幅 18cm カットライン
+                        <div className="bg-white/95 px-0.5 py-1.5 text-[9px] font-bold text-zinc-700 self-end shadow-sm rounded-tr writing-vertical-rl">
+                          ← 帯幅 18cm カットライン
                         </div>
-                        <div className="bg-white/95 px-1.5 py-0.5 text-[9px] font-bold text-zinc-700 self-start shadow-sm rounded-tr">
-                          ↓ 帯幅 18cm カットライン
+                        <div className="bg-white/95 px-0.5 py-1.5 text-[9px] font-bold text-zinc-700 self-end shadow-sm rounded-tl writing-vertical-rl">
+                          → 帯幅 18cm カットライン
                         </div>
                       </div>
                     </div>
@@ -934,9 +955,6 @@ function HomeContent() {
           )}
         </div>
 
-        {/* ======================================================== */}
-        {/* ▼▼ 操作パネル ▼▼ */}
-        {/* ======================================================== */}
         <div className="w-full lg:w-1/2 bg-white border border-zinc-200 p-4 sm:p-8 lg:p-10 shrink-0 shadow-sm z-10">
           
           <div className="text-center mb-6 sm:mb-8 p-5 sm:p-8 bg-zinc-950 text-white shadow-inner">
@@ -961,21 +979,21 @@ function HomeContent() {
           <div className="flex bg-zinc-50 border border-zinc-200 p-1 mb-6 shadow-sm">
             <button
               type="button"
-              onClick={() => setCreationMode('ai')}
-              className={`flex-1 py-2.5 sm:py-3 text-xs font-black tracking-wider transition-all ${
-                creationMode === 'ai' ? 'bg-zinc-900 text-white shadow' : 'text-zinc-500 hover:text-zinc-800'
-              }`}
-            >
-              AI妄想モード
-            </button>
-            <button
-              type="button"
               onClick={() => setCreationMode('geometric')}
               className={`flex-1 py-2.5 sm:py-3 text-xs font-black tracking-wider transition-all ${
                 creationMode === 'geometric' ? 'bg-zinc-900 text-white shadow' : 'text-zinc-500 hover:text-zinc-800'
               }`}
             >
               格子・水玉製作所
+            </button>
+            <button
+              type="button"
+              onClick={() => setCreationMode('ai')}
+              className={`flex-1 py-2.5 sm:py-3 text-xs font-black tracking-wider transition-all ${
+                creationMode === 'ai' ? 'bg-zinc-900 text-white shadow' : 'text-zinc-500 hover:text-zinc-800'
+              }`}
+            >
+              AI妄想モード
             </button>
           </div>
 
@@ -1469,10 +1487,10 @@ function HomeContent() {
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
-                    onClick={handleDownload}
+                    onClick={handleDownloadOriginal}
                     className="py-3 text-center border border-zinc-900 bg-white hover:bg-zinc-50 text-zinc-900 text-xs font-bold tracking-widest transition-all flex items-center justify-center gap-1.5 shadow-sm"
                   >
-                    画像を保存
+                    平面データ(原寸)を保存
                   </button>
 
                   <a
