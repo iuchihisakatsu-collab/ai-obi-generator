@@ -87,7 +87,20 @@ const TRADITIONAL_COLORS = [
   { name: '韓紅 (からくれない)', hex: '#d9333f', text: '艶やかなクリムゾンピンク地', isDark: true },
   { name: '梅紫 (うめむらさき)', hex: '#a8497a', text: '大人びたダスティベリー地', isDark: true },
   { name: '灰梅 (はいうめ)', hex: '#e8d3ca', text: 'くすみスモーキーピンク地', isDark: false },
-  
+
+  { name: '洗柿 (あらいがき)', hex: '#f2a0a1', text: '淡いサーモンオレンジ地', isDark: false },
+  { name: '杏色 (あんず)', hex: '#f7b977', text: '明るいアプリコット地', isDark: false },
+  { name: '萱草 (かんぞう)', hex: '#fda14c', text: '温かいマンダリンオレンジ地', isDark: false },
+  { name: '蜜柑 (みかん)', hex: '#f08300', text: '鮮やかなビビッドオレンジ地', isDark: true },
+  { name: '橙色 (だいだい)', hex: '#ee7800', text: '純粋なオレンジ地', isDark: true },
+  { name: '柿色 (かき)', hex: '#ed6d3d', text: '落ち着いた柿色地', isDark: true },
+  { name: '黄丹 (おうに)', hex: '#f05a28', text: '気品ある朱橙地', isDark: true },
+  { name: '赤橙 (あかだいだい)', hex: '#ea5506', text: '情熱的なブラッドオレンジ地', isDark: true },
+  { name: '琥珀 (こはく)', hex: '#bf783a', text: '上品なアンバーキャメル地', isDark: true },
+  { name: '煉瓦 (れんが)', hex: '#b55239', text: 'クラシックなテラコッタ地', isDark: true },
+  { name: '黄櫨染 (こうろぜん)', hex: '#7d532c', text: '重厚なノーブルアンバー地', isDark: true },
+  { name: '枯野 (かれの)', hex: '#d3a243', text: 'くすんだマスタードオレンジ地', isDark: false },
+
   { name: '蒸栗 (むしくり)', hex: '#ede1a9', text: '淡いミルキーイエロー地', isDark: false },
   { name: '刈安 (かりやす)', hex: '#f5e56b', text: '爽やかなペールレモン地', isDark: false },
   { name: '菜の花 (なのはな)', hex: '#ffec47', text: '明るいカナリアイエロー地', isDark: false },
@@ -268,7 +281,7 @@ const LOADING_STEPS = [
   '仕上がりを表示する準備をしています...',
 ];
 
-export default function HomeContent() {
+function HomeContent() {
   const searchParams = useSearchParams();
   const isShopify = searchParams.get('platform') === 'shopify';
 
@@ -288,9 +301,7 @@ export default function HomeContent() {
   const [displayMode, setDisplayMode] = useState<'mockup' | 'trim' | 'data'>('mockup');
   
   const [mockupSubmitting, setMockupSubmitting] = useState(false);
-  const [mockupSuccess, setMockupSuccess] = useState(false);
   const [serialNumber, setSerialNumber] = useState('');
-  const [designFee, setDesignFee] = useState<number>(100);
 
   const [showTags, setShowTags] = useState(false);
   const [showColorPalette, setShowColorPalette] = useState(false);
@@ -318,7 +329,6 @@ export default function HomeContent() {
   const previewRef = useRef<HTMLDivElement>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
 
-  // ★ 交通整理：アイテムが変更されたら、プレビューをモックアップ（初期タブ）に戻す
   const handleItemTypeChange = (type: 'hanhaba' | 'kyobukuro' | 'kimono') => {
     setItemType(type);
     setDisplayMode('mockup');
@@ -498,9 +508,7 @@ export default function HomeContent() {
       : 'モチーフ入力内容に準拠した配色';
 
     setLoading(true);
-    setMockupSuccess(false);
     try {
-      // AIへのプロンプトで「完全なシームレス」を強く指定するロジックは裏側（API）に内包
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -615,7 +623,7 @@ export default function HomeContent() {
         tempCanvas.height = size;
         const tCtx = tempCanvas.getContext('2d')!;
 
-        const maskImg = await loadImage(`${layer.file}?v=18`);
+        const maskImg = await loadImage(`${layer.file}?v=19`);
         tCtx.drawImage(maskImg, 0, 0, size, size);
 
         tCtx.globalCompositeOperation = 'source-in';
@@ -640,14 +648,14 @@ export default function HomeContent() {
       tempCanvas7.width = size;
       tempCanvas7.height = size;
       const tCtx7 = tempCanvas7.getContext('2d')!;
-      const mask7 = await loadImage('/hanhaba_Layer07.png?v=18');
+      const mask7 = await loadImage('/hanhaba_Layer07.png?v=19');
       tCtx7.drawImage(mask7, 0, 0, size, size);
       tCtx7.globalCompositeOperation = 'source-in';
       tCtx7.fillStyle = obiLiningColor || '#dcdddd';
       tCtx7.fillRect(0, 0, size, size);
       ctx.drawImage(tempCanvas7, 0, 0);
 
-      const kage = await loadImage('/hanhaba_Layer_kage.png?v=18');
+      const kage = await loadImage('/hanhaba_Layer_kage.png?v=19');
       ctx.globalCompositeOperation = 'multiply';
       ctx.globalAlpha = 0.7; 
       ctx.drawImage(kage, 0, 0, size, size);
@@ -718,7 +726,7 @@ export default function HomeContent() {
         console.warn('クリップボードのコピーに失敗しました', err);
       }
 
-     const cleanOrderUrl = `https://store.gofukuyasan.com/view/item/000000007300?komon_id=${encodeURIComponent(serialNumber)}&title=${encodeURIComponent(finalTitle)}&image_url=${encodeURIComponent(finalImageUrl)}`;
+      const cleanOrderUrl = `https://store.gofukuyasan.com/view/item/000000007300?komon_id=${encodeURIComponent(serialNumber)}&title=${encodeURIComponent(finalTitle)}&image_url=${encodeURIComponent(finalImageUrl)}`;
       window.location.href = cleanOrderUrl;
       
     } catch (err: unknown) {
@@ -963,16 +971,14 @@ export default function HomeContent() {
                   <div className="flex flex-col items-center w-full animate-fade-in">
                     
                     {itemType === 'hanhaba' ? (
-                      // ★ 半幅帯：18cmの縦長データとして表示
                       <div 
                         className="relative mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden"
-                        style={{ width: '180px', height: '400px' }} // 18:40 のアスペクト比で縦長に表示
+                        style={{ width: '180px', height: '400px' }}
                       >
                         <div 
                           className="absolute inset-0"
                           style={{
                             backgroundImage: `url(${creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl)})`, 
-                            // 18cm幅にスッポリ収まるように、backgroundSizeを調整 (全体幅180pxに対しての比率)
                             backgroundSize: creationMode === 'geometric' ? `${(bgSizeMm / 180) * 100}% auto` : '100% auto',
                             backgroundPosition: 'top left',
                             backgroundRepeat: 'repeat',
@@ -981,7 +987,6 @@ export default function HomeContent() {
                         />
                       </div>
                     ) : (
-                      // ★ 京袋帯・着物：40cmのフルサイズデータ
                       <div className="relative w-[260px] sm:w-[400px] aspect-square mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden">
                         <div 
                           className="absolute inset-0"
@@ -1579,3 +1584,9 @@ export default function HomeContent() {
     </div>
   );
 }
+
+export default function Home() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-[#f4f4f5]">
+        <p className="
