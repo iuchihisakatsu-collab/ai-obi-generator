@@ -15,7 +15,7 @@ import {
   type DotLayout 
 } from './utils/geometricPatterns';
 
-// 日本時間（JST）の深夜0時リセット用日付取得
+// 日本時間（JST）深夜0時リセット用日付
 function getTodayJST(): string {
   const now = new Date();
   const jstFormatter = new Intl.DateTimeFormat('ja-JP', {
@@ -31,7 +31,7 @@ function getTodayJST(): string {
   return `${year}-${month}-${day}`;
 }
 
-// 幾何学SVGを400mm反物幅に実寸タイリングして2400px高解像度PNGに焼き込む関数（スマホ白黒割れ完全防止）
+// 幾何学SVGを400mm反物幅に実寸タイリングして2400px高解像度PNGに焼き込む関数
 async function renderTiledGeometricPng(
   svgDataUrl: string, 
   bgSizeMm: number, 
@@ -79,10 +79,69 @@ async function renderTiledGeometricPng(
         resolve(svgDataUrl);
       }
     };
-    img.onerror = () => {
-      resolve(svgDataUrl);
-    };
+    img.onerror = () => resolve(svgDataUrl);
     img.src = svgDataUrl;
+  });
+}
+
+// ★ 半幅帯用：幅18cm（1080x2400px）の縦長プリントデータPNGを自動生成する関数
+async function render18cmPrintDataPng(
+  patternUrl: string,
+  creationMode: 'ai' | 'geometric',
+  bgSizeMm: number,
+  bgColor: string
+): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        // 幅180mm = 1080px (6px/mm), 長さ400mm = 2400px
+        canvas.width = 1080;
+        canvas.height = 2400;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(patternUrl);
+          return;
+        }
+
+        ctx.fillStyle = bgColor || '#ffffff';
+        ctx.fillRect(0, 0, 1080, 2400);
+
+        if (creationMode === 'geometric') {
+          const pxPerMm = 6; // 1080 / 180 = 6px/mm
+          const tileSizePx = Math.max(1, bgSizeMm * pxPerMm);
+          const tileCanvas = document.createElement('canvas');
+          tileCanvas.width = tileSizePx;
+          tileCanvas.height = tileSizePx;
+          const tCtx = tileCanvas.getContext('2d');
+          if (tCtx) {
+            tCtx.fillStyle = bgColor || '#ffffff';
+            tCtx.fillRect(0, 0, tileSizePx, tileSizePx);
+            tCtx.drawImage(img, 0, 0, tileSizePx, tileSizePx);
+            const pattern = ctx.createPattern(tileCanvas, 'repeat');
+            if (pattern) {
+              ctx.fillStyle = pattern;
+              ctx.fillRect(0, 0, 1080, 2400);
+            }
+          }
+        } else {
+          // AIモード：横幅1080pxいっぱいに描画し、縦方向にリピート敷き詰め
+          const scale = 1080 / img.naturalWidth;
+          const scaledHeight = img.naturalHeight * scale;
+          for (let y = 0; y < 2400; y += scaledHeight) {
+            ctx.drawImage(img, 0, y, 1080, scaledHeight);
+          }
+        }
+        resolve(canvas.toDataURL('image/png'));
+      } catch (err) {
+        console.error('18cm PNG rendering failed:', err);
+        resolve(patternUrl);
+      }
+    };
+    img.onerror = () => resolve(patternUrl);
+    img.src = patternUrl;
   });
 }
 
@@ -410,7 +469,6 @@ function HomeContent() {
     }
   };
 
-  // 日本時間（JST）の深夜0時リセット判定
   useEffect(() => {
     const todayJst = getTodayJST();
     const storedData = localStorage.getItem('komon_generations');
@@ -470,7 +528,6 @@ function HomeContent() {
     }
   }, [blobUrl, imageUrl, creationMode, itemType]);
 
-  // 格子・水玉製作所：400mm反物幅に完全タイリングした2400px高解像度PNGを焼き込み生成
   const updateGeometricPattern = useCallback(async () => {
     if (creationMode !== 'geometric') return;
 
@@ -501,7 +558,6 @@ function HomeContent() {
     const svgDataUrl = `data:image/svg+xml;utf8,${encodeURIComponent(svgString)}`;
     setImageUrl(svgDataUrl);
     
-    // スマホでもMacと同じ縞数になるよう、400mm幅に敷き詰めた2400pxのPNGを焼き込む
     try {
       const tiledPng = await renderTiledGeometricPng(svgDataUrl, tileSize, geoBgColor, 400, 2400);
       setBlobUrl(tiledPng);
@@ -606,7 +662,6 @@ function HomeContent() {
         setBlobUrl(data.blobUrl);   
         setSerialNumber(`KOMON-${Math.floor(1000 + Math.random() * 9000)}`);
         
-        // 幾何学モードの「万筋縞」などの旧タイトルが残っていたら自動クリア
         if (!patternTitle || ['万筋縞', '千鳥水玉', '格子柄', 'ギンガムチェック', '市松模様'].includes(patternTitle)) {
           setPatternTitle('');
         }
@@ -653,7 +708,7 @@ function HomeContent() {
     }
   };
 
-  // マッピング画像の保存（実寸比率で完全レンダリング）
+  // マッピング画像の保存（実寸完全レンダリング）
   const handleDownloadMapping = async () => {
     if (!previewContainerRef.current || (itemType !== 'hanhaba' && itemType !== 'kyobukuro')) return;
     try {
@@ -682,10 +737,10 @@ function HomeContent() {
       
       const patternImg = await loadImage(effectivePatternUrl);
 
-      // 半幅帯は1200px中実寸200px＝165mm、京袋帯は実寸440px＝165mmで正確に実寸換算
+      // ★ 18cmデータに100%一致させた半幅帯スケール (54/11 px/mm)
       let bgWidth = 0;
       if (itemType === 'hanhaba') {
-        const pxPerMm = 200 / 165;
+        const pxPerMm = 54 / 11;
         bgWidth = creationMode === 'geometric' ? (bgSizeMm * pxPerMm) : (180 * pxPerMm);
       } else {
         const pxPerMm = (440 / 1200 / 165) * size;
@@ -840,13 +895,12 @@ function HomeContent() {
   const shareUrl = typeof window !== 'undefined' ? encodeURIComponent(window.location.href) : '';
   const xShareLink = `https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`;
   
-  // シリアル番号自動採番とBlob URL生成を行う注文遷移
+  // ★ 半幅帯は18cm縦長データ、京袋帯は40cmデータをMakeShopに投げる注文処理
   const handleOrderClick = async (e: MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault(); 
     try {
       let finalImageUrl = blobUrl || imageUrl;
 
-      // シリアル番号が空ならここで確実に自動採番
       const validSerial = serialNumber || (creationMode === 'geometric' 
         ? `GEO-${Math.floor(1000 + Math.random() * 9000)}` 
         : `KOMON-${Math.floor(1000 + Math.random() * 9000)}`);
@@ -855,7 +909,14 @@ function HomeContent() {
         setSerialNumber(validSerial);
       }
 
-      // Base64またはSVGデータの場合、Vercel Blobへアップロードして永続URLに変換
+      // ★ 半幅帯の場合：幅18cmの縦長プリントデータPNGを生成してBlobへ送る
+      if (itemType === 'hanhaba') {
+        const sourceFor18cm = creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl);
+        const png18cm = await render18cmPrintDataPng(sourceFor18cm, creationMode, bgSizeMm, geoBgColor);
+        finalImageUrl = png18cm;
+      }
+
+      // Base64データの場合、Vercel Blobへアップロードして永続URLに変換
       if (finalImageUrl && finalImageUrl.startsWith('data:')) {
         const uploadRes = await fetch('/api/upload-blob', {
           method: 'POST',
@@ -892,12 +953,12 @@ function HomeContent() {
       const copyText = `図案ID: ${validSerial}\n銘: ${finalTitle}`;
       try {
         await navigator.clipboard.writeText(copyText);
-        alert(`[工場へのデータ送信完了]\n図案「${finalTitle}」の高解像度データ（平面）を職人へ送信しました。\n\n画面切り替え後、MakeShopのシリアル番号欄に「${validSerial}」が自動入力されているかご確認ください。`);
+        alert(`[工場へのデータ送信完了]\n図案「${finalTitle}」の${itemType === 'hanhaba' ? '18cmプリントデータ' : '高解像度データ'}を職人へ送信しました。\n\n画面切り替え後、MakeShopのシリアル番号欄に「${validSerial}」が自動入力されているかご確認ください。`);
       } catch (err) {
         console.warn('クリップボードのコピーに失敗しました', err);
       }
 
-      // MakeShopの注文ページへ遷移（有効なIDと画像URLを確実に渡す）
+      // MakeShopの注文ページへ遷移（18cm縦長または40cm画像を確実に渡す）
       const cleanOrderUrl = `https://store.gofukuyasan.com/view/item/000000007300?komon_id=${encodeURIComponent(validSerial)}&title=${encodeURIComponent(finalTitle)}&image_url=${encodeURIComponent(finalImageUrl)}`;
       window.location.href = cleanOrderUrl;
       
@@ -930,9 +991,43 @@ function HomeContent() {
                 </div>
               </div>
 
+              {/* ★ 新設：アイテム直感切替バー（半幅帯 / 京袋帯 / 着物） */}
+              <div className="px-3 py-2 bg-zinc-900 text-white flex items-center justify-between">
+                <span className="text-[10px] font-bold text-zinc-400 tracking-wider">仕立てアイテム：</span>
+                <div className="flex gap-1">
+                  <button
+                    type="button"
+                    onClick={() => handleItemTypeChange('hanhaba')}
+                    className={`px-3 py-1 text-[11px] font-black rounded transition-all ${
+                      itemType === 'hanhaba' ? 'bg-white text-zinc-950 shadow' : 'bg-zinc-800 text-zinc-400 hover:text-white'
+                    }`}
+                  >
+                    半幅帯
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleItemTypeChange('kyobukuro')}
+                    className={`px-3 py-1 text-[11px] font-black rounded transition-all ${
+                      itemType === 'kyobukuro' ? 'bg-white text-zinc-950 shadow' : 'bg-zinc-800 text-zinc-400 hover:text-white'
+                    }`}
+                  >
+                    京袋帯
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleItemTypeChange('kimono')}
+                    className={`px-3 py-1 text-[11px] font-black rounded transition-all ${
+                      itemType === 'kimono' ? 'bg-white text-zinc-950 shadow' : 'bg-zinc-800 text-zinc-400 hover:text-white'
+                    }`}
+                  >
+                    着物
+                  </button>
+                </div>
+              </div>
+
               {/* 動的タブUI */}
-              <div className="px-3 py-3 border-b border-zinc-200 bg-zinc-100 flex flex-col gap-3">
-                <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
+              <div className="px-3 py-2.5 border-b border-zinc-200 bg-zinc-100 flex flex-col gap-2">
+                <div className="flex gap-1.5 overflow-x-auto pb-0.5 scrollbar-hide">
                   <button
                     type="button"
                     onClick={() => setDisplayMode('mockup')}
@@ -981,12 +1076,13 @@ function HomeContent() {
                 {displayMode === 'mockup' && (
                   <div className="w-full flex flex-col items-center animate-fade-in">
                     
+                    {/* 半幅帯マッピング */}
                     {itemType === 'hanhaba' && (
                       <>
                         <div ref={previewContainerRef} className="relative w-[210px] sm:w-[340px] aspect-square mx-auto drop-shadow-xl">
                           {(() => {
-                            // ★ 1200px中実寸帯幅200px・要素幅150%を完全補正した精密スケール係数（約0.06734%）
-                            const hanhabaScaleFactor = (200 / 165 / 1200 / 1.5) * 100;
+                            // ★ 18cmデータと完全同期する黄金比率 (3 / 22 %)
+                            const hanhabaScaleFactor = 3 / 22;
                             const patternSize = creationMode === 'geometric' 
                               ? `${bgSizeMm * hanhabaScaleFactor}% auto` 
                               : `${180 * hanhabaScaleFactor}% auto`;
@@ -1109,7 +1205,7 @@ function HomeContent() {
                       </>
                     )}
 
-                    {/* 京袋帯マッピング */}
+                    {/* ★ 京袋帯マッピング（完全復活版） */}
                     {itemType === 'kyobukuro' && (
                       <>
                         <div ref={previewContainerRef} className="relative w-[210px] sm:w-[340px] aspect-square mx-auto drop-shadow-xl">
