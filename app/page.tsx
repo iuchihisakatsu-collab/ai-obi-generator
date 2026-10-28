@@ -15,7 +15,7 @@ import {
   type DotLayout 
 } from './utils/geometricPatterns';
 
-// 日本時間（JST）の YYYY-MM-DD 文字列を取得（深夜0時リセット用）
+// 日本時間（JST）の深夜0時リセット用日付取得
 function getTodayJST(): string {
   const now = new Date();
   const jstFormatter = new Intl.DateTimeFormat('ja-JP', {
@@ -31,7 +31,7 @@ function getTodayJST(): string {
   return `${year}-${month}-${day}`;
 }
 
-// 幾何学SVGを400mm（反物幅）に実寸タイリングして2400px高解像度PNGに焼き込む関数
+// 幾何学SVGを400mm反物幅に実寸タイリングして2400px高解像度PNGに焼き込む関数（スマホ白黒割れ完全防止）
 async function renderTiledGeometricPng(
   svgDataUrl: string, 
   bgSizeMm: number, 
@@ -56,7 +56,6 @@ async function renderTiledGeometricPng(
         ctx.fillStyle = bgColor;
         ctx.fillRect(0, 0, resolutionPx, resolutionPx);
 
-        // 1mmあたりのピクセル数（2400px / 400mm = 6px/mm）
         const pxPerMm = resolutionPx / targetWidthMm;
         const tileSizePx = Math.max(1, bgSizeMm * pxPerMm);
 
@@ -471,7 +470,7 @@ function HomeContent() {
     }
   }, [blobUrl, imageUrl, creationMode, itemType]);
 
-  // 格子・水玉製作所：40cm反物幅に完全タイリングした2400px PNGを生成
+  // 格子・水玉製作所：400mm反物幅に完全タイリングした2400px高解像度PNGを焼き込み生成
   const updateGeometricPattern = useCallback(async () => {
     if (creationMode !== 'geometric') return;
 
@@ -607,6 +606,11 @@ function HomeContent() {
         setBlobUrl(data.blobUrl);   
         setSerialNumber(`KOMON-${Math.floor(1000 + Math.random() * 9000)}`);
         
+        // 幾何学モードの「万筋縞」などの旧タイトルが残っていたら自動クリア
+        if (!patternTitle || ['万筋縞', '千鳥水玉', '格子柄', 'ギンガムチェック', '市松模様'].includes(patternTitle)) {
+          setPatternTitle('');
+        }
+
         setDisplayMode('mockup');
 
         const newCount = currentCount + 1;
@@ -649,6 +653,7 @@ function HomeContent() {
     }
   };
 
+  // マッピング画像の保存（実寸比率で完全レンダリング）
   const handleDownloadMapping = async () => {
     if (!previewContainerRef.current || (itemType !== 'hanhaba' && itemType !== 'kyobukuro')) return;
     try {
@@ -677,10 +682,16 @@ function HomeContent() {
       
       const patternImg = await loadImage(effectivePatternUrl);
 
-      // 半幅帯は180mm、それ以外は400mmでスケール計算
-      const mmToPercent = ((440 / 1200) / 165);
-      const baseMm = (itemType === 'hanhaba') ? 180 : 400;
-      const bgWidth = creationMode === 'geometric' ? (bgSizeMm * mmToPercent * size) : (baseMm * mmToPercent * size);
+      // 半幅帯は1200px中実寸200px＝165mm、京袋帯は実寸440px＝165mmで正確に実寸換算
+      let bgWidth = 0;
+      if (itemType === 'hanhaba') {
+        const pxPerMm = 200 / 165;
+        bgWidth = creationMode === 'geometric' ? (bgSizeMm * pxPerMm) : (180 * pxPerMm);
+      } else {
+        const pxPerMm = (440 / 1200 / 165) * size;
+        bgWidth = creationMode === 'geometric' ? (bgSizeMm * pxPerMm) : (400 * pxPerMm);
+      }
+
       const bgScale = bgWidth / Math.max(1, patternImg.width);
       const bgHeight = patternImg.height * bgScale;
 
@@ -974,12 +985,11 @@ function HomeContent() {
                       <>
                         <div ref={previewContainerRef} className="relative w-[210px] sm:w-[340px] aspect-square mx-auto drop-shadow-xl">
                           {(() => {
-                            const mmToPercent = ((440 / 1200) / 165) * 100;
-                            // 半幅帯は180mm、それ以外は400mmで計算
-                            const baseMm = (itemType === 'hanhaba') ? 180 : 400;
+                            // ★ 1200px中実寸帯幅200px・要素幅150%を完全補正した精密スケール係数（約0.06734%）
+                            const hanhabaScaleFactor = (200 / 165 / 1200 / 1.5) * 100;
                             const patternSize = creationMode === 'geometric' 
-                              ? `${bgSizeMm * mmToPercent}% auto` 
-                              : `${baseMm * mmToPercent}% auto`;
+                              ? `${bgSizeMm * hanhabaScaleFactor}% auto` 
+                              : `${180 * hanhabaScaleFactor}% auto`;
                             
                             const effectivePatternUrl = creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl);
                             const v = '21'; 
@@ -1105,10 +1115,9 @@ function HomeContent() {
                         <div ref={previewContainerRef} className="relative w-[210px] sm:w-[340px] aspect-square mx-auto drop-shadow-xl">
                           {(() => {
                             const mmToPercent = ((440 / 1200) / 165) * 100;
-                            const baseMm = (itemType === 'hanhaba') ? 180 : 400;
                             const patternSize = creationMode === 'geometric' 
                               ? `${bgSizeMm * mmToPercent}% auto` 
-                              : `${baseMm * mmToPercent}% auto`;
+                              : `${400 * mmToPercent}% auto`;
                             
                             const effectivePatternUrl = creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl);
                             const v = '21'; 
@@ -1321,7 +1330,12 @@ function HomeContent() {
             </button>
             <button
               type="button"
-              onClick={() => setCreationMode('ai')}
+              onClick={() => {
+                setCreationMode('ai');
+                if (['万筋縞', '千鳥水玉', '格子柄', 'ギンガムチェック', '市松模様'].includes(patternTitle)) {
+                  setPatternTitle('');
+                }
+              }}
               className={`flex-1 py-2.5 sm:py-3 text-xs font-black tracking-wider transition-all ${
                 creationMode === 'ai' ? 'bg-zinc-900 text-white shadow' : 'text-zinc-500 hover:text-zinc-800'
               }`}
