@@ -614,7 +614,8 @@ function HomeContent() {
         { id: '03', file: '/hanhaba_Layer03.png', z: 30, rot: 98,  bgX: 78, bgY: 12 }, 
         { id: '04', file: '/hanhaba_Layer04.png', z: 40, rot: -1,  bgX: 23, bgY: 89 },
         { id: '05', file: '/hanhaba_Layer05.png', z: 50, rot: -12, bgX: 56, bgY: 45 },
-        { id: '06', file: '/hanhaba_Layer06.png', z: 60, rot: 87,  bgX: 89, bgY: 23 }, 
+        // ★Layer06の回転を元の「-3度」に戻しました
+        { id: '06', file: '/hanhaba_Layer06.png', z: 60, rot: -3,  bgX: 89, bgY: 23 }, 
       ];
 
       for (const layer of layers) {
@@ -758,7 +759,7 @@ function HomeContent() {
                 </div>
               </div>
 
-              {/* ★ 交通整理された動的タブUI */}
+              {/* 動的タブUI */}
               <div className="px-3 py-3 border-b border-zinc-200 bg-zinc-100 flex flex-col gap-3">
                 <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
                   <button
@@ -783,10 +784,10 @@ function HomeContent() {
                         displayMode === 'trim'
                           ? 'bg-zinc-900 text-white border-zinc-900 shadow'
                           : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50'
-                    }`}
-                  >
-                    31cm 裁断イメージ
-                  </button>
+                      }`}
+                    >
+                      34cm 裁断イメージ (仕上がり31cm)
+                    </button>
                   )}
 
                   <button
@@ -819,7 +820,7 @@ function HomeContent() {
                               : `${400 * mmToPercent}% auto`;
                             
                             const effectivePatternUrl = creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl);
-                            const v = '19'; 
+                            const v = '20'; 
 
                             return (
                               <div className="relative w-full h-full overflow-hidden">
@@ -829,7 +830,8 @@ function HomeContent() {
                                   { id: '03', file: 'hanhaba_Layer03.png', z: 30, rot: 98,  bgX: '78%', bgY: '12%' },
                                   { id: '04', file: 'hanhaba_Layer04.png', z: 40, rot: -1,  bgX: '23%', bgY: '89%' },
                                   { id: '05', file: 'hanhaba_Layer05.png', z: 50, rot: -12, bgX: '56%', bgY: '45%' },
-                                  { id: '06', file: 'hanhaba_Layer06.png', z: 60, rot: 87,  bgX: '89%', bgY: '23%' },
+                                  // ★Layer06の回転を元の「-3度」に戻しました
+                                  { id: '06', file: 'hanhaba_Layer06.png', z: 60, rot: -3,  bgX: '89%', bgY: '23%' },
                                 ].map((layer) => (
                                   <div 
                                     key={layer.id}
@@ -947,7 +949,7 @@ function HomeContent() {
                   <div className="w-full flex flex-col items-center animate-fade-in">
                     <div 
                       className="relative w-[280px] sm:w-[400px] mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden"
-                      style={{ aspectRatio: '40 / 31' }}
+                      style={{ aspectRatio: '40 / 34' }} // ★プリント34cm幅でのトリムイメージ
                     >
                       <div 
                         className="absolute inset-0"
@@ -961,7 +963,7 @@ function HomeContent() {
                       />
                     </div>
                     <p className="text-[9px] sm:text-[10px] text-zinc-500 mt-4 font-medium bg-white/80 px-2 py-1 rounded text-center leading-relaxed">
-                      ※ 幅40cmの反物データから、帯幅(約31cm)に裁断した場合のトリミング・イメージです。
+                      ※ 幅40cmの反物データから、帯幅(プリント34cm)に裁断した場合のトリミング・イメージです。
                     </p>
                   </div>
                 )}
@@ -971,10 +973,10 @@ function HomeContent() {
                   <div className="flex flex-col items-center w-full animate-fade-in">
                     
                     {itemType === 'hanhaba' ? (
-                      // ★ 半幅帯用の18cmプリントデータを見やすく大きく（h-[400px]）
+                      // ★ 半幅帯用の18cmプリントデータを縦長かつ大きく表示
                       <div 
                         className="relative mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden"
-                        style={{ width: '180px', height: '400px' }}
+                        style={{ width: '216px', height: '480px' }} // アスペクト比18:40で表示
                       >
                         <div 
                           className="absolute inset-0"
@@ -988,7 +990,7 @@ function HomeContent() {
                         />
                       </div>
                     ) : (
-                      // ★ 京袋帯・着物用の40cmプリントデータ
+                      // 京袋帯・着物用の40cmプリントデータ
                       <div className="relative w-[260px] sm:w-[400px] aspect-square mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden">
                         <div 
                           className="absolute inset-0"
@@ -1005,7 +1007,7 @@ function HomeContent() {
                     
                     <p className="text-[9px] sm:text-[10px] text-zinc-500 mt-4 font-medium bg-white/80 px-3 py-2 rounded text-center leading-relaxed">
                       ※ 工場・職人へ送信されるプリント用のデータです。<br />
-                      {itemType === 'hanhaba' ? '（半幅帯用に最適化された18cm幅のデータがRIPソフトへ送られます）' : '（幅40cmの反物原寸サイズ）'}
+                      {itemType === 'hanhaba' ? '（半幅帯用に最適化された幅18cm（仕上がり16cm）のデータがRIPソフトへ送られます）' : '（幅40cmの反物原寸サイズ）'}
                     </p>
                   </div>
                 )}
@@ -1029,7 +1031,7 @@ function HomeContent() {
                 </>
               ) : (
                 <>
-                  新潟・十日町は着物的産地 着物の配色や柄づくりの知識を生かして、<br className="hidden sm:inline" />
+                  新潟・十日町は着物の産地 着物の配色や柄づくりの知識を生かして、<br className="hidden sm:inline" />
                   思いついた柄のアイデアを試せるAI図案ツールです。
                 </>
               )}
@@ -1057,6 +1059,7 @@ function HomeContent() {
             </button>
           </div>
 
+          {/* ▼ モード別設定パネル ▼ */}
           <div className="space-y-6">
             {creationMode === 'ai' ? (
               <>
@@ -1196,134 +1199,6 @@ function HomeContent() {
                       </div>
                     </div>
                   )}
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 pt-2 border-t border-zinc-100">
-                  <div>
-                    <label className="block text-xs font-bold text-zinc-800 tracking-wider mb-2">
-                      03. 柄の配置
-                    </label>
-                    <div className="flex flex-col gap-1.5">
-                      {[
-                        { id: '四方柄（上下なし）', label: '小紋・四方柄（上下なし）' },
-                        { id: '飛び柄（余白あり）', label: '飛び柄（余白スッキリ）' },
-                        { id: 'お太鼓柄（ワンポイント/1枚絵）', label: 'お太鼓柄（ワンポイント）' }
-                      ].map((item) => (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => setDensity(item.id)}
-                          className={`py-2 px-2.5 text-[11px] font-bold tracking-wider transition-all text-left border ${
-                            density === item.id
-                              ? 'bg-zinc-900 text-white border-zinc-900 shadow'
-                              : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50 shadow-sm'
-                          }`}
-                        >
-                          {item.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* ★ 操作パネル内のアイテム選択ボタン（復活） */}
-                  <div>
-                    <label className="block text-xs font-bold text-zinc-800 tracking-wider mb-2">
-                      04. 作成するアイテム
-                    </label>
-                    <div className="flex flex-col gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => handleItemTypeChange('hanhaba')}
-                        className={`py-2 px-2.5 text-[11px] font-bold tracking-wider transition-all text-left border ${
-                          itemType === 'hanhaba'
-                            ? 'bg-zinc-900 text-white border-zinc-900 shadow'
-                            : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50 shadow-sm'
-                        }`}
-                      >
-                        半幅帯 (仕上がり18cm)
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleItemTypeChange('kyobukuro')}
-                        className={`py-2 px-2.5 text-[11px] font-bold tracking-wider transition-all text-left border ${
-                          itemType === 'kyobukuro'
-                            ? 'bg-zinc-900 text-white border-zinc-900 shadow'
-                            : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50 shadow-sm'
-                        }`}
-                      >
-                        京袋帯 (仕上がり31cm)
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleItemTypeChange('kimono')}
-                        className={`py-2 px-2.5 text-[11px] font-bold tracking-wider transition-all text-left border ${
-                          itemType === 'kimono'
-                            ? 'bg-zinc-900 text-white border-zinc-900 shadow'
-                            : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50 shadow-sm'
-                        }`}
-                      >
-                        着物 (反物幅40cm)
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="pt-2 border-t border-zinc-100">
-                  <label className="block text-xs font-bold text-zinc-800 tracking-wider mb-1">
-                    05. 図案銘 <span className="text-[10px] text-zinc-400 font-normal">（作品タイトル）</span>
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full border border-zinc-300 p-2.5 bg-zinc-50 text-xs sm:text-sm focus:outline-none focus:border-zinc-900 focus:bg-white shadow-sm"
-                    placeholder="例：遊泳金魚図"
-                    value={patternTitle}
-                    onChange={(e) => setPatternTitle(e.target.value)}
-                    disabled={loading}
-                  />
-                </div>
-
-                <div className="pt-2 border-t border-zinc-100">
-                  <label className="flex items-start gap-2.5 cursor-pointer select-none mb-4 group">
-                    <input
-                      type="checkbox"
-                      checked={agreed}
-                      onChange={(e) => setAgreed(e.target.checked)}
-                      className="mt-0.5 h-3.5 w-3.5 border-zinc-300 text-zinc-900 focus:ring-zinc-900 transition-colors cursor-pointer"
-                    />
-                    <span className="text-[10px] text-zinc-500 leading-tight group-hover:text-zinc-800 transition-colors">
-                      生成図案はAIによるアイデアであり、実際の生地制作時は職人の手でデータ調整が行われることに同意します。
-                    </span>
-                  </label>
-
-                  {errorMsg && (
-                    <div className="mb-4 p-3 bg-red-50 text-red-600 border border-red-200 text-xs font-bold shadow-sm">
-                      {errorMsg}
-                    </div>
-                  )}
-
-                  <button
-                    type="button"
-                    onClick={handleGenerate}
-                    disabled={loading || remainingCount === 0}
-                    className={`w-full py-3.5 sm:py-4 font-black text-xs sm:text-sm tracking-widest uppercase transition-all duration-300 flex items-center justify-center gap-2 shadow-md ${
-                      remainingCount === 0
-                        ? 'bg-zinc-100 text-zinc-400 border border-zinc-200 cursor-not-allowed'
-                        : 'bg-zinc-950 text-white hover:bg-zinc-800 hover:shadow-lg disabled:opacity-50'
-                    }`}
-                  >
-                    {loading ? (
-                      <div className="flex flex-col items-center gap-1">
-                        <span>{LOADING_STEPS[loadingStep]}</span>
-                        <span className="text-[8px] text-zinc-400">PROCESSING...</span>
-                      </div>
-                    ) : (
-                      <span>
-                        {remainingCount === 0
-                          ? '本日の上限に達しました (3/3)'
-                          : `図案を描き出す (残り ${remainingCount ?? 3} 回)`}
-                      </span>
-                    )}
-                  </button>
                 </div>
               </>
             ) : (
@@ -1537,18 +1412,144 @@ function HomeContent() {
                     </div>
                   )}
                 </div>
-
-                <div className="pt-2 border-t border-zinc-100">
-                  <label className="block text-xs font-bold text-zinc-800 tracking-wider mb-1">05. 図案銘</label>
-                  <input
-                    type="text"
-                    className="w-full border border-zinc-300 p-2.5 bg-zinc-50 text-xs sm:text-sm focus:outline-none focus:border-zinc-900 shadow-sm"
-                    value={patternTitle}
-                    onChange={(e) => setPatternTitle(e.target.value)}
-                  />
-                </div>
               </div>
             )}
+
+            {/* ▼ 共通設定パネル（柄の配置・作成アイテム・図案銘） ▼ */}
+            <div className="space-y-6 mt-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-6 border-t border-zinc-200">
+                {/* 03. 柄の配置 */}
+                <div>
+                  <label className="block text-xs font-bold text-zinc-800 tracking-wider mb-2">
+                    03. 柄の配置
+                  </label>
+                  <div className="flex flex-col gap-1.5">
+                    {[
+                      { id: '四方柄（上下なし）', label: '小紋・四方柄（上下なし）' },
+                      { id: '飛び柄（余白あり）', label: '飛び柄（余白スッキリ）' },
+                      { id: 'お太鼓柄（ワンポイント/1枚絵）', label: 'お太鼓柄（ワンポイント）' }
+                    ].map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => setDensity(item.id)}
+                        className={`py-2 px-2.5 text-[11px] font-bold tracking-wider transition-all text-left border ${
+                          density === item.id
+                            ? 'bg-zinc-900 text-white border-zinc-900 shadow'
+                            : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50 shadow-sm'
+                        }`}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 04. 作成するアイテム (★共通化 ＆ テキスト修正) */}
+                <div>
+                  <label className="block text-xs font-bold text-zinc-800 tracking-wider mb-2">
+                    04. 作成するアイテム
+                  </label>
+                  <div className="flex flex-col gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => handleItemTypeChange('hanhaba')}
+                      className={`py-2 px-2.5 text-[11px] font-bold tracking-wider transition-all text-left border ${
+                        itemType === 'hanhaba'
+                          ? 'bg-zinc-900 text-white border-zinc-900 shadow'
+                          : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50 shadow-sm'
+                      }`}
+                    >
+                      半幅帯 (プリント18cm / 仕上がり16cm)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleItemTypeChange('kyobukuro')}
+                      className={`py-2 px-2.5 text-[11px] font-bold tracking-wider transition-all text-left border ${
+                        itemType === 'kyobukuro'
+                          ? 'bg-zinc-900 text-white border-zinc-900 shadow'
+                          : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50 shadow-sm'
+                      }`}
+                    >
+                      京袋帯 (プリント34cm / 仕上がり31cm)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleItemTypeChange('kimono')}
+                      className={`py-2 px-2.5 text-[11px] font-bold tracking-wider transition-all text-left border ${
+                        itemType === 'kimono'
+                          ? 'bg-zinc-900 text-white border-zinc-900 shadow'
+                          : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50 shadow-sm'
+                      }`}
+                    >
+                      着物 (反物幅40cm)
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* 05. 図案銘 (★共通化) */}
+              <div className="pt-2 border-t border-zinc-100">
+                <label className="block text-xs font-bold text-zinc-800 tracking-wider mb-1">
+                  05. 図案銘 <span className="text-[10px] text-zinc-400 font-normal">（作品タイトル）</span>
+                </label>
+                <input
+                  type="text"
+                  className="w-full border border-zinc-300 p-2.5 bg-zinc-50 text-xs sm:text-sm focus:outline-none focus:border-zinc-900 focus:bg-white shadow-sm"
+                  placeholder="例：遊泳金魚図"
+                  value={patternTitle}
+                  onChange={(e) => setPatternTitle(e.target.value)}
+                  disabled={loading}
+                />
+              </div>
+
+              {/* AI生成ボタン (AIモード時のみ表示) */}
+              {creationMode === 'ai' && (
+                <div className="pt-2 border-t border-zinc-100">
+                  <label className="flex items-start gap-2.5 cursor-pointer select-none mb-4 group">
+                    <input
+                      type="checkbox"
+                      checked={agreed}
+                      onChange={(e) => setAgreed(e.target.checked)}
+                      className="mt-0.5 h-3.5 w-3.5 border-zinc-300 text-zinc-900 focus:ring-zinc-900 transition-colors cursor-pointer"
+                    />
+                    <span className="text-[10px] text-zinc-500 leading-tight group-hover:text-zinc-800 transition-colors">
+                      生成図案はAIによるアイデアであり、実際の生地制作時は職人の手でデータ調整が行われることに同意します。
+                    </span>
+                  </label>
+
+                  {errorMsg && (
+                    <div className="mb-4 p-3 bg-red-50 text-red-600 border border-red-200 text-xs font-bold shadow-sm">
+                      {errorMsg}
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={handleGenerate}
+                    disabled={loading || remainingCount === 0}
+                    className={`w-full py-3.5 sm:py-4 font-black text-xs sm:text-sm tracking-widest uppercase transition-all duration-300 flex items-center justify-center gap-2 shadow-md ${
+                      remainingCount === 0
+                        ? 'bg-zinc-100 text-zinc-400 border border-zinc-200 cursor-not-allowed'
+                        : 'bg-zinc-950 text-white hover:bg-zinc-800 hover:shadow-lg disabled:opacity-50'
+                    }`}
+                  >
+                    {loading ? (
+                      <div className="flex flex-col items-center gap-1">
+                        <span>{LOADING_STEPS[loadingStep]}</span>
+                        <span className="text-[8px] text-zinc-400">PROCESSING...</span>
+                      </div>
+                    ) : (
+                      <span>
+                        {remainingCount === 0
+                          ? '本日の上限に達しました (3/3)'
+                          : `図案を描き出す (残り ${remainingCount ?? 3} 回)`}
+                      </span>
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
 
             {/* 保存・注文アクションボタン */}
             {imageUrl && (
