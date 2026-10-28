@@ -430,7 +430,7 @@ function HomeContent() {
     
     const highResPng = await svgToHighResPng(svgString, 2400);
     setBlobUrl(highResPng);
-    setSerialNumber(prev => prev.startsWith('GEO-') ? prev : `GEO-${Math.floor(1000 + Math.random() * 9000)}`);
+    setSerialNumber(prev => (prev && prev.startsWith('GEO-')) ? prev : `GEO-${Math.floor(1000 + Math.random() * 9000)}`);
     
     let newTitle = '無題';
     if (geoPatternType === 'stripe') newTitle = '万筋縞';
@@ -618,7 +618,6 @@ function HomeContent() {
         const layers = [
           { id: '01', file: '/hanhaba_Layer01.png', z: 10, rot: 2,   bgX: 12, bgY: 34 },
           { id: '02', file: '/hanhaba_Layer02.png', z: 20, rot: 1,   bgX: 45, bgY: 67 },
-          // ★ 回転ロック：Layer03とLayer06を自然な初期値に戻して固定
           { id: '03', file: '/hanhaba_Layer03.png', z: 30, rot: 8,   bgX: 78, bgY: 12 }, 
           { id: '04', file: '/hanhaba_Layer04.png', z: 40, rot: -1,  bgX: 23, bgY: 89 },
           { id: '05', file: '/hanhaba_Layer05.png', z: 50, rot: -12, bgX: 56, bgY: 45 },
@@ -747,31 +746,45 @@ function HomeContent() {
   const shareUrl = typeof window !== 'undefined' ? encodeURIComponent(window.location.href) : '';
   const xShareLink = `https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`;
   
+  // ★ 確実なシリアル採番とBlob URL生成を行う修正版
   const handleOrderClick = async (e: MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault(); 
     try {
       let finalImageUrl = blobUrl || imageUrl;
 
+      // ① シリアル番号が空ならここで確実に自動採番
+      const validSerial = serialNumber || (creationMode === 'geometric' 
+        ? `GEO-${Math.floor(1000 + Math.random() * 9000)}` 
+        : `KOMON-${Math.floor(1000 + Math.random() * 9000)}`);
+      
+      if (!serialNumber) {
+        setSerialNumber(validSerial);
+      }
+
+      // ② Base64またはSVGデータの場合、Vercel Blobへアップロードして永続URLに変換
       if (finalImageUrl && finalImageUrl.startsWith('data:')) {
         const uploadRes = await fetch('/api/upload-blob', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             base64Data: finalImageUrl,
-            filename: `${serialNumber}.png`,
+            filename: `${validSerial}.png`,
           }),
         });
         const uploadData = await uploadRes.json();
         if (uploadData.url) {
           finalImageUrl = uploadData.url;
           setBlobUrl(uploadData.url); 
+        } else {
+          throw new Error(uploadData.error || '画像のアップロードに失敗しました');
         }
       }
 
+      // ③ 工房宛てメール送信
       const response = await fetch('/api/send-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageUrl: finalImageUrl, komonId: serialNumber, title: finalTitle }),
+        body: JSON.stringify({ imageUrl: finalImageUrl, komonId: validSerial, title: finalTitle }),
       });
 
       const result = await response.json();
@@ -781,15 +794,17 @@ function HomeContent() {
         return;
       }
 
-      const copyText = `図案ID: ${serialNumber}\n銘: ${finalTitle}`;
+      // ④ クリップボードへのコピー
+      const copyText = `図案ID: ${validSerial}\n銘: ${finalTitle}`;
       try {
         await navigator.clipboard.writeText(copyText);
-        alert(`[工場へのデータ送信完了]\n図案「${finalTitle}」の高解像度データ（平面）を職人へ送信しました。\n\n画面切り替え後、MakeShopのシリアル番号欄に「${serialNumber}」が自動入力されているかご確認ください。`);
+        alert(`[工場へのデータ送信完了]\n図案「${finalTitle}」の高解像度データ（平面）を職人へ送信しました。\n\n画面切り替え後、MakeShopのシリアル番号欄に「${validSerial}」が自動入力されているかご確認ください。`);
       } catch (err) {
         console.warn('クリップボードのコピーに失敗しました', err);
       }
 
-      const cleanOrderUrl = `https://store.gofukuyasan.com/view/item/000000007300?komon_id=${encodeURIComponent(serialNumber)}&title=${encodeURIComponent(finalTitle)}&image_url=${encodeURIComponent(finalImageUrl)}`;
+      // ⑤ MakeShopの注文ページへ遷移（有効なIDと画像URLを確実に渡す）
+      const cleanOrderUrl = `https://store.gofukuyasan.com/view/item/000000007300?komon_id=${encodeURIComponent(validSerial)}&title=${encodeURIComponent(finalTitle)}&image_url=${encodeURIComponent(finalImageUrl)}`;
       window.location.href = cleanOrderUrl;
       
     } catch (err: unknown) {
@@ -889,11 +904,9 @@ function HomeContent() {
                                 {[
                                   { id: '01', file: 'hanhaba_Layer01.png', z: 10, rot: 2,   bgX: '12%', bgY: '34%' },
                                   { id: '02', file: 'hanhaba_Layer02.png', z: 20, rot: 1,   bgX: '45%', bgY: '67%' },
-                                  // ★ 回転ロック
                                   { id: '03', file: 'hanhaba_Layer03.png', z: 30, rot: 8,   bgX: '78%', bgY: '12%' },
                                   { id: '04', file: 'hanhaba_Layer04.png', z: 40, rot: -1,  bgX: '23%', bgY: '89%' },
                                   { id: '05', file: 'hanhaba_Layer05.png', z: 50, rot: -12, bgX: '56%', bgY: '45%' },
-                                  // ★ 回転ロック
                                   { id: '06', file: 'hanhaba_Layer06.png', z: 60, rot: -3,  bgX: '89%', bgY: '23%' },
                                 ].map((layer) => (
                                   <div 
