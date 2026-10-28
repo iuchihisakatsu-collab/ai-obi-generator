@@ -758,7 +758,7 @@ function HomeContent() {
                 </div>
               </div>
 
-              {/* ★ 交通整理された動的タブUI */}
+              {/* 交通整理された動的タブUI */}
               <div className="px-3 py-3 border-b border-zinc-200 bg-zinc-100 flex flex-col gap-3">
                 <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
                   <button
@@ -908,7 +908,7 @@ function HomeContent() {
                                     backgroundImage: `url('/hanhaba_Layer_kage.png?v=${v}')`,
                                     backgroundSize: 'contain',
                                     backgroundPosition: 'center',
-                                    backgroundRepeat: 'no-repeat',
+                                    backgroundRepeat: 'repeat',
                                     mixBlendMode: 'multiply',
                                     opacity: 0.7 
                                   }}
@@ -1589,4 +1589,10 @@ export default function Home() {
   return (
     <Suspense fallback={
       <div className="min-h-screen flex items-center justify-center bg-[#f4f4f5]">
-        <p className="
+        <p className="text-zinc-400 text-sm font-bold tracking-widest">LOADING...</p>
+      </div>
+    }>
+      <HomeContent />
+    </Suspense>
+  );
+}
