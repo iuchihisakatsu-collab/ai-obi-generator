@@ -758,7 +758,7 @@ function HomeContent() {
                 </div>
               </div>
 
-              {/* 交通整理された動的タブUI */}
+              {/* ★ 交通整理された動的タブUI */}
               <div className="px-3 py-3 border-b border-zinc-200 bg-zinc-100 flex flex-col gap-3">
                 <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
                   <button
@@ -783,10 +783,10 @@ function HomeContent() {
                         displayMode === 'trim'
                           ? 'bg-zinc-900 text-white border-zinc-900 shadow'
                           : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50'
-                      }`}
-                    >
-                      31cm 裁断イメージ
-                    </button>
+                    }`}
+                  >
+                    31cm 裁断イメージ
+                  </button>
                   )}
 
                   <button
@@ -971,6 +971,7 @@ function HomeContent() {
                   <div className="flex flex-col items-center w-full animate-fade-in">
                     
                     {itemType === 'hanhaba' ? (
+                      // ★ 半幅帯用の18cmプリントデータを見やすく大きく（h-[400px]）
                       <div 
                         className="relative mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden"
                         style={{ width: '180px', height: '400px' }}
@@ -987,6 +988,7 @@ function HomeContent() {
                         />
                       </div>
                     ) : (
+                      // ★ 京袋帯・着物用の40cmプリントデータ
                       <div className="relative w-[260px] sm:w-[400px] aspect-square mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden">
                         <div 
                           className="absolute inset-0"
@@ -1027,7 +1029,7 @@ function HomeContent() {
                 </>
               ) : (
                 <>
-                  新潟・十日町は着物の産地 着物の配色や柄づくりの知識を生かして、<br className="hidden sm:inline" />
+                  新潟・十日町は着物的産地 着物の配色や柄づくりの知識を生かして、<br className="hidden sm:inline" />
                   思いついた柄のアイデアを試せるAI図案ツールです。
                 </>
               )}
@@ -1223,6 +1225,7 @@ function HomeContent() {
                     </div>
                   </div>
 
+                  {/* ★ 操作パネル内のアイテム選択ボタン（復活） */}
                   <div>
                     <label className="block text-xs font-bold text-zinc-800 tracking-wider mb-2">
                       04. 作成するアイテム
