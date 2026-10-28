@@ -310,7 +310,6 @@ function HomeContent() {
   const [remainingCount, setRemainingCount] = useState<number | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('ct334'); 
 
-  // ★ デフォルトを幾何学モードに変更
   const [creationMode, setCreationMode] = useState<'ai' | 'geometric'>('geometric');
   const [geoPatternType, setGeoPatternType] = useState<'stripe' | 'dot' | 'grid' | 'gingham' | 'checker'>('stripe');
   const [stripeDir, setStripeDir] = useState<StripeDirection>('vertical');
@@ -324,7 +323,8 @@ function HomeContent() {
   const [showGeoPaletteFor, setShowGeoPaletteFor] = useState<'bg' | 'pattern' | null>(null);
   
   const [bgSizeMm, setBgSizeMm] = useState(100);
-  const [obiLiningColor, setObiLiningColor] = useState('#8f2e14'); 
+  // ★ 裏地の色を明るいグレー（白鼠）にデフォルト変更
+  const [obiLiningColor, setObiLiningColor] = useState('#dcdddd'); 
   const [showLiningPalette, setShowLiningPalette] = useState(false);
 
   const [rotatedPatternUrl, setRotatedPatternUrl] = useState<string>('');
@@ -562,15 +562,14 @@ function HomeContent() {
     }
   };
 
-  // ★ グレー無地問題を完全解決した、プログラムによる高画質キャンバス合成機能
+  // プログラムによる高画質キャンバス合成機能
   const handleDownloadMapping = async () => {
     if (!previewContainerRef.current) return;
     try {
-      // ダウンロード中の表示
       setMockupSubmitting(true);
 
       const canvas = document.createElement('canvas');
-      const size = 1200; // 高解像度書き出し
+      const size = 1200; 
       canvas.width = size;
       canvas.height = size;
       const ctx = canvas.getContext('2d');
@@ -612,11 +611,10 @@ function HomeContent() {
       const layers = [
         { id: '01', file: '/hanhaba_Layer01.png', z: 10, rot: 2,   bgX: 12, bgY: 34 },
         { id: '02', file: '/hanhaba_Layer02.png', z: 20, rot: 1,   bgX: 45, bgY: 67 },
-        // ★ 手先部分（Layer03）の90度回転を適用 (8度 + 90度 = 98度)
         { id: '03', file: '/hanhaba_Layer03.png', z: 30, rot: 98,  bgX: 78, bgY: 12 }, 
         { id: '04', file: '/hanhaba_Layer04.png', z: 40, rot: -1,  bgX: 23, bgY: 89 },
         { id: '05', file: '/hanhaba_Layer05.png', z: 50, rot: -12, bgX: 56, bgY: 45 },
-        { id: '06', file: '/hanhaba_Layer06.png', z: 60, rot: -3,  bgX: 89, bgY: 23 },
+        { id: '06', file: '/hanhaba_Layer06.png', z: 60, rot: 87,  bgX: 89, bgY: 23 }, 
       ];
 
       for (const layer of layers) {
@@ -625,7 +623,7 @@ function HomeContent() {
         tempCanvas.height = size;
         const tCtx = tempCanvas.getContext('2d')!;
 
-        const maskImg = await loadImage(`${layer.file}?v=16`);
+        const maskImg = await loadImage(`${layer.file}?v=18`);
         tCtx.drawImage(maskImg, 0, 0, size, size);
 
         tCtx.globalCompositeOperation = 'source-in';
@@ -650,16 +648,18 @@ function HomeContent() {
       tempCanvas7.width = size;
       tempCanvas7.height = size;
       const tCtx7 = tempCanvas7.getContext('2d')!;
-      const mask7 = await loadImage('/hanhaba_Layer07.png?v=16');
+      const mask7 = await loadImage('/hanhaba_Layer07.png?v=18');
       tCtx7.drawImage(mask7, 0, 0, size, size);
       tCtx7.globalCompositeOperation = 'source-in';
-      tCtx7.fillStyle = obiLiningColor || '#d4d4d8';
+      tCtx7.fillStyle = obiLiningColor || '#dcdddd';
       tCtx7.fillRect(0, 0, size, size);
       ctx.drawImage(tempCanvas7, 0, 0);
 
-      const kage = await loadImage('/hanhaba_Layer_kage.png?v=16');
+      const kage = await loadImage('/hanhaba_Layer_kage.png?v=18');
       ctx.globalCompositeOperation = 'multiply';
+      ctx.globalAlpha = 0.7; // ★影のレイヤーを70%に
       ctx.drawImage(kage, 0, 0, size, size);
+      ctx.globalAlpha = 1.0;
       ctx.globalCompositeOperation = 'source-over';
 
       const finalUrl = canvas.toDataURL('image/png');
@@ -864,18 +864,17 @@ function HomeContent() {
                           : `${400 * mmToPercent}% auto`;
                         
                         const effectivePatternUrl = creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl);
-                        const v = '17'; 
+                        const v = '18'; 
 
                         return (
                           <div className="relative w-full h-full overflow-hidden">
                             {[
                               { id: '01', file: 'hanhaba_Layer01.png', z: 10, rot: 2,   bgX: '12%', bgY: '34%' },
                               { id: '02', file: 'hanhaba_Layer02.png', z: 20, rot: 1,   bgX: '45%', bgY: '67%' },
-                              // ★ ご指摘の箇所 (Layer03): 確実に90度回転(98度)を適用
                               { id: '03', file: 'hanhaba_Layer03.png', z: 30, rot: 98,  bgX: '78%', bgY: '12%' },
                               { id: '04', file: 'hanhaba_Layer04.png', z: 40, rot: -1,  bgX: '23%', bgY: '89%' },
                               { id: '05', file: 'hanhaba_Layer05.png', z: 50, rot: -12, bgX: '56%', bgY: '45%' },
-                              { id: '06', file: 'hanhaba_Layer06.png', z: 60, rot: -3,  bgX: '89%', bgY: '23%' },
+                              { id: '06', file: 'hanhaba_Layer06.png', z: 60, rot: 87,  bgX: '89%', bgY: '23%' },
                             ].map((layer) => (
                               <div 
                                 key={layer.id}
@@ -955,7 +954,8 @@ function HomeContent() {
                                 backgroundSize: 'contain',
                                 backgroundPosition: 'center',
                                 backgroundRepeat: 'no-repeat',
-                                mixBlendMode: 'multiply'
+                                mixBlendMode: 'multiply',
+                                opacity: 0.7 // ★影のレイヤーを70%に
                               }}
                             />
                           </div>
