@@ -87,20 +87,7 @@ const TRADITIONAL_COLORS = [
   { name: '韓紅 (からくれない)', hex: '#d9333f', text: '艶やかなクリムゾンピンク地', isDark: true },
   { name: '梅紫 (うめむらさき)', hex: '#a8497a', text: '大人びたダスティベリー地', isDark: true },
   { name: '灰梅 (はいうめ)', hex: '#e8d3ca', text: 'くすみスモーキーピンク地', isDark: false },
-
-  { name: '洗柿 (あらいがき)', hex: '#f2a0a1', text: '淡いサーモンオレンジ地', isDark: false },
-  { name: '杏色 (あんず)', hex: '#f7b977', text: '明るいアプリコット地', isDark: false },
-  { name: '萱草 (かんぞう)', hex: '#fda14c', text: '温かいマンダリンオレンジ地', isDark: false },
-  { name: '蜜柑 (みかん)', hex: '#f08300', text: '鮮やかなビビッドオレンジ地', isDark: true },
-  { name: '橙色 (だいだい)', hex: '#ee7800', text: '純粋なオレンジ地', isDark: true },
-  { name: '柿色 (かき)', hex: '#ed6d3d', text: '落ち着いた柿色地', isDark: true },
-  { name: '黄丹 (おうに)', hex: '#f05a28', text: '気品ある朱橙地', isDark: true },
-  { name: '赤橙 (あかだいだい)', hex: '#ea5506', text: '情熱的なブラッドオレンジ地', isDark: true },
-  { name: '琥珀 (こはく)', hex: '#bf783a', text: '上品なアンバーキャメル地', isDark: true },
-  { name: '煉瓦 (れんが)', hex: '#b55239', text: 'クラシックなテラコッタ地', isDark: true },
-  { name: '黄櫨染 (こうろぜん)', hex: '#7d532c', text: '重厚なノーブルアンバー地', isDark: true },
-  { name: '枯野 (かれの)', hex: '#d3a243', text: 'くすんだマスタードオレンジ地', isDark: false },
-
+  
   { name: '蒸栗 (むしくり)', hex: '#ede1a9', text: '淡いミルキーイエロー地', isDark: false },
   { name: '刈安 (かりやす)', hex: '#f5e56b', text: '爽やかなペールレモン地', isDark: false },
   { name: '菜の花 (なのはな)', hex: '#ffec47', text: '明るいカナリアイエロー地', isDark: false },
@@ -281,7 +268,7 @@ const LOADING_STEPS = [
   '仕上がりを表示する準備をしています...',
 ];
 
-function HomeContent() {
+export default function HomeContent() {
   const searchParams = useSearchParams();
   const isShopify = searchParams.get('platform') === 'shopify';
 
@@ -298,7 +285,7 @@ function HomeContent() {
   const [agreed, setAgreed] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   
-  const [displayMode, setDisplayMode] = useState<'hanhaba' | 'trim' | 'fabric'>('hanhaba');
+  const [displayMode, setDisplayMode] = useState<'mockup' | 'trim' | 'data'>('mockup');
   
   const [mockupSubmitting, setMockupSubmitting] = useState(false);
   const [mockupSuccess, setMockupSuccess] = useState(false);
@@ -323,7 +310,6 @@ function HomeContent() {
   const [showGeoPaletteFor, setShowGeoPaletteFor] = useState<'bg' | 'pattern' | null>(null);
   
   const [bgSizeMm, setBgSizeMm] = useState(100);
-  // ★ 裏地の色を明るいグレー（白鼠）にデフォルト変更
   const [obiLiningColor, setObiLiningColor] = useState('#dcdddd'); 
   const [showLiningPalette, setShowLiningPalette] = useState(false);
 
@@ -331,6 +317,12 @@ function HomeContent() {
   
   const previewRef = useRef<HTMLDivElement>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
+
+  // ★ 交通整理：アイテムが変更されたら、プレビューをモックアップ（初期タブ）に戻す
+  const handleItemTypeChange = (type: 'hanhaba' | 'kyobukuro' | 'kimono') => {
+    setItemType(type);
+    setDisplayMode('mockup');
+  };
 
   useEffect(() => {
     const today = new Date().toISOString().split('T')[0];
@@ -508,6 +500,7 @@ function HomeContent() {
     setLoading(true);
     setMockupSuccess(false);
     try {
+      // AIへのプロンプトで「完全なシームレス」を強く指定するロジックは裏側（API）に内包
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -520,7 +513,7 @@ function HomeContent() {
         setBlobUrl(data.blobUrl);   
         setSerialNumber(`KOMON-${Math.floor(1000 + Math.random() * 9000)}`);
         
-        setDisplayMode('hanhaba');
+        setDisplayMode('mockup');
 
         const newCount = currentCount + 1;
         localStorage.setItem('komon_generations', JSON.stringify({
@@ -562,9 +555,8 @@ function HomeContent() {
     }
   };
 
-  // プログラムによる高画質キャンバス合成機能
   const handleDownloadMapping = async () => {
-    if (!previewContainerRef.current) return;
+    if (!previewContainerRef.current || itemType !== 'hanhaba') return;
     try {
       setMockupSubmitting(true);
 
@@ -657,7 +649,7 @@ function HomeContent() {
 
       const kage = await loadImage('/hanhaba_Layer_kage.png?v=18');
       ctx.globalCompositeOperation = 'multiply';
-      ctx.globalAlpha = 0.7; // ★影のレイヤーを70%に
+      ctx.globalAlpha = 0.7; 
       ctx.drawImage(kage, 0, 0, size, size);
       ctx.globalAlpha = 1.0;
       ctx.globalCompositeOperation = 'source-over';
@@ -735,43 +727,11 @@ function HomeContent() {
     }
   };
 
-  const handleVirtualProductSubmit = async () => {
-    setMockupSubmitting(true);
-    setErrorMsg('');
-    try {
-      const response = await fetch('/api/shopify-draft', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title: finalTitle,
-          imageUrl: blobUrl || imageUrl,
-          vendor: 'Printag Creator',
-          designFee: designFee,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Shopifyへの連携に失敗しました');
-      }
-
-      setMockupSuccess(true);
-      alert(`[登録完了]\n図案「${finalTitle}」（デザインフィー: ¥${designFee}）をShopifyへ下書き登録しました。`);
-    } catch (err: any) {
-      console.error(err);
-      setErrorMsg(err.message || '通信エラーが発生しました。');
-      alert(`連携エラー: ${err.message}`);
-    } finally {
-      setMockupSubmitting(false);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-[#f4f4f5] text-zinc-900 p-2 sm:p-6 lg:p-8 flex flex-col items-center justify-start font-sans selection:bg-zinc-200">
       <div className="w-full max-w-7xl flex flex-col lg:flex-row gap-4 sm:gap-6 items-start justify-center">
         
+        {/* ▼▼ プレビュー領域 ▼▼ */}
         <div 
           ref={previewRef}
           className="w-full lg:w-1/2 shrink-0 sticky top-2 z-30 lg:top-8 flex flex-col gap-3"
@@ -790,257 +750,255 @@ function HomeContent() {
                 </div>
               </div>
 
+              {/* ★ 交通整理された動的タブUI */}
               <div className="px-3 py-3 border-b border-zinc-200 bg-zinc-100 flex flex-col gap-3">
-                <div>
-                  <div className="text-[9px] font-bold text-zinc-500 mb-1.5 tracking-wider">マッピング確認 (着用シミュレーション)</div>
-                  <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
-                    <button
-                      type="button"
-                      onClick={() => setDisplayMode('hanhaba')}
-                      className={`shrink-0 px-3 py-1.5 text-[10px] sm:text-xs font-bold tracking-wider transition-all border rounded-sm ${
-                        displayMode === 'hanhaba'
-                          ? 'bg-zinc-900 text-white border-zinc-900 shadow'
-                          : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50'
-                      }`}
-                    >
-                      半幅帯マッピング
-                    </button>
-                    <button
-                      type="button"
-                      disabled
-                      className="shrink-0 px-3 py-1.5 text-[10px] sm:text-xs font-bold tracking-wider transition-all border rounded-sm bg-zinc-200 text-zinc-400 border-zinc-300 cursor-not-allowed opacity-70"
-                    >
-                      京袋帯マッピング (準備中)
-                    </button>
-                    <button
-                      type="button"
-                      disabled
-                      className="shrink-0 px-3 py-1.5 text-[10px] sm:text-xs font-bold tracking-wider transition-all border rounded-sm bg-zinc-200 text-zinc-400 border-zinc-300 cursor-not-allowed opacity-70"
-                    >
-                      着物マッピング (準備中)
-                    </button>
-                  </div>
-                </div>
+                <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
+                  <button
+                    type="button"
+                    onClick={() => setDisplayMode('mockup')}
+                    className={`flex-1 px-3 py-2 text-[10px] sm:text-xs font-bold tracking-wider transition-all border rounded-sm ${
+                      displayMode === 'mockup'
+                        ? 'bg-zinc-900 text-white border-zinc-900 shadow'
+                        : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50'
+                    }`}
+                  >
+                    {itemType === 'hanhaba' && '半幅帯マッピング'}
+                    {itemType === 'kyobukuro' && '京袋帯マッピング'}
+                    {itemType === 'kimono' && '着物マッピング'}
+                  </button>
 
-                <div>
-                  <div className="text-[9px] font-bold text-zinc-500 mb-1.5 tracking-wider">データ確認 (仕上がり・反物全体)</div>
-                  <div className="flex gap-1.5">
+                  {itemType === 'kyobukuro' && (
                     <button
                       type="button"
                       onClick={() => setDisplayMode('trim')}
-                      className={`flex-1 px-3 py-1.5 text-[10px] sm:text-xs font-bold tracking-wider transition-all border rounded-sm ${
+                      className={`flex-1 px-3 py-2 text-[10px] sm:text-xs font-bold tracking-wider transition-all border rounded-sm ${
                         displayMode === 'trim'
                           ? 'bg-zinc-900 text-white border-zinc-900 shadow'
                           : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50'
                       }`}
                     >
-                      18cm裁断イメージ (半幅帯プリントサイズ)
+                      31cm 裁断イメージ
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => setDisplayMode('fabric')}
-                      className={`flex-1 px-3 py-1.5 text-[10px] sm:text-xs font-bold tracking-wider transition-all border rounded-sm ${
-                        displayMode === 'fabric'
-                          ? 'bg-zinc-900 text-white border-zinc-900 shadow'
-                          : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50'
-                      }`}
-                    >
-                      40cm全体データ (京袋帯・反物サイズ)
-                    </button>
-                  </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => setDisplayMode('data')}
+                    className={`flex-1 px-3 py-2 text-[10px] sm:text-xs font-bold tracking-wider transition-all border rounded-sm ${
+                      displayMode === 'data'
+                        ? 'bg-zinc-900 text-white border-zinc-900 shadow'
+                        : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50'
+                    }`}
+                  >
+                    {itemType === 'hanhaba' ? '18cm プリントデータ' : '40cm 反物データ'}
+                  </button>
                 </div>
               </div>
 
               <div className="bg-[#e4e4e7] flex flex-col items-center justify-center p-3 sm:p-6 relative shadow-inner overflow-hidden min-h-[300px]">
                 
-                {/* 1. モックアップ (半幅帯着用イメージ) */}
-                {displayMode === 'hanhaba' && (
+                {/* 1. モックアップ表示 */}
+                {displayMode === 'mockup' && (
                   <div className="w-full flex flex-col items-center animate-fade-in">
-                    <div ref={previewContainerRef} className="relative w-[210px] sm:w-[340px] aspect-square mx-auto drop-shadow-xl">
-                      {(() => {
-                        const mmToPercent = ((440 / 1200) / 165) * 100;
-                        const patternSize = creationMode === 'geometric' 
-                          ? `${bgSizeMm * mmToPercent}% auto` 
-                          : `${400 * mmToPercent}% auto`;
-                        
-                        const effectivePatternUrl = creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl);
-                        const v = '18'; 
+                    
+                    {itemType === 'hanhaba' ? (
+                      <>
+                        <div ref={previewContainerRef} className="relative w-[210px] sm:w-[340px] aspect-square mx-auto drop-shadow-xl">
+                          {(() => {
+                            const mmToPercent = ((440 / 1200) / 165) * 100;
+                            const patternSize = creationMode === 'geometric' 
+                              ? `${bgSizeMm * mmToPercent}% auto` 
+                              : `${400 * mmToPercent}% auto`;
+                            
+                            const effectivePatternUrl = creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl);
+                            const v = '19'; 
 
-                        return (
-                          <div className="relative w-full h-full overflow-hidden">
-                            {[
-                              { id: '01', file: 'hanhaba_Layer01.png', z: 10, rot: 2,   bgX: '12%', bgY: '34%' },
-                              { id: '02', file: 'hanhaba_Layer02.png', z: 20, rot: 1,   bgX: '45%', bgY: '67%' },
-                              { id: '03', file: 'hanhaba_Layer03.png', z: 30, rot: 98,  bgX: '78%', bgY: '12%' },
-                              { id: '04', file: 'hanhaba_Layer04.png', z: 40, rot: -1,  bgX: '23%', bgY: '89%' },
-                              { id: '05', file: 'hanhaba_Layer05.png', z: 50, rot: -12, bgX: '56%', bgY: '45%' },
-                              { id: '06', file: 'hanhaba_Layer06.png', z: 60, rot: 87,  bgX: '89%', bgY: '23%' },
-                            ].map((layer) => (
-                              <div 
-                                key={layer.id}
-                                className="absolute inset-0 pointer-events-none" 
-                                style={{ 
-                                  zIndex: layer.z,
-                                  maskImage: `url('/${layer.file}?v=${v}')`,
-                                  WebkitMaskImage: `url('/${layer.file}?v=${v}')`,
-                                  maskSize: 'contain',
-                                  WebkitMaskSize: 'contain',
-                                  maskRepeat: 'no-repeat',
-                                  WebkitMaskRepeat: 'no-repeat',
-                                  maskPosition: 'center',
-                                  WebkitMaskPosition: 'center',
-                                }}
-                              >
+                            return (
+                              <div className="relative w-full h-full overflow-hidden">
+                                {[
+                                  { id: '01', file: 'hanhaba_Layer01.png', z: 10, rot: 2,   bgX: '12%', bgY: '34%' },
+                                  { id: '02', file: 'hanhaba_Layer02.png', z: 20, rot: 1,   bgX: '45%', bgY: '67%' },
+                                  { id: '03', file: 'hanhaba_Layer03.png', z: 30, rot: 98,  bgX: '78%', bgY: '12%' },
+                                  { id: '04', file: 'hanhaba_Layer04.png', z: 40, rot: -1,  bgX: '23%', bgY: '89%' },
+                                  { id: '05', file: 'hanhaba_Layer05.png', z: 50, rot: -12, bgX: '56%', bgY: '45%' },
+                                  { id: '06', file: 'hanhaba_Layer06.png', z: 60, rot: 87,  bgX: '89%', bgY: '23%' },
+                                ].map((layer) => (
+                                  <div 
+                                    key={layer.id}
+                                    className="absolute inset-0 pointer-events-none" 
+                                    style={{ 
+                                      zIndex: layer.z,
+                                      maskImage: `url('/${layer.file}?v=${v}')`,
+                                      WebkitMaskImage: `url('/${layer.file}?v=${v}')`,
+                                      maskSize: 'contain',
+                                      WebkitMaskSize: 'contain',
+                                      maskRepeat: 'no-repeat',
+                                      WebkitMaskRepeat: 'no-repeat',
+                                      maskPosition: 'center',
+                                      WebkitMaskPosition: 'center',
+                                    }}
+                                  >
+                                    <div 
+                                      style={{
+                                        position: 'absolute',
+                                        top: '-25%',
+                                        left: '-25%',
+                                        width: '150%',
+                                        height: '150%',
+                                        backgroundImage: `url(${effectivePatternUrl})`, 
+                                        backgroundSize: patternSize,
+                                        backgroundRepeat: 'repeat',
+                                        backgroundPosition: `${layer.bgX} ${layer.bgY}`, 
+                                        transform: `rotate(${layer.rot}deg)`,
+                                        transformOrigin: 'center center',
+                                        backgroundColor: creationMode === 'geometric' ? geoBgColor : 'transparent'
+                                      }}
+                                    />
+                                  </div>
+                                ))}
+
                                 <div 
+                                  className="absolute inset-0 pointer-events-none" 
+                                  style={{ 
+                                    zIndex: 65,
+                                    maskImage: `url('/hanhaba_Layer07.png?v=${v}')`,
+                                    WebkitMaskImage: `url('/hanhaba_Layer07.png?v=${v}')`,
+                                    maskSize: 'contain',
+                                    WebkitMaskSize: 'contain',
+                                    maskRepeat: 'no-repeat',
+                                    WebkitMaskRepeat: 'no-repeat',
+                                    maskPosition: 'center',
+                                    WebkitMaskPosition: 'center',
+                                  }}
+                                >
+                                  <div 
+                                    style={{
+                                      position: 'absolute',
+                                      top: '-25%',
+                                      left: '-25%',
+                                      width: '150%',
+                                      height: '150%',
+                                      backgroundColor: '#d4d4d8', 
+                                    }}
+                                  />
+                                  <div 
+                                    style={{
+                                      position: 'absolute',
+                                      top: '-25%',
+                                      left: '-25%',
+                                      width: '150%',
+                                      height: '150%',
+                                      backgroundColor: obiLiningColor,
+                                    }}
+                                  />
+                                </div>
+
+                                <div 
+                                  className="absolute inset-0 pointer-events-none"
                                   style={{
-                                    position: 'absolute',
-                                    top: '-25%',
-                                    left: '-25%',
-                                    width: '150%',
-                                    height: '150%',
-                                    backgroundImage: `url(${effectivePatternUrl})`, 
-                                    backgroundSize: patternSize,
-                                    backgroundRepeat: 'repeat',
-                                    backgroundPosition: `${layer.bgX} ${layer.bgY}`, 
-                                    transform: `rotate(${layer.rot}deg)`,
-                                    transformOrigin: 'center center',
-                                    backgroundColor: creationMode === 'geometric' ? geoBgColor : 'transparent'
+                                    zIndex: 70,
+                                    backgroundImage: `url('/hanhaba_Layer_kage.png?v=${v}')`,
+                                    backgroundSize: 'contain',
+                                    backgroundPosition: 'center',
+                                    backgroundRepeat: 'no-repeat',
+                                    mixBlendMode: 'multiply',
+                                    opacity: 0.7 
                                   }}
                                 />
                               </div>
-                            ))}
-
-                            <div 
-                              className="absolute inset-0 pointer-events-none" 
-                              style={{ 
-                                zIndex: 65,
-                                maskImage: `url('/hanhaba_Layer07.png?v=${v}')`,
-                                WebkitMaskImage: `url('/hanhaba_Layer07.png?v=${v}')`,
-                                maskSize: 'contain',
-                                WebkitMaskSize: 'contain',
-                                maskRepeat: 'no-repeat',
-                                WebkitMaskRepeat: 'no-repeat',
-                                maskPosition: 'center',
-                                WebkitMaskPosition: 'center',
-                              }}
-                            >
-                              <div 
-                                style={{
-                                  position: 'absolute',
-                                  top: '-25%',
-                                  left: '-25%',
-                                  width: '150%',
-                                  height: '150%',
-                                  backgroundColor: '#d4d4d8', 
-                                }}
-                              />
-                              <div 
-                                style={{
-                                  position: 'absolute',
-                                  top: '-25%',
-                                  left: '-25%',
-                                  width: '150%',
-                                  height: '150%',
-                                  backgroundColor: obiLiningColor,
-                                }}
-                              />
-                            </div>
-
-                            <div 
-                              className="absolute inset-0 pointer-events-none"
-                              style={{
-                                zIndex: 70,
-                                backgroundImage: `url('/hanhaba_Layer_kage.png?v=${v}')`,
-                                backgroundSize: 'contain',
-                                backgroundPosition: 'center',
-                                backgroundRepeat: 'no-repeat',
-                                mixBlendMode: 'multiply',
-                                opacity: 0.7 // ★影のレイヤーを70%に
-                              }}
-                            />
-                          </div>
-                        );
-                      })()}
-                    </div>
-                    
-                    <div className="mt-3">
-                      <button
-                        type="button"
-                        onClick={handleDownloadMapping}
-                        disabled={mockupSubmitting}
-                        className={`px-3 py-1.5 text-[10px] sm:text-xs font-bold tracking-wider rounded-sm shadow-sm transition-colors ${
-                          mockupSubmitting ? 'bg-zinc-400 text-zinc-100 cursor-not-allowed' : 'bg-zinc-900 text-white hover:bg-zinc-800'
-                        }`}
-                      >
-                        {mockupSubmitting ? '画像を作成中...' : '↓ マッピング画像を保存'}
-                      </button>
-                    </div>
-
-                    <p className="text-[9px] sm:text-[10px] text-zinc-500 mt-4 font-medium bg-white/80 px-2 py-1 rounded text-center">
-                      ※ 帯を結んだ際の柄の出方を想定したシミュレーション
-                    </p>
+                            );
+                          })()}
+                        </div>
+                        <div className="mt-3">
+                          <button
+                            type="button"
+                            onClick={handleDownloadMapping}
+                            disabled={mockupSubmitting}
+                            className={`px-3 py-1.5 text-[10px] sm:text-xs font-bold tracking-wider rounded-sm shadow-sm transition-colors ${
+                              mockupSubmitting ? 'bg-zinc-400 text-zinc-100 cursor-not-allowed' : 'bg-zinc-900 text-white hover:bg-zinc-800'
+                            }`}
+                          >
+                            {mockupSubmitting ? '画像を作成中...' : '↓ マッピング画像を保存'}
+                          </button>
+                        </div>
+                        <p className="text-[9px] sm:text-[10px] text-zinc-500 mt-4 font-medium bg-white/80 px-2 py-1 rounded text-center">
+                          ※ 帯を結んだ際の柄の出方を想定したシミュレーション<br />
+                          ※ 生地制作時は職人が柄のつなぎ目（送り）を微調整します。
+                        </p>
+                      </>
+                    ) : (
+                      <div className="w-full max-w-[300px] aspect-square bg-zinc-200 border-2 border-dashed border-zinc-400 flex items-center justify-center">
+                        <span className="text-zinc-500 font-bold text-sm tracking-widest">{itemType === 'kyobukuro' ? '京袋帯' : '着物'}マッピング準備中</span>
+                      </div>
+                    )}
                   </div>
                 )}
 
-                {/* 2. トリム (18cm 裁断イメージ - 90度回転) */}
-                {displayMode === 'trim' && (
+                {/* 2. トリム表示 (京袋帯のみ) */}
+                {displayMode === 'trim' && itemType === 'kyobukuro' && (
                   <div className="w-full flex flex-col items-center animate-fade-in">
-                    
                     <div 
                       className="relative w-[280px] sm:w-[400px] mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden"
-                      style={{ aspectRatio: '40 / 18' }}
+                      style={{ aspectRatio: '40 / 31' }}
                     >
-                      <div className="absolute top-1/2 left-1/2 w-full aspect-square -translate-x-1/2 -translate-y-1/2 -rotate-90">
-                        <div 
-                          className="w-full h-full"
-                          style={{
-                            backgroundImage: `url(${creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl)})`, 
-                            backgroundSize: creationMode === 'geometric' ? `${(bgSizeMm / 400) * 100}% auto` : '100% auto',
-                            backgroundPosition: 'center center',
-                            backgroundRepeat: 'repeat',
-                            backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff'
-                          }}
-                        />
-                      </div>
-                    </div>
-                    
-                    <p className="text-[9px] sm:text-[10px] text-zinc-500 mt-4 font-medium bg-white/80 px-2 py-1 rounded text-center leading-relaxed">
-                      ※ 帯として横に巻いた時の向き（90度回転）を想定した裁断イメージです。<br />
-                      （表示されている範囲が帯の表面として仕立てられます）
-                    </p>
-                  </div>
-                )}
-
-                {/* 3. ファブリック (40cm 全体データ + 縦カットライン) */}
-                {displayMode === 'fabric' && (
-                  <div className="flex flex-col items-center w-full animate-fade-in">
-                    <div className="relative w-[260px] sm:w-[400px] aspect-square mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden">
                       <div 
                         className="absolute inset-0"
                         style={{
                           backgroundImage: `url(${creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl)})`, 
                           backgroundSize: creationMode === 'geometric' ? `${(bgSizeMm / 400) * 100}% auto` : '100% auto',
-                          backgroundPosition: 'center',
+                          backgroundPosition: 'center center',
                           backgroundRepeat: 'repeat',
                           backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff'
                         }}
                       />
-                      
-                      <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 border-x-[1.5px] border-dashed border-zinc-900/60 pointer-events-none flex justify-between" 
-                           style={{ width: '45%' }} 
-                      >
-                        <div className="bg-white/95 px-0.5 py-1.5 text-[9px] font-bold text-zinc-700 self-end shadow-sm rounded-tr writing-vertical-rl">
-                          ← 帯幅 18cm カットライン
-                        </div>
-                        <div className="bg-white/95 px-0.5 py-1.5 text-[9px] font-bold text-zinc-700 self-end shadow-sm rounded-tl writing-vertical-rl">
-                          → 帯幅 18cm カットライン
-                        </div>
-                      </div>
                     </div>
+                    <p className="text-[9px] sm:text-[10px] text-zinc-500 mt-4 font-medium bg-white/80 px-2 py-1 rounded text-center leading-relaxed">
+                      ※ 幅40cmの反物データから、帯幅(約31cm)に裁断した場合のトリミング・イメージです。
+                    </p>
+                  </div>
+                )}
+
+                {/* 3. データ表示 (半幅帯18cm / 着物・京袋40cm) */}
+                {displayMode === 'data' && (
+                  <div className="flex flex-col items-center w-full animate-fade-in">
                     
-                    <p className="text-[9px] sm:text-[10px] text-zinc-500 mt-3 font-medium bg-white/80 px-2 py-1 rounded text-center leading-relaxed">
-                      ※ 枠全体を「幅40cmの反物」とした原寸シミュレーション。<br />
-                      （工場・職人へはこの平面データが送信され、プリントされます）
+                    {itemType === 'hanhaba' ? (
+                      // ★ 半幅帯：18cmの縦長データとして表示
+                      <div 
+                        className="relative mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden"
+                        style={{ width: '180px', height: '400px' }} // 18:40 のアスペクト比で縦長に表示
+                      >
+                        <div 
+                          className="absolute inset-0"
+                          style={{
+                            backgroundImage: `url(${creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl)})`, 
+                            // 18cm幅にスッポリ収まるように、backgroundSizeを調整 (全体幅180pxに対しての比率)
+                            backgroundSize: creationMode === 'geometric' ? `${(bgSizeMm / 180) * 100}% auto` : '100% auto',
+                            backgroundPosition: 'top left',
+                            backgroundRepeat: 'repeat',
+                            backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff'
+                          }}
+                        />
+                      </div>
+                    ) : (
+                      // ★ 京袋帯・着物：40cmのフルサイズデータ
+                      <div className="relative w-[260px] sm:w-[400px] aspect-square mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden">
+                        <div 
+                          className="absolute inset-0"
+                          style={{
+                            backgroundImage: `url(${creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl)})`, 
+                            backgroundSize: creationMode === 'geometric' ? `${(bgSizeMm / 400) * 100}% auto` : '100% auto',
+                            backgroundPosition: 'center',
+                            backgroundRepeat: 'repeat',
+                            backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff'
+                          }}
+                        />
+                      </div>
+                    )}
+                    
+                    <p className="text-[9px] sm:text-[10px] text-zinc-500 mt-4 font-medium bg-white/80 px-3 py-2 rounded text-center leading-relaxed">
+                      ※ 工場・職人へ送信されるプリント用のデータです。<br />
+                      {itemType === 'hanhaba' ? '（半幅帯用に最適化された18cm幅のデータがRIPソフトへ送られます）' : '（幅40cmの反物原寸サイズ）'}
                     </p>
                   </div>
                 )}
@@ -1049,6 +1007,7 @@ function HomeContent() {
           )}
         </div>
 
+        {/* ▼▼ 操作パネル ▼▼ */}
         <div className="w-full lg:w-1/2 bg-white border border-zinc-200 p-4 sm:p-8 lg:p-10 shrink-0 shadow-sm z-10">
           
           <div className="text-center mb-6 sm:mb-8 p-5 sm:p-8 bg-zinc-950 text-white shadow-inner">
@@ -1266,28 +1225,36 @@ function HomeContent() {
                     <div className="flex flex-col gap-1.5">
                       <button
                         type="button"
-                        onClick={() => setItemType('hanhaba')}
+                        onClick={() => handleItemTypeChange('hanhaba')}
                         className={`py-2 px-2.5 text-[11px] font-bold tracking-wider transition-all text-left border ${
                           itemType === 'hanhaba'
                             ? 'bg-zinc-900 text-white border-zinc-900 shadow'
-                            : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50 shadow-sm'
+                            : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50 shadow-sm'
                         }`}
                       >
                         半幅帯 (仕上がり18cm)
                       </button>
                       <button
                         type="button"
-                        disabled
-                        className="py-2 px-2.5 text-[11px] font-bold tracking-wider text-left border bg-zinc-100 text-zinc-400 border-zinc-200 cursor-not-allowed opacity-70"
+                        onClick={() => handleItemTypeChange('kyobukuro')}
+                        className={`py-2 px-2.5 text-[11px] font-bold tracking-wider transition-all text-left border ${
+                          itemType === 'kyobukuro'
+                            ? 'bg-zinc-900 text-white border-zinc-900 shadow'
+                            : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50 shadow-sm'
+                        }`}
                       >
-                        京袋帯 (準備中)
+                        京袋帯 (仕上がり31cm)
                       </button>
                       <button
                         type="button"
-                        disabled
-                        className="py-2 px-2.5 text-[11px] font-bold tracking-wider text-left border bg-zinc-100 text-zinc-400 border-zinc-200 cursor-not-allowed opacity-70"
+                        onClick={() => handleItemTypeChange('kimono')}
+                        className={`py-2 px-2.5 text-[11px] font-bold tracking-wider transition-all text-left border ${
+                          itemType === 'kimono'
+                            ? 'bg-zinc-900 text-white border-zinc-900 shadow'
+                            : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50 shadow-sm'
+                        }`}
                       >
-                        着物 (準備中)
+                        着物 (反物幅40cm)
                       </button>
                     </div>
                   </div>
@@ -1610,17 +1577,5 @@ function HomeContent() {
         </div>
       </div>
     </div>
-  );
-}
-
-export default function Home() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-[#f4f4f5]">
-        <p className="text-zinc-400 text-sm font-bold tracking-widest">LOADING...</p>
-      </div>
-    }>
-      <HomeContent />
-    </Suspense>
   );
 }
