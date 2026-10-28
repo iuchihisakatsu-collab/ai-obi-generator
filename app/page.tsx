@@ -15,6 +15,78 @@ import {
   type DotLayout 
 } from './utils/geometricPatterns';
 
+// 日本時間（JST）の YYYY-MM-DD 文字列を取得（深夜0時リセット用）
+function getTodayJST(): string {
+  const now = new Date();
+  const jstFormatter = new Intl.DateTimeFormat('ja-JP', {
+    timeZone: 'Asia/Tokyo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  const parts = jstFormatter.formatToParts(now);
+  const year = parts.find((p) => p.type === 'year')?.value;
+  const month = parts.find((p) => p.type === 'month')?.value;
+  const day = parts.find((p) => p.type === 'day')?.value;
+  return `${year}-${month}-${day}`;
+}
+
+// 幾何学SVGを400mm（反物幅）に実寸タイリングして2400px高解像度PNGに焼き込む関数
+async function renderTiledGeometricPng(
+  svgDataUrl: string, 
+  bgSizeMm: number, 
+  bgColor: string,
+  targetWidthMm: number = 400,
+  resolutionPx: number = 2400
+): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = resolutionPx;
+        canvas.height = resolutionPx;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(svgDataUrl);
+          return;
+        }
+
+        ctx.fillStyle = bgColor;
+        ctx.fillRect(0, 0, resolutionPx, resolutionPx);
+
+        // 1mmあたりのピクセル数（2400px / 400mm = 6px/mm）
+        const pxPerMm = resolutionPx / targetWidthMm;
+        const tileSizePx = Math.max(1, bgSizeMm * pxPerMm);
+
+        const tileCanvas = document.createElement('canvas');
+        tileCanvas.width = tileSizePx;
+        tileCanvas.height = tileSizePx;
+        const tCtx = tileCanvas.getContext('2d');
+        if (tCtx) {
+          tCtx.fillStyle = bgColor;
+          tCtx.fillRect(0, 0, tileSizePx, tileSizePx);
+          tCtx.drawImage(img, 0, 0, tileSizePx, tileSizePx);
+          const pattern = ctx.createPattern(tileCanvas, 'repeat');
+          if (pattern) {
+            ctx.fillStyle = pattern;
+            ctx.fillRect(0, 0, resolutionPx, resolutionPx);
+          }
+        }
+        resolve(canvas.toDataURL('image/png'));
+      } catch (err) {
+        console.error('Tiled PNG rendering failed:', err);
+        resolve(svgDataUrl);
+      }
+    };
+    img.onerror = () => {
+      resolve(svgDataUrl);
+    };
+    img.src = svgDataUrl;
+  });
+}
+
 async function rotateImage90Degrees(imageUrl: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -270,7 +342,7 @@ const TAG_CATEGORIES: { title: string; items: CategoryItem[] }[] = [
   }
 ];
 
-const ALL_CATEGORIES = TAG_CATEGORIES.flatMap(cat => cat.items);
+const ALL_CATEGORIES = TAG_CATEGORIES.flatMap((cat) => cat.items);
 
 const LOADING_STEPS = [
   '思い描いた意匠から、図案のアイデアを練り上げています...',
@@ -333,20 +405,21 @@ function HomeContent() {
     setItemType(type);
     setDisplayMode('mockup');
     if (type === 'kyobukuro') {
-      setObiLiningColor('#161616'); // 京袋帯の裏地デフォルトは黒
+      setObiLiningColor('#161616');
     } else if (type === 'hanhaba') {
-      setObiLiningColor('#dcdddd'); // 半幅帯は白鼠
+      setObiLiningColor('#dcdddd');
     }
   };
 
+  // 日本時間（JST）の深夜0時リセット判定
   useEffect(() => {
-    const today = new Date().toISOString().split('T')[0];
+    const todayJst = getTodayJST();
     const storedData = localStorage.getItem('komon_generations');
     let count = 0;
     if (storedData) {
       try {
         const parsed = JSON.parse(storedData);
-        if (parsed.date === today) {
+        if (parsed.date === todayJst) {
           count = parsed.count;
         }
       } catch (e) {
@@ -398,6 +471,7 @@ function HomeContent() {
     }
   }, [blobUrl, imageUrl, creationMode, itemType]);
 
+  // 格子・水玉製作所：40cm反物幅に完全タイリングした2400px PNGを生成
   const updateGeometricPattern = useCallback(async () => {
     if (creationMode !== 'geometric') return;
 
@@ -428,9 +502,16 @@ function HomeContent() {
     const svgDataUrl = `data:image/svg+xml;utf8,${encodeURIComponent(svgString)}`;
     setImageUrl(svgDataUrl);
     
-    const highResPng = await svgToHighResPng(svgString, 2400);
-    setBlobUrl(highResPng);
-    setSerialNumber(prev => (prev && prev.startsWith('GEO-')) ? prev : `GEO-${Math.floor(1000 + Math.random() * 9000)}`);
+    // スマホでもMacと同じ縞数になるよう、400mm幅に敷き詰めた2400pxのPNGを焼き込む
+    try {
+      const tiledPng = await renderTiledGeometricPng(svgDataUrl, tileSize, geoBgColor, 400, 2400);
+      setBlobUrl(tiledPng);
+    } catch {
+      const fallbackPng = await svgToHighResPng(svgString, 2400);
+      setBlobUrl(fallbackPng);
+    }
+
+    setSerialNumber((prev) => (prev && prev.startsWith('GEO-')) ? prev : `GEO-${Math.floor(1000 + Math.random() * 9000)}`);
     
     let newTitle = '無題';
     if (geoPatternType === 'stripe') newTitle = '万筋縞';
@@ -439,7 +520,7 @@ function HomeContent() {
     if (geoPatternType === 'gingham') newTitle = 'ギンガムチェック';
     if (geoPatternType === 'checker') newTitle = '市松模様';
 
-    setPatternTitle(prev => {
+    setPatternTitle((prev) => {
       if (!prev || ['万筋縞', '千鳥水玉', '格子柄', 'ギンガムチェック', '市松模様'].includes(prev)) {
         return newTitle;
       }
@@ -482,34 +563,34 @@ function HomeContent() {
     const hitWord = FORBIDDEN_WORDS.find((word) => motif.toLowerCase().includes(word));
     if (hitWord) { setErrorMsg(`入力内容に使用できない作品名・ブランド名等「${hitWord}」が含まれています。一般的なモチーフや特徴を表す言葉に変更してください。`); return; }
 
-    const today = new Date().toISOString().split('T')[0];
+    const todayJst = getTodayJST();
     const storedData = localStorage.getItem('komon_generations');
     
     let currentCount = 0;
     if (storedData) {
       try {
         const parsedData = JSON.parse(storedData);
-        if (parsedData.date === today) {
+        if (parsedData.date === todayJst) {
           currentCount = parsedData.count;
         }
       } catch (e) {
-        console.error("Local storage parse error:", e);
+        console.error('Local storage parse error:', e);
       }
     }
 
     if (currentCount >= MAX_GENERATIONS_PER_DAY) {
       setRemainingCount(0);
-      alert(`[本日の上限に達しました]\n\nお試しいただきありがとうございます。\nAIのサーバー利用料（課金）が高額になってしまうため、無料での作成は「お一人様1日3回まで」とさせていただいております。\n\nまた明日、新しい図案を作りに来てください。`);
+      alert('[本日の上限に達しました]\n\nお試しいただきありがとうございます。\nAIのサーバー利用料（課金）が高額になってしまうため、無料での作成は「お一人様1日3回まで」とさせていただいております。\n\nまた明日（深夜0時以降）、新しい図案を作りに来てください。');
       return;
     }
 
-    const matched = ALL_CATEGORIES.find(c => motif.includes(c.label));
+    const matched = ALL_CATEGORIES.find((c) => motif.includes(c.label));
     if (matched) {
       setSelectedCategoryId(matched.id);
     }
 
     const colorPayload = selectedColors.length > 0 
-      ? selectedColors.map(c => c.text).join('と') 
+      ? selectedColors.map((c) => c.text).join('と') 
       : 'モチーフ入力内容に準拠した配色';
 
     setLoading(true);
@@ -530,7 +611,7 @@ function HomeContent() {
 
         const newCount = currentCount + 1;
         localStorage.setItem('komon_generations', JSON.stringify({
-          date: today,
+          date: todayJst,
           count: newCount
         }));
         setRemainingCount(Math.max(0, MAX_GENERATIONS_PER_DAY - newCount));
@@ -585,19 +666,21 @@ function HomeContent() {
         img.crossOrigin = 'anonymous';
         img.onload = () => res(img);
         img.onerror = (e) => {
-          console.error("Image load error:", src, e);
+          console.error('Image load error:', src, e);
           rej(e);
         };
         img.src = src;
       });
 
       const effectivePatternUrl = creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl);
-      if (!effectivePatternUrl) throw new Error("No pattern image");
+      if (!effectivePatternUrl) throw new Error('No pattern image');
       
       const patternImg = await loadImage(effectivePatternUrl);
 
+      // 半幅帯は180mm、それ以外は400mmでスケール計算
       const mmToPercent = ((440 / 1200) / 165);
-      const bgWidth = creationMode === 'geometric' ? (bgSizeMm * mmToPercent * size) : (400 * mmToPercent * size);
+      const baseMm = (itemType === 'hanhaba') ? 180 : 400;
+      const bgWidth = creationMode === 'geometric' ? (bgSizeMm * mmToPercent * size) : (baseMm * mmToPercent * size);
       const bgScale = bgWidth / Math.max(1, patternImg.width);
       const bgHeight = patternImg.height * bgScale;
 
@@ -606,8 +689,8 @@ function HomeContent() {
       pCanvas.height = bgHeight;
       const pCtx = pCanvas.getContext('2d');
       if (creationMode === 'geometric' && geoBgColor) {
-          pCtx!.fillStyle = geoBgColor;
-          pCtx!.fillRect(0, 0, bgWidth, bgHeight);
+        pCtx!.fillStyle = geoBgColor;
+        pCtx!.fillRect(0, 0, bgWidth, bgHeight);
       }
       pCtx!.drawImage(patternImg, 0, 0, bgWidth, bgHeight);
 
@@ -636,16 +719,16 @@ function HomeContent() {
           tCtx.globalCompositeOperation = 'source-in';
 
           tCtx.save();
-          tCtx.translate(size/2, size/2);
+          tCtx.translate(size / 2, size / 2);
           tCtx.rotate(layer.rot * Math.PI / 180);
-          tCtx.translate(-size/2, -size/2);
+          tCtx.translate(-size / 2, -size / 2);
 
           const rectSize = size * 1.5;
           const rectOffset = -size * 0.25;
 
           tCtx.translate(rectOffset + (rectSize * layer.bgX / 100), rectOffset + (rectSize * layer.bgY / 100));
           tCtx.fillStyle = patternFill;
-          tCtx.fillRect(-size*2, -size*2, size*4, size*4); 
+          tCtx.fillRect(-size * 2, -size * 2, size * 4, size * 4); 
           tCtx.restore();
 
           ctx.drawImage(tempCanvas, 0, 0);
@@ -702,15 +785,15 @@ function HomeContent() {
           tCtx.globalCompositeOperation = 'source-in';
 
           tCtx.save();
-          tCtx.translate(size/2, size/2);
+          tCtx.translate(size / 2, size / 2);
           tCtx.rotate(layer.rot * Math.PI / 180);
-          tCtx.translate(-size/2, -size/2);
+          tCtx.translate(-size / 2, -size / 2);
 
           const rectSize = size * 1.5;
           const rectOffset = -size * 0.25;
           tCtx.translate(rectOffset + (rectSize * layer.bgX / 100), rectOffset + (rectSize * layer.bgY / 100));
           tCtx.fillStyle = patternFill;
-          tCtx.fillRect(-size*2, -size*2, size*4, size*4); 
+          tCtx.fillRect(-size * 2, -size * 2, size * 4, size * 4); 
           tCtx.restore();
 
           ctx.drawImage(tempCanvas, 0, 0);
@@ -732,7 +815,7 @@ function HomeContent() {
       a.click();
       document.body.removeChild(a);
 
-    } catch(e) {
+    } catch (e) {
       console.error(e);
       alert('ダウンロード画像の生成に失敗しました。');
     } finally {
@@ -741,18 +824,18 @@ function HomeContent() {
   };
 
   const finalTitle = patternTitle.trim() || '（無題）';
-  const colorSummary = selectedColors.length > 0 ? selectedColors.map(c => c.name.split(' ')[0]).join('・') : '自由配色';
+  const colorSummary = selectedColors.length > 0 ? selectedColors.map((c) => c.name.split(' ')[0]).join('・') : '自由配色';
   const shareText = encodeURIComponent(`「妄想きもの図案帳」で、柄のアイデアを試してみました。\n\n銘：『${finalTitle}』\n配色：${colorSummary}\n\n※AIによるアイデア図案です。実際の生地制作時はスタッフが人の目で調整します。\n\n#妄想きもの図案帳`);
   const shareUrl = typeof window !== 'undefined' ? encodeURIComponent(window.location.href) : '';
   const xShareLink = `https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`;
   
-  // ★ 確実なシリアル採番とBlob URL生成を行う修正版
+  // シリアル番号自動採番とBlob URL生成を行う注文遷移
   const handleOrderClick = async (e: MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault(); 
     try {
       let finalImageUrl = blobUrl || imageUrl;
 
-      // ① シリアル番号が空ならここで確実に自動採番
+      // シリアル番号が空ならここで確実に自動採番
       const validSerial = serialNumber || (creationMode === 'geometric' 
         ? `GEO-${Math.floor(1000 + Math.random() * 9000)}` 
         : `KOMON-${Math.floor(1000 + Math.random() * 9000)}`);
@@ -761,7 +844,7 @@ function HomeContent() {
         setSerialNumber(validSerial);
       }
 
-      // ② Base64またはSVGデータの場合、Vercel Blobへアップロードして永続URLに変換
+      // Base64またはSVGデータの場合、Vercel Blobへアップロードして永続URLに変換
       if (finalImageUrl && finalImageUrl.startsWith('data:')) {
         const uploadRes = await fetch('/api/upload-blob', {
           method: 'POST',
@@ -780,7 +863,7 @@ function HomeContent() {
         }
       }
 
-      // ③ 工房宛てメール送信
+      // 工房宛てメール送信
       const response = await fetch('/api/send-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -794,7 +877,7 @@ function HomeContent() {
         return;
       }
 
-      // ④ クリップボードへのコピー
+      // クリップボードへのコピー
       const copyText = `図案ID: ${validSerial}\n銘: ${finalTitle}`;
       try {
         await navigator.clipboard.writeText(copyText);
@@ -803,13 +886,13 @@ function HomeContent() {
         console.warn('クリップボードのコピーに失敗しました', err);
       }
 
-      // ⑤ MakeShopの注文ページへ遷移（有効なIDと画像URLを確実に渡す）
+      // MakeShopの注文ページへ遷移（有効なIDと画像URLを確実に渡す）
       const cleanOrderUrl = `https://store.gofukuyasan.com/view/item/000000007300?komon_id=${encodeURIComponent(validSerial)}&title=${encodeURIComponent(finalTitle)}&image_url=${encodeURIComponent(finalImageUrl)}`;
       window.location.href = cleanOrderUrl;
       
     } catch (err: unknown) {
       console.error(err);
-      setErrorMsg(`通信エラーが発生しました`);
+      setErrorMsg('通信エラーが発生しました');
     }
   };
 
@@ -892,9 +975,11 @@ function HomeContent() {
                         <div ref={previewContainerRef} className="relative w-[210px] sm:w-[340px] aspect-square mx-auto drop-shadow-xl">
                           {(() => {
                             const mmToPercent = ((440 / 1200) / 165) * 100;
+                            // 半幅帯は180mm、それ以外は400mmで計算
+                            const baseMm = (itemType === 'hanhaba') ? 180 : 400;
                             const patternSize = creationMode === 'geometric' 
                               ? `${bgSizeMm * mmToPercent}% auto` 
-                              : `${400 * mmToPercent}% auto`;
+                              : `${baseMm * mmToPercent}% auto`;
                             
                             const effectivePatternUrl = creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl);
                             const v = '21'; 
@@ -1014,27 +1099,26 @@ function HomeContent() {
                       </>
                     )}
 
-                    {/* ★ 京袋帯マッピング */}
+                    {/* 京袋帯マッピング */}
                     {itemType === 'kyobukuro' && (
                       <>
                         <div ref={previewContainerRef} className="relative w-[210px] sm:w-[340px] aspect-square mx-auto drop-shadow-xl">
                           {(() => {
                             const mmToPercent = ((440 / 1200) / 165) * 100;
+                            const baseMm = (itemType === 'hanhaba') ? 180 : 400;
                             const patternSize = creationMode === 'geometric' 
                               ? `${bgSizeMm * mmToPercent}% auto` 
-                              : `${400 * mmToPercent}% auto`;
+                              : `${baseMm * mmToPercent}% auto`;
                             
                             const effectivePatternUrl = creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl);
                             const v = '21'; 
 
                             return (
                               <div className="relative w-full h-full overflow-hidden">
-                                {/* 背景（ベース） */}
                                 <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 10 }}>
                                   <img src={`/kyoubukurogrand.png?v=${v}`} alt="" className="w-full h-full object-contain" />
                                 </div>
 
-                                {/* 裏地（色変更） */}
                                 <div 
                                   className="absolute inset-0 pointer-events-none" 
                                   style={{ 
@@ -1052,7 +1136,6 @@ function HomeContent() {
                                   <div className="w-full h-full" style={{ backgroundColor: obiLiningColor }} />
                                 </div>
 
-                                {/* 各柄パーツ */}
                                 {[
                                   { id: 'hara', file: 'kyoubukurohara.png', z: 30, rot: 271, bgX: '50%', bgY: '50%' },
                                   { id: 'tare', file: 'kyoubukurotare.png', z: 40, rot: -1, bgX: '50%', bgY: '50%' },
@@ -1092,7 +1175,6 @@ function HomeContent() {
                                   </div>
                                 ))}
 
-                                {/* 影（陰影） */}
                                 <div 
                                   className="absolute inset-0 pointer-events-none"
                                   style={{
@@ -1163,7 +1245,6 @@ function HomeContent() {
                 {/* 3. データ表示 (半幅帯18cm / 着物・京袋40cm) */}
                 {displayMode === 'data' && (
                   <div className="flex flex-col items-center w-full animate-fade-in">
-                    
                     {itemType === 'hanhaba' ? (
                       <div 
                         className="relative mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden"
