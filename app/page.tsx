@@ -332,6 +332,11 @@ function HomeContent() {
   const handleItemTypeChange = (type: 'hanhaba' | 'kyobukuro' | 'kimono') => {
     setItemType(type);
     setDisplayMode('mockup');
+    if (type === 'kyobukuro') {
+      setObiLiningColor('#161616'); // 京袋帯の裏地デフォルトは黒
+    } else if (type === 'hanhaba') {
+      setObiLiningColor('#dcdddd'); // 半幅帯は白鼠
+    }
   };
 
   useEffect(() => {
@@ -564,7 +569,7 @@ function HomeContent() {
   };
 
   const handleDownloadMapping = async () => {
-    if (!previewContainerRef.current || itemType !== 'hanhaba') return;
+    if (!previewContainerRef.current || (itemType !== 'hanhaba' && itemType !== 'kyobukuro')) return;
     try {
       setMockupSubmitting(true);
 
@@ -608,60 +613,117 @@ function HomeContent() {
 
       const patternFill = ctx.createPattern(pCanvas, 'repeat')!;
 
-      const layers = [
-        { id: '01', file: '/hanhaba_Layer01.png', z: 10, rot: 2,   bgX: 12, bgY: 34 },
-        { id: '02', file: '/hanhaba_Layer02.png', z: 20, rot: 1,   bgX: 45, bgY: 67 },
-        { id: '03', file: '/hanhaba_Layer03.png', z: 30, rot: 98,  bgX: 78, bgY: 12 }, 
-        { id: '04', file: '/hanhaba_Layer04.png', z: 40, rot: -1,  bgX: 23, bgY: 89 },
-        { id: '05', file: '/hanhaba_Layer05.png', z: 50, rot: -12, bgX: 56, bgY: 45 },
-        // ★Layer06の回転を元の「-3度」に戻しました
-        { id: '06', file: '/hanhaba_Layer06.png', z: 60, rot: -3,  bgX: 89, bgY: 23 }, 
-      ];
+      // ===== 半幅帯の合成 =====
+      if (itemType === 'hanhaba') {
+        const layers = [
+          { id: '01', file: '/hanhaba_Layer01.png', z: 10, rot: 2,   bgX: 12, bgY: 34 },
+          { id: '02', file: '/hanhaba_Layer02.png', z: 20, rot: 1,   bgX: 45, bgY: 67 },
+          // ★ 回転ロック：Layer03とLayer06を自然な初期値に戻して固定
+          { id: '03', file: '/hanhaba_Layer03.png', z: 30, rot: 8,   bgX: 78, bgY: 12 }, 
+          { id: '04', file: '/hanhaba_Layer04.png', z: 40, rot: -1,  bgX: 23, bgY: 89 },
+          { id: '05', file: '/hanhaba_Layer05.png', z: 50, rot: -12, bgX: 56, bgY: 45 },
+          { id: '06', file: '/hanhaba_Layer06.png', z: 60, rot: -3,  bgX: 89, bgY: 23 }, 
+        ];
 
-      for (const layer of layers) {
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = size;
-        tempCanvas.height = size;
-        const tCtx = tempCanvas.getContext('2d')!;
+        for (const layer of layers) {
+          const tempCanvas = document.createElement('canvas');
+          tempCanvas.width = size;
+          tempCanvas.height = size;
+          const tCtx = tempCanvas.getContext('2d')!;
 
-        const maskImg = await loadImage(`${layer.file}?v=19`);
-        tCtx.drawImage(maskImg, 0, 0, size, size);
+          const maskImg = await loadImage(`${layer.file}?v=21`);
+          tCtx.drawImage(maskImg, 0, 0, size, size);
 
-        tCtx.globalCompositeOperation = 'source-in';
+          tCtx.globalCompositeOperation = 'source-in';
 
-        tCtx.save();
-        tCtx.translate(size/2, size/2);
-        tCtx.rotate(layer.rot * Math.PI / 180);
-        tCtx.translate(-size/2, -size/2);
+          tCtx.save();
+          tCtx.translate(size/2, size/2);
+          tCtx.rotate(layer.rot * Math.PI / 180);
+          tCtx.translate(-size/2, -size/2);
 
-        const rectSize = size * 1.5;
-        const rectOffset = -size * 0.25;
+          const rectSize = size * 1.5;
+          const rectOffset = -size * 0.25;
 
-        tCtx.translate(rectOffset + (rectSize * layer.bgX / 100), rectOffset + (rectSize * layer.bgY / 100));
-        tCtx.fillStyle = patternFill;
-        tCtx.fillRect(-size*2, -size*2, size*4, size*4); 
-        tCtx.restore();
+          tCtx.translate(rectOffset + (rectSize * layer.bgX / 100), rectOffset + (rectSize * layer.bgY / 100));
+          tCtx.fillStyle = patternFill;
+          tCtx.fillRect(-size*2, -size*2, size*4, size*4); 
+          tCtx.restore();
 
-        ctx.drawImage(tempCanvas, 0, 0);
+          ctx.drawImage(tempCanvas, 0, 0);
+        }
+
+        const tempCanvas7 = document.createElement('canvas');
+        tempCanvas7.width = size;
+        tempCanvas7.height = size;
+        const tCtx7 = tempCanvas7.getContext('2d')!;
+        const mask7 = await loadImage('/hanhaba_Layer07.png?v=21');
+        tCtx7.drawImage(mask7, 0, 0, size, size);
+        tCtx7.globalCompositeOperation = 'source-in';
+        tCtx7.fillStyle = obiLiningColor || '#dcdddd';
+        tCtx7.fillRect(0, 0, size, size);
+        ctx.drawImage(tempCanvas7, 0, 0);
+
+        const kage = await loadImage('/hanhaba_Layer_kage.png?v=21');
+        ctx.globalCompositeOperation = 'multiply';
+        ctx.globalAlpha = 0.7; 
+        ctx.drawImage(kage, 0, 0, size, size);
+        ctx.globalAlpha = 1.0;
+        ctx.globalCompositeOperation = 'source-over';
       }
 
-      const tempCanvas7 = document.createElement('canvas');
-      tempCanvas7.width = size;
-      tempCanvas7.height = size;
-      const tCtx7 = tempCanvas7.getContext('2d')!;
-      const mask7 = await loadImage('/hanhaba_Layer07.png?v=19');
-      tCtx7.drawImage(mask7, 0, 0, size, size);
-      tCtx7.globalCompositeOperation = 'source-in';
-      tCtx7.fillStyle = obiLiningColor || '#dcdddd';
-      tCtx7.fillRect(0, 0, size, size);
-      ctx.drawImage(tempCanvas7, 0, 0);
+      // ===== 京袋帯の合成 =====
+      if (itemType === 'kyobukuro') {
+        const grandImg = await loadImage('/kyoubukurogrand.png?v=21');
+        ctx.drawImage(grandImg, 0, 0, size, size);
 
-      const kage = await loadImage('/hanhaba_Layer_kage.png?v=19');
-      ctx.globalCompositeOperation = 'multiply';
-      ctx.globalAlpha = 0.7; 
-      ctx.drawImage(kage, 0, 0, size, size);
-      ctx.globalAlpha = 1.0;
-      ctx.globalCompositeOperation = 'source-over';
+        const urajiCanvas = document.createElement('canvas');
+        urajiCanvas.width = size;
+        urajiCanvas.height = size;
+        const uCtx = urajiCanvas.getContext('2d')!;
+        const urajiImg = await loadImage('/kyoubukurouraji.png?v=21');
+        uCtx.drawImage(urajiImg, 0, 0, size, size);
+        uCtx.globalCompositeOperation = 'source-in';
+        uCtx.fillStyle = obiLiningColor || '#161616';
+        uCtx.fillRect(0, 0, size, size);
+        ctx.drawImage(urajiCanvas, 0, 0);
+
+        const layers = [
+          { id: 'hara', file: '/kyoubukurohara.png', rot: 271, bgX: 50, bgY: 50 },
+          { id: 'tare', file: '/kyoubukurotare.png', rot: -1, bgX: 50, bgY: 50 },
+          { id: 'taiko', file: '/kyoubukurotakio.png', rot: 2, bgX: 50, bgY: 50 },
+        ];
+
+        for (const layer of layers) {
+          const tempCanvas = document.createElement('canvas');
+          tempCanvas.width = size;
+          tempCanvas.height = size;
+          const tCtx = tempCanvas.getContext('2d')!;
+          const maskImg = await loadImage(`${layer.file}?v=21`);
+          tCtx.drawImage(maskImg, 0, 0, size, size);
+          tCtx.globalCompositeOperation = 'source-in';
+
+          tCtx.save();
+          tCtx.translate(size/2, size/2);
+          tCtx.rotate(layer.rot * Math.PI / 180);
+          tCtx.translate(-size/2, -size/2);
+
+          const rectSize = size * 1.5;
+          const rectOffset = -size * 0.25;
+          tCtx.translate(rectOffset + (rectSize * layer.bgX / 100), rectOffset + (rectSize * layer.bgY / 100));
+          tCtx.fillStyle = patternFill;
+          tCtx.fillRect(-size*2, -size*2, size*4, size*4); 
+          tCtx.restore();
+
+          ctx.drawImage(tempCanvas, 0, 0);
+        }
+
+        const kage = await loadImage('/kyoubukuromask.png?v=21');
+        ctx.globalCompositeOperation = 'multiply';
+        ctx.globalAlpha = 0.8; 
+        ctx.drawImage(kage, 0, 0, size, size);
+        ctx.globalAlpha = 1.0;
+        ctx.globalCompositeOperation = 'source-over';
+      }
 
       const finalUrl = canvas.toDataURL('image/png');
       const a = document.createElement('a');
@@ -786,7 +848,7 @@ function HomeContent() {
                           : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50'
                       }`}
                     >
-                      34cm 裁断イメージ (仕上がり31cm)
+                      34cm 裁断イメージ
                     </button>
                   )}
 
@@ -810,7 +872,7 @@ function HomeContent() {
                 {displayMode === 'mockup' && (
                   <div className="w-full flex flex-col items-center animate-fade-in">
                     
-                    {itemType === 'hanhaba' ? (
+                    {itemType === 'hanhaba' && (
                       <>
                         <div ref={previewContainerRef} className="relative w-[210px] sm:w-[340px] aspect-square mx-auto drop-shadow-xl">
                           {(() => {
@@ -820,17 +882,18 @@ function HomeContent() {
                               : `${400 * mmToPercent}% auto`;
                             
                             const effectivePatternUrl = creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl);
-                            const v = '20'; 
+                            const v = '21'; 
 
                             return (
                               <div className="relative w-full h-full overflow-hidden">
                                 {[
                                   { id: '01', file: 'hanhaba_Layer01.png', z: 10, rot: 2,   bgX: '12%', bgY: '34%' },
                                   { id: '02', file: 'hanhaba_Layer02.png', z: 20, rot: 1,   bgX: '45%', bgY: '67%' },
-                                  { id: '03', file: 'hanhaba_Layer03.png', z: 30, rot: 98,  bgX: '78%', bgY: '12%' },
+                                  // ★ 回転ロック
+                                  { id: '03', file: 'hanhaba_Layer03.png', z: 30, rot: 8,   bgX: '78%', bgY: '12%' },
                                   { id: '04', file: 'hanhaba_Layer04.png', z: 40, rot: -1,  bgX: '23%', bgY: '89%' },
                                   { id: '05', file: 'hanhaba_Layer05.png', z: 50, rot: -12, bgX: '56%', bgY: '45%' },
-                                  // ★Layer06の回転を元の「-3度」に戻しました
+                                  // ★ 回転ロック
                                   { id: '06', file: 'hanhaba_Layer06.png', z: 60, rot: -3,  bgX: '89%', bgY: '23%' },
                                 ].map((layer) => (
                                   <div 
@@ -910,7 +973,7 @@ function HomeContent() {
                                     backgroundImage: `url('/hanhaba_Layer_kage.png?v=${v}')`,
                                     backgroundSize: 'contain',
                                     backgroundPosition: 'center',
-                                    backgroundRepeat: 'repeat',
+                                    backgroundRepeat: 'no-repeat',
                                     mixBlendMode: 'multiply',
                                     opacity: 0.7 
                                   }}
@@ -936,9 +999,125 @@ function HomeContent() {
                           ※ 生地制作時は職人が柄のつなぎ目（送り）を微調整します。
                         </p>
                       </>
-                    ) : (
+                    )}
+
+                    {/* ★ 京袋帯マッピング */}
+                    {itemType === 'kyobukuro' && (
+                      <>
+                        <div ref={previewContainerRef} className="relative w-[210px] sm:w-[340px] aspect-square mx-auto drop-shadow-xl">
+                          {(() => {
+                            const mmToPercent = ((440 / 1200) / 165) * 100;
+                            const patternSize = creationMode === 'geometric' 
+                              ? `${bgSizeMm * mmToPercent}% auto` 
+                              : `${400 * mmToPercent}% auto`;
+                            
+                            const effectivePatternUrl = creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl);
+                            const v = '21'; 
+
+                            return (
+                              <div className="relative w-full h-full overflow-hidden">
+                                {/* 背景（ベース） */}
+                                <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 10 }}>
+                                  <img src={`/kyoubukurogrand.png?v=${v}`} alt="" className="w-full h-full object-contain" />
+                                </div>
+
+                                {/* 裏地（色変更） */}
+                                <div 
+                                  className="absolute inset-0 pointer-events-none" 
+                                  style={{ 
+                                    zIndex: 20,
+                                    maskImage: `url('/kyoubukurouraji.png?v=${v}')`,
+                                    WebkitMaskImage: `url('/kyoubukurouraji.png?v=${v}')`,
+                                    maskSize: 'contain',
+                                    WebkitMaskSize: 'contain',
+                                    maskRepeat: 'no-repeat',
+                                    WebkitMaskRepeat: 'no-repeat',
+                                    maskPosition: 'center',
+                                    WebkitMaskPosition: 'center',
+                                  }}
+                                >
+                                  <div className="w-full h-full" style={{ backgroundColor: obiLiningColor }} />
+                                </div>
+
+                                {/* 各柄パーツ */}
+                                {[
+                                  { id: 'hara', file: 'kyoubukurohara.png', z: 30, rot: 271, bgX: '50%', bgY: '50%' },
+                                  { id: 'tare', file: 'kyoubukurotare.png', z: 40, rot: -1, bgX: '50%', bgY: '50%' },
+                                  { id: 'taiko', file: 'kyoubukurotakio.png', z: 50, rot: 2, bgX: '50%', bgY: '50%' },
+                                ].map((layer) => (
+                                  <div 
+                                    key={layer.id}
+                                    className="absolute inset-0 pointer-events-none" 
+                                    style={{ 
+                                      zIndex: layer.z,
+                                      maskImage: `url('/${layer.file}?v=${v}')`,
+                                      WebkitMaskImage: `url('/${layer.file}?v=${v}')`,
+                                      maskSize: 'contain',
+                                      WebkitMaskSize: 'contain',
+                                      maskRepeat: 'no-repeat',
+                                      WebkitMaskRepeat: 'no-repeat',
+                                      maskPosition: 'center',
+                                      WebkitMaskPosition: 'center',
+                                    }}
+                                  >
+                                    <div 
+                                      style={{
+                                        position: 'absolute',
+                                        top: '-25%',
+                                        left: '-25%',
+                                        width: '150%',
+                                        height: '150%',
+                                        backgroundImage: `url(${effectivePatternUrl})`, 
+                                        backgroundSize: patternSize,
+                                        backgroundRepeat: 'repeat',
+                                        backgroundPosition: `${layer.bgX} ${layer.bgY}`, 
+                                        transform: `rotate(${layer.rot}deg)`,
+                                        transformOrigin: 'center center',
+                                        backgroundColor: creationMode === 'geometric' ? geoBgColor : 'transparent'
+                                      }}
+                                    />
+                                  </div>
+                                ))}
+
+                                {/* 影（陰影） */}
+                                <div 
+                                  className="absolute inset-0 pointer-events-none"
+                                  style={{
+                                    zIndex: 60,
+                                    backgroundImage: `url('/kyoubukuromask.png?v=${v}')`,
+                                    backgroundSize: 'contain',
+                                    backgroundPosition: 'center',
+                                    backgroundRepeat: 'no-repeat',
+                                    mixBlendMode: 'multiply',
+                                    opacity: 0.8 
+                                  }}
+                                />
+                              </div>
+                            );
+                          })()}
+                        </div>
+                        <div className="mt-3">
+                          <button
+                            type="button"
+                            onClick={handleDownloadMapping}
+                            disabled={mockupSubmitting}
+                            className={`px-3 py-1.5 text-[10px] sm:text-xs font-bold tracking-wider rounded-sm shadow-sm transition-colors ${
+                              mockupSubmitting ? 'bg-zinc-400 text-zinc-100 cursor-not-allowed' : 'bg-zinc-900 text-white hover:bg-zinc-800'
+                            }`}
+                          >
+                            {mockupSubmitting ? '画像を作成中...' : '↓ マッピング画像を保存'}
+                          </button>
+                        </div>
+                        <p className="text-[9px] sm:text-[10px] text-zinc-500 mt-4 font-medium bg-white/80 px-2 py-1 rounded text-center">
+                          ※ 帯を結んだ際の柄の出方を想定したシミュレーション<br />
+                          ※ 生地制作時は職人が柄のつなぎ目（送り）を微調整します。
+                        </p>
+                      </>
+                    )}
+
+                    {itemType === 'kimono' && (
                       <div className="w-full max-w-[300px] aspect-square bg-zinc-200 border-2 border-dashed border-zinc-400 flex items-center justify-center">
-                        <span className="text-zinc-500 font-bold text-sm tracking-widest">{itemType === 'kyobukuro' ? '京袋帯' : '着物'}マッピング準備中</span>
+                        <span className="text-zinc-500 font-bold text-sm tracking-widest">着物マッピング準備中</span>
                       </div>
                     )}
                   </div>
@@ -949,7 +1128,7 @@ function HomeContent() {
                   <div className="w-full flex flex-col items-center animate-fade-in">
                     <div 
                       className="relative w-[280px] sm:w-[400px] mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden"
-                      style={{ aspectRatio: '40 / 34' }} // ★プリント34cm幅でのトリムイメージ
+                      style={{ aspectRatio: '40 / 34' }}
                     >
                       <div 
                         className="absolute inset-0"
@@ -973,10 +1152,9 @@ function HomeContent() {
                   <div className="flex flex-col items-center w-full animate-fade-in">
                     
                     {itemType === 'hanhaba' ? (
-                      // ★ 半幅帯用の18cmプリントデータを縦長かつ大きく表示
                       <div 
                         className="relative mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden"
-                        style={{ width: '216px', height: '480px' }} // アスペクト比18:40で表示
+                        style={{ width: '216px', height: '480px' }}
                       >
                         <div 
                           className="absolute inset-0"
@@ -990,7 +1168,6 @@ function HomeContent() {
                         />
                       </div>
                     ) : (
-                      // 京袋帯・着物用の40cmプリントデータ
                       <div className="relative w-[260px] sm:w-[400px] aspect-square mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden">
                         <div 
                           className="absolute inset-0"
@@ -1364,54 +1541,6 @@ function HomeContent() {
                     </div>
                   )}
                 </div>
-
-                <div className="pt-3 border-t border-zinc-100">
-                  <div className="flex items-center gap-2">
-                    <label className="text-[10px] font-bold text-zinc-700 whitespace-nowrap">裏地の色：</label>
-                    <div className="flex items-center gap-1.5 flex-1">
-                      <div 
-                        className="w-7 h-7 shrink-0 border border-zinc-300 p-0.5 shadow-inner" 
-                        style={{ backgroundColor: obiLiningColor }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowLiningPalette(!showLiningPalette)}
-                        className={`flex-1 text-[10px] h-7 font-bold transition-all border shadow-sm ${showLiningPalette ? 'bg-zinc-900 text-white' : 'bg-white text-zinc-600 border-zinc-300'}`}
-                      >
-                        伝統色
-                      </button>
-                    </div>
-                  </div>
-
-                  {showLiningPalette && (
-                    <div className="mt-2 p-3 bg-zinc-50 border border-zinc-200 animate-fade-in shadow-inner">
-                      <div className="flex justify-between items-center mb-2">
-                        <p className="text-[10px] text-zinc-500 font-bold">裏地の色を選択：</p>
-                        <button type="button" onClick={() => setShowLiningPalette(false)} className="text-[10px] text-zinc-400 font-bold">✕</button>
-                      </div>
-                      <div className="max-h-[140px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-200">
-                        <div className="grid grid-cols-4 sm:grid-cols-5 gap-1.5">
-                          {TRADITIONAL_COLORS.map((col) => (
-                            <button
-                              key={col.name}
-                              type="button"
-                              onClick={() => {
-                                setObiLiningColor(col.hex);
-                                setShowLiningPalette(false);
-                              }}
-                              className="relative h-8 p-1 flex flex-col justify-end text-left border border-zinc-300 shadow-sm"
-                              style={{ backgroundColor: col.hex }}
-                            >
-                              <span className={`text-[8px] font-bold truncate leading-tight ${col.isDark ? 'text-white' : 'text-zinc-900'}`}>
-                                {col.name.split(' ')[0]}
-                              </span>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
               </div>
             )}
 
@@ -1445,7 +1574,7 @@ function HomeContent() {
                   </div>
                 </div>
 
-                {/* 04. 作成するアイテム (★共通化 ＆ テキスト修正) */}
+                {/* 04. 作成するアイテム */}
                 <div>
                   <label className="block text-xs font-bold text-zinc-800 tracking-wider mb-2">
                     04. 作成するアイテム
@@ -1488,7 +1617,56 @@ function HomeContent() {
                 </div>
               </div>
 
-              {/* 05. 図案銘 (★共通化) */}
+              {/* 共通の裏地色設定パネル */}
+              <div className="pt-3 border-t border-zinc-100">
+                <div className="flex items-center gap-2">
+                  <label className="text-[10px] font-bold text-zinc-700 whitespace-nowrap">裏地の色：</label>
+                  <div className="flex items-center gap-1.5 flex-1">
+                    <div 
+                      className="w-7 h-7 shrink-0 border border-zinc-300 p-0.5 shadow-inner" 
+                      style={{ backgroundColor: obiLiningColor }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowLiningPalette(!showLiningPalette)}
+                      className={`flex-1 text-[10px] h-7 font-bold transition-all border shadow-sm ${showLiningPalette ? 'bg-zinc-900 text-white' : 'bg-white text-zinc-600 border-zinc-300'}`}
+                    >
+                      伝統色
+                    </button>
+                  </div>
+                </div>
+
+                {showLiningPalette && (
+                  <div className="mt-2 p-3 bg-zinc-50 border border-zinc-200 animate-fade-in shadow-inner">
+                    <div className="flex justify-between items-center mb-2">
+                      <p className="text-[10px] text-zinc-500 font-bold">裏地の色を選択：</p>
+                      <button type="button" onClick={() => setShowLiningPalette(false)} className="text-[10px] text-zinc-400 font-bold">✕</button>
+                    </div>
+                    <div className="max-h-[140px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-200">
+                      <div className="grid grid-cols-4 sm:grid-cols-5 gap-1.5">
+                        {TRADITIONAL_COLORS.map((col) => (
+                          <button
+                            key={col.name}
+                            type="button"
+                            onClick={() => {
+                              setObiLiningColor(col.hex);
+                              setShowLiningPalette(false);
+                            }}
+                            className="relative h-8 p-1 flex flex-col justify-end text-left border border-zinc-300 shadow-sm"
+                            style={{ backgroundColor: col.hex }}
+                          >
+                            <span className={`text-[8px] font-bold truncate leading-tight ${col.isDark ? 'text-white' : 'text-zinc-900'}`}>
+                              {col.name.split(' ')[0]}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* 05. 図案銘 */}
               <div className="pt-2 border-t border-zinc-100">
                 <label className="block text-xs font-bold text-zinc-800 tracking-wider mb-1">
                   05. 図案銘 <span className="text-[10px] text-zinc-400 font-normal">（作品タイトル）</span>
