@@ -14,7 +14,6 @@ import {
   type StripeDirection, 
   type DotLayout 
 } from './utils/geometricPatterns';
-import html2canvas from 'html2canvas';
 
 async function rotateImage90Degrees(imageUrl: string): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -563,24 +562,119 @@ function HomeContent() {
     }
   };
 
-  // ★ 追加：マッピング画像のダウンロード機能 (html2canvas使用)
+  // ★ グレー無地問題を完全解決した、プログラムによる高画質キャンバス合成機能
   const handleDownloadMapping = async () => {
     if (!previewContainerRef.current) return;
     try {
-      const canvas = await html2canvas(previewContainerRef.current, {
-        backgroundColor: null,
-        scale: 2, // 高画質化
+      // ダウンロード中の表示
+      setMockupSubmitting(true);
+
+      const canvas = document.createElement('canvas');
+      const size = 1200; // 高解像度書き出し
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      const loadImage = (src: string): Promise<HTMLImageElement> => new Promise((res, rej) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => res(img);
+        img.onerror = (e) => {
+          console.error("Image load error:", src, e);
+          rej(e);
+        };
+        img.src = src;
       });
-      const url = canvas.toDataURL('image/png');
+
+      const effectivePatternUrl = creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl);
+      if (!effectivePatternUrl) throw new Error("No pattern image");
+      
+      const patternImg = await loadImage(effectivePatternUrl);
+
+      const mmToPercent = ((440 / 1200) / 165);
+      const bgWidth = creationMode === 'geometric' ? (bgSizeMm * mmToPercent * size) : (400 * mmToPercent * size);
+      const bgScale = bgWidth / Math.max(1, patternImg.width);
+      const bgHeight = patternImg.height * bgScale;
+
+      const pCanvas = document.createElement('canvas');
+      pCanvas.width = bgWidth;
+      pCanvas.height = bgHeight;
+      const pCtx = pCanvas.getContext('2d');
+      if (creationMode === 'geometric' && geoBgColor) {
+          pCtx!.fillStyle = geoBgColor;
+          pCtx!.fillRect(0, 0, bgWidth, bgHeight);
+      }
+      pCtx!.drawImage(patternImg, 0, 0, bgWidth, bgHeight);
+
+      const patternFill = ctx.createPattern(pCanvas, 'repeat')!;
+
+      const layers = [
+        { id: '01', file: '/hanhaba_Layer01.png', z: 10, rot: 2,   bgX: 12, bgY: 34 },
+        { id: '02', file: '/hanhaba_Layer02.png', z: 20, rot: 1,   bgX: 45, bgY: 67 },
+        // ★ 手先部分（Layer03）の90度回転を適用 (8度 + 90度 = 98度)
+        { id: '03', file: '/hanhaba_Layer03.png', z: 30, rot: 98,  bgX: 78, bgY: 12 }, 
+        { id: '04', file: '/hanhaba_Layer04.png', z: 40, rot: -1,  bgX: 23, bgY: 89 },
+        { id: '05', file: '/hanhaba_Layer05.png', z: 50, rot: -12, bgX: 56, bgY: 45 },
+        { id: '06', file: '/hanhaba_Layer06.png', z: 60, rot: -3,  bgX: 89, bgY: 23 },
+      ];
+
+      for (const layer of layers) {
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = size;
+        tempCanvas.height = size;
+        const tCtx = tempCanvas.getContext('2d')!;
+
+        const maskImg = await loadImage(`${layer.file}?v=16`);
+        tCtx.drawImage(maskImg, 0, 0, size, size);
+
+        tCtx.globalCompositeOperation = 'source-in';
+
+        tCtx.save();
+        tCtx.translate(size/2, size/2);
+        tCtx.rotate(layer.rot * Math.PI / 180);
+        tCtx.translate(-size/2, -size/2);
+
+        const rectSize = size * 1.5;
+        const rectOffset = -size * 0.25;
+
+        tCtx.translate(rectOffset + (rectSize * layer.bgX / 100), rectOffset + (rectSize * layer.bgY / 100));
+        tCtx.fillStyle = patternFill;
+        tCtx.fillRect(-size*2, -size*2, size*4, size*4); 
+        tCtx.restore();
+
+        ctx.drawImage(tempCanvas, 0, 0);
+      }
+
+      const tempCanvas7 = document.createElement('canvas');
+      tempCanvas7.width = size;
+      tempCanvas7.height = size;
+      const tCtx7 = tempCanvas7.getContext('2d')!;
+      const mask7 = await loadImage('/hanhaba_Layer07.png?v=16');
+      tCtx7.drawImage(mask7, 0, 0, size, size);
+      tCtx7.globalCompositeOperation = 'source-in';
+      tCtx7.fillStyle = obiLiningColor || '#d4d4d8';
+      tCtx7.fillRect(0, 0, size, size);
+      ctx.drawImage(tempCanvas7, 0, 0);
+
+      const kage = await loadImage('/hanhaba_Layer_kage.png?v=16');
+      ctx.globalCompositeOperation = 'multiply';
+      ctx.drawImage(kage, 0, 0, size, size);
+      ctx.globalCompositeOperation = 'source-over';
+
+      const finalUrl = canvas.toDataURL('image/png');
       const a = document.createElement('a');
-      a.href = url;
+      a.href = finalUrl;
       a.download = `${serialNumber || 'mapping'}_preview.png`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-    } catch (err) {
-      console.error('マッピング画像の保存に失敗しました:', err);
-      alert('プレビュー画像の保存に失敗しました。');
+
+    } catch(e) {
+      console.error(e);
+      alert('ダウンロード画像の生成に失敗しました。');
+    } finally {
+      setMockupSubmitting(false);
     }
   };
 
@@ -762,7 +856,6 @@ function HomeContent() {
                 {/* 1. モックアップ (半幅帯着用イメージ) */}
                 {displayMode === 'hanhaba' && (
                   <div className="w-full flex flex-col items-center animate-fade-in">
-                    {/* ★ キャプチャ用のラッパー */}
                     <div ref={previewContainerRef} className="relative w-[210px] sm:w-[340px] aspect-square mx-auto drop-shadow-xl">
                       {(() => {
                         const mmToPercent = ((440 / 1200) / 165) * 100;
@@ -771,15 +864,15 @@ function HomeContent() {
                           : `${400 * mmToPercent}% auto`;
                         
                         const effectivePatternUrl = creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl);
-                        const v = '12';
+                        const v = '17'; 
 
                         return (
                           <div className="relative w-full h-full overflow-hidden">
                             {[
                               { id: '01', file: 'hanhaba_Layer01.png', z: 10, rot: 2,   bgX: '12%', bgY: '34%' },
                               { id: '02', file: 'hanhaba_Layer02.png', z: 20, rot: 1,   bgX: '45%', bgY: '67%' },
-                              // ★ ご指摘の箇所 (Layer03): 縦縞が横縞(90度)にならないよう修正
-                              { id: '03', file: 'hanhaba_Layer03.png', z: 30, rot: 8,  bgX: '78%', bgY: '12%' },
+                              // ★ ご指摘の箇所 (Layer03): 確実に90度回転(98度)を適用
+                              { id: '03', file: 'hanhaba_Layer03.png', z: 30, rot: 98,  bgX: '78%', bgY: '12%' },
                               { id: '04', file: 'hanhaba_Layer04.png', z: 40, rot: -1,  bgX: '23%', bgY: '89%' },
                               { id: '05', file: 'hanhaba_Layer05.png', z: 50, rot: -12, bgX: '56%', bgY: '45%' },
                               { id: '06', file: 'hanhaba_Layer06.png', z: 60, rot: -3,  bgX: '89%', bgY: '23%' },
@@ -870,14 +963,16 @@ function HomeContent() {
                       })()}
                     </div>
                     
-                    {/* ★ 追加：マッピング画像のダウンロードボタン */}
                     <div className="mt-3">
                       <button
                         type="button"
                         onClick={handleDownloadMapping}
-                        className="px-3 py-1.5 bg-zinc-900 text-white text-[10px] sm:text-xs font-bold tracking-wider rounded-sm shadow-sm hover:bg-zinc-800 transition-colors"
+                        disabled={mockupSubmitting}
+                        className={`px-3 py-1.5 text-[10px] sm:text-xs font-bold tracking-wider rounded-sm shadow-sm transition-colors ${
+                          mockupSubmitting ? 'bg-zinc-400 text-zinc-100 cursor-not-allowed' : 'bg-zinc-900 text-white hover:bg-zinc-800'
+                        }`}
                       >
-                        ↓ マッピング画像を保存
+                        {mockupSubmitting ? '画像を作成中...' : '↓ マッピング画像を保存'}
                       </button>
                     </div>
 
@@ -931,7 +1026,6 @@ function HomeContent() {
                         }}
                       />
                       
-                      {/* ★ 縦方向の18cmカットライン */}
                       <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 border-x-[1.5px] border-dashed border-zinc-900/60 pointer-events-none flex justify-between" 
                            style={{ width: '45%' }} 
                       >
