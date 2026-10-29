@@ -859,9 +859,10 @@ function HomeContent() {
           { file: '/hidarieri_117.png', angle: 117, bgX: 70, bgY: 10 },
         ];
 
-        // 600mm基準
-        const kimonoPxPerMm = 1200 / 600; 
-        const kBgWidth = creationMode === 'geometric' ? (bgSizeMm * kimonoPxPerMm) : (180 * kimonoPxPerMm);
+        // 600mm基準 ＆ 200%拡大用の ÷2 スケール補正
+        const KIMONO_CANVAS_MM = 600;
+        const kimonoPxPerMm = 1200 / KIMONO_CANVAS_MM; 
+        const kBgWidth = creationMode === 'geometric' ? ((bgSizeMm * kimonoPxPerMm) / 2) : ((180 * kimonoPxPerMm) / 2);
         const kBgScale = kBgWidth / Math.max(1, patternImg.width);
         const kBgHeight = patternImg.height * kBgScale;
         const kPCanvas = document.createElement('canvas');
@@ -1168,13 +1169,11 @@ function HomeContent() {
                       <>
                         <div ref={previewContainerRef} className="relative w-[210px] sm:w-[340px] aspect-square mx-auto drop-shadow-xl bg-white">
                           {(() => {
-                            // ★ 180mm絶対基準 ＆ 1200px＝600mm実寸キャンバス の補正計算
-                            // 200%拡大されたdivに背景を敷くため、パーセンテージを半分（÷2）にする
-                            const KIMONO_CANVAS_MM = 600;
-                            const kimonoScalePercent = ((180 / KIMONO_CANVAS_MM) * 100) / 2;
-                            const geoScalePercent = ((bgSizeMm / KIMONO_CANVAS_MM) * 100) / 2; 
-
-                            const patternSize = creationMode === 'geometric' ? `${geoScalePercent}% auto` : `${kimonoScalePercent}% auto`;
+                            // ★ 180mm絶対基準 ＆ 200%拡大用の ÷2 スケール補正
+                            const patternSize = creationMode === 'geometric' 
+                              ? `${(bgSizeMm * UNIVERSAL_SCALE_FACTOR) / 2}% auto` 
+                              : `${(180 * UNIVERSAL_SCALE_FACTOR) / 2}% auto`;
+                            
                             const effectivePatternUrl = creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl);
                             const v = '30'; 
 
@@ -1350,10 +1349,19 @@ function HomeContent() {
               </>
             ) : (
               <div className="space-y-5 animate-fade-in">
+                <div className="bg-zinc-50 border border-zinc-200 text-zinc-800 p-3 text-xs shadow-sm">
+                  <p className="font-bold text-[11px] mb-0.5">使い放題モード</p>
+                  <p className="text-[10px] opacity-90">上のプレビューを見ながら、サイズや色を自由にいじって遊んでみてください。</p>
+                </div>
+
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[11px] font-bold text-zinc-900 mb-1">柄の種類</label>
-                    <select value={geoPatternType} onChange={(e) => setGeoPatternType(e.target.value as any)} className="w-full border border-zinc-300 p-2 bg-white text-xs focus:border-zinc-900 focus:outline-none shadow-sm relative z-10">
+                    <select 
+                      value={geoPatternType} 
+                      onChange={(e) => setGeoPatternType(e.target.value as any)}
+                      className="w-full border border-zinc-300 p-2 bg-white text-xs focus:border-zinc-900 focus:outline-none shadow-sm relative z-10"
+                    >
                       <option value="stripe">縞（ストライプ）</option>
                       <option value="dot">水玉（ドット）</option>
                       <option value="grid">格子（ラインチェック）</option>
@@ -1361,10 +1369,146 @@ function HomeContent() {
                       <option value="checker">市松（チェッカー）</option>
                     </select>
                   </div>
+                  {geoPatternType === 'stripe' && (
+                    <div>
+                      <label className="block text-[11px] font-bold text-zinc-900 mb-1">縞の向き</label>
+                      <select 
+                        value={stripeDir} 
+                        onChange={(e) => setStripeDir(e.target.value as StripeDirection)}
+                        className="w-full border border-zinc-300 p-2 bg-white text-xs focus:border-zinc-900 focus:outline-none shadow-sm relative z-10"
+                      >
+                        <option value="vertical">縦縞（滝縞）</option>
+                        <option value="horizontal">横縞（ボーダー）</option>
+                        <option value="diagonal">斜め（右上がり）</option>
+                      </select>
+                    </div>
+                  )}
+                  {geoPatternType === 'dot' && (
+                    <div>
+                      <label className="block text-[11px] font-bold text-zinc-900 mb-1">配置</label>
+                      <select 
+                        value={dotLayout} 
+                        onChange={(e) => setDotLayout(e.target.value as DotLayout)}
+                        className="w-full border border-zinc-300 p-2 bg-white text-xs focus:border-zinc-900 focus:outline-none shadow-sm relative z-10"
+                      >
+                        <option value="staggered">千鳥（互い違い）</option>
+                        <option value="grid">正方格子</option>
+                      </select>
+                    </div>
+                  )}
                 </div>
-                <div className="space-y-3.5 pt-3 border-t border-zinc-100">
+
+                <div className="space-y-3.5 pt-3 border-t border-zinc-100 relative z-10">
                   <label className="block text-xs font-bold text-zinc-900 mb-2">サイズ調整（mm実寸連動）</label>
-                  <input type="range" min="1" max="100" value={lineWidth} onChange={(e) => setLineWidth(Number(e.target.value))} className="w-full cursor-pointer accent-zinc-900 relative z-10" />
+                  
+                  {geoPatternType === 'dot' && (
+                    <>
+                      <div>
+                        <div className="flex justify-between items-end mb-1">
+                          <span className="text-[10px] font-bold text-zinc-500">水玉の大きさ（直径）</span>
+                          <span className="text-xs font-black text-zinc-900">{dotRadius * 2}<span className="text-[9px] font-normal text-zinc-400 ml-0.5">mm</span></span>
+                        </div>
+                        <input type="range" min="1" max="50" value={dotRadius} onChange={(e) => setDotRadius(Number(e.target.value))} className="w-full cursor-pointer accent-zinc-900" />
+                      </div>
+                      <div>
+                        <div className="flex justify-between items-end mb-1">
+                          <span className="text-[10px] font-bold text-zinc-500">間隔（余白）</span>
+                          <span className="text-xs font-black text-zinc-900">{gapWidth}<span className="text-[9px] font-normal text-zinc-400 ml-0.5">mm</span></span>
+                        </div>
+                        <input type="range" min="0" max="100" value={gapWidth} onChange={(e) => setGapWidth(Number(e.target.value))} className="w-full cursor-pointer accent-zinc-900" />
+                      </div>
+                    </>
+                  )}
+
+                  {geoPatternType === 'checker' && (
+                    <div>
+                      <div className="flex justify-between items-end mb-1">
+                        <span className="text-[10px] font-bold text-zinc-500">市松の大きさ（1マス）</span>
+                        <span className="text-xs font-black text-zinc-900">{lineWidth}<span className="text-[9px] font-normal text-zinc-400 ml-0.5">mm</span></span>
+                      </div>
+                      <input type="range" min="1" max="200" value={lineWidth} onChange={(e) => setLineWidth(Number(e.target.value))} className="w-full cursor-pointer accent-zinc-900" />
+                    </div>
+                  )}
+
+                  {(geoPatternType === 'stripe' || geoPatternType === 'grid' || geoPatternType === 'gingham') && (
+                    <>
+                      <div>
+                        <div className="flex justify-between items-end mb-1">
+                          <span className="text-[10px] font-bold text-zinc-500">線の太さ</span>
+                          <span className="text-xs font-black text-zinc-900">{lineWidth}<span className="text-[9px] font-normal text-zinc-400 ml-0.5">mm</span></span>
+                        </div>
+                        <input type="range" min="1" max="100" value={lineWidth} onChange={(e) => setLineWidth(Number(e.target.value))} className="w-full cursor-pointer accent-zinc-900" />
+                      </div>
+                      <div>
+                        <div className="flex justify-between items-end mb-1">
+                          <span className="text-[10px] font-bold text-zinc-500">間隔（余白）</span>
+                          <span className="text-xs font-black text-zinc-900">{gapWidth}<span className="text-[9px] font-normal text-zinc-400 ml-0.5">mm</span></span>
+                        </div>
+                        <input type="range" min="0" max="200" value={gapWidth} onChange={(e) => setGapWidth(Number(e.target.value))} className="w-full cursor-pointer accent-zinc-900" />
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <div className="pt-3 border-t border-zinc-100 space-y-3 relative">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-bold text-zinc-900 mb-1">地色</label>
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-7 h-7 shrink-0 border border-zinc-300 shadow-inner" style={{ backgroundColor: geoBgColor }} />
+                        <button
+                          type="button"
+                          onClick={() => setShowGeoPaletteFor(showGeoPaletteFor === 'bg' ? null : 'bg')}
+                          className={`flex-1 text-[10px] h-7 font-bold transition-all border shadow-sm relative z-10 ${showGeoPaletteFor === 'bg' ? 'bg-zinc-900 text-white' : 'bg-white text-zinc-600 border-zinc-300'}`}
+                        >
+                          伝統色
+                        </button>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-zinc-900 mb-1">柄色</label>
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-7 h-7 shrink-0 border border-zinc-300 shadow-inner" style={{ backgroundColor: geoPatternColor }} />
+                        <button
+                          type="button"
+                          onClick={() => setShowGeoPaletteFor(showGeoPaletteFor === 'pattern' ? null : 'pattern')}
+                          className={`flex-1 text-[10px] h-7 font-bold transition-all border shadow-sm relative z-10 ${showGeoPaletteFor === 'pattern' ? 'bg-zinc-900 text-white' : 'bg-white text-zinc-600 border-zinc-300'}`}
+                        >
+                          伝統色
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {showGeoPaletteFor && (
+                    <div className="p-3 bg-zinc-50 border border-zinc-200 animate-fade-in shadow-inner relative z-50">
+                      <div className="flex justify-between items-center mb-2">
+                        <p className="text-[10px] text-zinc-500 font-bold">{showGeoPaletteFor === 'bg' ? '地色' : '柄色'}を選択：</p>
+                        <button type="button" onClick={() => setShowGeoPaletteFor(null)} className="text-[10px] text-zinc-400 font-bold">✕</button>
+                      </div>
+                      <div className="max-h-[160px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-200">
+                        <div className="grid grid-cols-4 sm:grid-cols-6 gap-1.5">
+                          {TRADITIONAL_COLORS.map((col) => (
+                            <button
+                              key={col.name}
+                              type="button"
+                              onClick={() => {
+                                if (showGeoPaletteFor === 'bg') setGeoBgColor(col.hex);
+                                if (showGeoPaletteFor === 'pattern') setGeoPatternColor(col.hex);
+                                setShowGeoPaletteFor(null);
+                              }}
+                              className="relative h-9 p-1 flex flex-col justify-end text-left border border-zinc-300 shadow-sm"
+                              style={{ backgroundColor: col.hex }}
+                            >
+                              <span className={`text-[8px] font-bold truncate leading-tight ${col.isDark ? 'text-white' : 'text-zinc-900'}`}>
+                                {col.name.split(' ')[0]}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -1453,6 +1597,7 @@ function HomeContent() {
                       </button> 
                     )}
                   </div>
+                  
                   {showObiColorPalette && (
                     <div className="p-3 bg-zinc-50 border border-zinc-200 shadow-inner relative z-50">
                       <div className="flex justify-between items-center mb-2">
@@ -1590,4 +1735,3 @@ export default function Home() {
     </Suspense>
   );
 }
-```<FollowUp>これで「180mm実寸」と「帯・半衿・帯揚げの伝統色パレット」が完璧に動くはずです！確認をお願いできますでしょうか？</FollowUp>
