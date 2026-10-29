@@ -855,11 +855,12 @@ function HomeContent() {
           { file: '/hidarieri_117.png', angle: 117, bgX: 70, bgY: 10 },
         ];
 
-        // 600mm基準
-        const kimonoPxPerMm = 1200 / 600; 
-        const kBgWidth = creationMode === 'geometric' ? (bgSizeMm * kimonoPxPerMm) : (180 * kimonoPxPerMm);
+        // ★ 着物マッピングも半幅帯・京袋帯と全く同じ黄金比率計算を使用
+        const pxPerMm = 27 / 11;
+        const kBgWidth = creationMode === 'geometric' ? (bgSizeMm * pxPerMm) : (180 * pxPerMm);
         const kBgScale = kBgWidth / Math.max(1, patternImg.width);
         const kBgHeight = patternImg.height * kBgScale;
+        
         const kPCanvas = document.createElement('canvas');
         kPCanvas.width = kBgWidth; 
         kPCanvas.height = kBgHeight;
@@ -1164,12 +1165,11 @@ function HomeContent() {
                       <>
                         <div ref={previewContainerRef} className="relative w-[210px] sm:w-[340px] aspect-square mx-auto drop-shadow-xl bg-white">
                           {(() => {
-                            // ★ 180mm絶対基準 ＆ 1200px＝600mm実寸キャンバス の補正計算
-                            const KIMONO_CANVAS_MM = 600;
-                            const kimonoScalePercent = (180 / KIMONO_CANVAS_MM) * 100;
-                            const geoScalePercent = (bgSizeMm / KIMONO_CANVAS_MM) * 100; 
-
-                            const patternSize = creationMode === 'geometric' ? `${geoScalePercent}% auto` : `${kimonoScalePercent}% auto`;
+                            // ★ 180mm絶対基準（半幅帯・京袋帯と全く同じ計算式を適用）
+                            const patternSize = creationMode === 'geometric' 
+                              ? `${bgSizeMm * UNIVERSAL_SCALE_FACTOR}% auto` 
+                              : `${180 * UNIVERSAL_SCALE_FACTOR}% auto`;
+                            
                             const effectivePatternUrl = creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl);
                             const v = '30'; 
 
@@ -1195,15 +1195,19 @@ function HomeContent() {
                                     <div style={{ position: 'absolute', top: '-50%', left: '-50%', width: '200%', height: '200%', backgroundImage: `url(${effectivePatternUrl})`, backgroundSize: patternSize, backgroundRepeat: 'repeat', backgroundPosition: `${layer.bgX} ${layer.bgY}`, transform: `rotate(${layer.angle - 90}deg)`, transformOrigin: 'center center', backgroundColor: creationMode === 'geometric' ? geoBgColor : 'transparent' }} />
                                   </div>
                                 ))}
+                                {/* 半衿 */}
                                 <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 45, maskImage: `url('/haneri.png?v=${v}')`, WebkitMaskImage: `url('/haneri.png?v=${v}')`, maskSize: 'contain', WebkitMaskSize: 'contain', maskRepeat: 'no-repeat', WebkitMaskPosition: 'center' }}>
                                   <div className="w-full h-full" style={{ backgroundColor: kimonoHaneriColor }} />
                                 </div>
+                                {/* 帯揚げ */}
                                 <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 60, maskImage: `url('/obiage.png?v=${v}')`, WebkitMaskImage: `url('/obiage.png?v=${v}')`, maskSize: 'contain', WebkitMaskSize: 'contain', maskRepeat: 'no-repeat', WebkitMaskPosition: 'center' }}>
                                   <div className="w-full h-full" style={{ backgroundColor: kimonoObiageColor }} />
                                 </div>
+                                {/* 帯 */}
                                 <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 65, maskImage: `url('/obi_2.png?v=${v}')`, WebkitMaskImage: `url('/obi_2.png?v=${v}')`, maskSize: 'contain', WebkitMaskSize: 'contain', maskRepeat: 'no-repeat', WebkitMaskPosition: 'center' }}>
                                   <div style={{ position: 'absolute', top: '-10%', left: '-10%', width: '120%', height: '120%', backgroundColor: customObiUrl ? 'transparent' : kimonoObiColor, backgroundImage: customObiUrl ? `url(${customObiUrl})` : 'none', backgroundSize: '50% auto', backgroundPosition: 'center', backgroundRepeat: 'repeat' }} />
                                 </div>
+                                {/* 影 */}
                                 <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 70, backgroundImage: `url('/jyouzan.png?v=${v}')`, backgroundSize: 'contain', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', mixBlendMode: 'multiply', opacity: 0.8 }} />
                               </div>
                             );
@@ -1422,7 +1426,7 @@ function HomeContent() {
 
               {/* ▼ 着物専用：帯・小物カスタマイズパネル ▼ */}
               {itemType === 'kimono' && (
-                <div className="pt-3 border-t border-zinc-100 space-y-3 relative">
+                <div className="pt-3 border-t border-zinc-100 space-y-3 relative z-30">
                   <label className="block text-[11px] font-bold text-zinc-800 tracking-wider">着物のコーディネート</label>
                   <div className="flex gap-2 items-center">
                     <span className="text-[10px] font-bold text-zinc-700 w-10">帯：</span>
