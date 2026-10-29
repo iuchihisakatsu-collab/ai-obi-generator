@@ -515,7 +515,7 @@ function HomeContent() {
   }, [loading]);
 
   useEffect(() => {
-    if (motif.trim() === 'ベホイミ') {
+    if (motif.trim() === 'ホイミ') {
       localStorage.removeItem('komon_generations');
       setRemainingCount(MAX_GENERATIONS_PER_DAY);
       setMotif('');
@@ -734,12 +734,12 @@ function HomeContent() {
         const patternFill = ctx.createPattern(pCanvas, 'repeat')!;
 
         if (itemType === 'hanhaba') {
-          // ★ 半幅帯マッピングの角度を完全補正 (右羽は横縞 98度、左下羽は縦縞 -1度)
+          // ★ 半幅帯マッピングの角度を完全補正 (Layer03=横90度, Layer04=縦-1度)
           const layers = [
             { file: '/hanhaba_Layer01.png', rot: 2, bgX: 12, bgY: 34 }, 
             { file: '/hanhaba_Layer02.png', rot: 1, bgX: 45, bgY: 67 },
-            { file: '/hanhaba_Layer03.png', rot: 98, bgX: 78, bgY: 12 }, // 右羽: 横縞
-            { file: '/hanhaba_Layer04.png', rot: -1, bgX: 23, bgY: 89 }, // 左下羽: 縦縞
+            { file: '/hanhaba_Layer03.png', rot: 90, bgX: 78, bgY: 12 }, 
+            { file: '/hanhaba_Layer04.png', rot: -1, bgX: 23, bgY: 89 }, 
             { file: '/hanhaba_Layer05.png', rot: -12, bgX: 56, bgY: 45 }, 
             { file: '/hanhaba_Layer06.png', rot: -3, bgX: 89, bgY: 23 }
           ];
@@ -894,11 +894,9 @@ function HomeContent() {
         hCtx.globalCompositeOperation = 'source-in'; 
         hCtx.fillStyle = kimonoHaneriColor; 
         hCtx.fillRect(0,0,size,size);
-        
         // ★ 半衿の白浮き防止処理（黒3%の乗算で自然に沈ませる）
         hCtx.fillStyle = 'rgba(0,0,0,0.03)';
         hCtx.fillRect(0,0,size,size);
-        
         ctx.drawImage(hCanvas, 0, 0);
 
         const obiageImg = await loadImage('/obiage.png?v=30');
@@ -954,42 +952,36 @@ function HomeContent() {
   const finalTitle = patternTitle.trim() || '（無題）';
   const colorSummary = selectedColors.length > 0 ? selectedColors.map((c) => c.name.split(' ')[0]).join('・') : '自由配色';
   const shareText = encodeURIComponent(`「妄想きもの図案帳」で、柄のアイデアを試してみました。\n\n銘：『${finalTitle}』\n配色：${colorSummary}\n\n※AIによるアイデア図案です。実際の生地制作時はスタッフが人の目で調整します。\n\n#妄想きもの図案帳`);
-  const shareUrl = typeof window !== 'undefined' ? encodeURIComponent(window.location.href) : '';
-
-  // 𝕏 シェア
-  const handleShareX = () => {
-    const xShareLink = `https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`;
-    window.open(xShareLink, '_blank', 'noopener,noreferrer');
-  };
-
-  // Pinterest シェア
-  const handleSharePinterest = () => {
-    const targetImg = blobUrl || imageUrl;
-    const pinUrl = `https://pinterest.com/pin/create/button/?url=${shareUrl}&media=${encodeURIComponent(targetImg)}&description=${shareText}`;
-    window.open(pinUrl, '_blank', 'noopener,noreferrer');
-  };
-
-  // テキストコピー用ヘルパー
-  const copyToClipboard = async () => {
+  
+  // コピー用ヘルパー
+  const copyToClipboard = async (textToCopy: string) => {
     try {
-      await navigator.clipboard.writeText(decodeURIComponent(shareText));
+      await navigator.clipboard.writeText(textToCopy);
     } catch (err) {
       console.warn('Copy failed', err);
     }
   };
 
-  // Instagram シェア
-  const handleShareInstagram = async () => {
-    await copyToClipboard();
-    alert('【Instagramを開きます】\n\nシェア用のテキストをコピーしました。\n投稿画面でテキストをペーストしてください。');
-    window.open('https://www.instagram.com/', '_blank', 'noopener,noreferrer');
-  };
+  // OS標準のシェア機能（Web Share API連携）
+  const handleNativeShare = async () => {
+    const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
+    const decodedText = decodeURIComponent(shareText);
 
-  // Threads シェア
-  const handleShareThreads = async () => {
-    await copyToClipboard();
-    alert('【Threadsを開きます】\n\nシェア用のテキストをコピーしました。\n投稿画面でテキストをペーストしてください。');
-    window.open('https://www.threads.net/compose', '_blank', 'noopener,noreferrer');
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: finalTitle,
+          text: decodedText,
+          url: shareUrl,
+        });
+      } catch (err) {
+        console.warn('Share canceled', err);
+      }
+    } else {
+      // OS標準シェアが使えないPC等の場合はテキストをコピーして案内
+      await copyToClipboard(decodedText + '\n' + shareUrl);
+      alert('シェア用のテキストとURLをコピーしました。\nお好きなSNS（InstagramやXなど）にペーストしてご活用ください！');
+    }
   };
   
   const handleOrderClick = async (e: MouseEvent<HTMLAnchorElement>) => {
@@ -1111,7 +1103,7 @@ function HomeContent() {
                                 {[ 
                                   { id: '01', file: 'hanhaba_Layer01.png', z: 10, rot: 2, bgX: '12%', bgY: '34%' }, 
                                   { id: '02', file: 'hanhaba_Layer02.png', z: 20, rot: 1, bgX: '45%', bgY: '67%' }, 
-                                  { id: '03', file: 'hanhaba_Layer03.png', z: 30, rot: 98, bgX: '78%', bgY: '12%' }, 
+                                  { id: '03', file: 'hanhaba_Layer03.png', z: 30, rot: 90, bgX: '78%', bgY: '12%' }, 
                                   { id: '04', file: 'hanhaba_Layer04.png', z: 40, rot: -1, bgX: '23%', bgY: '89%' }, 
                                   { id: '05', file: 'hanhaba_Layer05.png', z: 50, rot: -12, bgX: '56%', bgY: '45%' }, 
                                   { id: '06', file: 'hanhaba_Layer06.png', z: 60, rot: -3, bgX: '89%', bgY: '23%' }
@@ -1282,6 +1274,16 @@ function HomeContent() {
         {/* ▼▼ 操作パネル ▼▼ */}
         <div className="w-full lg:w-1/2 bg-white border border-zinc-200 p-4 sm:p-8 lg:p-10 shrink-0 shadow-sm z-10 relative">
           
+          {/* お誘いバナー */}
+          <div className="bg-pink-50 border border-pink-200 text-pink-800 p-3 shadow-sm mb-6 rounded-sm">
+            <p className="font-bold text-xs mb-1 flex items-center gap-1.5 tracking-wider">
+              <span>🌸</span> 1日3回のお楽しみ
+            </p>
+            <p className="text-[10px] leading-relaxed opacity-90 font-medium">
+              深夜0時に生成回数がリセットされます。<br className="sm:hidden" />ブラウザの「ブックマーク」やスマホの「ホーム画面に追加」をして、毎日の息抜きに遊びに来てくださいね。
+            </p>
+          </div>
+
           <div className="flex bg-zinc-50 border border-zinc-200 p-1 mb-6 shadow-sm">
             <button type="button" onClick={() => setCreationMode('geometric')} className={`flex-1 py-2.5 sm:py-3 text-xs font-black tracking-wider transition-all ${creationMode === 'geometric' ? 'bg-zinc-900 text-white shadow' : 'text-zinc-500 hover:text-zinc-800'}`}>
               格子・水玉製作所
@@ -1366,11 +1368,6 @@ function HomeContent() {
               </>
             ) : (
               <div className="space-y-6 animate-fade-in">
-                <div className="bg-zinc-50 border border-zinc-200 text-zinc-800 p-3 text-xs shadow-sm">
-                  <p className="font-bold text-[11px] mb-0.5">使い放題モード</p>
-                  <p className="text-[10px] opacity-90">上のプレビューを見ながら、サイズや色を自由にいじって遊んでみてください。</p>
-                </div>
-
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-[11px] font-bold text-zinc-900 mb-1.5">柄の種類</label>
@@ -1670,7 +1667,7 @@ function HomeContent() {
                           <div className="max-h-[220px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-200 grid grid-cols-3 gap-1.5">
                             {TRADITIONAL_COLORS.map((col) => (
                               <button key={`obiage-${col.name}`} type="button" onClick={() => { setKimonoObiageColor(col.hex); setShowObiageColorPalette(false); }} className="relative min-h-[44px] p-1.5 flex flex-col justify-end text-left border border-zinc-300 shadow-sm hover:scale-[1.02] transition-transform" style={{ backgroundColor: col.hex }}>
-                                <span className={`text-[9px] font-bold truncate leading-tight ${col.isDark ? 'text-white' : 'text-zinc-900'}`}>{col.name.split(' ')[0]}</span>
+                                <span className={`text-[8px] font-bold truncate leading-tight ${col.isDark ? 'text-white' : 'text-zinc-900'}`}>{col.name.split(' ')[0]}</span>
                               </button>
                             ))}
                           </div>
@@ -1719,20 +1716,10 @@ function HomeContent() {
                   <button type="button" onClick={handleDownloadOriginal} className="flex-1 py-3 text-center border border-zinc-300 bg-white hover:bg-zinc-50 text-zinc-700 text-xs font-bold tracking-widest transition-all flex items-center justify-center gap-1.5 shadow-sm rounded-sm">
                     平面データを保存
                   </button>
-                  <div className="flex gap-2 justify-center">
-                    <button onClick={handleShareX} className="w-12 h-12 flex items-center justify-center bg-black text-white rounded-sm shadow-sm hover:opacity-80 transition-opacity" aria-label="Share on X">
-                      <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 22.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-                    </button>
-                    <button onClick={handleShareInstagram} className="w-12 h-12 flex items-center justify-center bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-500 text-white rounded-sm shadow-sm hover:opacity-90 transition-opacity" aria-label="Share on Instagram">
-                      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
-                    </button>
-                    <button onClick={handleShareThreads} className="w-12 h-12 flex items-center justify-center bg-black text-white rounded-sm shadow-sm hover:opacity-80 transition-opacity" aria-label="Share on Threads">
-                      <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm-2.035-6.613c-1.396 0-2.316-.95-2.316-2.457 0-1.506.92-2.457 2.316-2.457 1.396 0 2.316.95 2.316 2.457 0 1.506-.92 2.457-2.316 2.457zm0-3.666c-.663 0-1.127.464-1.127 1.209 0 .745.464 1.209 1.127 1.209.663 0 1.127-.464 1.127-1.209 0-.745-.464-1.209-1.127-1.209zm4.842 1.265c0-1.954-1.428-3.414-3.568-3.414-2.222 0-3.864 1.55-3.864 3.753 0 2.203 1.642 3.753 3.864 3.753 1.455 0 2.65-.672 3.256-1.78l-1.077-.662c-.42.723-1.196 1.19-2.18 1.19-1.233 0-2.193-.728-2.463-1.846h5.922c.07-.315.11-.645.11-.994zm-1.265-.45h-4.636c.26-1.012 1.107-1.636 2.257-1.636 1.15 0 1.996.624 2.257 1.636h.122z"/></svg>
-                    </button>
-                    <button onClick={handleSharePinterest} className="w-12 h-12 flex items-center justify-center bg-[#E60023] text-white rounded-sm shadow-sm hover:opacity-90 transition-opacity" aria-label="Share on Pinterest">
-                      <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.162-.105-.949-.199-2.403.041-3.439.219-.937 1.406-5.957 1.406-5.957s-.359-.72-.359-1.781c0-1.663.967-2.911 2.168-2.911 1.024 0 1.518.769 1.518 1.688 0 1.029-.653 2.567-.992 3.992-.285 1.193.6 2.165 1.775 2.165 2.128 0 3.768-2.245 3.768-5.487 0-2.861-2.063-4.869-5.008-4.869-3.41 0-5.409 2.562-5.409 5.199 0 1.033.394 2.143.889 2.741.099.12.112.225.085.345l-.288 1.178c-.046.19-.152.232-.35.14-1.305-.609-2.123-2.525-2.123-4.062 0-3.308 2.402-6.347 6.932-6.347 3.639 0 6.471 2.593 6.471 6.05 0 3.621-2.28 6.536-5.449 6.536-1.064 0-2.066-.554-2.409-1.206l-.658 2.505c-.237.91-1.065 2.464-1.35 3.109 1.02.311 2.102.478 3.22.478 6.621 0 11.988-5.367 11.988-11.987C24 5.367 18.638 0 12.017 0z"/></svg>
-                    </button>
-                  </div>
+                  <button type="button" onClick={handleNativeShare} className="flex-1 py-3 text-center bg-zinc-100 hover:bg-zinc-200 text-zinc-900 text-[11px] sm:text-xs font-bold tracking-widest transition-colors flex items-center justify-center gap-2 shadow-sm border border-zinc-300 rounded-sm">
+                    SNSでシェア（スマホ標準機能）
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+                  </button>
                 </div>
               </div>
             )}
