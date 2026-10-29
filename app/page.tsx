@@ -1103,7 +1103,7 @@ function HomeContent() {
                                 {[ 
                                   { id: '01', file: 'hanhaba_Layer01.png', z: 10, rot: 2, bgX: '12%', bgY: '34%' }, 
                                   { id: '02', file: 'hanhaba_Layer02.png', z: 20, rot: 1, bgX: '45%', bgY: '67%' }, 
-                                  { id: '03', file: 'hanhaba_Layer03.png', z: 30, rot: 2, bgX: '78%', bgY: '12%' }, 
+                                  { id: '03', file: 'hanhaba_Layer03.png', z: 30, rot: 5, bgX: '78%', bgY: '12%' }, 
                                   { id: '04', file: 'hanhaba_Layer04.png', z: 40, rot: -1, bgX: '23%', bgY: '89%' }, 
                                   { id: '05', file: 'hanhaba_Layer05.png', z: 50, rot: -12, bgX: '56%', bgY: '45%' }, 
                                   { id: '06', file: 'hanhaba_Layer06.png', z: 60, rot: -93, bgX: '89%', bgY: '23%' }
