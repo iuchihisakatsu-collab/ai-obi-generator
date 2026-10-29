@@ -448,8 +448,12 @@ function HomeContent() {
   const [kimonoObiColor, setKimonoObiColor] = useState('#161616'); 
   const [customObiUrl, setCustomObiUrl] = useState<string | null>(null);
   const [showObiColorPalette, setShowObiColorPalette] = useState(false);
+  
   const [kimonoHaneriColor, setKimonoHaneriColor] = useState('#fffffc'); 
+  const [showHaneriColorPalette, setShowHaneriColorPalette] = useState(false);
+
   const [kimonoObiageColor, setKimonoObiageColor] = useState('#e8d3d1'); 
+  const [showObiageColorPalette, setShowObiageColorPalette] = useState(false);
 
   const [rotatedPatternUrl, setRotatedPatternUrl] = useState<string>('');
   
@@ -855,12 +859,11 @@ function HomeContent() {
           { file: '/hidarieri_117.png', angle: 117, bgX: 70, bgY: 10 },
         ];
 
-        // ★ 着物マッピングも半幅帯・京袋帯と全く同じ黄金比率計算を使用
-        const pxPerMm = 27 / 11;
-        const kBgWidth = creationMode === 'geometric' ? (bgSizeMm * pxPerMm) : (180 * pxPerMm);
+        // 600mm基準
+        const kimonoPxPerMm = 1200 / 600; 
+        const kBgWidth = creationMode === 'geometric' ? (bgSizeMm * kimonoPxPerMm) : (180 * kimonoPxPerMm);
         const kBgScale = kBgWidth / Math.max(1, patternImg.width);
         const kBgHeight = patternImg.height * kBgScale;
-        
         const kPCanvas = document.createElement('canvas');
         kPCanvas.width = kBgWidth; 
         kPCanvas.height = kBgHeight;
@@ -1165,11 +1168,13 @@ function HomeContent() {
                       <>
                         <div ref={previewContainerRef} className="relative w-[210px] sm:w-[340px] aspect-square mx-auto drop-shadow-xl bg-white">
                           {(() => {
-                            // ★ 180mm絶対基準（半幅帯・京袋帯と全く同じ計算式を適用）
-                            const patternSize = creationMode === 'geometric' 
-                              ? `${bgSizeMm * UNIVERSAL_SCALE_FACTOR}% auto` 
-                              : `${180 * UNIVERSAL_SCALE_FACTOR}% auto`;
-                            
+                            // ★ 180mm絶対基準 ＆ 1200px＝600mm実寸キャンバス の補正計算
+                            // 200%拡大されたdivに背景を敷くため、パーセンテージを半分（÷2）にする
+                            const KIMONO_CANVAS_MM = 600;
+                            const kimonoScalePercent = ((180 / KIMONO_CANVAS_MM) * 100) / 2;
+                            const geoScalePercent = ((bgSizeMm / KIMONO_CANVAS_MM) * 100) / 2; 
+
+                            const patternSize = creationMode === 'geometric' ? `${geoScalePercent}% auto` : `${kimonoScalePercent}% auto`;
                             const effectivePatternUrl = creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl);
                             const v = '30'; 
 
@@ -1428,11 +1433,13 @@ function HomeContent() {
               {itemType === 'kimono' && (
                 <div className="pt-3 border-t border-zinc-100 space-y-3 relative z-30">
                   <label className="block text-[11px] font-bold text-zinc-800 tracking-wider">着物のコーディネート</label>
+                  
+                  {/* 帯 */}
                   <div className="flex gap-2 items-center">
                     <span className="text-[10px] font-bold text-zinc-700 w-10">帯：</span>
                     <div className="flex items-center gap-1.5 flex-1">
                       <div className="w-7 h-7 shrink-0 border border-zinc-300 shadow-inner" style={{ backgroundColor: kimonoObiColor, backgroundImage: customObiUrl ? `url(${customObiUrl})` : 'none', backgroundSize: 'cover' }} />
-                      <button type="button" onClick={() => setShowObiColorPalette(!showObiColorPalette)} className="flex-1 text-[10px] h-7 font-bold transition-all border shadow-sm bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50 relative z-10">
+                      <button type="button" onClick={() => { setShowObiColorPalette(!showObiColorPalette); setShowHaneriColorPalette(false); setShowObiageColorPalette(false); }} className="flex-1 text-[10px] h-7 font-bold transition-all border shadow-sm bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50 relative z-10">
                         色を選ぶ
                       </button>
                     </div>
@@ -1446,7 +1453,6 @@ function HomeContent() {
                       </button> 
                     )}
                   </div>
-                  
                   {showObiColorPalette && (
                     <div className="p-3 bg-zinc-50 border border-zinc-200 shadow-inner relative z-50">
                       <div className="flex justify-between items-center mb-2">
@@ -1465,15 +1471,64 @@ function HomeContent() {
                     </div>
                   )}
 
-                  <div className="flex gap-4 pt-1">
-                    <label className="flex items-center gap-2 cursor-pointer relative z-10">
-                      <span className="text-[10px] font-bold text-zinc-700">半衿：</span>
-                      <input type="color" value={kimonoHaneriColor} onChange={(e) => setKimonoHaneriColor(e.target.value)} className="w-8 h-8 p-0 border-0 cursor-pointer" />
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer relative z-10">
-                      <span className="text-[10px] font-bold text-zinc-700">帯揚げ：</span>
-                      <input type="color" value={kimonoObiageColor} onChange={(e) => setKimonoObiageColor(e.target.value)} className="w-8 h-8 p-0 border-0 cursor-pointer" />
-                    </label>
+                  {/* 半衿と帯揚げの設定 */}
+                  <div className="flex flex-col sm:flex-row gap-3 pt-2 border-t border-zinc-100/50">
+                    
+                    {/* 半衿 */}
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold text-zinc-700 w-10">半衿：</span>
+                        <div className="flex items-center gap-1.5 flex-1">
+                          <div className="w-7 h-7 shrink-0 border border-zinc-300 shadow-inner" style={{ backgroundColor: kimonoHaneriColor }} />
+                          <button type="button" onClick={() => { setShowHaneriColorPalette(!showHaneriColorPalette); setShowObiColorPalette(false); setShowObiageColorPalette(false); }} className="flex-1 text-[10px] h-7 font-bold transition-all border shadow-sm bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50 relative z-10">
+                            色を選ぶ
+                          </button>
+                        </div>
+                      </div>
+                      {showHaneriColorPalette && (
+                        <div className="mt-2 p-3 bg-zinc-50 border border-zinc-200 shadow-inner relative z-50">
+                          <div className="flex justify-between items-center mb-2">
+                            <p className="text-[10px] text-zinc-500 font-bold">半衿の色を選択：</p>
+                            <button type="button" onClick={() => setShowHaneriColorPalette(false)} className="text-[10px] text-zinc-400 font-bold">✕</button>
+                          </div>
+                          <div className="max-h-[140px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-200 grid grid-cols-3 gap-1.5">
+                            {TRADITIONAL_COLORS.map((col) => (
+                              <button key={`haneri-${col.name}`} type="button" onClick={() => { setKimonoHaneriColor(col.hex); setShowHaneriColorPalette(false); }} className="relative h-8 p-1 flex flex-col justify-end text-left border border-zinc-300 shadow-sm" style={{ backgroundColor: col.hex }}>
+                                <span className={`text-[8px] font-bold truncate leading-tight ${col.isDark ? 'text-white' : 'text-zinc-900'}`}>{col.name.split(' ')[0]}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 帯揚げ */}
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold text-zinc-700 w-10">帯揚げ：</span>
+                        <div className="flex items-center gap-1.5 flex-1">
+                          <div className="w-7 h-7 shrink-0 border border-zinc-300 shadow-inner" style={{ backgroundColor: kimonoObiageColor }} />
+                          <button type="button" onClick={() => { setShowObiageColorPalette(!showObiageColorPalette); setShowObiColorPalette(false); setShowHaneriColorPalette(false); }} className="flex-1 text-[10px] h-7 font-bold transition-all border shadow-sm bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50 relative z-10">
+                            色を選ぶ
+                          </button>
+                        </div>
+                      </div>
+                      {showObiageColorPalette && (
+                        <div className="mt-2 p-3 bg-zinc-50 border border-zinc-200 shadow-inner relative z-50">
+                          <div className="flex justify-between items-center mb-2">
+                            <p className="text-[10px] text-zinc-500 font-bold">帯揚げの色を選択：</p>
+                            <button type="button" onClick={() => setShowObiageColorPalette(false)} className="text-[10px] text-zinc-400 font-bold">✕</button>
+                          </div>
+                          <div className="max-h-[140px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-200 grid grid-cols-3 gap-1.5">
+                            {TRADITIONAL_COLORS.map((col) => (
+                              <button key={`obiage-${col.name}`} type="button" onClick={() => { setKimonoObiageColor(col.hex); setShowObiageColorPalette(false); }} className="relative h-8 p-1 flex flex-col justify-end text-left border border-zinc-300 shadow-sm" style={{ backgroundColor: col.hex }}>
+                                <span className={`text-[8px] font-bold truncate leading-tight ${col.isDark ? 'text-white' : 'text-zinc-900'}`}>{col.name.split(' ')[0]}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
@@ -1535,3 +1590,4 @@ export default function Home() {
     </Suspense>
   );
 }
+```<FollowUp>これで「180mm実寸」と「帯・半衿・帯揚げの伝統色パレット」が完璧に動くはずです！確認をお願いできますでしょうか？</FollowUp>
