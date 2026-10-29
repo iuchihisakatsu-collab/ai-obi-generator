@@ -579,19 +579,6 @@ function HomeContent() {
 
     setSerialNumber((prev) => (prev && prev.startsWith('GEO-')) ? prev : `GEO-${Math.floor(1000 + Math.random() * 9000)}`);
     
-    let newTitle = '無題';
-    if (geoPatternType === 'stripe') newTitle = '万筋縞';
-    if (geoPatternType === 'dot') newTitle = '千鳥水玉';
-    if (geoPatternType === 'grid') newTitle = '格子柄';
-    if (geoPatternType === 'gingham') newTitle = 'ギンガムチェック';
-    if (geoPatternType === 'checker') newTitle = '市松模様';
-
-    setPatternTitle((prev) => {
-      if (!prev || ['万筋縞', '千鳥水玉', '格子柄', 'ギンガムチェック', '市松模様'].includes(prev)) {
-        return newTitle;
-      }
-      return prev;
-    });
   }, [creationMode, geoPatternType, stripeDir, lineWidth, gapWidth, dotLayout, dotRadius, geoBgColor, geoPatternColor]);
 
   useEffect(() => {
@@ -670,9 +657,6 @@ function HomeContent() {
         setBlobUrl(data.blobUrl);   
         setSerialNumber(`KOMON-${Math.floor(1000 + Math.random() * 9000)}`);
         
-        if (!patternTitle || ['万筋縞', '千鳥水玉', '格子柄', 'ギンガムチェック', '市松模様'].includes(patternTitle)) {
-          setPatternTitle('');
-        }
         setDisplayMode('mockup');
         const newCount = currentCount + 1;
         localStorage.setItem('komon_generations', JSON.stringify({ date: todayJst, count: newCount }));
@@ -750,11 +734,12 @@ function HomeContent() {
         const patternFill = ctx.createPattern(pCanvas, 'repeat')!;
 
         if (itemType === 'hanhaba') {
+          // 羽の部分の角度を修正（横縞になるバグを90度回転で解消）
           const layers = [
             { file: '/hanhaba_Layer01.png', rot: 2, bgX: 12, bgY: 34 }, 
             { file: '/hanhaba_Layer02.png', rot: 1, bgX: 45, bgY: 67 },
-            { file: '/hanhaba_Layer03.png', rot: 8, bgX: 78, bgY: 12 }, 
-            { file: '/hanhaba_Layer04.png', rot: -1, bgX: 23, bgY: 89 },
+            { file: '/hanhaba_Layer03.png', rot: 98, bgX: 78, bgY: 12 }, // rot: 8 -> 98 に修正
+            { file: '/hanhaba_Layer04.png', rot: 89, bgX: 23, bgY: 89 }, // rot: -1 -> 89 に修正
             { file: '/hanhaba_Layer05.png', rot: -12, bgX: 56, bgY: 45 }, 
             { file: '/hanhaba_Layer06.png', rot: -3, bgX: 89, bgY: 23 }
           ];
@@ -910,6 +895,9 @@ function HomeContent() {
         hCtx.globalCompositeOperation = 'source-in'; 
         hCtx.fillStyle = kimonoHaneriColor; 
         hCtx.fillRect(0,0,size,size);
+        // 半衿が白浮きしないように薄く黒を乗せる
+        hCtx.fillStyle = 'rgba(0,0,0,0.1)';
+        hCtx.fillRect(0,0,size,size);
         ctx.drawImage(hCanvas, 0, 0);
 
         const obiageImg = await loadImage('/obiage.png?v=30');
@@ -965,8 +953,26 @@ function HomeContent() {
   const finalTitle = patternTitle.trim() || '（無題）';
   const colorSummary = selectedColors.length > 0 ? selectedColors.map((c) => c.name.split(' ')[0]).join('・') : '自由配色';
   const shareText = encodeURIComponent(`「妄想きもの図案帳」で、柄のアイデアを試してみました。\n\n銘：『${finalTitle}』\n配色：${colorSummary}\n\n※AIによるアイデア図案です。実際の生地制作時はスタッフが人の目で調整します。\n\n#妄想きもの図案帳`);
-  const shareUrl = typeof window !== 'undefined' ? encodeURIComponent(window.location.href) : '';
-  const xShareLink = `https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`;
+  
+  // OS標準のシェア機能（Web Share API）を呼び出す
+  const handleNativeShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: finalTitle,
+          text: decodeURIComponent(shareText),
+          url: window.location.href,
+        });
+      } catch (err) {
+        console.warn('Share canceled', err);
+      }
+    } else {
+      // 非対応ブラウザ（PCなど）の場合はX(Twitter)のシェア窓を開く
+      const shareUrl = typeof window !== 'undefined' ? encodeURIComponent(window.location.href) : '';
+      const xShareLink = `https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`;
+      window.open(xShareLink, '_blank', 'noopener,noreferrer');
+    }
+  };
   
   const handleOrderClick = async (e: MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault(); 
@@ -1031,27 +1037,24 @@ function HomeContent() {
           {imageUrl && (
             <div className="bg-white border border-zinc-300 shadow-xl overflow-hidden animate-fade-in">
               
-              <div className="px-3 py-2 sm:px-4 sm:py-3 border-b border-zinc-200 bg-zinc-50 flex justify-between items-center">
-                <div>
-                  <span className="text-[8px] sm:text-[9px] font-mono font-bold tracking-widest text-zinc-400 block">
-                    ID: {serialNumber}
-                  </span>
-                  <h2 className="text-xs sm:text-base font-black text-zinc-900 tracking-wider truncate max-w-[200px] sm:max-w-none">
+              {/* ▼ 統合・圧縮されたUIヘッダー ▼ */}
+              <div className="px-3 py-2.5 bg-zinc-900 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <span className="text-[10px] font-mono text-zinc-400">ID:{serialNumber}</span>
+                  <h2 className="text-sm font-black truncate max-w-[180px] sm:max-w-[240px]">
                     銘：『{finalTitle}』
                   </h2>
                 </div>
-              </div>
-
-              <div className="px-3 py-2 bg-zinc-900 text-white flex items-center justify-between">
-                <span className="text-[10px] font-bold text-zinc-400 tracking-wider">仕立てアイテム：</span>
-                <div className="flex gap-1">
-                  <button type="button" onClick={() => handleItemTypeChange('hanhaba')} className={`px-3 py-1 text-[11px] font-black rounded transition-all ${itemType === 'hanhaba' ? 'bg-white text-zinc-950 shadow' : 'bg-zinc-800 text-zinc-400 hover:text-white'}`}>半幅帯</button>
-                  <button type="button" onClick={() => handleItemTypeChange('kyobukuro')} className={`px-3 py-1 text-[11px] font-black rounded transition-all ${itemType === 'kyobukuro' ? 'bg-white text-zinc-950 shadow' : 'bg-zinc-800 text-zinc-400 hover:text-white'}`}>京袋帯</button>
-                  <button type="button" onClick={() => handleItemTypeChange('kimono')} className={`px-3 py-1 text-[11px] font-black rounded transition-all ${itemType === 'kimono' ? 'bg-white text-zinc-950 shadow' : 'bg-zinc-800 text-zinc-400 hover:text-white'}`}>着物</button>
+                <div className="flex gap-1.5 items-center">
+                  <button type="button" onClick={() => handleItemTypeChange('hanhaba')} className={`px-2.5 py-1.5 text-[11px] font-black rounded transition-all ${itemType === 'hanhaba' ? 'bg-white text-zinc-950' : 'bg-zinc-800 text-zinc-400 hover:text-white'}`}>半幅帯</button>
+                  <button type="button" onClick={() => handleItemTypeChange('kyobukuro')} className={`px-2.5 py-1.5 text-[11px] font-black rounded transition-all ${itemType === 'kyobukuro' ? 'bg-white text-zinc-950' : 'bg-zinc-800 text-zinc-400 hover:text-white'}`}>京袋帯</button>
+                  <button type="button" onClick={() => handleItemTypeChange('kimono')} className={`px-2.5 py-1.5 text-[11px] font-black rounded transition-all flex items-center gap-1.5 ${itemType === 'kimono' ? 'bg-white text-zinc-950' : 'bg-zinc-800 text-zinc-400 hover:text-white'}`}>
+                    着物<span className="text-[8px] bg-red-500 text-white px-1 py-0.5 rounded-sm animate-pulse leading-none shadow-sm">NEW</span>
+                  </button>
                 </div>
               </div>
 
-              <div className="px-3 py-2.5 border-b border-zinc-200 bg-zinc-100 flex flex-col gap-2">
+              <div className="px-3 py-2 border-b border-zinc-200 bg-zinc-100 flex flex-col gap-2">
                 <div className="flex gap-1.5 overflow-x-auto pb-0.5 scrollbar-hide">
                   <button type="button" onClick={() => setDisplayMode('mockup')} className={`flex-1 px-3 py-2 text-[10px] sm:text-xs font-bold tracking-wider transition-all border rounded-sm ${displayMode === 'mockup' ? 'bg-zinc-900 text-white border-zinc-900 shadow' : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50'}`}>
                     {itemType === 'hanhaba' && '半幅帯マッピング'}
@@ -1077,7 +1080,7 @@ function HomeContent() {
                     {/* 半幅帯マッピング */}
                     {itemType === 'hanhaba' && (
                       <>
-                        <div ref={previewContainerRef} className="relative w-[210px] sm:w-[340px] aspect-square mx-auto drop-shadow-xl">
+                        <div ref={previewContainerRef} className="relative w-full max-w-[320px] sm:max-w-[340px] aspect-square mx-auto drop-shadow-xl">
                           {(() => {
                             const patternSize = creationMode === 'geometric' 
                               ? `${bgSizeMm * UNIVERSAL_SCALE_FACTOR}% auto` 
@@ -1090,8 +1093,8 @@ function HomeContent() {
                                 {[ 
                                   { id: '01', file: 'hanhaba_Layer01.png', z: 10, rot: 2, bgX: '12%', bgY: '34%' }, 
                                   { id: '02', file: 'hanhaba_Layer02.png', z: 20, rot: 1, bgX: '45%', bgY: '67%' }, 
-                                  { id: '03', file: 'hanhaba_Layer03.png', z: 30, rot: 8, bgX: '78%', bgY: '12%' }, 
-                                  { id: '04', file: 'hanhaba_Layer04.png', z: 40, rot: -1, bgX: '23%', bgY: '89%' }, 
+                                  { id: '03', file: 'hanhaba_Layer03.png', z: 30, rot: 98, bgX: '78%', bgY: '12%' }, 
+                                  { id: '04', file: 'hanhaba_Layer04.png', z: 40, rot: 89, bgX: '23%', bgY: '89%' }, 
                                   { id: '05', file: 'hanhaba_Layer05.png', z: 50, rot: -12, bgX: '56%', bgY: '45%' }, 
                                   { id: '06', file: 'hanhaba_Layer06.png', z: 60, rot: -3, bgX: '89%', bgY: '23%' }
                                 ].map((layer) => (
@@ -1113,19 +1116,18 @@ function HomeContent() {
                             );
                           })()}
                         </div>
-                        <div className="mt-3">
-                          <button type="button" onClick={handleDownloadMapping} disabled={mockupSubmitting} className={`px-3 py-1.5 text-[10px] sm:text-xs font-bold tracking-wider rounded-sm shadow-sm transition-colors ${mockupSubmitting ? 'bg-zinc-400 text-zinc-100 cursor-not-allowed' : 'bg-zinc-900 text-white hover:bg-zinc-800'}`}>
+                        <div className="mt-3 w-full max-w-[320px] mx-auto">
+                          <button type="button" onClick={handleDownloadMapping} disabled={mockupSubmitting} className={`w-full px-3 py-2.5 text-[11px] sm:text-xs font-bold tracking-wider rounded-sm shadow-sm transition-colors ${mockupSubmitting ? 'bg-zinc-400 text-zinc-100 cursor-not-allowed' : 'bg-zinc-900 text-white hover:bg-zinc-800'}`}>
                             {mockupSubmitting ? '画像を作成中...' : '↓ マッピング画像を保存'}
                           </button>
                         </div>
-                        <p className="text-[9px] sm:text-[10px] text-zinc-500 mt-4 font-medium bg-white/80 px-2 py-1 rounded text-center">※ 生地制作時は職人が柄のつなぎ目（送り）を微調整します。</p>
                       </>
                     )}
 
                     {/* 京袋帯マッピング */}
                     {itemType === 'kyobukuro' && (
                       <>
-                        <div ref={previewContainerRef} className="relative w-[210px] sm:w-[340px] aspect-square mx-auto drop-shadow-xl">
+                        <div ref={previewContainerRef} className="relative w-full max-w-[320px] sm:max-w-[340px] aspect-square mx-auto drop-shadow-xl">
                           {(() => {
                             const patternSize = creationMode === 'geometric' 
                               ? `${bgSizeMm * UNIVERSAL_SCALE_FACTOR}% auto` 
@@ -1155,19 +1157,18 @@ function HomeContent() {
                             );
                           })()}
                         </div>
-                        <div className="mt-3">
-                          <button type="button" onClick={handleDownloadMapping} disabled={mockupSubmitting} className={`px-3 py-1.5 text-[10px] sm:text-xs font-bold tracking-wider rounded-sm shadow-sm transition-colors ${mockupSubmitting ? 'bg-zinc-400 text-zinc-100 cursor-not-allowed' : 'bg-zinc-900 text-white hover:bg-zinc-800'}`}>
+                        <div className="mt-3 w-full max-w-[320px] mx-auto">
+                          <button type="button" onClick={handleDownloadMapping} disabled={mockupSubmitting} className={`w-full px-3 py-2.5 text-[11px] sm:text-xs font-bold tracking-wider rounded-sm shadow-sm transition-colors ${mockupSubmitting ? 'bg-zinc-400 text-zinc-100 cursor-not-allowed' : 'bg-zinc-900 text-white hover:bg-zinc-800'}`}>
                             {mockupSubmitting ? '画像を作成中...' : '↓ マッピング画像を保存'}
                           </button>
                         </div>
-                        <p className="text-[9px] sm:text-[10px] text-zinc-500 mt-4 font-medium bg-white/80 px-2 py-1 rounded text-center">※ 生地制作時は職人が柄のつなぎ目（送り）を微調整します。</p>
                       </>
                     )}
 
                     {/* ★ 着物マッピング（全14枚・180mm実寸完全ロック・角度連動・Canvasダウンロード完全対応） */}
                     {itemType === 'kimono' && (
                       <>
-                        <div ref={previewContainerRef} className="relative w-[210px] sm:w-[340px] aspect-square mx-auto drop-shadow-xl bg-white">
+                        <div ref={previewContainerRef} className="relative w-full max-w-[320px] sm:max-w-[340px] aspect-square mx-auto drop-shadow-xl bg-white">
                           {(() => {
                             // ★ 180mm絶対基準 ＆ 200%拡大用の ÷2 スケール補正
                             const patternSize = creationMode === 'geometric' 
@@ -1199,9 +1200,11 @@ function HomeContent() {
                                     <div style={{ position: 'absolute', top: '-50%', left: '-50%', width: '200%', height: '200%', backgroundImage: `url(${effectivePatternUrl})`, backgroundSize: patternSize, backgroundRepeat: 'repeat', backgroundPosition: `${layer.bgX} ${layer.bgY}`, transform: `rotate(${layer.angle - 90}deg)`, transformOrigin: 'center center', backgroundColor: creationMode === 'geometric' ? geoBgColor : 'transparent' }} />
                                   </div>
                                 ))}
-                                {/* 半衿 */}
+                                {/* 半衿 (白浮き防止に黒10%を被せる) */}
                                 <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 45, maskImage: `url('/haneri.png?v=${v}')`, WebkitMaskImage: `url('/haneri.png?v=${v}')`, maskSize: 'contain', WebkitMaskSize: 'contain', maskRepeat: 'no-repeat', WebkitMaskPosition: 'center' }}>
-                                  <div className="w-full h-full" style={{ backgroundColor: kimonoHaneriColor }} />
+                                  <div className="w-full h-full relative" style={{ backgroundColor: kimonoHaneriColor }}>
+                                    <div className="absolute inset-0 bg-black/10" />
+                                  </div>
                                 </div>
                                 {/* 帯揚げ */}
                                 <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 60, maskImage: `url('/obiage.png?v=${v}')`, WebkitMaskImage: `url('/obiage.png?v=${v}')`, maskSize: 'contain', WebkitMaskSize: 'contain', maskRepeat: 'no-repeat', WebkitMaskPosition: 'center' }}>
@@ -1217,23 +1220,24 @@ function HomeContent() {
                             );
                           })()}
                         </div>
-                        <div className="mt-3">
-                          <button type="button" onClick={handleDownloadMapping} disabled={mockupSubmitting} className={`px-3 py-1.5 text-[10px] sm:text-xs font-bold tracking-wider rounded-sm shadow-sm transition-colors ${ mockupSubmitting ? 'bg-zinc-400 text-zinc-100 cursor-not-allowed' : 'bg-zinc-900 text-white hover:bg-zinc-800' }`}>
+                        <div className="mt-3 w-full max-w-[320px] mx-auto">
+                          <button type="button" onClick={handleDownloadMapping} disabled={mockupSubmitting} className={`w-full px-3 py-2.5 text-[11px] sm:text-xs font-bold tracking-wider rounded-sm shadow-sm transition-colors ${ mockupSubmitting ? 'bg-zinc-400 text-zinc-100 cursor-not-allowed' : 'bg-zinc-900 text-white hover:bg-zinc-800' }`}>
                             {mockupSubmitting ? '画像を作成中...' : '↓ マッピング画像を保存'}
                           </button>
                         </div>
-                        <p className="text-[9px] sm:text-[10px] text-zinc-500 mt-4 font-medium bg-white/80 px-2 py-1 rounded text-center">
-                          ※ 実際の反物から仕立てた際の柄の出方を想定したシミュレーション<br />
-                          ※ 帯は手持ちの画像をアップロードして着せ替えが可能です。
-                        </p>
                       </>
                     )}
+                    
+                    {/* ★ 警告テキスト追加 */}
+                    <p className="w-full max-w-[320px] mx-auto text-[10px] font-bold text-red-600 mt-3 text-center bg-red-50 border border-red-100 py-1.5 rounded-sm shadow-sm">
+                      ※一期一会のデータです。<br className="sm:hidden" />閉じると消えるため必ず保存してください。
+                    </p>
                   </div>
                 )}
 
                 {displayMode === 'trim' && itemType === 'kyobukuro' && (
                   <div className="w-full flex flex-col items-center animate-fade-in">
-                    <div className="relative w-[280px] sm:w-[400px] mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden" style={{ aspectRatio: '40 / 34' }}>
+                    <div className="relative w-full max-w-[320px] sm:max-w-[400px] mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden" style={{ aspectRatio: '40 / 34' }}>
                       <div className="absolute inset-0" style={{ backgroundImage: `url(${creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl)})`, backgroundSize: creationMode === 'geometric' ? `${(bgSizeMm / 400) * 100}% auto` : `${(180 / 400) * 100}% auto`, backgroundPosition: 'center center', backgroundRepeat: 'repeat', backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff' }} />
                     </div>
                   </div>
@@ -1246,7 +1250,7 @@ function HomeContent() {
                         <div className="absolute inset-0" style={{ backgroundImage: `url(${creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl)})`, backgroundSize: creationMode === 'geometric' ? `${(bgSizeMm / 180) * 100}% auto` : '100% auto', backgroundPosition: 'top left', backgroundRepeat: 'repeat', backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff' }} />
                       </div>
                     ) : (
-                      <div className="relative w-[260px] sm:w-[400px] aspect-square mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden">
+                      <div className="relative w-full max-w-[320px] sm:max-w-[400px] aspect-square mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden">
                         <div className="absolute inset-0" style={{ backgroundImage: `url(${creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl)})`, backgroundSize: creationMode === 'geometric' ? `${(bgSizeMm / 400) * 100}% auto` : '100% auto', backgroundPosition: 'center', backgroundRepeat: 'repeat', backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff' }} />
                       </div>
                     )}
@@ -1259,17 +1263,12 @@ function HomeContent() {
 
         {/* ▼▼ 操作パネル ▼▼ */}
         <div className="w-full lg:w-1/2 bg-white border border-zinc-200 p-4 sm:p-8 lg:p-10 shrink-0 shadow-sm z-10 relative">
-          <div className="text-center mb-6 sm:mb-8 p-5 sm:p-8 bg-zinc-950 text-white shadow-inner">
-            <h1 className="text-xl sm:text-2xl font-black tracking-widest text-center leading-tight">
-              {isShopify ? 'プリンタグ見本帳' : '妄想きもの図案帳'}
-            </h1>
-          </div>
-
+          
           <div className="flex bg-zinc-50 border border-zinc-200 p-1 mb-6 shadow-sm">
             <button type="button" onClick={() => setCreationMode('geometric')} className={`flex-1 py-2.5 sm:py-3 text-xs font-black tracking-wider transition-all ${creationMode === 'geometric' ? 'bg-zinc-900 text-white shadow' : 'text-zinc-500 hover:text-zinc-800'}`}>
               格子・水玉製作所
             </button>
-            <button type="button" onClick={() => { setCreationMode('ai'); if (['万筋縞', '千鳥水玉', '格子柄', 'ギンガムチェック', '市松模様'].includes(patternTitle)) setPatternTitle(''); }} className={`flex-1 py-2.5 sm:py-3 text-xs font-black tracking-wider transition-all ${creationMode === 'ai' ? 'bg-zinc-900 text-white shadow' : 'text-zinc-500 hover:text-zinc-800'}`}>
+            <button type="button" onClick={() => { setCreationMode('ai'); setPatternTitle(''); }} className={`flex-1 py-2.5 sm:py-3 text-xs font-black tracking-wider transition-all ${creationMode === 'ai' ? 'bg-zinc-900 text-white shadow' : 'text-zinc-500 hover:text-zinc-800'}`}>
               AI妄想モード
             </button>
           </div>
@@ -1525,20 +1524,6 @@ function HomeContent() {
                     ))}
                   </div>
                 </div>
-                <div>
-                  <label className="block text-xs font-bold text-zinc-800 tracking-wider mb-2">04. 作成するアイテム</label>
-                  <div className="flex flex-col gap-1.5">
-                    <button type="button" onClick={() => handleItemTypeChange('hanhaba')} className={`py-2 px-2.5 text-[11px] font-bold tracking-wider transition-all text-left border ${itemType === 'hanhaba' ? 'bg-zinc-900 text-white border-zinc-900 shadow' : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50 shadow-sm'} relative z-10`}>
-                      半幅帯 (プリント18cm)
-                    </button>
-                    <button type="button" onClick={() => handleItemTypeChange('kyobukuro')} className={`py-2 px-2.5 text-[11px] font-bold tracking-wider transition-all text-left border ${itemType === 'kyobukuro' ? 'bg-zinc-900 text-white border-zinc-900 shadow' : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50 shadow-sm'} relative z-10`}>
-                      京袋帯 (プリント34cm)
-                    </button>
-                    <button type="button" onClick={() => handleItemTypeChange('kimono')} className={`py-2 px-2.5 text-[11px] font-bold tracking-wider transition-all text-left border ${itemType === 'kimono' ? 'bg-zinc-900 text-white border-zinc-900 shadow' : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50 shadow-sm'} relative z-10`}>
-                      着物 (反物幅40cm)
-                    </button>
-                  </div>
-                </div>
               </div>
 
               {/* 帯用・裏地用 共通設定パネル切り替え */}
@@ -1679,7 +1664,7 @@ function HomeContent() {
               )}
 
               <div className="pt-2 border-t border-zinc-100">
-                <label className="block text-xs font-bold text-zinc-800 tracking-wider mb-1">05. 図案銘 <span className="text-[10px] text-zinc-400 font-normal">（作品タイトル）</span></label>
+                <label className="block text-xs font-bold text-zinc-800 tracking-wider mb-1">04. 図案銘 <span className="text-[10px] text-zinc-400 font-normal">（作品タイトル）</span></label>
                 <input type="text" className="w-full border border-zinc-300 p-2.5 bg-zinc-50 text-xs sm:text-sm focus:outline-none focus:border-zinc-900 focus:bg-white shadow-sm relative z-10" placeholder="例：遊泳金魚図" value={patternTitle} onChange={(e) => setPatternTitle(e.target.value)} disabled={loading} />
               </div>
 
@@ -1710,11 +1695,18 @@ function HomeContent() {
               <div className="pt-4 border-t border-zinc-200 space-y-3 relative z-10">
                 <div className="grid grid-cols-2 gap-2">
                   <button type="button" onClick={handleDownloadOriginal} className="py-3 text-center border border-zinc-900 bg-white hover:bg-zinc-50 text-zinc-900 text-xs font-bold tracking-widest transition-all flex items-center justify-center gap-1.5 shadow-sm">
-                    平面データ(原寸)を保存
+                    平面データ保存
                   </button>
-                  <a href={xShareLink} target="_blank" rel="noopener noreferrer" className="py-3 text-center bg-[#1DA1F2] hover:bg-[#1a8cd8] text-white text-xs font-bold tracking-widest transition-colors flex items-center justify-center gap-1.5 shadow-sm">
-                    Xでシェア
-                  </a>
+                  {/* 最強のSNSシェアボタン (Web Share API連携) */}
+                  <button type="button" onClick={handleNativeShare} className="py-3 text-center bg-zinc-100 hover:bg-zinc-200 text-zinc-900 text-xs font-bold tracking-widest transition-colors flex items-center justify-center gap-2 shadow-sm border border-zinc-300">
+                    SNSでシェア
+                    <div className="flex gap-1 items-center opacity-70">
+                      <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 22.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                      <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+                      <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm-2.035-6.613c-1.396 0-2.316-.95-2.316-2.457 0-1.506.92-2.457 2.316-2.457 1.396 0 2.316.95 2.316 2.457 0 1.506-.92 2.457-2.316 2.457zm0-3.666c-.663 0-1.127.464-1.127 1.209 0 .745.464 1.209 1.127 1.209.663 0 1.127-.464 1.127-1.209 0-.745-.464-1.209-1.127-1.209zm4.842 1.265c0-1.954-1.428-3.414-3.568-3.414-2.222 0-3.864 1.55-3.864 3.753 0 2.203 1.642 3.753 3.864 3.753 1.455 0 2.65-.672 3.256-1.78l-1.077-.662c-.42.723-1.196 1.19-2.18 1.19-1.233 0-2.193-.728-2.463-1.846h5.922c.07-.315.11-.645.11-.994zm-1.265-.45h-4.636c.26-1.012 1.107-1.636 2.257-1.636 1.15 0 1.996.624 2.257 1.636h.122z"/></svg>
+                      <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.162-.105-.949-.199-2.403.041-3.439.219-.937 1.406-5.957 1.406-5.957s-.359-.72-.359-1.781c0-1.663.967-2.911 2.168-2.911 1.024 0 1.518.769 1.518 1.688 0 1.029-.653 2.567-.992 3.992-.285 1.193.6 2.165 1.775 2.165 2.128 0 3.768-2.245 3.768-5.487 0-2.861-2.063-4.869-5.008-4.869-3.41 0-5.409 2.562-5.409 5.199 0 1.033.394 2.143.889 2.741.099.12.112.225.085.345l-.288 1.178c-.046.19-.152.232-.35.14-1.305-.609-2.123-2.525-2.123-4.062 0-3.308 2.402-6.347 6.932-6.347 3.639 0 6.471 2.593 6.471 6.05 0 3.621-2.28 6.536-5.449 6.536-1.064 0-2.066-.554-2.409-1.206l-.658 2.505c-.237.91-1.065 2.464-1.35 3.109 1.02.311 2.102.478 3.22.478 6.621 0 11.988-5.367 11.988-11.987C24 5.367 18.638 0 12.017 0z"/></svg>
+                    </div>
+                  </button>
                 </div>
                 <a href="#" onClick={handleOrderClick} className="block w-full py-4 text-center bg-zinc-900 hover:bg-zinc-800 text-white text-xs sm:text-sm font-bold tracking-widest uppercase transition-all shadow-md hover:shadow-lg">
                   この図案でお誂えを申し込む
