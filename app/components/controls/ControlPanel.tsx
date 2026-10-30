@@ -5,50 +5,51 @@ import { MouseEvent } from 'react';
 import { TRADITIONAL_COLORS, CategoryItem, LOADING_STEPS } from '../../lib/constants';
 
 interface ControlPanelProps {
-  creationMode: 'ai' | 'geometric';
-  setCreationMode: (mode: 'ai' | 'geometric') => void;
-  aiStyle: string;
-  setAiStyle: (val: string) => void;
-  motif: string;
-  setMotif: (val: string) => void;
-  handleTagClick: (item: CategoryItem) => void;
-  selectedColors: typeof TRADITIONAL_COLORS;
-  setSelectedColors: (val: typeof TRADITIONAL_COLORS | ((prev: typeof TRADITIONAL_COLORS) => typeof TRADITIONAL_COLORS)) => void;
-  handleColorToggle: (col: typeof TRADITIONAL_COLORS[0]) => void;
-  showColorPalette: boolean;
-  setShowColorPalette: (val: boolean) => void;
-  density: string;
-  setDensity: (val: string) => void;
-  geoPatternType: 'plain' | 'stripe' | 'dot' | 'grid' | 'gingham' | 'checker';
-  setGeoPatternType: (val: 'plain' | 'stripe' | 'dot' | 'grid' | 'gingham' | 'checker') => void;
-  stripeDir: 'vertical' | 'horizontal' | 'diagonal';
-  setStripeDir: (val: 'vertical' | 'horizontal' | 'diagonal') => void;
-  dotLayout: 'staggered' | 'grid';
-  setDotLayout: (val: 'staggered' | 'grid') => void;
-  dotRadius: number;
-  setDotRadius: (val: number) => void;
-  gapWidth: number;
-  setGapWidth: (val: number) => void;
-  lineWidth: number;
-  setLineWidth: (val: number) => void;
-  geoBgColor: string;
-  setGeoBgColor: (val: string) => void;
-  geoPatternColor: string;
-  setGeoPatternColor: (val: string) => void;
-  showGeoPaletteFor: 'bg' | 'pattern' | null;
-  setShowGeoPaletteFor: (val: 'bg' | 'pattern' | null) => void;
-  agreed: boolean;
-  setAgreed: (val: boolean) => void;
-  errorMsg: string;
-  loading: boolean;
-  remainingCount: number | null;
-  loadingStep: number;
-  handleGenerate: () => void;
-  imageUrl: string;
-  patternTitle: string;
-  setPatternTitle: (val: string) => void;
-  handleDownloadOriginal: () => void;
-  handleOrderClick: (e: MouseEvent<HTMLAnchorElement>) => void;
+  creationMode?: 'ai' | 'geometric';
+  setCreationMode?: (mode: 'ai' | 'geometric') => void;
+  aiStyle?: string;
+  setAiStyle?: (val: string) => void;
+  motif?: string;
+  setMotif?: (val: string) => void;
+  handleTagClick?: (item: CategoryItem) => void;
+  selectedColors?: typeof TRADITIONAL_COLORS;
+  setSelectedColors?: any;
+  handleColorToggle?: (col: typeof TRADITIONAL_COLORS[0]) => void;
+  showColorPalette?: boolean;
+  setShowColorPalette?: (val: boolean) => void;
+  density?: string;
+  setDensity?: (val: string) => void;
+  geoPatternType?: 'plain' | 'stripe' | 'dot' | 'grid' | 'gingham' | 'checker';
+  setGeoPatternType?: (val: 'plain' | 'stripe' | 'dot' | 'grid' | 'gingham' | 'checker') => void;
+  stripeDir?: 'vertical' | 'horizontal' | 'diagonal';
+  setStripeDir?: (val: 'vertical' | 'horizontal' | 'diagonal') => void;
+  dotLayout?: 'staggered' | 'grid';
+  setDotLayout?: (val: 'staggered' | 'grid') => void;
+  dotRadius?: number;
+  setDotRadius?: (val: number) => void;
+  gapWidth?: number;
+  setGapWidth?: (val: number) => void;
+  lineWidth?: number;
+  setLineWidth?: (val: number) => void;
+  geoBgColor?: string;
+  setGeoBgColor?: (val: string) => void;
+  geoPatternColor?: string;
+  setGeoPatternColor?: (val: string) => void;
+  showGeoPaletteFor?: 'bg' | 'pattern' | null;
+  setShowGeoPaletteFor?: (val: 'bg' | 'pattern' | null) => void;
+  agreed?: boolean;
+  setAgreed?: (val: boolean) => void;
+  errorMsg?: string;
+  loading?: boolean;
+  remainingCount?: number | null;
+  loadingStep?: number;
+  handleGenerate?: () => void;
+  imageUrl?: string;
+  patternTitle?: string;
+  setPatternTitle?: (val: string) => void;
+  handleDownloadOriginal?: () => void;
+  handleOrderClick?: (e: MouseEvent<HTMLAnchorElement>) => void;
+  [key: string]: any;
 }
 
 const AI_STYLES = [
@@ -86,13 +87,49 @@ const PULLDOWN_MOTIFS = [
 ];
 
 export default function ControlPanel({
-  creationMode, setCreationMode, aiStyle, setAiStyle, motif, setMotif,
-  selectedColors, setSelectedColors, handleColorToggle, showColorPalette, setShowColorPalette,
-  density, setDensity, geoPatternType, setGeoPatternType, stripeDir, setStripeDir,
-  dotLayout, setDotLayout, dotRadius, setDotRadius, gapWidth, setGapWidth, lineWidth, setLineWidth,
-  geoBgColor, setGeoBgColor, geoPatternColor, setGeoPatternColor, showGeoPaletteFor, setShowGeoPaletteFor,
-  agreed, setAgreed, errorMsg, loading, remainingCount, loadingStep, handleGenerate,
-  imageUrl, patternTitle, setPatternTitle, handleDownloadOriginal, handleOrderClick
+  creationMode = 'geometric',
+  setCreationMode = () => {},
+  aiStyle = 'mingei',
+  setAiStyle = () => {},
+  motif = '',
+  setMotif = () => {},
+  selectedColors = [],
+  setSelectedColors = () => {},
+  handleColorToggle = () => {},
+  showColorPalette = false,
+  setShowColorPalette = () => {},
+  density = '四方柄（上下なし）',
+  setDensity = () => {},
+  geoPatternType = 'plain',
+  setGeoPatternType = () => {},
+  stripeDir = 'vertical',
+  setStripeDir = () => {},
+  dotLayout = 'staggered',
+  setDotLayout = () => {},
+  dotRadius = 5,
+  setDotRadius = () => {},
+  gapWidth = 10,
+  setGapWidth = () => {},
+  lineWidth = 5,
+  setLineWidth = () => {},
+  geoBgColor = '#fffffc',
+  setGeoBgColor = () => {},
+  geoPatternColor = '#161616',
+  setGeoPatternColor = () => {},
+  showGeoPaletteFor = null,
+  setShowGeoPaletteFor = () => {},
+  agreed = false,
+  setAgreed = () => {},
+  errorMsg = '',
+  loading = false,
+  remainingCount = 3,
+  loadingStep = 0,
+  handleGenerate = () => {},
+  imageUrl = '',
+  patternTitle = '',
+  setPatternTitle = () => {},
+  handleDownloadOriginal = () => {},
+  handleOrderClick = () => {}
 }: ControlPanelProps) {
 
   const finalTitle = patternTitle.trim() || '（無題）';
