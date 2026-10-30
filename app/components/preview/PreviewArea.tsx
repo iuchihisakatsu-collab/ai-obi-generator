@@ -2,7 +2,7 @@
 'use client';
 /* eslint-disable @next/next/no-img-element */
 
-import { RefObject } from 'react';
+import { useState, useEffect, RefObject } from 'react';
 
 interface PreviewAreaProps {
   imageUrl: string;
@@ -20,7 +20,6 @@ interface PreviewAreaProps {
   kimonoObiColor: string;
   customObiUrl: string | null;
   mockupSubmitting: boolean;
-  isCompact: boolean;
   previewRef: RefObject<HTMLDivElement>;
   previewContainerRef: RefObject<HTMLDivElement>;
   handleItemTypeChange: (type: 'hanhaba' | 'kyobukuro' | 'kimono') => void;
@@ -45,7 +44,6 @@ export default function PreviewArea({
   kimonoObiColor,
   customObiUrl,
   mockupSubmitting,
-  isCompact,
   previewRef,
   previewContainerRef,
   handleItemTypeChange,
@@ -53,12 +51,26 @@ export default function PreviewArea({
   handleDownloadMapping,
   UNIVERSAL_SCALE_FACTOR
 }: PreviewAreaProps) {
+  
+  // 生中継小窓を表示するかどうかの判定（page.tsxからこちらに移動！）
+  const [isCompact, setIsCompact] = useState(false);
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.innerWidth < 1024) {
+        setIsCompact(window.scrollY > 300);
+      } else {
+        setIsCompact(false);
+      }
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   return (
     <div ref={previewRef} className="w-full lg:w-1/2 shrink-0 lg:sticky lg:top-8 flex flex-col bg-[#e4e4e7] lg:bg-transparent shadow-md lg:shadow-none mb-6 lg:mb-0">
       {imageUrl && (
         <div className="w-full bg-[#e4e4e7] flex flex-col relative overflow-hidden">
           
-          {/* 超圧縮ヘッダー */}
           <div className="px-3 py-2 bg-zinc-900 text-white flex items-center justify-between z-30">
             <span className="text-[10px] font-mono text-zinc-400">ID:{serialNumber}</span>
             <div className="flex gap-1.5 items-center">
@@ -70,10 +82,8 @@ export default function PreviewArea({
             </div>
           </div>
 
-          {/* プレビューコンテナ本体 */}
           <div className="w-full relative shadow-inner overflow-hidden flex items-center justify-center min-h-[380px] sm:min-h-[420px] pt-14 pb-12">
             
-            {/* 浮遊UI：モード切替タブ */}
             <div className="absolute top-3 left-0 right-0 flex justify-center gap-2 px-2 z-20">
               <button type="button" onClick={() => setDisplayMode('mockup')} className={`px-3 py-1.5 text-[10px] font-bold tracking-wider rounded-full backdrop-blur-md border transition-all shadow-md ${displayMode === 'mockup' ? 'bg-zinc-900/90 text-white border-zinc-900/50' : 'bg-white/70 text-zinc-700 border-white/50 hover:bg-white/90'}`}>
                 {itemType === 'hanhaba' && '半幅帯マッピング'}
@@ -94,7 +104,6 @@ export default function PreviewArea({
               <div className="w-full flex flex-col items-center animate-fade-in relative z-10 px-4">
                 <div ref={previewContainerRef} className="relative mx-auto drop-shadow-xl w-full max-w-[360px] sm:max-w-[400px]">
                   
-                  {/* 半幅帯マッピング */}
                   {itemType === 'hanhaba' && (
                     <div className="relative w-full h-full overflow-hidden aspect-square">
                       {(() => {
@@ -125,7 +134,6 @@ export default function PreviewArea({
                     </div>
                   )}
 
-                  {/* 京袋帯マッピング */}
                   {itemType === 'kyobukuro' && (
                     <div className="relative w-full h-full overflow-hidden aspect-square">
                       {(() => {
@@ -156,7 +164,6 @@ export default function PreviewArea({
                     </div>
                   )}
 
-                  {/* 着物マッピング */}
                   {itemType === 'kimono' && (
                     <div className="relative w-full h-full overflow-hidden aspect-square bg-white">
                       {(() => {
