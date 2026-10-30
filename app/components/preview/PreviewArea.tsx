@@ -2,7 +2,7 @@
 'use client';
 /* eslint-disable @next/next/no-img-element */
 
-import { useState, useEffect, RefObject } from 'react';
+import { useState, useEffect, useRef, RefObject } from 'react';
 
 interface PreviewAreaProps {
   imageUrl: string;
@@ -54,6 +54,17 @@ export default function PreviewArea({
   
   const [isCompact, setIsCompact] = useState(false);
   
+  // ドラッグ移動用のステートと参照
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const pointerData = useRef<{
+    startX: number;
+    startY: number;
+    origX: number;
+    origY: number;
+    hasMoved: boolean;
+  }>({ startX: 0, startY: 0, origX: 0, origY: 0, hasMoved: false });
+  
   useEffect(() => {
     const handleScroll = () => {
       if (window.innerWidth < 1024) {
@@ -65,6 +76,47 @@ export default function PreviewArea({
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    setIsDragging(true);
+    pointerData.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      origX: dragOffset.x,
+      origY: dragOffset.y,
+      hasMoved: false,
+    };
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDragging) return;
+    const dx = e.clientX - pointerData.current.startX;
+    const dy = e.clientY - pointerData.current.startY;
+    
+    // 5px以上の移動でドラッグと判定
+    if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+      pointerData.current.hasMoved = true;
+    }
+
+    setDragOffset({
+      x: pointerData.current.origX + dx,
+      y: pointerData.current.origY + dy,
+    });
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    setIsDragging(false);
+    try {
+      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+    } catch (_) {}
+  };
+
+  const handleWipeClick = () => {
+    // 指を動かした場合はスクロールを発動させない
+    if (pointerData.current.hasMoved) return;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const patternSize = creationMode === 'geometric' ? `${bgSizeMm * UNIVERSAL_SCALE_FACTOR}% auto` : `${180 * UNIVERSAL_SCALE_FACTOR}% auto`;
   const kimonoPatternSize = creationMode === 'geometric' ? `${(bgSizeMm * UNIVERSAL_SCALE_FACTOR) / 2}% auto` : `${(180 * UNIVERSAL_SCALE_FACTOR) / 2}% auto`;
@@ -142,11 +194,11 @@ export default function PreviewArea({
                         { id: 'tare', file: 'kyoubukurotare.png', z: 40, rot: -1, bgX: '50%', bgY: '50%' }, 
                         { id: 'taiko', file: 'kyoubukurotakio.png', z: 50, rot: 2, bgX: '50%', bgY: '50%' }
                       ].map((layer) => (
-                        <div key={layer.id} className="absolute inset-0 pointer-events-none" style={{ zIndex: layer.z, maskImage: `url('/${layer.file}?v=21')`, WebkitMaskImage: `url('/${layer.file}?v=21')`, maskSize: 'contain', WebkitMaskSize: 'contain', maskRepeat: 'no-repeat', maskPosition: 'center', WebkitMaskPosition: 'center' }}>
+                        <div key={layer.id} className="absolute inset-0 pointer-events-none" style={{ zIndex: layer.z, maskImage: `url('/${layer.file}?v=${v}')`, WebkitMaskImage: `url('/${layer.file}?v=${v}')`, maskSize: 'contain', WebkitMaskSize: 'contain', maskRepeat: 'no-repeat', maskPosition: 'center', WebkitMaskPosition: 'center' }}>
                           <div style={{ position: 'absolute', top: '-25%', left: '-25%', width: '150%', height: '150%', backgroundImage: `url(${effectivePatternUrl})`, backgroundSize: patternSize, backgroundRepeat: 'repeat', backgroundPosition: `${layer.bgX} ${layer.bgY}`, transform: `rotate(${layer.rot}deg)`, transformOrigin: 'center center', backgroundColor: creationMode === 'geometric' ? geoBgColor : 'transparent' }} />
                         </div>
                       ))}
-                      <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 60, backgroundImage: `url('/kyoubukuromask.png?v=21')`, backgroundSize: 'contain', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', mixBlendMode: 'multiply', opacity: 0.5 }} />
+                      <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 60, backgroundImage: `url('/kyoubukuromask.png?v=${v}')`, backgroundSize: 'contain', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', mixBlendMode: 'multiply', opacity: 0.5 }} />
                     </div>
                   )}
 
@@ -220,12 +272,22 @@ export default function PreviewArea({
         </div>
       )}
 
-      {/* スマホ専用：生中継の小窓（PIPワイプ） */}
+      {/* スマホ専用：生中継の特大ワイプ（指で画面内のどこへでもドラッグ移動可能） */}
       {imageUrl && (
-        <button
-          type="button"
-          onClick={() => { window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-          className={`lg:hidden fixed bottom-6 right-5 z-50 w-[180px] h-[180px] sm:w-[224px] sm:h-[224px] rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.3)] border-[5px] border-white overflow-hidden active:scale-95 transition-all duration-500 group bg-[#e4e4e7] ${isCompact ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-12 pointer-events-none'}`}
+        <div
+          role="button"
+          tabIndex={0}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onClick={handleWipeClick}
+          style={{
+            transform: `translate3d(${dragOffset.x}px, ${dragOffset.y}px, 0)`,
+            touchAction: 'none',
+          }}
+          className={`lg:hidden fixed bottom-6 right-5 z-50 w-[180px] h-[180px] sm:w-[224px] sm:h-[224px] rounded-full shadow-[0_12px_40px_rgb(0,0,0,0.35)] border-[5px] border-white overflow-hidden select-none bg-[#e4e4e7] cursor-grab active:cursor-grabbing ${
+            isDragging ? 'transition-none scale-105' : 'transition-opacity duration-300'
+          } ${isCompact ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
         >
           <div className="absolute inset-0 w-full h-full pointer-events-none flex items-center justify-center scale-[1.15]">
             <div className="w-full h-full">
@@ -307,12 +369,14 @@ export default function PreviewArea({
               )}
             </div>
           </div>
-          <div className="absolute inset-0 bg-black/10 flex items-center justify-center transition-colors group-hover:bg-black/20">
-            <div className="bg-black/60 p-3 rounded-full backdrop-blur-md shadow-sm">
-              <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
+          
+          <div className="absolute inset-0 bg-black/10 flex flex-col items-center justify-center pointer-events-none">
+            <div className="bg-black/60 px-2.5 py-1.5 rounded-full backdrop-blur-md shadow-sm flex items-center gap-1.5">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
+              <span className="text-[10px] text-white font-bold tracking-tight">ドラッグで移動</span>
             </div>
           </div>
-        </button>
+        </div>
       )}
     </div>
   );
