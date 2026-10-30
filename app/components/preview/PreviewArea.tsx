@@ -117,13 +117,16 @@ export default function PreviewArea({
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // SWCパーサーの誤認を防ぐため通常のif文で算出
-  let patternSize = `${180 * UNIVERSAL_SCALE_FACTOR}% auto`;
+  // ★ 実寸スケール計算（格子・水玉とAIモードの完全同期）
+  // 半幅帯は180mm、京袋帯・着物は400mm（反物幅）を原寸とする
+  const effectiveBaseMm = itemType === 'hanhaba' ? 180 : 400;
+
+  let patternSize = `${effectiveBaseMm * UNIVERSAL_SCALE_FACTOR}% auto`;
   if (creationMode === 'geometric') {
     patternSize = `${bgSizeMm * UNIVERSAL_SCALE_FACTOR}% auto`;
   }
 
-  let kimonoPatternSize = `${(180 * UNIVERSAL_SCALE_FACTOR) / 2}% auto`;
+  let kimonoPatternSize = `${(400 * UNIVERSAL_SCALE_FACTOR) / 2}% auto`;
   if (creationMode === 'geometric') {
     kimonoPatternSize = `${(bgSizeMm * UNIVERSAL_SCALE_FACTOR) / 2}% auto`;
   }
@@ -251,10 +254,11 @@ export default function PreviewArea({
               </div>
             )}
 
+            {/* 34cm裁断イメージ：AIモード時は400mm反物幅に100%フィットさせる */}
             {displayMode === 'trim' && itemType === 'kyobukuro' && (
               <div className="w-full flex flex-col items-center animate-fade-in relative z-10 px-4">
                 <div className="relative mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden w-full max-w-[360px] sm:max-w-[400px]" style={{ aspectRatio: '40 / 34' }}>
-                  <div className="absolute inset-0" style={{ backgroundImage: `url(${effectivePatternUrl})`, backgroundSize: creationMode === 'geometric' ? `${(bgSizeMm / 400) * 100}% auto` : `${(180 / 400) * 100}% auto`, backgroundPosition: 'center center', backgroundRepeat: 'repeat', backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff' }} />
+                  <div className="absolute inset-0" style={{ backgroundImage: `url(${effectivePatternUrl})`, backgroundSize: creationMode === 'geometric' ? `${(bgSizeMm / 400) * 100}% auto` : '100% auto', backgroundPosition: 'center center', backgroundRepeat: 'repeat', backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff' }} />
                 </div>
               </div>
             )}
