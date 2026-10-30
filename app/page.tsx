@@ -42,7 +42,7 @@ function HomeContent() {
   const [motif, setMotif] = useState<string>('');
   const [selectedColors, setSelectedColors] = useState<typeof TRADITIONAL_COLORS>([]);
   const [showColorPalette, setShowColorPalette] = useState<boolean>(false);
-  const [density, setDensity] = useState<string>('四方柄（上下なし）');
+  const [density, setDensity] = useState<string>('四方柄');
 
   // 格子・水玉製作所ステート
   const [geoPatternType, setGeoPatternType] = useState<'plain' | 'stripe' | 'dot' | 'grid' | 'gingham' | 'checker'>('stripe');
@@ -107,7 +107,6 @@ function HomeContent() {
     }
   };
 
-  // ★ 格子・水玉のSVG即時生成 ＆ 銘の自動連動
   const updateGeometricPattern = useCallback(async () => {
     if (creationMode !== 'geometric') return;
 
@@ -138,7 +137,6 @@ function HomeContent() {
     }
 
     setBgSizeMm(tileSize);
-    // ★ 即座にブラウザプレビューに反映（0ミリ秒）
     const svgDataUrl = `data:image/svg+xml;utf8,${encodeURIComponent(svgString)}`;
     setImageUrl(svgDataUrl);
     setRotatedPatternUrl('');
@@ -164,7 +162,7 @@ function HomeContent() {
     if (geoPatternType === 'stripe') baseName = '万筋縞';
     if (geoPatternType === 'dot') baseName = '千鳥水玉';
     if (geoPatternType === 'grid') baseName = '格子柄';
-    if (geoPatternType === 'gingham') baseName = 'ギンガムチェック';
+    if (geoPatternType === 'gingham') baseName = '吟風（ギンガム）';
     if (geoPatternType === 'checker') baseName = '市松模様';
 
     let autoTitle = baseName;
@@ -374,28 +372,6 @@ function HomeContent() {
           </button>
         </div>
       )}
-
-      {/* 開発・査察用プラットフォーム切替バー */}
-      <div className="w-full max-w-7xl px-4 py-4 mt-4 flex justify-between items-center text-[10px] text-zinc-400 border-t border-zinc-200">
-        <span>稼働中: {platform === 'shopify' ? 'Shopify連携モード（補助事業査察・D2C還元）' : 'MakeShop連携モード（通常稼働中）'}</span>
-        <div className="flex gap-2 items-center">
-          <span>切替:</span>
-          <button
-            type="button"
-            onClick={() => setPlatform('makeshop')}
-            className={`px-2 py-0.5 border rounded font-bold ${platform === 'makeshop' ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white text-zinc-600 border-zinc-300'}`}
-          >
-            MakeShop
-          </button>
-          <button
-            type="button"
-            onClick={() => setPlatform('shopify')}
-            className={`px-2 py-0.5 border rounded font-bold ${platform === 'shopify' ? 'bg-amber-800 text-white border-amber-800' : 'bg-white text-zinc-600 border-zinc-300'}`}
-          >
-            Shopify (査察用)
-          </button>
-        </div>
-      </div>
 
       <NoticeModal
         isOpen={isNoticeOpen}
