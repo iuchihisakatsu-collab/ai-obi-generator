@@ -1,137 +1,80 @@
+// app/api/generate/route.ts
 import { NextResponse } from 'next/server';
-import { put } from '@vercel/blob';
-import OpenAI from 'openai';
-
-export const dynamic = 'force-dynamic';
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
 
 export async function POST(req: Request) {
   try {
-    const { 
-      motif, 
-      basicPattern = 'none', 
-      patternScale = 'medium', 
-      colors = ['#ffffff', '#000000'], 
-      density = '', 
-      itemType 
-    } = await req.json();
+    const { motif, color, density, itemType, aiStyle } = await req.json();
 
-    if (basicPattern === 'none' && !motif) {
-      return NextResponse.json({ error: 'モチーフまたは柄を指定してください。' }, { status: 400 });
+    if (!motif) {
+      return NextResponse.json({ error: 'モチーフが入力されていません。' }, { status: 400 });
     }
 
-    let imageSize: "1024x1024" | "1792x1024" | "1024x1792" = '1024x1024';
-    let ratioInstruction = 'Square (1:1) textile design. Physical scale: Canvas is exactly 40cm x 40cm.';
-    let scaleInstruction = 'CRITICAL SCALE: Motifs MUST be drawn LARGE and BOLD. Each single motif should occupy about 20% to 30% of the canvas. DO NOT draw tiny micro-patterns.';
-
-    if (itemType === 'hanhaba') {
-      imageSize = '1792x1024';
-      ratioInstruction = 'Horizontal rectangular (16:9) textile design. Physical scale: Canvas HEIGHT is exactly 18cm (Japanese Han-haba Obi).';
-      // ★ cm指定を廃止し、キャンバスに対する相対比率（20-30%）で大きく描画させる
-      scaleInstruction = 'CRITICAL SCALE: Motifs MUST be drawn LARGE and BOLD. Each single motif should occupy about 20% to 30% of the total canvas HEIGHT. Ensure a spacious layout where only 2 to 3 motifs fit vertically. DO NOT draw tiny micro-patterns.';
-    } else if (itemType === 'tanmono') {
-      imageSize = '1024x1792';
-      ratioInstruction = 'Vertical rectangular (9:16) textile design. Physical scale: Canvas WIDTH is exactly 40cm (Japanese Tanmono).';
-      scaleInstruction = 'CRITICAL SCALE: Motifs MUST be drawn LARGE and BOLD. Each single motif should occupy about 20% to 30% of the total canvas WIDTH. DO NOT draw tiny micro-patterns.';
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json({ error: 'API key is missing' }, { status: 500 });
     }
 
-    const bgColor = colors[0] || '#ffffff';
-    const fgColor = colors[1] || '#000000';
+    // 鉄則ルール：絶対にイラストや絵画にさせない。2Dのテキスタイルに限定する。
+    const baseRules = "Flat 2D seamless textile pattern, repeat pattern for kimono fabric, top-down overhead shot. NO humans, NO faces, NO clothing mockups, NO 3D shading, NO perspective distortion. High-resolution vector-like printing plate for digital textile printing.";
 
-    let prompt = "";
-
-    if (basicPattern !== 'none') {
-      let patternName = "windowpane grid pattern, crossing straight lines";
-      if (basicPattern === 'grid') patternName = "windowpane grid pattern, crossing straight lines";
-      if (basicPattern === 'gingham') patternName = "checkerboard block gingham pattern";
-      if (basicPattern === 'vertical') patternName = "vertical stripes pattern, parallel straight lines";
-      if (basicPattern === 'horizontal') patternName = "horizontal stripes pattern, parallel straight lines";
-      if (basicPattern === 'diagonal') patternName = "diagonal stripes pattern, parallel slanted lines";
-      if (basicPattern === 'dots') patternName = "polka dots pattern, evenly spaced solid circles";
-
-      let geomScale = "Medium scale, standard lines and balanced proportions";
-      if (patternScale === 'large') geomScale = "Large scale, macro pattern, bold thick lines, wide spacing";
-      else if (patternScale === 'small') geomScale = "Small scale, micro pattern, fine thin lines, tight dense spacing";
-
-      prompt = `Flat 2D vector graphic design. Perfectly seamless repeating ${patternName}.
-${geomScale}.
-STRICT COLOR PALETTE: Strictly ONLY TWO COLORS. Solid background color is ${bgColor}. Solid foreground pattern color is ${fgColor}.
-ABSOLUTELY NO gradients, NO 3D shading, NO drop shadows, NO textures. Pure flat geometric vector. Format: ${ratioInstruction}.`;
-
-    } else {
-      let baseInstruction = "Flat overhead shot, 2D textile graphic design. Intended for high-end digital textile printing. High resolution, crisp details, vivid color separation, no halftone dots. ";
-      
-      let layoutInstruction = "";
-      if (density.includes('ワンポイント') || density.includes('お太鼓柄')) {
-        layoutInstruction = "NON-SEAMLESS. A single, large, central one-point motif illustration placed exactly in the middle of the solid background. Leave abundant solid negative space around the central element.";
-      } else if (density.includes('四方柄')) {
-        baseInstruction += "Perfectly seamless repeating pattern. ";
-        layoutInstruction = `True omnidirectional / non-directional toss pattern (shihō-gara). 
-Motifs MUST be randomly and dynamically rotated at various angles (some pointing upwards, some upside-down 180°, tilted 45°, 90°, etc.). ABSOLUTELY NO uniform upright orientation.`;
-      } else {
-        baseInstruction += "Perfectly seamless repeating pattern. ";
-        layoutInstruction = "Scattered motifs with elegant negative space, refined balanced layout, well-spaced floating elements (Tobigara).";
-      }
-
-      let tunedStyle = 'Masterpiece, highly detailed digital textile design. ';
-      if (motif.includes('浮世絵')) tunedStyle += 'Ukiyo-e aesthetic, flat bold colors. ';
-      if (motif.includes('水彩画')) tunedStyle += 'Soft pastel watercolor wash. ';
-      if (motif.includes('油絵')) tunedStyle += 'Thick impasto oil painting style. ';
-      if (motif.includes('ミッドセンチュリー')) tunedStyle += 'Mid-century modern textile. ';
-      if (motif.includes('大正ロマン') || motif.includes('昭和レトロ')) tunedStyle += 'Retro vintage style. ';
-      if (motif.includes('ゆめかわいい')) tunedStyle += 'Dreamy kawaii style, pastel color palette. ';
-
-      const negativePrompt = "Absolutely NO humans, NO faces, NO body parts, NO clothing items being worn. NO 3D perspective, NO fabric folds, NO wrinkles, NO lighting/shadow effects, NO background scenes.";
-
-      prompt = `${baseInstruction}
-${layoutInstruction}
-${scaleInstruction}
-
-【Textile Requirements】
-Motifs: ${motif}
-Background Color: Solid ${bgColor}
-Accent Color: ${fgColor}
-Format: ${ratioInstruction}
-
-【Art Style & Texture】
-${tunedStyle}
-
-【Strict Restrictions】
-${negativePrompt}`;
+    // 5つの世界観（スタイル）ごとの画風注入プロンプト
+    let stylePrompt = "";
+    switch (aiStyle) {
+      case 'mingei':
+        stylePrompt = "Katazome stencil dye style, Keisuke Serizawa inspired, bold silhouette, crisp resist-dye white edges, hand-crafted folk art aesthetic, simplified flat graphic motif.";
+        break;
+      case 'retro':
+        stylePrompt = "Taisho Roman aesthetic, Meisen kimono silk weave print, nostalgic retro chiyogami paper texture, subtle lithograph bleeding effect, lyrical and romantic early 20th century Japanese graphic.";
+        break;
+      case 'mode':
+        stylePrompt = "Contemporary geometric textile, sharp Bauhaus inspired line-art, stark contrast, urban minimal graphic, pop-art silkscreen look, bold rhythm and negative space.";
+        break;
+      case 'sarasa':
+        stylePrompt = "Traditional Sarasa textile pattern, Persian arabesque vine work, Javanese batik crackle texture, intricate floral ornamentation, rich exotic block-print detailing.";
+        break;
+      case 'classic':
+        stylePrompt = "Trompe-l'œil Nishijin brocade weave illusion, faux golden metallic foil thread texture, antique court textile style, Yusoku pattern layout, opulent woven relief appearance printed completely flat.";
+        break;
+      default:
+        stylePrompt = "Katazome stencil dye style, bold silhouette, flat graphic.";
     }
 
-    const response = await openai.images.generate({
-      model: "gpt-image-2.5-sunburst",
-      prompt: prompt,
-      n: 1,
-      size: imageSize,
-      quality: "high",
-      output_format: "png",
+    let densityPrompt = "";
+    if (density === '四方柄（上下なし）') densityPrompt = "All-over repeating pattern, evenly distributed.";
+    else if (density === '飛び柄（余白あり）') densityPrompt = "Scattered isolated motifs with elegant empty negative space.";
+    else if (density === 'お太鼓柄（ワンポイント/1枚絵）') densityPrompt = "Single large striking placement motif in the center, bold composition.";
+
+    // プロンプトを調合
+    const prompt = `${baseRules} Style: ${stylePrompt} Motif: ${motif}. Colors: ${color}. Layout: ${densityPrompt}`;
+
+    const response = await fetch('https://api.openai.com/v1/images/generations', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'dall-e-3',
+        prompt: prompt,
+        n: 1,
+        size: '1024x1024',
+        response_format: 'b64_json',
+      }),
     });
 
-    const base64Image = response.data?.[0]?.b64_json;
-    if (!base64Image) throw new Error('画像データの取得に失敗しました。');
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('OpenAI Error:', errorData);
+      return NextResponse.json({ error: '画像生成に失敗しました。' }, { status: response.status });
+    }
 
-    const buffer = Buffer.from(base64Image, 'base64');
-    const filename = `textile-${Date.now()}.png`;
+    const data = await response.json();
+    const base64Image = data.data[0].b64_json;
+    const imageUrl = `data:image/png;base64,${base64Image}`;
 
-    const blob = await put(filename, buffer, {
-      access: 'public',
-      contentType: 'image/png'
-    });
-
-    return NextResponse.json({
-      imageUrl: blob.url,
-      blobUrl: blob.url
-    }, {
-      headers: { 'Cache-Control': 'no-store, max-age=0' }
-    });
-
-  } catch (error: any) {
-    console.error('API Error:', error);
-    return NextResponse.json({ error: error?.message || '通信エラーが発生しました。' }, { status: 500 });
+    return NextResponse.json({ imageUrl, blobUrl: imageUrl });
+  } catch (error) {
+    console.error('API Route Error:', error);
+    return NextResponse.json({ error: 'サーバーエラーが発生しました。' }, { status: 500 });
   }
 }
