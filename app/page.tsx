@@ -60,9 +60,7 @@ function HomeContent() {
   const [itemType, setItemType] = useState<'hanhaba' | 'kyobukuro' | 'kimono'>('hanhaba');
   const [displayMode, setDisplayMode] = useState<'mockup' | 'trim' | 'data'>('mockup');
   
-  // ★ 初期値は「none（指定なし・完全自由）」
   const [aiStyle, setAiStyle] = useState<string>('none');
-  // ★ 名画・巨匠の筆致ステート
   const [selectedArtist, setSelectedArtist] = useState<string>('none');
 
   const [motif, setMotif] = useState<string>('');
@@ -305,29 +303,296 @@ function HomeContent() {
       if (creationMode === 'geometric' && imageUrl) {
         downloadUrl = await renderTiledGeometricPng(imageUrl, bgSizeMm, geoBgColor, 400, 2400);
       }
+      const response = await fetch(downloadUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = downloadUrl;
+      a.href = url;
       a.download = `${serialNumber || 'komon'}_original.png`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-    } catch { alert('ダウンロードに失敗しました'); }
+      window.URL.revokeObjectURL(url);
+    } catch { 
+      window.open(blobUrl || imageUrl, '_blank', 'noopener,noreferrer');
+    }
   };
 
+  // ★ グレー化を根絶：Canvas APIによる自前レイヤー合成（1200x1200px高解像度PNG）
   const handleDownloadMapping = async () => {
     if (!previewContainerRef.current) return;
-    setMockupSubmitting(true);
     try {
-      const html2canvas = (await import('html2canvas')).default;
-      const canvas = await html2canvas(previewContainerRef.current, { useCORS: true, allowTaint: true, backgroundColor: '#ffffff', scale: 2 });
+      setMockupSubmitting(true);
+
+      const canvas = document.createElement('canvas');
+      const size = 1200;
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      const loadImage = (src: string): Promise<HTMLImageElement> => new Promise((res, rej) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => res(img);
+        img.onerror = (e) => {
+          console.error('Image load error:', src, e);
+          rej(e);
+        };
+        img.src = src;
+      });
+
+      const effectivePatternUrl = creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl);
+      if (!effectivePatternUrl) throw new Error('No pattern image');
+
+      const patternImg = await loadImage(effectivePatternUrl);
+
+      const pxPerMm = 27 / 11;
+      const bgWidth = creationMode === 'geometric' ? (bgSizeMm * pxPerMm) : (180 * pxPerMm);
+      const bgScale = bgWidth / Math.max(1, patternImg.width);
+      const bgHeight = patternImg.height * bgScale;
+
+      const pCanvas = document.createElement('canvas');
+      pCanvas.width = Math.max(1, bgWidth);
+      pCanvas.height = Math.max(1, bgHeight);
+      const pCtx = pCanvas.getContext('2d')!;
+      if (creationMode === 'geometric' && geoBgColor) {
+        pCtx.fillStyle = geoBgColor;
+        pCtx.fillRect(0, 0, bgWidth, bgHeight);
+      }
+      pCtx.drawImage(patternImg, 0, 0, bgWidth, bgHeight);
+
+      const patternFill = ctx.createPattern(pCanvas, 'repeat')!;
+
+      // 1. 半幅帯の合成
+      if (itemType === 'hanhaba') {
+        const layers = [
+          { id: '01', file: 'hanhaba_Layer01.png', rot: 2,   bgX: 12, bgY: 34 },
+          { id: '02', file: 'hanhaba_Layer02.png', rot: 1,   bgX: 45, bgY: 67 },
+          { id: '03', file: 'hanhaba_Layer03.png', rot: 8,   bgX: 78, bgY: 12 }, 
+          { id: '04', file: 'hanhaba_Layer04.png', rot: -1,  bgX: 23, bgY: 89 },
+          { id: '05', file: 'hanhaba_Layer05.png', rot: -10, bgX: 56, bgY: 45 },
+          { id: '06', file: 'hanhaba_Layer06.png', rot: -93, bgX: 89, bgY: 23 }, 
+        ];
+
+        for (const layer of layers) {
+          const tempCanvas = document.createElement('canvas');
+          tempCanvas.width = size;
+          tempCanvas.height = size;
+          const tCtx = tempCanvas.getContext('2d')!;
+
+          const maskImg = await loadImage(`/${layer.file}?v=21`);
+          tCtx.drawImage(maskImg, 0, 0, size, size);
+
+          tCtx.globalCompositeOperation = 'source-in';
+
+          tCtx.save();
+          tCtx.translate(size / 2, size / 2);
+          tCtx.rotate(layer.rot * Math.PI / 180);
+          tCtx.translate(-size / 2, -size / 2);
+
+          const rectSize = size * 1.5;
+          const rectOffset = -size * 0.25;
+
+          tCtx.translate(rectOffset + (rectSize * layer.bgX / 100), rectOffset + (rectSize * layer.bgY / 100));
+          tCtx.fillStyle = patternFill;
+          tCtx.fillRect(-size * 2, -size * 2, size * 4, size * 4); 
+          tCtx.restore();
+
+          ctx.drawImage(tempCanvas, 0, 0);
+        }
+
+        const tempCanvas7 = document.createElement('canvas');
+        tempCanvas7.width = size;
+        tempCanvas7.height = size;
+        const tCtx7 = tempCanvas7.getContext('2d')!;
+        const mask7 = await loadImage('/hanhaba_Layer07.png?v=21');
+        tCtx7.drawImage(mask7, 0, 0, size, size);
+        tCtx7.globalCompositeOperation = 'source-in';
+        tCtx7.fillStyle = obiLiningColor || '#dcdddd';
+        tCtx7.fillRect(0, 0, size, size);
+        ctx.drawImage(tempCanvas7, 0, 0);
+
+        const kage = await loadImage('/hanhaba_Layer_kage.png?v=21');
+        ctx.globalCompositeOperation = 'multiply';
+        ctx.globalAlpha = 0.5; 
+        ctx.drawImage(kage, 0, 0, size, size);
+        ctx.globalAlpha = 1.0;
+        ctx.globalCompositeOperation = 'source-over';
+      }
+
+      // 2. 京袋帯の合成
+      if (itemType === 'kyobukuro') {
+        const grandImg = await loadImage('/kyoubukurogrand.png?v=21');
+        ctx.drawImage(grandImg, 0, 0, size, size);
+
+        const urajiCanvas = document.createElement('canvas');
+        urajiCanvas.width = size;
+        urajiCanvas.height = size;
+        const uCtx = urajiCanvas.getContext('2d')!;
+        const urajiImg = await loadImage('/kyoubukurouraji.png?v=21');
+        uCtx.drawImage(urajiImg, 0, 0, size, size);
+        uCtx.globalCompositeOperation = 'source-in';
+        uCtx.fillStyle = obiLiningColor || '#161616';
+        uCtx.fillRect(0, 0, size, size);
+        ctx.drawImage(urajiCanvas, 0, 0);
+
+        const layers = [
+          { id: 'hara', file: 'kyoubukurohara.png', rot: 271, bgX: 50, bgY: 50 },
+          { id: 'tare', file: 'kyoubukurotare.png', rot: -1, bgX: 50, bgY: 50 },
+          { id: 'taiko', file: 'kyoubukurotakio.png', rot: 2, bgX: 50, bgY: 50 },
+        ];
+
+        for (const layer of layers) {
+          const tempCanvas = document.createElement('canvas');
+          tempCanvas.width = size;
+          tempCanvas.height = size;
+          const tCtx = tempCanvas.getContext('2d')!;
+          const maskImg = await loadImage(`/${layer.file}?v=21`);
+          tCtx.drawImage(maskImg, 0, 0, size, size);
+          tCtx.globalCompositeOperation = 'source-in';
+
+          tCtx.save();
+          tCtx.translate(size / 2, size / 2);
+          tCtx.rotate(layer.rot * Math.PI / 180);
+          tCtx.translate(-size / 2, -size / 2);
+
+          const rectSize = size * 1.5;
+          const rectOffset = -size * 0.25;
+          tCtx.translate(rectOffset + (rectSize * layer.bgX / 100), rectOffset + (rectSize * layer.bgY / 100));
+          tCtx.fillStyle = patternFill;
+          tCtx.fillRect(-size * 2, -size * 2, size * 4, size * 4); 
+          tCtx.restore();
+
+          ctx.drawImage(tempCanvas, 0, 0);
+        }
+
+        const kage = await loadImage('/kyoubukuromask.png?v=21');
+        ctx.globalCompositeOperation = 'multiply';
+        ctx.globalAlpha = 0.5; 
+        ctx.drawImage(kage, 0, 0, size, size);
+        ctx.globalAlpha = 1.0;
+        ctx.globalCompositeOperation = 'source-over';
+      }
+
+      // 3. 着物の合成
+      if (itemType === 'kimono') {
+        const haikei = await loadImage('/haikei.png?v=30');
+        ctx.drawImage(haikei, 0, 0, size, size);
+
+        const kimonoBgWidth = bgWidth / 2;
+        const kimonoBgHeight = bgHeight / 2;
+        const kpCanvas = document.createElement('canvas');
+        kpCanvas.width = Math.max(1, kimonoBgWidth);
+        kpCanvas.height = Math.max(1, kimonoBgHeight);
+        const kpCtx = kpCanvas.getContext('2d')!;
+        if (creationMode === 'geometric' && geoBgColor) {
+          kpCtx.fillStyle = geoBgColor;
+          kpCtx.fillRect(0, 0, kimonoBgWidth, kimonoBgHeight);
+        }
+        kpCtx.drawImage(patternImg, 0, 0, kimonoBgWidth, kimonoBgHeight);
+        const kimonoPatternFill = ctx.createPattern(kpCanvas, 'repeat')!;
+
+        const kimonoLayers = [
+          { id: 'usiromigoro', file: 'usiromigoro_75.png', angle: 75, bgX: 50, bgY: 50 },
+          { id: 'migisode', file: 'migisode_165.png', angle: 165, bgX: 20, bgY: 30 },
+          { id: 'hidarisode', file: 'hidarisode_150.png', angle: 150, bgX: 80, bgY: 40 },
+          { id: 'hidarisode2', file: 'hidarisode2_175.png', angle: 175, bgX: 80, bgY: 70 },
+          { id: 'maemigoro', file: 'maemigoro_105.png', angle: 105, bgX: 45, bgY: 60 },
+          { id: 'maemigoro2', file: 'maemigoro2_140.png', angle: 140, bgX: 45, bgY: 20 },
+          { id: 'maeokumi', file: 'maeokumi_110.png', angle: 110, bgX: 55, bgY: 50 },
+          { id: 'migieri', file: 'migieri_65.png', angle: 65, bgX: 30, bgY: 10 },
+          { id: 'hidarieri', file: 'hidarieri_117.png', angle: 117, bgX: 70, bgY: 10 },
+        ];
+
+        for (const layer of kimonoLayers) {
+          const tempCanvas = document.createElement('canvas');
+          tempCanvas.width = size;
+          tempCanvas.height = size;
+          const tCtx = tempCanvas.getContext('2d')!;
+          const maskImg = await loadImage(`/${layer.file}?v=30`);
+          tCtx.drawImage(maskImg, 0, 0, size, size);
+          tCtx.globalCompositeOperation = 'source-in';
+
+          tCtx.save();
+          tCtx.translate(size / 2, size / 2);
+          tCtx.rotate((layer.angle - 90) * Math.PI / 180);
+          tCtx.translate(-size / 2, -size / 2);
+
+          const rectSize = size * 2;
+          const rectOffset = -size * 0.5;
+          tCtx.translate(rectOffset + (rectSize * layer.bgX / 100), rectOffset + (rectSize * layer.bgY / 100));
+          tCtx.fillStyle = kimonoPatternFill;
+          tCtx.fillRect(-size * 2, -size * 2, size * 5, size * 5);
+          tCtx.restore();
+
+          ctx.drawImage(tempCanvas, 0, 0);
+        }
+
+        // 半衿
+        const haneriCanvas = document.createElement('canvas');
+        haneriCanvas.width = size;
+        haneriCanvas.height = size;
+        const hCtx = haneriCanvas.getContext('2d')!;
+        const haneriMask = await loadImage('/haneri.png?v=30');
+        hCtx.drawImage(haneriMask, 0, 0, size, size);
+        hCtx.globalCompositeOperation = 'source-in';
+        hCtx.fillStyle = kimonoHaneriColor || '#ffffff';
+        hCtx.fillRect(0, 0, size, size);
+        ctx.drawImage(haneriCanvas, 0, 0);
+
+        // 帯揚げ
+        const obiageCanvas = document.createElement('canvas');
+        obiageCanvas.width = size;
+        obiageCanvas.height = size;
+        const oCtx = obiageCanvas.getContext('2d')!;
+        const obiageMask = await loadImage('/obiage.png?v=30');
+        oCtx.drawImage(obiageMask, 0, 0, size, size);
+        oCtx.globalCompositeOperation = 'source-in';
+        oCtx.fillStyle = kimonoObiageColor || '#c82a36';
+        oCtx.fillRect(0, 0, size, size);
+        ctx.drawImage(obiageCanvas, 0, 0);
+
+        // 帯
+        const obiCanvas = document.createElement('canvas');
+        obiCanvas.width = size;
+        obiCanvas.height = size;
+        const obCtx = obiCanvas.getContext('2d')!;
+        const obiMask = await loadImage('/obi_2.png?v=30');
+        obCtx.drawImage(obiMask, 0, 0, size, size);
+        obCtx.globalCompositeOperation = 'source-in';
+        if (customObiUrl) {
+          const customObiImg = await loadImage(customObiUrl);
+          obCtx.drawImage(customObiImg, 0, 0, size, size);
+        } else {
+          obCtx.fillStyle = kimonoObiColor || '#1a1a1a';
+          obCtx.fillRect(0, 0, size, size);
+        }
+        ctx.drawImage(obiCanvas, 0, 0);
+
+        // 乗算シャドウ
+        const jyouzan = await loadImage('/jyouzan.png?v=30');
+        ctx.globalCompositeOperation = 'multiply';
+        ctx.globalAlpha = 0.5;
+        ctx.drawImage(jyouzan, 0, 0, size, size);
+        ctx.globalAlpha = 1.0;
+        ctx.globalCompositeOperation = 'source-over';
+      }
+
+      const finalUrl = canvas.toDataURL('image/png');
       const a = document.createElement('a');
-      a.href = canvas.toDataURL('image/png');
-      a.download = `${serialNumber || 'komon'}_${itemType}_mockup.png`;
+      a.href = finalUrl;
+      a.download = `${serialNumber || 'mapping'}_${itemType}_mockup.png`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-    } catch { alert('プレビュー画像の保存に失敗しました'); }
-    finally { setMockupSubmitting(false); }
+
+    } catch (e) {
+      console.error(e);
+      alert('ダウンロード画像の生成に失敗しました。');
+    } finally {
+      setMockupSubmitting(false);
+    }
   };
 
   const handleOrderClick = async (e: MouseEvent<HTMLAnchorElement>) => {
