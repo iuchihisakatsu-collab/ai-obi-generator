@@ -130,6 +130,7 @@ function HomeContent() {
   const searchParams = useSearchParams();
   const isShopify = searchParams.get('platform') === 'shopify';
 
+  const [aiStyle, setAiStyle] = useState('mingei'); // 新設：AIスタイル
   const [motif, setMotif] = useState('');
   const [selectedColors, setSelectedColors] = useState<typeof TRADITIONAL_COLORS>([]);
   const [density, setDensity] = useState('四方柄（上下なし）');
@@ -175,11 +176,8 @@ function HomeContent() {
   const previewRef = useRef<HTMLDivElement>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
 
-  // 格子・水玉製作所：色と柄の種類から作品名を自動生成（手動変更時は保持）
   useEffect(() => {
     if (creationMode !== 'geometric') return;
-    
-    // ユーザーが手動で書き換えている場合は上書きしない（空欄なら自動生成を復活）
     if (patternTitle !== '' && lastAutoTitleRef.current !== '' && patternTitle !== lastAutoTitleRef.current) {
       return;
     }
@@ -332,7 +330,7 @@ function HomeContent() {
 
   const handleGenerate = async () => {
     setErrorMsg('');
-    if (!motif.trim()) { setErrorMsg('図案のイメージを入力してください。'); return; }
+    if (!motif.trim()) { setErrorMsg('図案のモチーフを入力してください。'); return; }
     if (!agreed) { setErrorMsg('図案の利用への同意が必要です。'); return; }
     const hitWord = FORBIDDEN_WORDS.find((w) => motif.toLowerCase().includes(w));
     if (hitWord) { setErrorMsg(`使用できない言葉「${hitWord}」が含まれています。`); return; }
@@ -359,13 +357,24 @@ function HomeContent() {
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ motif, color: colorPayload, density, itemType }),
+        // aiStyle を追加送信
+        body: JSON.stringify({ motif, color: colorPayload, density, itemType, aiStyle }),
       });
       const data = await res.json();
       if (data.imageUrl && data.blobUrl) {
         setImageUrl(data.imageUrl); 
         setBlobUrl(data.blobUrl);   
         setSerialNumber(`KOMON-${Math.floor(1000 + Math.random() * 9000)}`);
+        
+        // AIモード生成時の自動命名セット
+        if (creationMode === 'ai') {
+          const styleLabels: Record<string, string> = {
+            'mingei': '民藝図案', 'retro': '浪漫小紋', 'mode': '幾何学アート', 'sarasa': '更紗文様', 'classic': '古典見立て'
+          };
+          const generatedTitle = `${motif.split(/[、\s ]+/)[0]}の${styleLabels[aiStyle] || '図案'}`;
+          setPatternTitle(generatedTitle);
+        }
+
         setDisplayMode('mockup');
         const newCount = currentCount + 1;
         localStorage.setItem('komon_generations', JSON.stringify({ date: todayJst, count: newCount }));
@@ -413,7 +422,8 @@ function HomeContent() {
 
       if (itemType === 'hanhaba' || itemType === 'kyobukuro') {
         const pxPerMm = 27 / 11;
-        const bgWidth = creationMode === 'geometric' ? (bgSizeMm * pxPerMm) : (180 * pxPerMm);
+        const effectiveBase = itemType === 'hanhaba' ? 180 : 400;
+        const bgWidth = creationMode === 'geometric' ? (bgSizeMm * pxPerMm) : (effectiveBase * pxPerMm);
         const bgScale = bgWidth / Math.max(1, patternImg.width);
         const bgHeight = patternImg.height * bgScale;
         const pCanvas = document.createElement('canvas');
@@ -480,7 +490,7 @@ function HomeContent() {
 
       if (itemType === 'kimono') {
         const kimonoPxPerMm = 1200 / 600; 
-        const kBgWidth = creationMode === 'geometric' ? ((bgSizeMm * kimonoPxPerMm) / 2) : ((180 * kimonoPxPerMm) / 2);
+        const kBgWidth = creationMode === 'geometric' ? ((bgSizeMm * kimonoPxPerMm) / 2) : ((400 * kimonoPxPerMm) / 2);
         const kBgScale = kBgWidth / Math.max(1, patternImg.width);
         const kBgHeight = patternImg.height * kBgScale;
         const kPCanvas = document.createElement('canvas'); kPCanvas.width = kBgWidth; kPCanvas.height = kBgHeight;
@@ -582,7 +592,9 @@ function HomeContent() {
         />
 
         <ControlPanel
-          creationMode={creationMode} setCreationMode={setCreationMode} motif={motif} setMotif={setMotif}
+          creationMode={creationMode} setCreationMode={setCreationMode} 
+          aiStyle={aiStyle} setAiStyle={setAiStyle}
+          motif={motif} setMotif={setMotif}
           showTags={showTags} setShowTags={setShowTags} handleTagClick={handleTagClick}
           selectedColors={selectedColors} setSelectedColors={setSelectedColors} handleColorToggle={handleColorToggle}
           showColorPalette={showColorPalette} setShowColorPalette={setShowColorPalette} density={density} setDensity={setDensity}
