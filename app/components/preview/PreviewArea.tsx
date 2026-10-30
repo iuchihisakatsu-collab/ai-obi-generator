@@ -177,6 +177,7 @@ export default function PreviewArea({
             </div>
           </div>
 
+          {/* ▼ プレビュー本体とフローティング注釈を含むコンテナ ▼ */}
           <div className="w-full relative shadow-inner overflow-hidden flex items-center justify-center min-h-[380px] sm:min-h-[420px] pt-14 pb-12">
             
             <div className="absolute top-3 left-0 right-0 flex justify-center gap-2 px-2 z-20">
@@ -248,21 +249,25 @@ export default function PreviewArea({
             )}
 
             {displayMode === 'mockup' && (
-              <button type="button" onClick={handleDownloadMapping} disabled={mockupSubmitting} className={`absolute bottom-3 right-3 z-20 px-4 py-2 text-[10px] font-bold tracking-wider rounded-full shadow-lg backdrop-blur-md border transition-all flex items-center gap-1.5 hover:bg-black ${ mockupSubmitting ? 'bg-zinc-400/80 text-white border-zinc-400 cursor-not-allowed' : 'bg-zinc-900/90 text-white border-zinc-900/50' }`}>
+              <button type="button" onClick={handleDownloadMapping} disabled={mockupSubmitting} className={`absolute bottom-[60px] right-3 z-40 px-4 py-2 text-[10px] font-bold tracking-wider rounded-full shadow-lg backdrop-blur-md border transition-all flex items-center gap-1.5 hover:bg-black ${ mockupSubmitting ? 'bg-zinc-400/80 text-white border-zinc-400 cursor-not-allowed' : 'bg-zinc-900/90 text-white border-zinc-900/50' }`}>
                 <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                 {mockupSubmitting ? '作成中...' : '画像を保存'}
               </button>
             )}
-          </div>
 
-          <div className="px-4 py-2.5 bg-zinc-100 border-t border-zinc-200 text-center">
-            <p className="text-[10px] sm:text-[11px] text-zinc-600 font-medium leading-relaxed">
-              ※ シミュレーション上は柄のつなぎ目が切れて見える場合がありますが、実際のお仕立て・生地制作時は<strong className="text-zinc-950 font-bold">ゴフクヤサンが目視・手作業で柄の送りを綺麗に修正・調整</strong>いたしますのでご安心ください。
-            </p>
+            {/* ▼ ゴフクヤサン手作業修正のフローティング注釈 ▼ */}
+            <div className="absolute bottom-0 left-0 right-0 z-30 bg-white/85 backdrop-blur-md border-t border-zinc-200 px-3 py-2.5 shadow-[0_-5px_15px_rgba(0,0,0,0.05)] flex items-center justify-center pointer-events-none">
+              <p className="text-[9.5px] sm:text-[10px] text-zinc-700 font-medium leading-relaxed text-center tracking-wide">
+                ※ 画面上は柄のつなぎ目が切れて見える場合がありますが、実際のお仕立て・生地制作時は<br className="sm:hidden" />
+                <strong className="text-zinc-950 font-black">ゴフクヤサンが目視・手作業で柄送りを綺麗に修正</strong>します。
+              </p>
+            </div>
+            
           </div>
         </div>
       )}
 
+      {/* スマホ専用：生中継の小窓（PIPワイプ） */}
       {imageUrl && (
         <button
           type="button"
