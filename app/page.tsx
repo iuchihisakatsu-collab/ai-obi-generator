@@ -135,7 +135,7 @@ function HomeContent() {
   const [density, setDensity] = useState('四方柄（上下なし）');
   const [itemType, setItemType] = useState<'hanhaba' | 'kyobukuro' | 'kimono'>('hanhaba'); 
   const [patternTitle, setPatternTitle] = useState('');
-  const [isTitleManual, setIsTitleManual] = useState(false);
+  const lastAutoTitleRef = useRef('');
   const [loading, setLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
   const [imageUrl, setImageUrl] = useState(''); 
@@ -175,10 +175,14 @@ function HomeContent() {
   const previewRef = useRef<HTMLDivElement>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
 
-  // 格子・水玉製作所：色と柄の種類から作品名を自動生成するロジック
+  // 格子・水玉製作所：色と柄の種類から作品名を自動生成（手動変更時は保持）
   useEffect(() => {
     if (creationMode !== 'geometric') return;
-    if (isTitleManual && patternTitle.trim() !== '') return;
+    
+    // ユーザーが手動で書き換えている場合は上書きしない（空欄なら自動生成を復活）
+    if (patternTitle !== '' && lastAutoTitleRef.current !== '' && patternTitle !== lastAutoTitleRef.current) {
+      return;
+    }
 
     const bgName = getColorLabel(geoBgColor) || '生成り';
     const patName = getColorLabel(geoPatternColor) || '墨黒';
@@ -200,8 +204,9 @@ function HomeContent() {
       autoName = `${bgName}と${patName}の市松`;
     }
 
+    lastAutoTitleRef.current = autoName;
     setPatternTitle(autoName);
-  }, [creationMode, geoPatternType, stripeDir, dotLayout, geoBgColor, geoPatternColor, isTitleManual, patternTitle]);
+  }, [creationMode, geoPatternType, stripeDir, dotLayout, geoBgColor, geoPatternColor, patternTitle]);
 
   const handleCustomObiUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -598,7 +603,6 @@ function HomeContent() {
           handleCustomObiUpload={handleCustomObiUpload} agreed={agreed} setAgreed={setAgreed} errorMsg={errorMsg}
           loading={loading} remainingCount={remainingCount} loadingStep={loadingStep} handleGenerate={handleGenerate}
           imageUrl={imageUrl} patternTitle={patternTitle} setPatternTitle={setPatternTitle}
-          setIsTitleManual={setIsTitleManual}
           handleDownloadOriginal={handleDownloadOriginal} handleNativeShare={handleNativeShare} handleOrderClick={handleOrderClick}
         />
       </div>
