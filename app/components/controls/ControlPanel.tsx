@@ -67,6 +67,7 @@ interface ControlPanelProps {
   imageUrl: string;
   patternTitle: string;
   setPatternTitle: (val: string) => void;
+  setIsTitleManual?: (val: boolean) => void;
   handleDownloadOriginal: () => void;
   handleNativeShare: () => void;
   handleOrderClick: (e: MouseEvent<HTMLAnchorElement>) => void;
@@ -83,12 +84,12 @@ export default function ControlPanel({
   kimonoHaneriColor, setKimonoHaneriColor, showHaneriColorPalette, setShowHaneriColorPalette,
   kimonoObiageColor, setKimonoObiageColor, showObiageColorPalette, setShowObiageColorPalette,
   handleCustomObiUpload, agreed, setAgreed, errorMsg, loading, remainingCount, loadingStep, handleGenerate,
-  imageUrl, patternTitle, setPatternTitle, handleDownloadOriginal, handleOrderClick
+  imageUrl, patternTitle, setPatternTitle, setIsTitleManual, handleDownloadOriginal, handleOrderClick
 }: ControlPanelProps) {
 
   const finalTitle = patternTitle.trim() || '（無題）';
   const colorSummary = selectedColors.length > 0 ? selectedColors.map((c) => c.name.split(' ')[0]).join('・') : '自由配色';
-  const shareText = `「妄想小紋図案帖」で柄のアイデアを試してみました。\n銘：『${finalTitle}』\n配色：${colorSummary}\n#妄想きもの図案帳 #ゴフクヤサン`;
+  const shareText = `「妄想小紋図案帖」で柄のアイデアを試してみました。\n作品名：『${finalTitle}』\n配色：${colorSummary}\n#妄想きもの図案帳 #ゴフクヤサン`;
   const currentUrl = typeof window !== 'undefined' ? window.location.href : 'https://store.gofukuyasan.com/';
   const mediaUrl = imageUrl || '';
 
@@ -116,7 +117,7 @@ export default function ControlPanel({
   const shareToInstagram = async () => {
     try {
       await navigator.clipboard.writeText(shareText);
-      alert('投稿用の銘とテキストをコピーしました！\nInstagramの投稿作成画面に貼り付けてお使いください。');
+      alert('作品名とテキストをコピーしました！\nInstagramの投稿作成画面に貼り付けてお使いください。');
     } catch {}
     window.open('https://www.instagram.com/', '_blank', 'noopener,noreferrer');
   };
@@ -251,7 +252,6 @@ export default function ControlPanel({
               )}
             </div>
 
-            {/* 無地以外の場合のみサイズ調整スライダーを表示 */}
             {geoPatternType !== 'plain' && (
               <div className="space-y-5 pt-4 border-t border-zinc-100 relative z-10">
                 <label className="block text-xs font-bold text-zinc-900 mb-2">サイズ調整（mm実寸連動）</label>
@@ -488,8 +488,34 @@ export default function ControlPanel({
             <h3 className="text-center font-bold text-sm tracking-widest text-zinc-800 pt-6">あなただけの作品が完成しました</h3>
             
             <div className="space-y-1.5 pt-1">
-              <label className="block text-xs font-bold text-zinc-700 tracking-wider">作品に『銘（タイトル）』を打つ <span className="font-normal text-[10px] text-zinc-400">（任意）</span></label>
-              <input type="text" className="w-full border-b-2 border-zinc-300 p-3 bg-transparent text-sm focus:outline-none focus:border-zinc-950 transition-colors" placeholder="例：遊泳金魚図" value={patternTitle} onChange={(e) => setPatternTitle(e.target.value)} disabled={loading} />
+              <div className="flex justify-between items-baseline">
+                <label className="block text-xs font-bold text-zinc-700 tracking-wider">
+                  作品名 <span className="font-normal text-[10px] text-zinc-400">（お好みの名前に変更できます）</span>
+                </label>
+                {patternTitle && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPatternTitle('');
+                      if (setIsTitleManual) setIsTitleManual(false);
+                    }}
+                    className="text-[10px] text-zinc-400 hover:text-zinc-700 underline"
+                  >
+                    リセット
+                  </button>
+                )}
+              </div>
+              <input
+                type="text"
+                className="w-full border-b-2 border-zinc-300 p-3 bg-transparent text-sm font-bold focus:outline-none focus:border-zinc-950 transition-colors"
+                placeholder="例：深緋の色無地"
+                value={patternTitle}
+                onChange={(e) => {
+                  setPatternTitle(e.target.value);
+                  if (setIsTitleManual) setIsTitleManual(true);
+                }}
+                disabled={loading}
+              />
             </div>
 
             <div className="space-y-3 pt-2">
