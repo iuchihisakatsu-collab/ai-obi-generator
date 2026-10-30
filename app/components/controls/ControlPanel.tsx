@@ -249,7 +249,7 @@ export default function ControlPanel({
                 ))}
               </div>
 
-              {/* 名画・巨匠の筆致プルダウン（スマホを圧迫しない1行セレクト） */}
+              {/* 名画・巨匠の筆致プルダウン */}
               <div className="pt-2 border-t border-dashed border-zinc-200">
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] font-bold text-zinc-500 shrink-0">名画・巨匠の筆致 (任意):</span>
@@ -281,7 +281,6 @@ export default function ControlPanel({
                 </button>
               </div>
 
-              {/* ★ AIの文言を撤去した自然な注記 */}
               <p className="text-[10px] text-zinc-500 leading-relaxed mb-2 bg-amber-50/70 border border-amber-200/60 p-2 rounded-xs">
                 ※ 色を選ぶとその色に<strong className="text-zinc-900">かなり強く引っ張られます</strong>。偶然生まれる絶妙な色合わせを楽しみたい場合は、<strong className="text-zinc-900">「指定なし（おまかせ）」</strong>のままにするのがおすすめです。
               </p>
@@ -511,7 +510,7 @@ export default function ControlPanel({
           </div>
         )}
 
-        {/* モノトーンのハイブランド調「妄想した図案をつくる」ボタン */}
+        {/* 妄想した図案をつくる ボタン */}
         <div className="space-y-4 mt-6">
           {creationMode === 'ai' && (
             <div className="pt-6 border-t border-zinc-200 space-y-3">
@@ -561,7 +560,7 @@ export default function ControlPanel({
           )}
         </div>
 
-        {/* 生成完了後の作品表示エリア */}
+        {/* 生成完了後の作品表示エリア（★「手元に残す」ボタンを完全復活） */}
         {imageUrl && (
           <div className="pt-8 mt-8 border-t-2 border-zinc-950 space-y-6 relative z-10 animate-fade-in bg-zinc-50 -mx-4 sm:-mx-8 lg:-mx-10 px-4 sm:px-8 lg:px-10 pb-8">
             <h3 className="text-center font-bold text-sm tracking-widest text-zinc-800 pt-6">あなただけの作品が完成しました</h3>
@@ -583,6 +582,16 @@ export default function ControlPanel({
             </div>
 
             <div className="space-y-3 pt-2">
+              {/* ★ 復活した「手元に残す」保存ボタン */}
+              <button 
+                type="button" 
+                onClick={handleDownloadOriginal} 
+                className="w-full py-3.5 text-center border-2 border-zinc-950 bg-white hover:bg-zinc-950 hover:text-white text-zinc-950 text-xs font-bold tracking-widest transition-all flex items-center justify-center gap-2 shadow-sm rounded-xs"
+              >
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                この作品の画像データを手元に残す
+              </button>
+
               <div className="pt-3 pb-1 border-t border-zinc-200">
                 <div className="flex justify-center items-center gap-1.5 mt-2">
                   <button type="button" onClick={shareToX} className="flex flex-col items-center justify-center w-10 h-10 bg-white border border-zinc-300 rounded-full hover:bg-zinc-950 hover:text-white hover:border-zinc-950 transition-all shadow-sm group" title="Xでポスト">
