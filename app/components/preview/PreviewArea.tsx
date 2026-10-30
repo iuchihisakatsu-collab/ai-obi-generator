@@ -20,6 +20,7 @@ interface PreviewAreaProps {
   kimonoObiColor: string;
   customObiUrl: string | null;
   mockupSubmitting: boolean;
+  isCompact: boolean;
   previewRef: RefObject<HTMLDivElement>;
   previewContainerRef: RefObject<HTMLDivElement>;
   handleItemTypeChange: (type: 'hanhaba' | 'kyobukuro' | 'kimono') => void;
@@ -44,6 +45,7 @@ export default function PreviewArea({
   kimonoObiColor,
   customObiUrl,
   mockupSubmitting,
+  isCompact,
   previewRef,
   previewContainerRef,
   handleItemTypeChange,
@@ -235,15 +237,30 @@ export default function PreviewArea({
         </div>
       )}
 
-      {/* スマホ専用：いつでも一番上の図案プレビューに戻れるフローティングボタン */}
-      <button
-        type="button"
-        onClick={() => { window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-        className="lg:hidden fixed bottom-6 right-5 z-50 px-3.5 py-2.5 bg-zinc-950 text-white text-[11px] font-bold rounded-full shadow-2xl border border-white/20 flex items-center gap-1.5 active:scale-95 transition-transform"
-      >
-        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
-        図案を見る
-      </button>
+      {/* スマホ専用：生中継の小窓（PIPワイプ） */}
+      {imageUrl && (
+        <button
+          type="button"
+          onClick={() => { window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+          className={`lg:hidden fixed bottom-6 right-5 z-50 w-16 h-16 sm:w-20 sm:h-20 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.25)] border-[3px] border-white overflow-hidden active:scale-95 transition-all duration-500 group ${isCompact ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-12 pointer-events-none'}`}
+        >
+          <div 
+            className="absolute inset-0 w-full h-full transition-transform duration-500 group-hover:scale-110"
+            style={{ 
+              backgroundImage: `url(${creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl)})`, 
+              backgroundSize: creationMode === 'geometric' ? '50%' : 'cover', 
+              backgroundPosition: 'center', 
+              backgroundRepeat: 'repeat', 
+              backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff' 
+            }} 
+          />
+          <div className="absolute inset-0 bg-black/10 flex items-center justify-center transition-colors group-hover:bg-black/20">
+            <div className="bg-black/60 p-1.5 rounded-full backdrop-blur-md shadow-sm">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
+            </div>
+          </div>
+        </button>
+      )}
     </div>
   );
 }
