@@ -206,7 +206,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
                   left: '-25%', 
                   width: '150%', 
                   height: '150%', 
-                  backgroundImage: effectivePatternUrl ? `url(${effectivePatternUrl})` : 'none', 
+                  backgroundImage: effectivePatternUrl ? `url("${effectivePatternUrl}")` : 'none', 
                   backgroundSize: patternSize, 
                   backgroundRepeat: 'repeat', 
                   backgroundPosition: `${layer.bgX} ${layer.bgY}`, 
@@ -294,7 +294,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
                   left: '-25%', 
                   width: '150%', 
                   height: '150%', 
-                  backgroundImage: effectivePatternUrl ? `url(${effectivePatternUrl})` : 'none', 
+                  backgroundImage: effectivePatternUrl ? `url("${effectivePatternUrl}")` : 'none', 
                   backgroundSize: patternSize, 
                   backgroundRepeat: 'repeat', 
                   backgroundPosition: `${layer.bgX} ${layer.bgY}`, 
@@ -356,7 +356,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
                   left: '-50%', 
                   width: '200%', 
                   height: '200%', 
-                  backgroundImage: effectivePatternUrl ? `url(${effectivePatternUrl})` : 'none', 
+                  backgroundImage: effectivePatternUrl ? `url("${effectivePatternUrl}")` : 'none', 
                   backgroundSize: kimonoPatternSize, 
                   backgroundRepeat: 'repeat', 
                   backgroundPosition: `${layer.bgX} ${layer.bgY}`, 
@@ -509,7 +509,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
           {displayMode === 'trim' && itemType === 'kyobukuro' && (
             <div className="w-full flex flex-col items-center animate-fade-in relative z-10">
               <div className="relative mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden w-full max-w-[390px] sm:max-w-[420px]" style={{ aspectRatio: '40 / 34' }}>
-                <div className="absolute inset-0" style={{ backgroundImage: `url(${effectivePatternUrl})`, backgroundSize: creationMode === 'geometric' ? `${(bgSizeMm / 400) * 100}% auto` : `${(180 / 400) * 100}% auto`, backgroundPosition: 'center center', backgroundRepeat: 'repeat', backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff' }} />
+                <div className="absolute inset-0" style={{ backgroundImage: `url("${effectivePatternUrl}")`, backgroundSize: creationMode === 'geometric' ? `${(bgSizeMm / 400) * 100}% auto` : `${(180 / 400) * 100}% auto`, backgroundPosition: 'center center', backgroundRepeat: 'repeat', backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff' }} />
               </div>
             </div>
           )}
@@ -519,11 +519,11 @@ export default function PreviewArea(props: PreviewAreaProps) {
             <div className="flex flex-col items-center w-full animate-fade-in relative z-10">
               {itemType === 'hanhaba' ? (
                 <div className="relative mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden w-[200px] h-[444px]">
-                  <div className="absolute inset-0" style={{ backgroundImage: `url(${effectivePatternUrl})`, backgroundSize: creationMode === 'geometric' ? `${(bgSizeMm / 180) * 100}% auto` : '100% auto', backgroundPosition: 'top left', backgroundRepeat: 'repeat', backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff' }} />
+                  <div className="absolute inset-0" style={{ backgroundImage: `url("${effectivePatternUrl}")`, backgroundSize: creationMode === 'geometric' ? `${(bgSizeMm / 180) * 100}% auto` : '100% auto', backgroundPosition: 'top left', backgroundRepeat: 'repeat', backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff' }} />
                 </div>
               ) : (
                 <div className="relative mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden w-full max-w-[390px] sm:max-w-[420px] aspect-square">
-                  <div className="absolute inset-0" style={{ backgroundImage: `url(${effectivePatternUrl})`, backgroundSize: creationMode === 'geometric' ? `${(bgSizeMm / 400) * 100}% auto` : '100% auto', backgroundPosition: 'center', backgroundRepeat: 'repeat', backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff' }} />
+                  <div className="absolute inset-0" style={{ backgroundImage: `url("${effectivePatternUrl}")`, backgroundSize: creationMode === 'geometric' ? `${(bgSizeMm / 400) * 100}% auto` : '100% auto', backgroundPosition: 'center', backgroundRepeat: 'repeat', backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff' }} />
                 </div>
               )}
             </div>
