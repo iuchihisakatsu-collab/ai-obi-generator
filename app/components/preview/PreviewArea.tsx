@@ -52,7 +52,7 @@ export default function PreviewArea({
   UNIVERSAL_SCALE_FACTOR
 }: PreviewAreaProps) {
   
-  // 生中継小窓を表示するかどうかの判定（page.tsxから完全に分離）
+  // 生中継小窓を表示するかどうかの判定
   const [isCompact, setIsCompact] = useState(false);
   useEffect(() => {
     const handleScroll = () => {
@@ -244,12 +244,12 @@ export default function PreviewArea({
         </div>
       )}
 
-      {/* スマホ専用：生中継の小窓（PIPワイプ） */}
+      {/* スマホ専用：生中継の小窓（PIPワイプ） - 面積を4倍（128px四方）に拡大！ */}
       {imageUrl && (
         <button
           type="button"
           onClick={() => { window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-          className={`lg:hidden fixed bottom-6 right-5 z-50 w-16 h-16 sm:w-20 sm:h-20 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.25)] border-[3px] border-white overflow-hidden active:scale-95 transition-all duration-500 group ${isCompact ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-12 pointer-events-none'}`}
+          className={`lg:hidden fixed bottom-6 right-5 z-50 w-32 h-32 sm:w-40 sm:h-40 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.3)] border-[4px] border-white overflow-hidden active:scale-95 transition-all duration-500 group ${isCompact ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-12 pointer-events-none'}`}
         >
           <div 
             className="absolute inset-0 w-full h-full transition-transform duration-500 group-hover:scale-110"
@@ -262,8 +262,8 @@ export default function PreviewArea({
             }} 
           />
           <div className="absolute inset-0 bg-black/10 flex items-center justify-center transition-colors group-hover:bg-black/20">
-            <div className="bg-black/60 p-1.5 rounded-full backdrop-blur-md shadow-sm">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
+            <div className="bg-black/60 p-2.5 rounded-full backdrop-blur-md shadow-sm">
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
             </div>
           </div>
         </button>
