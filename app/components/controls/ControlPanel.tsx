@@ -126,7 +126,6 @@ export default function ControlPanel({
   errorMsg = '',
   loading = false,
   loadingEngine = null,
-  remainingCount = 1,
   remainingFlux = 24,
   remainingOpenAI = 1,
   loadingStep = 0,
@@ -464,7 +463,7 @@ export default function ControlPanel({
           </div>
         )}
 
-        {/* AI生成ボタンエリア（デュアルエンジン：FLUX 24回 / OpenAI 1回） */}
+        {/* AI生成ボタンエリア（完全にフラットな表現） */}
         <div className="space-y-4 mt-6">
           {creationMode === 'ai' && (
             <div className="pt-6 border-t border-zinc-200 space-y-3">
@@ -475,38 +474,30 @@ export default function ControlPanel({
               
               {errorMsg && <div className="p-3 bg-red-50 text-red-600 border border-red-200 text-xs font-bold shadow-sm">{errorMsg}</div>}
               
-              {/* ボタン1：意匠クリエイティブ（FLUX / 24回 / 鮮やかベクター調） */}
+              {/* ボタン1：falエンジン */}
               <button 
                 type="button" 
                 onClick={() => handleGenerate('flux')} 
                 disabled={loading || remainingFlux === 0} 
-                className={`w-full py-3.5 px-4 font-black text-xs sm:text-sm tracking-widest transition-all duration-200 flex flex-col items-center justify-center gap-0.5 shadow-md relative z-10 ${
+                className={`w-full py-4 px-4 font-black text-xs sm:text-sm tracking-widest transition-all duration-200 flex flex-col items-center justify-center gap-1 shadow-md relative z-10 ${
                   remainingFlux === 0 
                     ? 'bg-zinc-100 text-zinc-400 border border-zinc-200 cursor-not-allowed' 
-                    : 'bg-zinc-950 text-white hover:bg-zinc-800 hover:shadow-lg disabled:opacity-50'
+                    : 'bg-zinc-900 text-white hover:bg-black hover:shadow-lg disabled:opacity-50'
                 }`}
               >
                 {loading && loadingEngine === 'flux' ? (
-                  <span className="text-xs">⚡ 新しいテキスタイル意匠を紡ぎ出しています...</span>
+                  <span className="text-xs">fal エンジンで生成中...</span>
                 ) : (
-                  <>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-amber-400">⚡</span>
-                      <span>意匠クリエイティブで試す (残り {remainingFlux} 回)</span>
-                    </div>
-                    <span className="text-[9px] font-normal text-zinc-400 tracking-normal">
-                      鮮やかな配色・ベクター調のモダンテキスタイル意匠
-                    </span>
-                  </>
+                  <span>fal エンジンで試す (残り {remainingFlux} 回)</span>
                 )}
               </button>
 
-              {/* ボタン2：本番清書（OpenAI / 1回 / 最高精細） */}
+              {/* ボタン2：OpenAIエンジン */}
               <button 
                 type="button" 
                 onClick={() => handleGenerate('openai')} 
                 disabled={loading || remainingOpenAI === 0} 
-                className={`w-full py-3 px-4 font-bold text-xs tracking-wider transition-all duration-200 flex flex-col items-center justify-center gap-0.5 border relative z-10 ${
+                className={`w-full py-4 px-4 font-black text-xs sm:text-sm tracking-widest transition-all duration-200 flex flex-col items-center justify-center gap-1 border relative z-10 ${
                   remainingOpenAI === 0 
                     ? 'bg-zinc-50 text-zinc-400 border-zinc-200 cursor-not-allowed' 
                     : 'bg-white text-zinc-900 border-zinc-900 hover:bg-zinc-100 hover:shadow-md disabled:opacity-50'
@@ -515,69 +506,28 @@ export default function ControlPanel({
                 {loading && loadingEngine === 'openai' ? (
                   <div className="flex flex-col items-center gap-1">
                     <span className="text-xs">{LOADING_STEPS[loadingStep]}</span>
-                    <span className="text-[8px] text-zinc-400">OPENAI HIGH-RES RENDERING...</span>
                   </div>
                 ) : (
-                  <>
-                    <div className="flex items-center gap-1.5">
-                      <span>✨</span>
-                      <span>
-                        {remainingOpenAI === 0 
-                          ? '本日の清書上限に達しました (1/1)' 
-                          : `本番清書で仕上げる (残り ${remainingOpenAI} 回)`}
-                      </span>
-                    </div>
-                    <span className="text-[9px] font-normal text-zinc-500 tracking-normal">
-                      モナリザ印刷用の最高精細仕上げ（1日1回限定）
-                    </span>
-                  </>
+                  <span>OpenAI エンジンで試す (残り {remainingOpenAI} 回)</span>
                 )}
               </button>
 
-              {/* 両方の上限到達時の無料コンテンツ案内カード */}
+              {/* 使い切った場合の着地 */}
               {remainingFlux === 0 && remainingOpenAI === 0 && (
-                <div className="p-5 bg-gradient-to-br from-zinc-50 to-zinc-100 border-2 border-zinc-900 rounded-sm shadow-md animate-fade-in space-y-4">
-                  <div className="text-center">
-                    <span className="inline-block px-2.5 py-0.5 bg-zinc-900 text-white text-[9px] font-black tracking-widest rounded-full uppercase mb-2">
-                      無料コンテンツのご案内
-                    </span>
-                    <h4 className="text-xs sm:text-sm font-black text-zinc-900 tracking-wider">
-                      本日のAI枠は使い切りましたが、まだまだ楽しめます！
-                    </h4>
-                  </div>
-
-                  <div className="space-y-2.5 pt-1">
-                    <div className="p-3 bg-white border border-zinc-300 rounded-sm shadow-2xs">
-                      <p className="text-[10px] text-zinc-600 mb-2 leading-relaxed">
-                        {primaryMotif ? (
-                          <>あなたが思い描いた『<strong className="text-zinc-950 font-bold">{primaryMotif}</strong>』、実はゴフクヤサンにすでに仕立て上がった自慢の作品がたくさん揃っています。見るのは完全無料です。</>
-                        ) : (
-                          <>ゴフクヤサンの豊富な着物・帯コレクションを覗いてみませんか？見るのは完全無料です。</>
-                        )}
-                      </p>
-                      <a
-                        href={makeshopSearchUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block w-full py-2.5 text-center bg-zinc-900 hover:bg-black text-white text-[11px] font-black tracking-wider transition-colors rounded-xs shadow-sm"
-                      >
-                        ゴフクヤサンで{primaryMotif ? `「${primaryMotif}」の作品` : '全商品'}を見る（無料） →
-                      </a>
-                    </div>
-
-                    <div className="p-3 bg-white border border-zinc-300 rounded-sm shadow-2xs">
-                      <p className="text-[10px] text-zinc-600 mb-2 leading-relaxed">
-                        縞（ストライプ）・水玉（ドット）・格子をmm単位で自由に誂えられる<strong className="text-zinc-950 font-bold">「格子・水玉製作所」</strong>なら、何回でも完全無料・無制限で遊べます。
-                      </p>
-                      <button
-                        type="button"
-                        onClick={switchToGeometric}
-                        className="w-full py-2.5 text-center bg-white hover:bg-zinc-100 text-zinc-900 border-2 border-zinc-900 text-[11px] font-black tracking-wider transition-colors rounded-xs shadow-sm"
-                      >
-                        完全無料の「格子・水玉製作所」で遊ぶ →
-                      </button>
-                    </div>
-                  </div>
+                <div className="p-4 bg-zinc-100 border border-zinc-200 shadow-inner rounded-sm text-center animate-fade-in mt-4">
+                  <p className="text-[11px] font-bold text-zinc-700 mb-2 leading-relaxed">
+                    本日のAIエンジン利用枠は終了しました。
+                  </p>
+                  <p className="text-[10px] text-zinc-500 mb-4 leading-relaxed px-2">
+                    「格子・水玉製作所」なら何度でも無制限でお楽しみいただけます。
+                  </p>
+                  <button
+                    type="button"
+                    onClick={switchToGeometric}
+                    className="w-full py-2.5 text-center bg-white hover:bg-zinc-100 text-zinc-900 border-2 border-zinc-900 text-[11px] font-black tracking-wider transition-colors rounded-xs shadow-sm"
+                  >
+                    格子・水玉製作所へ移動する →
+                  </button>
                 </div>
               )}
             </div>
