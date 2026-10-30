@@ -122,7 +122,7 @@ export default function ControlPanel({
   setAgreed = () => {},
   errorMsg = '',
   loading = false,
-  remainingCount = 3,
+  remainingCount = 1,
   loadingStep = 0,
   handleGenerate = () => {},
   imageUrl = '',
@@ -167,13 +167,21 @@ export default function ControlPanel({
     window.open('https://www.instagram.com/', '_blank', 'noopener,noreferrer');
   };
 
-  const primaryMotif = patternTitle ? (motif.trim() ? motif.split(/[、\s ]+/)[0] : '') : '';
-  const makeshopSearchUrl = primaryMotif ? `https://store.gofukuyasan.com/view/search?search_keyword=${encodeURIComponent(primaryMotif)}` : '';
+  // 入力されたモチーフ（最初の1単語）を常に抽出
+  const primaryMotif = motif.trim() ? motif.split(/[、\s ]+/)[0] : '';
+  const makeshopSearchUrl = primaryMotif 
+    ? `https://store.gofukuyasan.com/view/search?search_keyword=${encodeURIComponent(primaryMotif)}` 
+    : 'https://store.gofukuyasan.com/';
 
   const handleQuickAdd = (word: string) => {
     if (!motif.includes(word)) {
       setMotif(motif ? `${motif}、${word}` : word);
     }
+  };
+
+  const switchToGeometric = () => {
+    setCreationMode('geometric');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
@@ -260,6 +268,21 @@ export default function ControlPanel({
                 onChange={(e) => setMotif(e.target.value)} 
                 disabled={loading} 
               />
+
+              {/* モチーフ入力中に連動するMakeShop検索ミニ案内 */}
+              {primaryMotif && (
+                <div className="mt-1.5 flex justify-end">
+                  <a 
+                    href={makeshopSearchUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-[10px] font-bold text-zinc-500 hover:text-zinc-950 underline decoration-zinc-300 transition-colors"
+                  >
+                    <span>ゴフクヤサンの「{primaryMotif}」既製品コレクションを見る（無料）</span>
+                    <span className="text-[9px]">→</span>
+                  </a>
+                </div>
+              )}
               
               <div className="mt-2.5 pt-2 border-t border-zinc-100 flex flex-wrap items-center gap-1.5">
                 <span className="text-[10px] font-black text-zinc-400 uppercase tracking-wider mr-1">入力アシスト:</span>
@@ -437,28 +460,86 @@ export default function ControlPanel({
           </div>
         )}
 
-        <div className="space-y-6 mt-6">
+        {/* 1日1回上限の生成ボタン ＆ 上限到達時の無料コンテンツ着地導線 */}
+        <div className="space-y-4 mt-6">
           {creationMode === 'ai' && (
-            <div className="pt-6 border-t border-zinc-200">
-              <label className="flex items-start gap-2.5 cursor-pointer select-none mb-4 group relative z-10">
+            <div className="pt-6 border-t border-zinc-200 space-y-4">
+              <label className="flex items-start gap-2.5 cursor-pointer select-none mb-2 group relative z-10">
                 <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-0.5 h-3.5 w-3.5 border-zinc-300 text-zinc-900 focus:ring-zinc-900 transition-colors cursor-pointer" />
                 <span className="text-[10px] text-zinc-500 leading-tight group-hover:text-zinc-800 transition-colors">生成図案はAIによるアイデアであり、実際の生地制作時はゴフクヤサンの手でデータ調整が行われることに同意します。</span>
               </label>
-              {errorMsg && <div className="mb-4 p-3 bg-red-50 text-red-600 border border-red-200 text-xs font-bold shadow-sm">{errorMsg}</div>}
-              <button type="button" onClick={handleGenerate} disabled={loading || remainingCount === 0} className={`w-full py-4 font-black text-sm tracking-widest uppercase transition-all duration-300 flex items-center justify-center gap-2 shadow-md relative z-10 ${remainingCount === 0 ? 'bg-zinc-100 text-zinc-400 border border-zinc-200 cursor-not-allowed' : 'bg-zinc-950 text-white hover:bg-zinc-800 hover:shadow-lg disabled:opacity-50'}`}>
+              
+              {errorMsg && <div className="p-3 bg-red-50 text-red-600 border border-red-200 text-xs font-bold shadow-sm">{errorMsg}</div>}
+              
+              <button 
+                type="button" 
+                onClick={handleGenerate} 
+                disabled={loading || remainingCount === 0} 
+                className={`w-full py-4 font-black text-sm tracking-widest uppercase transition-all duration-300 flex items-center justify-center gap-2 shadow-md relative z-10 ${remainingCount === 0 ? 'bg-zinc-100 text-zinc-400 border border-zinc-200 cursor-not-allowed' : 'bg-zinc-950 text-white hover:bg-zinc-800 hover:shadow-lg disabled:opacity-50'}`}
+              >
                 {loading ? ( 
                   <div className="flex flex-col items-center gap-1">
                     <span>{LOADING_STEPS[loadingStep]}</span>
                     <span className="text-[8px] text-zinc-400">PROCESSING...</span>
                   </div> 
                 ) : ( 
-                  <span>{remainingCount === 0 ? '本日の上限に達しました (3/3)' : `図案を描き出す (残り ${remainingCount ?? 3} 回)`}</span> 
+                  <span>{remainingCount === 0 ? '本日のAI妄想は終了しました (1/1)' : '最高画質で図案を描き出す (残り 1 回)'}</span> 
                 )}
               </button>
+
+              {/* 上限到達時（残り0回）にドカンと表示される無料コンテンツ案内カード */}
+              {remainingCount === 0 && (
+                <div className="p-5 bg-gradient-to-br from-zinc-50 to-zinc-100 border-2 border-zinc-900 rounded-sm shadow-md animate-fade-in space-y-4">
+                  <div className="text-center">
+                    <span className="inline-block px-2.5 py-0.5 bg-zinc-900 text-white text-[9px] font-black tracking-widest rounded-full uppercase mb-2">
+                      無料コンテンツのご案内
+                    </span>
+                    <h4 className="text-xs sm:text-sm font-black text-zinc-900 tracking-wider">
+                      本日のAI枠は使い切りましたが、まだまだ楽しめます！
+                    </h4>
+                  </div>
+
+                  <div className="space-y-2.5 pt-1">
+                    {/* 導線1: MakeShop既製品検索 */}
+                    <div className="p-3 bg-white border border-zinc-300 rounded-sm shadow-2xs">
+                      <p className="text-[10px] text-zinc-600 mb-2 leading-relaxed">
+                        {primaryMotif ? (
+                          <>あなたが思い描いた『<strong className="text-zinc-950 font-bold">{primaryMotif}</strong>』、実はゴフクヤサンにすでに仕立て上がった自慢の作品がたくさん揃っています。見るのは完全無料です。</>
+                        ) : (
+                          <>ゴフクヤサンの豊富な着物・帯コレクションを覗いてみませんか？見るのは完全無料です。</>
+                        )}
+                      </p>
+                      <a
+                        href={makeshopSearchUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block w-full py-2.5 text-center bg-zinc-900 hover:bg-black text-white text-[11px] font-black tracking-wider transition-colors rounded-xs shadow-sm"
+                      >
+                        ゴフクヤサンで{primaryMotif ? `「${primaryMotif}」の作品` : '全商品'}を見る（無料） →
+                      </a>
+                    </div>
+
+                    {/* 導線2: 格子・水玉製作所 */}
+                    <div className="p-3 bg-white border border-zinc-300 rounded-sm shadow-2xs">
+                      <p className="text-[10px] text-zinc-600 mb-2 leading-relaxed">
+                        縞（ストライプ）・水玉（ドット）・格子をmm単位で自由に誂えられる<strong className="text-zinc-950 font-bold">「格子・水玉製作所」</strong>なら、何回でも完全無料・無制限で遊べます。
+                      </p>
+                      <button
+                        type="button"
+                        onClick={switchToGeometric}
+                        className="w-full py-2.5 text-center bg-white hover:bg-zinc-100 text-zinc-900 border-2 border-zinc-900 text-[11px] font-black tracking-wider transition-colors rounded-xs shadow-sm"
+                      >
+                        完全無料の「格子・水玉製作所」で遊ぶ →
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
 
+        {/* 生成完了後の作品表示エリア */}
         {imageUrl && (
           <div className="pt-8 mt-8 border-t-2 border-zinc-950 space-y-6 relative z-10 animate-fade-in bg-zinc-50 -mx-4 sm:-mx-8 lg:-mx-10 px-4 sm:px-8 lg:px-10 pb-8">
             <h3 className="text-center font-bold text-sm tracking-widest text-zinc-800 pt-6">あなただけの作品が完成しました</h3>
@@ -515,7 +596,7 @@ export default function ControlPanel({
 
                   <button type="button" onClick={shareToPinterest} className="flex flex-col items-center justify-center py-2.5 px-1 bg-white border border-zinc-300 rounded hover:bg-zinc-950 hover:text-white hover:border-zinc-950 transition-all shadow-sm group" title="Pinterestにピン留め">
                     <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" className="transition-transform group-hover:scale-110">
-                      <path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.162-.105-.949-.199-2.403.041-3.439.219-.937 1.406-5.957 1.406-5.957s-.359-.72-.359-1.781c0-1.663.967-2.911 2.168-2.911 1.024 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738a.36.36 0 0 1 .083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.631-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146 1.124.347 2.317.535 3.554.535 6.627 0 12.004-5.367 12.004-11.987C24.02 5.367 18.644 0 12.017 0z"/>
+                      <path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.162-.105-.949-.199-2.403.041-3.439.219-.937 1.406-5.957s-.359-.72-.359-1.781c0-1.663.967-2.911 2.168-2.911 1.024 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738a.36.36 0 0 1 .083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.631-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146 1.124.347 2.317.535 3.554.535 6.627 0 12.004-5.367 12.004-11.987C24.02 5.367 18.644 0 12.017 0z"/>
                     </svg>
                     <span className="text-[9px] font-bold mt-1 tracking-tighter">Pinterest</span>
                   </button>
@@ -533,6 +614,7 @@ export default function ControlPanel({
                 妄想を現実に<br/><span className="text-[10px] font-medium tracking-wider opacity-90 mt-1 block">（この作品を現実の着物・帯として仕立てる）</span>
               </a>
 
+              {/* 作品完成後にも寄り道リンクを常時配置 */}
               {primaryMotif && (
                 <div className="mt-6 p-4 bg-zinc-100 border border-zinc-200 shadow-inner rounded-sm text-center animate-fade-in">
                   <p className="text-[11px] font-bold text-zinc-700 mb-2 leading-relaxed">
@@ -543,7 +625,7 @@ export default function ControlPanel({
                     妄想図案もいいですが……実はゴフクヤサンにも、<br/>自慢の『{primaryMotif}』アイテムがたくさんスタンバイしています。
                   </p>
                   <a href={makeshopSearchUrl} target="_blank" rel="noopener noreferrer" className="inline-block w-full py-3 bg-white border border-zinc-300 text-zinc-800 text-[10px] font-bold tracking-widest hover:bg-zinc-950 hover:text-white hover:border-zinc-950 transition-colors shadow-sm rounded-sm">
-                    ゴフクヤサンの「{primaryMotif}」コレクションを覗く →
+                    ゴフクヤサンの「{primaryMotif}」コレクションを覗く（無料） →
                   </a>
                 </div>
               )}
