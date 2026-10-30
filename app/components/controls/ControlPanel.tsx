@@ -41,9 +41,12 @@ interface ControlPanelProps {
   setAgreed?: (val: boolean) => void;
   errorMsg?: string;
   loading?: boolean;
+  loadingEngine?: 'flux' | 'openai' | null;
   remainingCount?: number | null;
+  remainingFlux?: number;
+  remainingOpenAI?: number;
   loadingStep?: number;
-  handleGenerate?: () => void;
+  handleGenerate?: (engine: 'flux' | 'openai') => void;
   imageUrl?: string;
   patternTitle?: string;
   setPatternTitle?: (val: string) => void;
@@ -122,7 +125,10 @@ export default function ControlPanel({
   setAgreed = () => {},
   errorMsg = '',
   loading = false,
+  loadingEngine = null,
   remainingCount = 1,
+  remainingFlux = 15,
+  remainingOpenAI = 1,
   loadingStep = 0,
   handleGenerate = () => {},
   imageUrl = '',
@@ -167,7 +173,6 @@ export default function ControlPanel({
     window.open('https://www.instagram.com/', '_blank', 'noopener,noreferrer');
   };
 
-  // 入力されたモチーフ（最初の1単語）を常に抽出
   const primaryMotif = motif.trim() ? motif.split(/[、\s ]+/)[0] : '';
   const makeshopSearchUrl = primaryMotif 
     ? `https://store.gofukuyasan.com/view/search?search_keyword=${encodeURIComponent(primaryMotif)}` 
@@ -269,7 +274,6 @@ export default function ControlPanel({
                 disabled={loading} 
               />
 
-              {/* モチーフ入力中に連動するMakeShop検索ミニ案内 */}
               {primaryMotif && (
                 <div className="mt-1.5 flex justify-end">
                   <a 
@@ -460,10 +464,10 @@ export default function ControlPanel({
           </div>
         )}
 
-        {/* 1日1回上限の生成ボタン ＆ 上限到達時の無料コンテンツ着地導線 */}
+        {/* AI生成ボタンエリア（デュアルエンジン：FLUX 15回 / OpenAI 1回） */}
         <div className="space-y-4 mt-6">
           {creationMode === 'ai' && (
-            <div className="pt-6 border-t border-zinc-200 space-y-4">
+            <div className="pt-6 border-t border-zinc-200 space-y-3">
               <label className="flex items-start gap-2.5 cursor-pointer select-none mb-2 group relative z-10">
                 <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-0.5 h-3.5 w-3.5 border-zinc-300 text-zinc-900 focus:ring-zinc-900 transition-colors cursor-pointer" />
                 <span className="text-[10px] text-zinc-500 leading-tight group-hover:text-zinc-800 transition-colors">生成図案はAIによるアイデアであり、実際の生地制作時はゴフクヤサンの手でデータ調整が行われることに同意します。</span>
@@ -471,24 +475,67 @@ export default function ControlPanel({
               
               {errorMsg && <div className="p-3 bg-red-50 text-red-600 border border-red-200 text-xs font-bold shadow-sm">{errorMsg}</div>}
               
+              {/* ボタン1：軽快スケッチ（FLUX / 15回 / 爆速） */}
               <button 
                 type="button" 
-                onClick={handleGenerate} 
-                disabled={loading || remainingCount === 0} 
-                className={`w-full py-4 font-black text-sm tracking-widest uppercase transition-all duration-300 flex items-center justify-center gap-2 shadow-md relative z-10 ${remainingCount === 0 ? 'bg-zinc-100 text-zinc-400 border border-zinc-200 cursor-not-allowed' : 'bg-zinc-950 text-white hover:bg-zinc-800 hover:shadow-lg disabled:opacity-50'}`}
+                onClick={() => handleGenerate('flux')} 
+                disabled={loading || remainingFlux === 0} 
+                className={`w-full py-3.5 px-4 font-black text-xs sm:text-sm tracking-widest transition-all duration-200 flex flex-col items-center justify-center gap-0.5 shadow-md relative z-10 ${
+                  remainingFlux === 0 
+                    ? 'bg-zinc-100 text-zinc-400 border border-zinc-200 cursor-not-allowed' 
+                    : 'bg-zinc-950 text-white hover:bg-zinc-800 hover:shadow-lg disabled:opacity-50'
+                }`}
               >
-                {loading ? ( 
-                  <div className="flex flex-col items-center gap-1">
-                    <span>{LOADING_STEPS[loadingStep]}</span>
-                    <span className="text-[8px] text-zinc-400">PROCESSING...</span>
-                  </div> 
-                ) : ( 
-                  <span>{remainingCount === 0 ? '本日のAI妄想は終了しました (1/1)' : '最高画質で図案を描き出す (残り 1 回)'}</span> 
+                {loading && loadingEngine === 'flux' ? (
+                  <span className="text-xs">⚡ FLUXで高速スケッチ中（約1〜2秒）...</span>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-amber-400">⚡</span>
+                      <span>軽快スケッチで試す (残り {remainingFlux} 回)</span>
+                    </div>
+                    <span className="text-[9px] font-normal text-zinc-400 tracking-normal">
+                      爆速でアイデア出し・何パターンも試せます
+                    </span>
+                  </>
                 )}
               </button>
 
-              {/* 上限到達時（残り0回）にドカンと表示される無料コンテンツ案内カード */}
-              {remainingCount === 0 && (
+              {/* ボタン2：本番清書（OpenAI / 1回 / 最高精細） */}
+              <button 
+                type="button" 
+                onClick={() => handleGenerate('openai')} 
+                disabled={loading || remainingOpenAI === 0} 
+                className={`w-full py-3 px-4 font-bold text-xs tracking-wider transition-all duration-200 flex flex-col items-center justify-center gap-0.5 border relative z-10 ${
+                  remainingOpenAI === 0 
+                    ? 'bg-zinc-50 text-zinc-400 border-zinc-200 cursor-not-allowed' 
+                    : 'bg-white text-zinc-900 border-zinc-900 hover:bg-zinc-100 hover:shadow-md disabled:opacity-50'
+                }`}
+              >
+                {loading && loadingEngine === 'openai' ? (
+                  <div className="flex flex-col items-center gap-1">
+                    <span className="text-xs">{LOADING_STEPS[loadingStep]}</span>
+                    <span className="text-[8px] text-zinc-400">OPENAI HIGH-RES RENDERING...</span>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-1.5">
+                      <span>✨</span>
+                      <span>
+                        {remainingOpenAI === 0 
+                          ? '本日の清書上限に達しました (1/1)' 
+                          : `本番清書で仕上げる (残り ${remainingOpenAI} 回)`}
+                      </span>
+                    </div>
+                    <span className="text-[9px] font-normal text-zinc-500 tracking-normal">
+                      モナリザ印刷用の最高精細仕上げ（1日1回限定）
+                    </span>
+                  </>
+                )}
+              </button>
+
+              {/* 両方の上限到達時の無料コンテンツ案内カード */}
+              {remainingFlux === 0 && remainingOpenAI === 0 && (
                 <div className="p-5 bg-gradient-to-br from-zinc-50 to-zinc-100 border-2 border-zinc-900 rounded-sm shadow-md animate-fade-in space-y-4">
                   <div className="text-center">
                     <span className="inline-block px-2.5 py-0.5 bg-zinc-900 text-white text-[9px] font-black tracking-widest rounded-full uppercase mb-2">
@@ -500,7 +547,6 @@ export default function ControlPanel({
                   </div>
 
                   <div className="space-y-2.5 pt-1">
-                    {/* 導線1: MakeShop既製品検索 */}
                     <div className="p-3 bg-white border border-zinc-300 rounded-sm shadow-2xs">
                       <p className="text-[10px] text-zinc-600 mb-2 leading-relaxed">
                         {primaryMotif ? (
@@ -519,7 +565,6 @@ export default function ControlPanel({
                       </a>
                     </div>
 
-                    {/* 導線2: 格子・水玉製作所 */}
                     <div className="p-3 bg-white border border-zinc-300 rounded-sm shadow-2xs">
                       <p className="text-[10px] text-zinc-600 mb-2 leading-relaxed">
                         縞（ストライプ）・水玉（ドット）・格子をmm単位で自由に誂えられる<strong className="text-zinc-950 font-bold">「格子・水玉製作所」</strong>なら、何回でも完全無料・無制限で遊べます。
@@ -577,63 +622,4 @@ export default function ControlPanel({
                     <span className="text-[9px] font-bold mt-1 tracking-tighter">X</span>
                   </button>
 
-                  <button type="button" onClick={shareToThreads} className="flex flex-col items-center justify-center py-2.5 px-1 bg-white border border-zinc-300 rounded hover:bg-zinc-950 hover:text-white hover:border-zinc-950 transition-all shadow-sm group" title="Threadsでポスト">
-                    <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" className="transition-transform group-hover:scale-110">
-                      <path d="M12.186 24C5.467 24 0 18.533 0 11.814 0 5.094 5.467 0 12.186 0c6.72 0 12.186 5.094 12.186 11.814 0 2.253-.615 4.417-1.78 6.257l-1.92-1.22c.905-1.43 1.38-3.11 1.38-4.863 0-5.467-4.44-9.5-9.866-9.5-5.426 0-9.866 4.44-9.866 9.866 0 5.427 4.44 9.867 9.866 9.867 3.52 0 6.64-1.854 8.36-4.96l1.986 1.1c-2.226 4.013-6.24 6.406-10.74 6.406z"/>
-                      <path d="M12.186 17.5c-3.14 0-5.694-2.553-5.694-5.693 0-3.14 2.554-5.694 5.694-5.694 3.14 0 5.693 2.554 5.693 5.694 0 .693-.56 1.253-1.253 1.253-.694 0-1.254-.56-1.254-1.253 0-1.76-1.433-3.194-3.193-3.194-1.76 0-3.194 1.434-3.194 3.194 0 1.76 1.434 3.193 3.194 3.194 1.053 0 1.986-.52 2.56-1.306.493.533 1.2 1.306 2.066 1.306 1.96 0 3.547-1.587 3.547-3.547 0-4.32-3.507-7.827-7.827-7.827-4.32 0-7.827 3.507-7.827 7.827 0 4.32 3.507 7.827 7.827 7.827 2.373 0 4.547-1.067 6.013-2.773l1.84 1.333C20.693 20.307 17.973 21.667 15 21.667c-.933 0-1.88-.134-2.814-.414z"/>
-                    </svg>
-                    <span className="text-[9px] font-bold mt-1 tracking-tighter">Threads</span>
-                  </button>
-
-                  <button type="button" onClick={shareToInstagram} className="flex flex-col items-center justify-center py-2.5 px-1 bg-white border border-zinc-300 rounded hover:bg-zinc-950 hover:text-white hover:border-zinc-950 transition-all shadow-sm group" title="Instagram用テキストをコピーして開く">
-                    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="transition-transform group-hover:scale-110">
-                      <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
-                      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
-                      <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
-                    </svg>
-                    <span className="text-[9px] font-bold mt-1 tracking-tighter">Instagram</span>
-                  </button>
-
-                  <button type="button" onClick={shareToPinterest} className="flex flex-col items-center justify-center py-2.5 px-1 bg-white border border-zinc-300 rounded hover:bg-zinc-950 hover:text-white hover:border-zinc-950 transition-all shadow-sm group" title="Pinterestにピン留め">
-                    <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" className="transition-transform group-hover:scale-110">
-                      <path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.162-.105-.949-.199-2.403.041-3.439.219-.937 1.406-5.957s-.359-.72-.359-1.781c0-1.663.967-2.911 2.168-2.911 1.024 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738a.36.36 0 0 1 .083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.631-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146 1.124.347 2.317.535 3.554.535 6.627 0 12.004-5.367 12.004-11.987C24.02 5.367 18.644 0 12.017 0z"/>
-                    </svg>
-                    <span className="text-[9px] font-bold mt-1 tracking-tighter">Pinterest</span>
-                  </button>
-
-                  <button type="button" onClick={shareToFacebook} className="flex flex-col items-center justify-center py-2.5 px-1 bg-white border border-zinc-300 rounded hover:bg-zinc-950 hover:text-white hover:border-zinc-950 transition-all shadow-sm group" title="Facebookでシェア">
-                    <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" className="transition-transform group-hover:scale-110">
-                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                    </svg>
-                    <span className="text-[9px] font-bold mt-1 tracking-tighter">Facebook</span>
-                  </button>
-                </div>
-              </div>
-
-              <a href="#" onClick={handleOrderClick} className="block w-full py-4 mt-2 text-center bg-zinc-950 text-white text-[15px] font-black tracking-widest transition-all shadow-xl hover:shadow-2xl hover:scale-[1.01] border-2 border-zinc-950 rounded-sm">
-                妄想を現実に<br/><span className="text-[10px] font-medium tracking-wider opacity-90 mt-1 block">（この作品を現実の着物・帯として仕立てる）</span>
-              </a>
-
-              {/* 作品完成後にも寄り道リンクを常時配置 */}
-              {primaryMotif && (
-                <div className="mt-6 p-4 bg-zinc-100 border border-zinc-200 shadow-inner rounded-sm text-center animate-fade-in">
-                  <p className="text-[11px] font-bold text-zinc-700 mb-2 leading-relaxed">
-                    <span className="text-[9px] text-zinc-500 block mb-1">【 寄り道のご案内 】</span>
-                    お客様、もしかして『<span className="text-zinc-950 font-black text-sm">{primaryMotif}</span>』に<br/>目がありませんね？
-                  </p>
-                  <p className="text-[9px] text-zinc-500 mb-4 leading-relaxed px-2">
-                    妄想図案もいいですが……実はゴフクヤサンにも、<br/>自慢の『{primaryMotif}』アイテムがたくさんスタンバイしています。
-                  </p>
-                  <a href={makeshopSearchUrl} target="_blank" rel="noopener noreferrer" className="inline-block w-full py-3 bg-white border border-zinc-300 text-zinc-800 text-[10px] font-bold tracking-widest hover:bg-zinc-950 hover:text-white hover:border-zinc-950 transition-colors shadow-sm rounded-sm">
-                    ゴフクヤサンの「{primaryMotif}」コレクションを覗く（無料） →
-                  </a>
-                </div>
-              )}
-
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
+                  <button type="button" onClick={shareToThreads} className="flex flex-col
