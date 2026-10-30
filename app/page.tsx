@@ -24,7 +24,7 @@ import NoticeModal from './components/NoticeModal';
 import PreviewArea from './components/preview/PreviewArea';
 import ControlPanel from './components/controls/ControlPanel';
 
-const MAX_FLUX_PER_DAY = 15;
+const MAX_FLUX_PER_DAY = 24;
 const MAX_OPENAI_PER_DAY = 1;
 
 function getTodayJST(): string {
@@ -153,7 +153,7 @@ function HomeContent() {
   const [serialNumber, setSerialNumber] = useState('');
   const [showColorPalette, setShowColorPalette] = useState(false);
   
-  // デュアルエンジン残回数（FLUX 15回 / OpenAI 1回）
+  // デュアルエンジン残回数（FLUX 24回 / OpenAI 1回）
   const [remainingFlux, setRemainingFlux] = useState<number>(MAX_FLUX_PER_DAY);
   const [remainingOpenAI, setRemainingOpenAI] = useState<number>(MAX_OPENAI_PER_DAY);
   
@@ -177,7 +177,6 @@ function HomeContent() {
   const [kimonoObiageColor, setKimonoObiageColor] = useState('#e8d3d1'); 
   const [rotatedPatternUrl, setRotatedPatternUrl] = useState<string>('');
   
-  // 新着ポップアップ状態
   const [isNoticeOpen, setIsNoticeOpen] = useState(false);
 
   const previewRef = useRef<HTMLDivElement>(null);
@@ -297,7 +296,7 @@ function HomeContent() {
       setRemainingFlux(MAX_FLUX_PER_DAY);
       setRemainingOpenAI(MAX_OPENAI_PER_DAY);
       setMotif('');
-      alert('管理者モード：本日の生成回数を回復しました。\n・軽快スケッチ（FLUX）: 15回\n・本番清書（OpenAI）: 1回');
+      alert('【管理者モード】本日の生成回数をすべて全回復しました。\n・創作図案（FLUX）: 24回\n・本番清書（OpenAI）: 1回');
     }
   }, [motif]);
 
@@ -393,12 +392,12 @@ function HomeContent() {
 
     if (engine === 'flux' && fCount >= MAX_FLUX_PER_DAY) {
       setRemainingFlux(0);
-      alert('[本日のスケッチ上限に達しました]\n\n軽快スケッチ（FLUX）は1日15回までご利用いただけます。');
+      alert('[本日の創作図案上限に達しました]\n\n創作図案は1日24回までたっぷりご利用いただけます。また明日お試しいただくか、「本番清書」をお試しください。');
       return;
     }
     if (engine === 'openai' && oCount >= MAX_OPENAI_PER_DAY) {
       setRemainingOpenAI(0);
-      alert('[本日の清書上限に達しました]\n\n最高精細の「本番清書」はお一人様1日1回までとなっております。');
+      alert('[本日の清書上限に達しました]\n\n最高精細の「本番清書」はお一人様1日1回までとなっております。創作図案は引き続きご利用いただけます。');
       return;
     }
 
