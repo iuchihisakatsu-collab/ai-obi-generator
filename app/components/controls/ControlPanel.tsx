@@ -127,7 +127,7 @@ export default function ControlPanel({
   loading = false,
   loadingEngine = null,
   remainingCount = 1,
-  remainingFlux = 15,
+  remainingFlux = 24,
   remainingOpenAI = 1,
   loadingStep = 0,
   handleGenerate = () => {},
@@ -464,7 +464,7 @@ export default function ControlPanel({
           </div>
         )}
 
-        {/* AI生成ボタンエリア（デュアルエンジン：FLUX 15回 / OpenAI 1回） */}
+        {/* AI生成ボタンエリア（デュアルエンジン：FLUX 24回 / OpenAI 1回） */}
         <div className="space-y-4 mt-6">
           {creationMode === 'ai' && (
             <div className="pt-6 border-t border-zinc-200 space-y-3">
@@ -475,7 +475,7 @@ export default function ControlPanel({
               
               {errorMsg && <div className="p-3 bg-red-50 text-red-600 border border-red-200 text-xs font-bold shadow-sm">{errorMsg}</div>}
               
-              {/* ボタン1：軽快スケッチ（FLUX / 15回 / 爆速） */}
+              {/* ボタン1：意匠クリエイティブ（FLUX / 24回 / 鮮やかベクター調） */}
               <button 
                 type="button" 
                 onClick={() => handleGenerate('flux')} 
@@ -487,15 +487,15 @@ export default function ControlPanel({
                 }`}
               >
                 {loading && loadingEngine === 'flux' ? (
-                  <span className="text-xs">⚡ FLUXで高速スケッチ中（約1〜2秒）...</span>
+                  <span className="text-xs">⚡ 新しいテキスタイル意匠を紡ぎ出しています...</span>
                 ) : (
                   <>
                     <div className="flex items-center gap-1.5">
                       <span className="text-amber-400">⚡</span>
-                      <span>軽快スケッチで試す (残り {remainingFlux} 回)</span>
+                      <span>意匠クリエイティブで試す (残り {remainingFlux} 回)</span>
                     </div>
                     <span className="text-[9px] font-normal text-zinc-400 tracking-normal">
-                      爆速でアイデア出し・何パターンも試せます
+                      鮮やかな配色・ベクター調のモダンテキスタイル意匠
                     </span>
                   </>
                 )}
