@@ -83,8 +83,52 @@ export default function ControlPanel({
   kimonoHaneriColor, setKimonoHaneriColor, showHaneriColorPalette, setShowHaneriColorPalette,
   kimonoObiageColor, setKimonoObiageColor, showObiageColorPalette, setShowObiageColorPalette,
   handleCustomObiUpload, agreed, setAgreed, errorMsg, loading, remainingCount, loadingStep, handleGenerate,
-  imageUrl, patternTitle, setPatternTitle, handleDownloadOriginal, handleNativeShare, handleOrderClick
+  imageUrl, patternTitle, setPatternTitle, handleDownloadOriginal, handleOrderClick
 }: ControlPanelProps) {
+
+  // シェア用共通データ
+  const finalTitle = patternTitle.trim() || '（無題）';
+  const colorSummary = selectedColors.length > 0 ? selectedColors.map((c) => c.name.split(' ')[0]).join('・') : '自由配色';
+  const shareText = `「妄想小紋図案帖」で柄のアイデアを試してみました。\n銘：『${finalTitle}』\n配色：${colorSummary}\n#妄想きもの図案帳 #ゴフクヤサン`;
+  const currentUrl = typeof window !== 'undefined' ? window.location.href : 'https://store.gofukuyasan.com/';
+  const mediaUrl = imageUrl || '';
+
+  // X (旧Twitter)
+  const shareToX = () => {
+    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(currentUrl)}`;
+    window.open(url, '_blank', 'noopener,noreferrer,width=600,height=450');
+  };
+
+  // Threads
+  const shareToThreads = () => {
+    const textWithUrl = `${shareText}\n${currentUrl}`;
+    const url = `https://www.threads.net/intent/post?text=${encodeURIComponent(textWithUrl)}`;
+    window.open(url, '_blank', 'noopener,noreferrer,width=600,height=550');
+  };
+
+  // Pinterest (画像・URL・説明文を渡してピン留め)
+  const shareToPinterest = () => {
+    const url = `https://pinterest.com/pin/create/button/?url=${encodeURIComponent(currentUrl)}&media=${encodeURIComponent(mediaUrl)}&description=${encodeURIComponent(shareText)}`;
+    window.open(url, '_blank', 'noopener,noreferrer,width=750,height=600');
+  };
+
+  // Facebook
+  const shareToFacebook = () => {
+    const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(currentUrl)}`;
+    window.open(url, '_blank', 'noopener,noreferrer,width=600,height=500');
+  };
+
+  // Instagram (Web経由の直接投稿URLがないため、投稿テキストをコピーしてInstagramを開く)
+  const shareToInstagram = async () => {
+    try {
+      await navigator.clipboard.writeText(shareText);
+      alert('投稿用の銘とテキストをコピーしました！\nInstagramの投稿作成画面に貼り付けてお使いください。');
+    } catch {
+      // コピー不可環境でもそのままInstagramを開く
+    }
+    window.open('https://www.instagram.com/', '_blank', 'noopener,noreferrer');
+  };
+
   return (
     <div className="w-full lg:w-1/2 bg-white border border-zinc-200 p-4 sm:p-8 lg:p-10 shrink-0 shadow-sm z-10 relative">
       <div className="flex bg-zinc-50 border border-zinc-200 p-1 mb-6 shadow-sm">
@@ -442,21 +486,98 @@ export default function ControlPanel({
         </div>
 
         {imageUrl && (
-          <div className="pt-8 mt-8 border-t-2 border-zinc-950 space-y-5 relative z-10 animate-fade-in bg-zinc-50 -mx-4 sm:-mx-8 lg:-mx-10 px-4 sm:px-8 lg:px-10 pb-8">
+          <div className="pt-8 mt-8 border-t-2 border-zinc-950 space-y-6 relative z-10 animate-fade-in bg-zinc-50 -mx-4 sm:-mx-8 lg:-mx-10 px-4 sm:px-8 lg:px-10 pb-8">
             <h3 className="text-center font-bold text-sm tracking-widest text-zinc-800 pt-6">あなただけの作品が完成しました</h3>
-            <div className="space-y-1.5 pt-2">
+            
+            <div className="space-y-1.5 pt-1">
               <label className="block text-xs font-bold text-zinc-700 tracking-wider">作品に『銘（タイトル）』を打つ <span className="font-normal text-[10px] text-zinc-400">（任意）</span></label>
               <input type="text" className="w-full border-b-2 border-zinc-300 p-3 bg-transparent text-sm focus:outline-none focus:border-zinc-950 transition-colors" placeholder="例：遊泳金魚図" value={patternTitle} onChange={(e) => setPatternTitle(e.target.value)} disabled={loading} />
             </div>
-            <div className="space-y-4 pt-4">
-              <button type="button" onClick={handleDownloadOriginal} className="w-full py-3.5 text-center border-2 border-zinc-300 bg-white hover:border-zinc-500 text-zinc-700 text-xs font-bold tracking-widest transition-all flex items-center justify-center gap-2 shadow-sm rounded-sm">
-                ↓ この作品の画像データを手元に残す
+
+            <div className="space-y-3 pt-2">
+              {/* ダウンロードボタン */}
+              <button type="button" onClick={handleDownloadOriginal} className="w-full py-3 text-center border border-zinc-300 bg-white hover:border-zinc-950 hover:bg-zinc-100 text-zinc-800 text-xs font-bold tracking-widest transition-all flex items-center justify-center gap-2 shadow-sm rounded-sm">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                この作品の画像データを手元に残す
               </button>
-              <button type="button" onClick={handleNativeShare} className="w-full py-3.5 text-center bg-zinc-100 hover:bg-zinc-200 text-zinc-900 text-xs font-bold tracking-widest transition-colors flex items-center justify-center gap-2 shadow-sm border border-zinc-300 rounded-sm">
-                この作品をSNSでお披露目する
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
-              </button>
-              <a href="#" onClick={handleOrderClick} className="block w-full py-5 mt-2 text-center bg-zinc-950 text-white text-[15px] font-black tracking-widest transition-all shadow-xl hover:shadow-2xl hover:scale-[1.01] border-2 border-zinc-950 rounded-sm">
+
+              {/* モノトーン・ミニマルなSNSシェアエリア */}
+              <div className="pt-3 pb-1 border-t border-zinc-200">
+                <p className="text-[10px] font-bold text-zinc-500 tracking-wider uppercase mb-2 text-center">この作品をSNSでお披露目する</p>
+                
+                <div className="grid grid-cols-5 gap-1.5">
+                  {/* X */}
+                  <button
+                    type="button"
+                    onClick={shareToX}
+                    className="flex flex-col items-center justify-center py-2.5 px-1 bg-white border border-zinc-300 rounded hover:bg-zinc-950 hover:text-white hover:border-zinc-950 transition-all shadow-sm group"
+                    title="Xでポスト"
+                  >
+                    <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" className="transition-transform group-hover:scale-110">
+                      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                    </svg>
+                    <span className="text-[9px] font-bold mt-1 tracking-tighter">X</span>
+                  </button>
+
+                  {/* Threads */}
+                  <button
+                    type="button"
+                    onClick={shareToThreads}
+                    className="flex flex-col items-center justify-center py-2.5 px-1 bg-white border border-zinc-300 rounded hover:bg-zinc-950 hover:text-white hover:border-zinc-950 transition-all shadow-sm group"
+                    title="Threadsでポスト"
+                  >
+                    <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" className="transition-transform group-hover:scale-110">
+                      <path d="M12.186 24C5.467 24 0 18.533 0 11.814 0 5.094 5.467 0 12.186 0c6.72 0 12.186 5.094 12.186 11.814 0 2.253-.615 4.417-1.78 6.257l-1.92-1.22c.905-1.43 1.38-3.11 1.38-4.863 0-5.467-4.44-9.5-9.866-9.5-5.426 0-9.866 4.44-9.866 9.866 0 5.427 4.44 9.867 9.866 9.867 3.52 0 6.64-1.854 8.36-4.96l1.986 1.1c-2.226 4.013-6.24 6.406-10.74 6.406z"/>
+                      <path d="M12.186 17.5c-3.14 0-5.694-2.553-5.694-5.693 0-3.14 2.554-5.694 5.694-5.694 3.14 0 5.693 2.554 5.693 5.694 0 .693-.56 1.253-1.253 1.253-.694 0-1.254-.56-1.254-1.253 0-1.76-1.433-3.194-3.193-3.194-1.76 0-3.194 1.434-3.194 3.194 0 1.76 1.434 3.193 3.194 3.193 1.053 0 1.986-.52 2.56-1.306.493.533 1.2 1.306 2.066 1.306 1.96 0 3.547-1.587 3.547-3.547 0-4.32-3.507-7.827-7.827-7.827-4.32 0-7.827 3.507-7.827 7.827 0 4.32 3.507 7.827 7.827 7.827 2.373 0 4.547-1.067 6.013-2.773l1.84 1.333C20.693 20.307 17.973 21.667 15 21.667c-.933 0-1.88-.134-2.814-.414z"/>
+                    </svg>
+                    <span className="text-[9px] font-bold mt-1 tracking-tighter">Threads</span>
+                  </button>
+
+                  {/* Instagram */}
+                  <button
+                    type="button"
+                    onClick={shareToInstagram}
+                    className="flex flex-col items-center justify-center py-2.5 px-1 bg-white border border-zinc-300 rounded hover:bg-zinc-950 hover:text-white hover:border-zinc-950 transition-all shadow-sm group"
+                    title="Instagram用テキストをコピーして開く"
+                  >
+                    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="transition-transform group-hover:scale-110">
+                      <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                      <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                    </svg>
+                    <span className="text-[9px] font-bold mt-1 tracking-tighter">Instagram</span>
+                  </button>
+
+                  {/* Pinterest */}
+                  <button
+                    type="button"
+                    onClick={shareToPinterest}
+                    className="flex flex-col items-center justify-center py-2.5 px-1 bg-white border border-zinc-300 rounded hover:bg-zinc-950 hover:text-white hover:border-zinc-950 transition-all shadow-sm group"
+                    title="Pinterestにピン留め"
+                  >
+                    <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" className="transition-transform group-hover:scale-110">
+                      <path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.162-.105-.949-.199-2.403.041-3.439.219-.937 1.406-5.957 1.406-5.957s-.359-.72-.359-1.781c0-1.663.967-2.911 2.168-2.911 1.024 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738a.36.36 0 0 1 .083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.631-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146 1.124.347 2.317.535 3.554.535 6.627 0 12.004-5.367 12.004-11.987C24.02 5.367 18.644 0 12.017 0z"/>
+                    </svg>
+                    <span className="text-[9px] font-bold mt-1 tracking-tighter">Pinterest</span>
+                  </button>
+
+                  {/* Facebook */}
+                  <button
+                    type="button"
+                    onClick={shareToFacebook}
+                    className="flex flex-col items-center justify-center py-2.5 px-1 bg-white border border-zinc-300 rounded hover:bg-zinc-950 hover:text-white hover:border-zinc-950 transition-all shadow-sm group"
+                    title="Facebookでシェア"
+                  >
+                    <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" className="transition-transform group-hover:scale-110">
+                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                    </svg>
+                    <span className="text-[9px] font-bold mt-1 tracking-tighter">Facebook</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* メインCTA：仕立てるボタン */}
+              <a href="#" onClick={handleOrderClick} className="block w-full py-4 mt-2 text-center bg-zinc-950 text-white text-[15px] font-black tracking-widest transition-all shadow-xl hover:shadow-2xl hover:scale-[1.01] border-2 border-zinc-950 rounded-sm">
                 妄想を現実に<br/><span className="text-[10px] font-medium tracking-wider opacity-90 mt-1 block">（この作品を現実の着物・帯として仕立てる）</span>
               </a>
             </div>
