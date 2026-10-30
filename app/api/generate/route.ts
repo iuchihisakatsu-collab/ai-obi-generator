@@ -1,23 +1,47 @@
 // app/api/generate/route.ts
 import { NextResponse } from 'next/server';
+import { put } from '@vercel/blob';
+import OpenAI from 'openai';
+
+export const dynamic = 'force-dynamic';
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 export async function POST(req: Request) {
   try {
-    const { motif, color, density, itemType, aiStyle } = await req.json();
+    const { 
+      motif, 
+      color = 'モチーフに準拠した配色', 
+      density = '', 
+      itemType, 
+      aiStyle = 'mingei' 
+    } = await req.json();
 
     if (!motif) {
       return NextResponse.json({ error: 'モチーフが入力されていません。' }, { status: 400 });
     }
 
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json({ error: 'API key is missing' }, { status: 500 });
+    // 1. アイテムに応じたアスペクト比と物理スケールの定義
+    let imageSize: "1024x1024" | "1792x1024" | "1024x1792" = '1024x1024';
+    let ratioInstruction = 'Square (1:1) textile design. Physical scale: Canvas is exactly 40cm x 40cm.';
+    let scaleInstruction = 'Motifs should be appropriately scaled for a 40cm wide fabric.';
+
+    if (itemType === 'hanhaba') {
+      imageSize = '1792x1024';
+      ratioInstruction = 'Horizontal rectangular (16:9) textile design. Physical scale: Canvas HEIGHT is exactly 18cm (Japanese Han-haba Obi).';
+      scaleInstruction = 'CRITICAL SIZE: Since the canvas height is 18cm, individual motifs MUST be scaled to about 3cm to 5cm. 2 to 3 motifs should fit vertically within the 18cm height. Do NOT make motifs too huge.';
+    } else if (itemType === 'kimono') {
+      imageSize = '1024x1792';
+      ratioInstruction = 'Vertical rectangular (9:16) textile design. Physical scale: Canvas WIDTH is exactly 40cm (Japanese Tanmono).';
+      scaleInstruction = 'Motifs should be appropriately scaled for a 40cm wide fabric, ensuring a balanced repeat.';
     }
 
-    // 鉄則ルール：絶対にイラストや絵画にさせない。2Dのテキスタイルに限定する。
-    const baseRules = "Flat 2D seamless textile pattern, repeat pattern for kimono fabric, top-down overhead shot. NO humans, NO faces, NO clothing mockups, NO 3D shading, NO perspective distortion. High-resolution vector-like printing plate for digital textile printing.";
+    // 2. モナリザ印刷専用の鉄則ベース指示
+    const baseInstruction = "Flat overhead shot, perfectly seamless 2D textile pattern graphic design. Intended for Epson Monna Lisa high-end digital textile printing on silk. High resolution, crisp details, vivid color separation, no halftone dots. ";
 
-    // 5つの世界観（スタイル）ごとの画風注入プロンプト
+    // 3. 5つの世界観（スタイル）の注入プロンプト
     let stylePrompt = "";
     switch (aiStyle) {
       case 'mingei':
@@ -36,45 +60,72 @@ export async function POST(req: Request) {
         stylePrompt = "Trompe-l'œil Nishijin brocade weave illusion, faux golden metallic foil thread texture, antique court textile style, Yusoku pattern layout, opulent woven relief appearance printed completely flat.";
         break;
       default:
-        stylePrompt = "Katazome stencil dye style, bold silhouette, flat graphic.";
+        stylePrompt = "Katazome stencil dye style, Keisuke Serizawa inspired, bold silhouette, hand-crafted folk art aesthetic.";
     }
 
-    let densityPrompt = "";
-    if (density === '四方柄（上下なし）') densityPrompt = "All-over repeating pattern, evenly distributed.";
-    else if (density === '飛び柄（余白あり）') densityPrompt = "Scattered isolated motifs with elegant empty negative space.";
-    else if (density === 'お太鼓柄（ワンポイント/1枚絵）') densityPrompt = "Single large striking placement motif in the center, bold composition.";
+    // 4. 柄の配置（四方柄 / 飛び柄 / お太鼓柄）
+    let layoutInstruction = "";
+    if (density.includes('ワンポイント') || density.includes('お太鼓柄')) {
+      layoutInstruction = "NON-SEAMLESS. A single, large, central one-point motif illustration placed exactly in the middle of the solid background. Leave abundant solid negative space around the central element.";
+    } else if (density.includes('飛び柄')) {
+      layoutInstruction = "Scattered motifs with elegant negative space, refined balanced layout, well-spaced floating elements (Tobigara).";
+    } else {
+      // 四方柄（上下なし）
+      layoutInstruction = "True omnidirectional / non-directional toss pattern (shihō-gara). Motifs MUST be randomly and dynamically rotated at various angles (some pointing upwards, some upside-down 180°, tilted 45°, 90°, etc.). ABSOLUTELY NO uniform upright orientation.";
+    }
 
-    // プロンプトを調合
-    const prompt = `${baseRules} Style: ${stylePrompt} Motif: ${motif}. Colors: ${color}. Layout: ${densityPrompt}`;
+    // 5. 人間や服の誤描画を完全シャットアウトする禁止事項
+    const negativePrompt = "Absolutely NO humans, NO faces, NO body parts, NO clothing items being worn. NO 3D perspective, NO fabric folds, NO wrinkles, NO lighting/shadow effects, NO background scenes.";
 
-    const response = await fetch('https://api.openai.com/v1/images/generations', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'dall-e-3',
-        prompt: prompt,
-        n: 1,
-        size: '1024x1024',
-        response_format: 'b64_json',
-      }),
+    // プロンプトの統合調合
+    const prompt = `${baseInstruction}
+${layoutInstruction}
+${scaleInstruction}
+
+【Art Style】
+${stylePrompt}
+
+【Textile Requirements】
+Motifs: ${motif}
+Color Palette: ${color}
+Format: ${ratioInstruction}
+
+【Strict Restrictions】
+${negativePrompt}`;
+
+    // 6. OpenAI 最新モデル呼び出し
+    const response = await openai.images.generate({
+      model: "gpt-image-2.5-sunburst",
+      prompt: prompt,
+      n: 1,
+      size: imageSize,
+      quality: "high",
+      output_format: "png",
     });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('OpenAI Error:', errorData);
-      return NextResponse.json({ error: '画像生成に失敗しました。' }, { status: response.status });
+    const base64Image = response.data?.[0]?.b64_json;
+    if (!base64Image) {
+      throw new Error('画像データの取得に失敗しました。');
     }
 
-    const data = await response.json();
-    const base64Image = data.data[0].b64_json;
-    const imageUrl = `data:image/png;base64,${base64Image}`;
+    // 7. Vercel Blobへ安全に自動保存
+    const buffer = Buffer.from(base64Image, 'base64');
+    const filename = `textile-${Date.now()}.png`;
 
-    return NextResponse.json({ imageUrl, blobUrl: imageUrl });
-  } catch (error) {
-    console.error('API Route Error:', error);
-    return NextResponse.json({ error: 'サーバーエラーが発生しました。' }, { status: 500 });
+    const blob = await put(filename, buffer, {
+      access: 'public',
+      contentType: 'image/png'
+    });
+
+    return NextResponse.json({
+      imageUrl: blob.url,
+      blobUrl: blob.url
+    }, {
+      headers: { 'Cache-Control': 'no-store, max-age=0' }
+    });
+
+  } catch (error: any) {
+    console.error('API Error:', error);
+    return NextResponse.json({ error: error?.message || '画像生成に失敗しました。' }, { status: 500 });
   }
 }
