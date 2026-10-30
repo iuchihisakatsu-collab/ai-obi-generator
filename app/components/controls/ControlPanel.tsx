@@ -11,8 +11,6 @@ interface ControlPanelProps {
   setAiStyle: (val: string) => void;
   motif: string;
   setMotif: (val: string) => void;
-  showTags: boolean;
-  setShowTags: (val: boolean) => void;
   handleTagClick: (item: CategoryItem) => void;
   selectedColors: typeof TRADITIONAL_COLORS;
   setSelectedColors: (val: typeof TRADITIONAL_COLORS | ((prev: typeof TRADITIONAL_COLORS) => typeof TRADITIONAL_COLORS)) => void;
@@ -39,26 +37,6 @@ interface ControlPanelProps {
   setGeoPatternColor: (val: string) => void;
   showGeoPaletteFor: 'bg' | 'pattern' | null;
   setShowGeoPaletteFor: (val: 'bg' | 'pattern' | null) => void;
-  itemType: 'hanhaba' | 'kyobukuro' | 'kimono';
-  obiLiningColor: string;
-  setObiLiningColor: (val: string) => void;
-  showLiningPalette: boolean;
-  setShowLiningPalette: (val: boolean) => void;
-  kimonoObiColor: string;
-  setKimonoObiColor: (val: string) => void;
-  customObiUrl: string | null;
-  setCustomObiUrl: (val: string | null) => void;
-  showObiColorPalette: boolean;
-  setShowObiColorPalette: (val: boolean) => void;
-  kimonoHaneriColor: string;
-  setKimonoHaneriColor: (val: string) => void;
-  showHaneriColorPalette: boolean;
-  setShowHaneriColorPalette: (val: boolean) => void;
-  kimonoObiageColor: string;
-  setKimonoObiageColor: (val: string) => void;
-  showObiageColorPalette: boolean;
-  setShowObiageColorPalette: (val: boolean) => void;
-  handleCustomObiUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   agreed: boolean;
   setAgreed: (val: boolean) => void;
   errorMsg: string;
@@ -70,11 +48,9 @@ interface ControlPanelProps {
   patternTitle: string;
   setPatternTitle: (val: string) => void;
   handleDownloadOriginal: () => void;
-  handleNativeShare: () => void;
   handleOrderClick: (e: MouseEvent<HTMLAnchorElement>) => void;
 }
 
-// 収まりの良い12大スタイル定義（3列×4行）
 const AI_STYLES = [
   { id: 'mingei', label: '民藝と型染め', sub: '芹沢銈介風・素朴' },
   { id: 'retro', label: '大正ロマン', sub: '竹久夢二・銘仙' },
@@ -90,7 +66,6 @@ const AI_STYLES = [
   { id: 'artdeco', label: 'アール・デコ', sub: '1920s幾何学装飾' },
 ];
 
-// プルダウン用カテゴリ別モチーフ
 const PULLDOWN_MOTIFS = [
   {
     group: '生き物・動物',
@@ -111,16 +86,12 @@ const PULLDOWN_MOTIFS = [
 ];
 
 export default function ControlPanel({
-  creationMode, setCreationMode, aiStyle, setAiStyle, motif, setMotif, handleTagClick,
+  creationMode, setCreationMode, aiStyle, setAiStyle, motif, setMotif,
   selectedColors, setSelectedColors, handleColorToggle, showColorPalette, setShowColorPalette,
   density, setDensity, geoPatternType, setGeoPatternType, stripeDir, setStripeDir,
   dotLayout, setDotLayout, dotRadius, setDotRadius, gapWidth, setGapWidth, lineWidth, setLineWidth,
   geoBgColor, setGeoBgColor, geoPatternColor, setGeoPatternColor, showGeoPaletteFor, setShowGeoPaletteFor,
-  itemType, obiLiningColor, setObiLiningColor, showLiningPalette, setShowLiningPalette,
-  kimonoObiColor, setKimonoObiColor, customObiUrl, setCustomObiUrl, showObiColorPalette, setShowObiColorPalette,
-  kimonoHaneriColor, setKimonoHaneriColor, showHaneriColorPalette, setShowHaneriColorPalette,
-  kimonoObiageColor, setKimonoObiageColor, showObiageColorPalette, setShowObiageColorPalette,
-  handleCustomObiUpload, agreed, setAgreed, errorMsg, loading, remainingCount, loadingStep, handleGenerate,
+  agreed, setAgreed, errorMsg, loading, remainingCount, loadingStep, handleGenerate,
   imageUrl, patternTitle, setPatternTitle, handleDownloadOriginal, handleOrderClick
 }: ControlPanelProps) {
 
@@ -154,7 +125,7 @@ export default function ControlPanel({
   const shareToInstagram = async () => {
     try {
       await navigator.clipboard.writeText(shareText);
-      alert('作品名とテキストをコピーしました！\nInstagramの投稿作成画面に貼り付けてお使いください。');
+      alert('作品名とテキストをコピーしました。\nInstagramの投稿画面に貼り付けてお使いください。');
     } catch {}
     window.open('https://www.instagram.com/', '_blank', 'noopener,noreferrer');
   };
@@ -182,7 +153,6 @@ export default function ControlPanel({
       <div className="space-y-6">
         {creationMode === 'ai' ? (
           <>
-            {/* 01. どんな世界観で？（12スタイル選択） */}
             <div>
               <label className="block text-xs font-bold text-zinc-900 tracking-wider mb-2">01. どんな世界観で？（12のスタイル）</label>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 mb-2">
@@ -195,7 +165,6 @@ export default function ControlPanel({
               </div>
             </div>
 
-            {/* 02. 好きな色（テーマカラー）※01のすぐ下へ統合！ */}
             <div className="pt-4 border-t border-zinc-100 relative">
               <div className="flex justify-between items-baseline mb-2">
                 <div>
@@ -213,7 +182,7 @@ export default function ControlPanel({
                   <>
                     {selectedColors.map((col) => (
                       <span key={col.name} onClick={() => handleColorToggle(col)} className="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-bold border cursor-pointer shadow-sm relative z-10" style={{ backgroundColor: col.hex, color: col.isDark ? '#fff' : '#000' }}>
-                        {col.name.split(' ')[0]}<span className="text-[9px] opacity-70">✕</span>
+                        {col.name.split(' ')[0]}<span className="text-[9px] opacity-70 ml-1">×</span>
                       </span>
                     ))}
                     <button type="button" onClick={() => setSelectedColors([])} className="text-[10px] text-zinc-400 hover:text-zinc-700 underline ml-1 relative z-10">リセット</button>
@@ -229,7 +198,7 @@ export default function ControlPanel({
                         <button key={col.name} type="button" onClick={() => handleColorToggle(col)} className={`relative min-h-[44px] p-1.5 flex flex-col justify-end text-left transition-all ${isSelected ? 'ring-2 ring-zinc-950 scale-95 font-black' : 'border border-zinc-200/50 shadow-sm hover:scale-[1.02]'}`} style={{ backgroundColor: col.hex }}>
                           <span className={`text-[9px] font-bold truncate leading-tight flex items-center justify-between ${col.isDark ? 'text-white' : 'text-zinc-900'}`}>
                             {col.name.split(' ')[0]}
-                            {isSelected && <span>✓</span>}
+                            {isSelected && <span>選択中</span>}
                           </span>
                         </button>
                       );
@@ -239,7 +208,6 @@ export default function ControlPanel({
               )}
             </div>
 
-            {/* 03. 何を描く？（モチーフ ＋ 入力アシスト） */}
             <div className="pt-4 border-t border-zinc-100">
               <div className="flex justify-between items-baseline mb-1">
                 <label className="block text-xs font-bold text-zinc-900 tracking-wider">03. 何を描く？（モチーフ）</label>
@@ -256,7 +224,6 @@ export default function ControlPanel({
                 disabled={loading} 
               />
               
-              {/* 入力アシスト（1行王道ボタン ＋ プルダウン） */}
               <div className="mt-2.5 pt-2 border-t border-zinc-100 flex flex-wrap items-center gap-1.5">
                 <span className="text-[10px] font-black text-zinc-400 uppercase tracking-wider mr-1">入力アシスト:</span>
                 {['ねこ', '珈琲', '薔薇', '月と星'].map((w) => (
@@ -270,7 +237,6 @@ export default function ControlPanel({
                   </button>
                 ))}
 
-                {/* その他プルダウン */}
                 <select
                   onChange={(e) => {
                     if (e.target.value) {
@@ -281,7 +247,7 @@ export default function ControlPanel({
                   className="px-2 py-1 bg-white border border-zinc-300 text-zinc-600 text-[10px] font-bold rounded-sm focus:outline-none focus:border-zinc-900 cursor-pointer shadow-2xs"
                   defaultValue=""
                 >
-                  <option value="" disabled>その他のモチーフから選ぶ ▼</option>
+                  <option value="" disabled>その他のモチーフから選ぶ</option>
                   {PULLDOWN_MOTIFS.map((g) => (
                     <optgroup key={g.group} label={g.group}>
                       {g.items.map((item) => (
@@ -293,7 +259,6 @@ export default function ControlPanel({
               </div>
             </div>
 
-            {/* 04. 柄の配置 */}
             <div className="pt-4 border-t border-zinc-200">
               <label className="block text-xs font-bold text-zinc-800 tracking-wider mb-2">04. 柄の配置</label>
               <div className="flex flex-col gap-1.5">
@@ -418,7 +383,7 @@ export default function ControlPanel({
                 <div className="p-4 bg-zinc-50 border border-zinc-200 animate-fade-in shadow-inner relative z-50">
                   <div className="flex justify-between items-center mb-3">
                     <p className="text-[10px] text-zinc-500 font-bold">{showGeoPaletteFor === 'bg' ? (geoPatternType === 'plain' ? '無地の色' : '地色') : '柄色'}を選択：</p>
-                    <button type="button" onClick={() => setShowGeoPaletteFor(null)} className="text-[10px] text-zinc-400 font-bold">✕</button>
+                    <button type="button" onClick={() => setShowGeoPaletteFor(null)} className="text-[10px] text-zinc-400 font-bold">閉じる</button>
                   </div>
                   <div className="max-h-[220px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-200">
                     <div className="grid grid-cols-4 sm:grid-cols-6 gap-1.5">
@@ -436,120 +401,6 @@ export default function ControlPanel({
         )}
 
         <div className="space-y-6 mt-6">
-          {(itemType === 'hanhaba' || itemType === 'kyobukuro') && (
-            <div className="pt-4 border-t border-zinc-200 relative">
-              <div className="flex items-center gap-2">
-                <label className="text-[10px] font-bold text-zinc-700 whitespace-nowrap">裏地の色：</label>
-                <div className="flex items-center gap-1.5 flex-1">
-                  <div className="w-8 h-8 shrink-0 border border-zinc-300 p-0.5 shadow-inner" style={{ backgroundColor: obiLiningColor }} />
-                  <button type="button" onClick={() => setShowLiningPalette(!showLiningPalette)} className={`flex-1 text-[11px] h-8 font-bold transition-all border shadow-sm ${showLiningPalette ? 'bg-zinc-900 text-white' : 'bg-white text-zinc-600 border-zinc-300'} relative z-10`}>伝統色から選ぶ</button>
-                </div>
-              </div>
-              {showLiningPalette && (
-                <div className="mt-2 p-4 bg-zinc-50 border border-zinc-200 animate-fade-in shadow-inner relative z-50">
-                  <div className="flex justify-between items-center mb-3">
-                    <p className="text-[10px] text-zinc-500 font-bold">裏地の色を選択：</p>
-                    <button type="button" onClick={() => setShowLiningPalette(false)} className="text-[10px] text-zinc-400 font-bold">✕</button>
-                  </div>
-                  <div className="max-h-[220px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-200 grid grid-cols-4 sm:grid-cols-5 gap-1.5">
-                    {TRADITIONAL_COLORS.map((col) => (
-                      <button key={col.name} type="button" onClick={() => { setObiLiningColor(col.hex); setShowLiningPalette(false); }} className="relative min-h-[44px] p-1.5 flex flex-col justify-end text-left border border-zinc-300 shadow-sm hover:scale-[1.02] transition-transform" style={{ backgroundColor: col.hex }}>
-                        <span className={`text-[9px] font-bold truncate leading-tight ${col.isDark ? 'text-white' : 'text-zinc-900'}`}>{col.name.split(' ')[0]}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {itemType === 'kimono' && (
-            <div className="pt-4 border-t border-zinc-200 space-y-4 relative z-30">
-              <label className="block text-[11px] font-bold text-zinc-800 tracking-wider">着物のコーディネート</label>
-              
-              <div className="flex gap-2 items-center">
-                <span className="text-[10px] font-bold text-zinc-700 w-10">帯：</span>
-                <div className="flex items-center gap-2 flex-1">
-                  <div className="w-8 h-8 shrink-0 border border-zinc-300 shadow-inner" style={{ backgroundColor: kimonoObiColor, backgroundImage: customObiUrl ? `url(${customObiUrl})` : 'none', backgroundSize: 'cover' }} />
-                  <button type="button" onClick={() => { setShowObiColorPalette(!showObiColorPalette); setShowHaneriColorPalette(false); setShowObiageColorPalette(false); }} className="flex-1 text-[11px] h-8 font-bold transition-all border shadow-sm bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50 relative z-10">色を選ぶ</button>
-                </div>
-                <label className="flex-1 cursor-pointer text-center text-[10px] h-8 font-bold transition-all border shadow-sm bg-zinc-900 text-white flex items-center justify-center hover:bg-zinc-800 relative z-10">
-                  画像から帯を乗せる
-                  <input type="file" accept="image/*" className="hidden" onChange={handleCustomObiUpload} />
-                </label>
-                {customObiUrl && ( <button type="button" onClick={() => setCustomObiUrl(null)} className="text-[10px] text-zinc-500 hover:text-zinc-800 underline ml-1 relative z-10">解除</button> )}
-              </div>
-              
-              {showObiColorPalette && (
-                <div className="p-4 bg-zinc-50 border border-zinc-200 shadow-inner relative z-50">
-                  <div className="flex justify-between items-center mb-3">
-                    <p className="text-[10px] text-zinc-500 font-bold">帯の色を選択：</p>
-                    <button type="button" onClick={() => setShowObiColorPalette(false)} className="text-[10px] text-zinc-400 font-bold">✕</button>
-                  </div>
-                  <div className="max-h-[220px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-200 grid grid-cols-4 sm:grid-cols-5 gap-1.5">
-                    {TRADITIONAL_COLORS.map((col) => (
-                      <button key={`obi-${col.name}`} type="button" onClick={() => { setKimonoObiColor(col.hex); setCustomObiUrl(null); setShowObiColorPalette(false); }} className="relative min-h-[44px] p-1.5 flex flex-col justify-end text-left border border-zinc-300 shadow-sm hover:scale-[1.02] transition-transform" style={{ backgroundColor: col.hex }}>
-                        <span className={`text-[9px] font-bold truncate leading-tight ${col.isDark ? 'text-white' : 'text-zinc-900'}`}>{col.name.split(' ')[0]}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="flex flex-col sm:flex-row gap-4 pt-3 border-t border-zinc-100/50">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold text-zinc-700 w-10">半衿：</span>
-                    <div className="flex items-center gap-2 flex-1">
-                      <div className="w-8 h-8 shrink-0 border border-zinc-300 shadow-inner" style={{ backgroundColor: kimonoHaneriColor }} />
-                      <button type="button" onClick={() => { setShowHaneriColorPalette(!showHaneriColorPalette); setShowObiColorPalette(false); setShowObiageColorPalette(false); }} className="flex-1 text-[11px] h-8 font-bold transition-all border shadow-sm bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50 relative z-10">色を選ぶ</button>
-                    </div>
-                  </div>
-                  {showHaneriColorPalette && (
-                    <div className="mt-2 p-4 bg-zinc-50 border border-zinc-200 shadow-inner relative z-50">
-                      <div className="flex justify-between items-center mb-3">
-                        <p className="text-[10px] text-zinc-500 font-bold">半衿の色を選択：</p>
-                        <button type="button" onClick={() => setShowHaneriColorPalette(false)} className="text-[10px] text-zinc-400 font-bold">✕</button>
-                      </div>
-                      <div className="max-h-[220px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-200 grid grid-cols-3 gap-1.5">
-                        {TRADITIONAL_COLORS.map((col) => (
-                          <button key={`haneri-${col.name}`} type="button" onClick={() => { setKimonoHaneriColor(col.hex); setShowHaneriColorPalette(false); }} className="relative min-h-[44px] p-1.5 flex flex-col justify-end text-left border border-zinc-300 shadow-sm hover:scale-[1.02] transition-transform" style={{ backgroundColor: col.hex }}>
-                            <span className={`text-[9px] font-bold truncate leading-tight ${col.isDark ? 'text-white' : 'text-zinc-900'}`}>{col.name.split(' ')[0]}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold text-zinc-700 w-10">帯揚げ：</span>
-                    <div className="flex items-center gap-2 flex-1">
-                      <div className="w-8 h-8 shrink-0 border border-zinc-300 shadow-inner" style={{ backgroundColor: kimonoObiageColor }} />
-                      <button type="button" onClick={() => { setShowObiageColorPalette(!showObiageColorPalette); setShowObiColorPalette(false); setShowHaneriColorPalette(false); }} className="flex-1 text-[11px] h-8 font-bold transition-all border shadow-sm bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50 relative z-10">色を選ぶ</button>
-                    </div>
-                  </div>
-                  {showObiageColorPalette && (
-                    <div className="mt-2 p-4 bg-zinc-50 border border-zinc-200 shadow-inner relative z-50">
-                      <div className="flex justify-between items-center mb-3">
-                        <p className="text-[10px] text-zinc-500 font-bold">帯揚げの色を選択：</p>
-                        <button type="button" onClick={() => setShowObiageColorPalette(false)} className="text-[10px] text-zinc-400 font-bold">✕</button>
-                      </div>
-                      <div className="max-h-[220px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-200 grid grid-cols-3 gap-1.5">
-                        {TRADITIONAL_COLORS.map((col) => (
-                          <button key={`obiage-${col.name}`} type="button" onClick={() => { setKimonoObiageColor(col.hex); setShowObiageColorPalette(false); }} className="relative min-h-[44px] p-1.5 flex flex-col justify-end text-left border border-zinc-300 shadow-sm hover:scale-[1.02] transition-transform" style={{ backgroundColor: col.hex }}>
-                            <span className={`text-[8px] font-bold truncate leading-tight ${col.isDark ? 'text-white' : 'text-zinc-900'}`}>{col.name.split(' ')[0]}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
           {creationMode === 'ai' && (
             <div className="pt-6 border-t border-zinc-200">
               <label className="flex items-start gap-2.5 cursor-pointer select-none mb-4 group relative z-10">
@@ -645,7 +496,6 @@ export default function ControlPanel({
                 妄想を現実に<br/><span className="text-[10px] font-medium tracking-wider opacity-90 mt-1 block">（この作品を現実の着物・帯として仕立てる）</span>
               </a>
 
-              {/* MakeShop検索への寄り道リンク */}
               {primaryMotif && (
                 <div className="mt-6 p-4 bg-zinc-100 border border-zinc-200 shadow-inner rounded-sm text-center animate-fade-in">
                   <p className="text-[11px] font-bold text-zinc-700 mb-2 leading-relaxed">
