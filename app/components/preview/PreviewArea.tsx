@@ -67,8 +67,13 @@ export default function PreviewArea({
   }, []);
 
   const renderMockup = () => {
-    const patternSize = creationMode === 'geometric' ? `${bgSizeMm * UNIVERSAL_SCALE_FACTOR}% auto` : `${180 * UNIVERSAL_SCALE_FACTOR}% auto`;
-    const kimonoPatternSize = creationMode === 'geometric' ? `${(bgSizeMm * UNIVERSAL_SCALE_FACTOR) / 2}% auto` : `${(180 * UNIVERSAL_SCALE_FACTOR) / 2}% auto`;
+    // 【絶対ルール】画像の実寸幅は、幾何学ならbgSizeMm、AIなら常に40cm（400mm）の反物基準とする
+    const imageRealWidthMm = creationMode === 'geometric' ? bgSizeMm : 400;
+
+    // ゴフクヤサン考案の完璧な黄金比率（3/22）をそのまま実寸に掛けるだけで全アイテムの縮尺がピタリと合う
+    const patternSize = `${imageRealWidthMm * UNIVERSAL_SCALE_FACTOR}% auto`;
+    const kimonoPatternSize = `${(imageRealWidthMm * UNIVERSAL_SCALE_FACTOR) / 2}% auto`;
+    
     const effectivePatternUrl = creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl);
 
     return (
@@ -153,6 +158,9 @@ export default function PreviewArea({
     );
   };
 
+  const imageRealWidthMm = creationMode === 'geometric' ? bgSizeMm : 400;
+  const effectivePatternUrl = creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl);
+
   return (
     <div ref={previewRef} className="w-full lg:w-1/2 shrink-0 lg:sticky lg:top-8 flex flex-col bg-[#e4e4e7] lg:bg-transparent shadow-md lg:shadow-none mb-6 lg:mb-0">
       {imageUrl && (
@@ -195,23 +203,45 @@ export default function PreviewArea({
               </div>
             )}
 
+            {/* 40cm反物を34cmにトリミング（京袋帯） */}
             {displayMode === 'trim' && itemType === 'kyobukuro' && (
               <div className="w-full flex flex-col items-center animate-fade-in relative z-10 px-4">
                 <div className="relative mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden w-full max-w-[360px] sm:max-w-[400px]" style={{ aspectRatio: '40 / 34' }}>
-                  <div className="absolute inset-0" style={{ backgroundImage: `url(${creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl)})`, backgroundSize: creationMode === 'geometric' ? `${(bgSizeMm / 400) * 100}% auto` : `${(180 / 400) * 100}% auto`, backgroundPosition: 'center center', backgroundRepeat: 'repeat', backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff' }} />
+                  <div className="absolute inset-0" style={{ 
+                    backgroundImage: `url(${effectivePatternUrl})`, 
+                    backgroundSize: `${(imageRealWidthMm / 400) * 100}% auto`, 
+                    backgroundPosition: 'center center', 
+                    backgroundRepeat: 'repeat', 
+                    backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff' 
+                  }} />
                 </div>
               </div>
             )}
 
+            {/* プリントデータ用表示 */}
             {displayMode === 'data' && (
               <div className="flex flex-col items-center w-full animate-fade-in relative z-10 px-4">
                 {itemType === 'hanhaba' ? (
+                  // 40cmの反物を18cm幅にトリミング（中央を切り抜き）
                   <div className="relative mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden w-[216px] h-[480px]">
-                    <div className="absolute inset-0" style={{ backgroundImage: `url(${creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl)})`, backgroundSize: creationMode === 'geometric' ? `${(bgSizeMm / 180) * 100}% auto` : '100% auto', backgroundPosition: 'top left', backgroundRepeat: 'repeat', backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff' }} />
+                    <div className="absolute inset-0" style={{ 
+                      backgroundImage: `url(${effectivePatternUrl})`, 
+                      backgroundSize: `${(imageRealWidthMm / 180) * 100}% auto`, 
+                      backgroundPosition: 'center', 
+                      backgroundRepeat: 'repeat', 
+                      backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff' 
+                    }} />
                   </div>
                 ) : (
+                  // 40cmの反物原寸表示
                   <div className="relative mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden w-full max-w-[360px] sm:max-w-[400px] aspect-square">
-                    <div className="absolute inset-0" style={{ backgroundImage: `url(${creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl)})`, backgroundSize: creationMode === 'geometric' ? `${(bgSizeMm / 400) * 100}% auto` : '100% auto', backgroundPosition: 'center', backgroundRepeat: 'repeat', backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff' }} />
+                    <div className="absolute inset-0" style={{ 
+                      backgroundImage: `url(${effectivePatternUrl})`, 
+                      backgroundSize: `${(imageRealWidthMm / 400) * 100}% auto`, 
+                      backgroundPosition: 'center', 
+                      backgroundRepeat: 'repeat', 
+                      backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff' 
+                    }} />
                   </div>
                 )}
               </div>
@@ -225,7 +255,6 @@ export default function PreviewArea({
             )}
           </div>
 
-          {/* ▼ 注釈：ゴフクヤサンによる目視・手作業修正の明記 ▼ */}
           <div className="px-4 py-2.5 bg-zinc-100 border-t border-zinc-200 text-center">
             <p className="text-[10px] sm:text-[11px] text-zinc-600 font-medium leading-relaxed">
               ※ シミュレーション上は柄のつなぎ目が切れて見える場合がありますが、実際のお仕立て・生地制作時は<strong className="text-zinc-950 font-bold">ゴフクヤサンが目視・手作業で柄の送りを綺麗に修正・調整</strong>いたしますのでご安心ください。
@@ -234,7 +263,6 @@ export default function PreviewArea({
         </div>
       )}
 
-      {/* スマホ専用：生中継の小窓（PIPワイプ） */}
       {imageUrl && (
         <button
           type="button"
