@@ -267,22 +267,23 @@ function HomeContent() {
   return (
     <div className="min-h-screen bg-[#f4f4f5] text-zinc-900 flex flex-col items-center justify-start font-sans lg:p-8">
       <div className="w-full max-w-7xl flex flex-col lg:flex-row lg:gap-6 items-start justify-center">
+        {/* PreviewAreaには型定義で許可されているpropsのみを渡す（set関数は渡さない） */}
         <PreviewArea
           imageUrl={imageUrl} blobUrl={blobUrl} rotatedPatternUrl={rotatedPatternUrl}
           serialNumber={serialNumber} itemType={itemType} displayMode={displayMode}
           creationMode={creationMode} bgSizeMm={bgSizeMm}
           geoBgColor={geoBgColor}
-          obiLiningColor={obiLiningColor} setObiLiningColor={setObiLiningColor}
-          kimonoHaneriColor={kimonoHaneriColor} setKimonoHaneriColor={setKimonoHaneriColor}
-          kimonoObiageColor={kimonoObiageColor} setKimonoObiageColor={setKimonoObiageColor}
-          kimonoObiColor={kimonoObiColor} setKimonoObiColor={setKimonoObiColor}
-          customObiUrl={customObiUrl} setCustomObiUrl={setCustomObiUrl}
-          handleCustomObiUpload={handleCustomObiUpload}
+          obiLiningColor={obiLiningColor}
+          kimonoHaneriColor={kimonoHaneriColor}
+          kimonoObiageColor={kimonoObiageColor}
+          kimonoObiColor={kimonoObiColor}
+          customObiUrl={customObiUrl}
           mockupSubmitting={mockupSubmitting} previewRef={previewRef} previewContainerRef={previewContainerRef}
           handleItemTypeChange={setItemType} setDisplayMode={setDisplayMode}
           handleDownloadMapping={handleDownloadMapping} UNIVERSAL_SCALE_FACTOR={UNIVERSAL_SCALE_FACTOR}
         />
 
+        {/* ControlPanel側にすべてのset関数を渡して、内部のパネルから色を変更できるようにする */}
         <ControlPanel
           creationMode={creationMode} setCreationMode={setCreationMode}
           aiStyle={aiStyle} setAiStyle={setAiStyle} motif={motif} setMotif={setMotif}
@@ -294,6 +295,12 @@ function HomeContent() {
           dotRadius={dotRadius} setDotRadius={setDotRadius} gapWidth={gapWidth} setGapWidth={setGapWidth}
           lineWidth={lineWidth} setLineWidth={setLineWidth} geoBgColor={geoBgColor} setGeoBgColor={setGeoBgColor}
           geoPatternColor={geoPatternColor} setGeoPatternColor={setGeoPatternColor}
+          obiLiningColor={obiLiningColor} setObiLiningColor={setObiLiningColor}
+          kimonoHaneriColor={kimonoHaneriColor} setKimonoHaneriColor={setKimonoHaneriColor}
+          kimonoObiageColor={kimonoObiageColor} setKimonoObiageColor={setKimonoObiageColor}
+          kimonoObiColor={kimonoObiColor} setKimonoObiColor={setKimonoObiColor}
+          customObiUrl={customObiUrl} setCustomObiUrl={setCustomObiUrl}
+          handleCustomObiUpload={handleCustomObiUpload}
           agreed={agreed} setAgreed={setAgreed} errorMsg={errorMsg}
           loading={loading} loadingEngine={loadingEngine}
           remainingFlux={remainingFlux} remainingOpenAI={remainingOpenAI} loadingStep={loadingStep}
