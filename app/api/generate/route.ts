@@ -35,23 +35,15 @@ Output ONLY the English prompt.`;
     });
     
     const translateData = await translateRes.json();
+    // シームレスな平面テキスタイルであることを強めに指定
     const englishPrompt = translateData.choices[0].message.content.trim() + ", perfectly seamless 2D textile pattern, flat overhead shot, high resolution, crisp details";
 
     let base64Image = '';
 
-    // 【修正箇所】アイテムに応じた画像比率（アスペクト比）の動的設定
-    let falImageSize = 'square_hd'; // デフォルト（京袋帯）
-    let openaiImageSize = '1024x1024';
-
-    if (itemType === 'hanhaba') {
-      // 半幅帯：横長で生成してフロントで90度回転させる
-      falImageSize = 'landscape_16_9';
-      openaiImageSize = '1792x1024';
-    } else if (itemType === 'kimono') {
-      // 着物：反物用の縦長
-      falImageSize = 'portrait_9_16';
-      openaiImageSize = '1024x1792';
-    }
+    // 【絶対ルール】フロント側の完璧なタイリング計算（40cm基準）を活かすため、
+    // アイテム種別に関わらず画像は全て「正方形」で生成します。
+    const falImageSize = 'square_hd'; 
+    const openaiImageSize = '1024x1024';
 
     // 2. エンジン分岐 (fal or OpenAI)
     if (engine === 'flux') {
@@ -64,7 +56,7 @@ Output ONLY the English prompt.`;
         },
         body: JSON.stringify({
           prompt: englishPrompt,
-          image_size: falImageSize, // 動的に比率を渡す
+          image_size: falImageSize, // 常に正方形
           num_inference_steps: 4,
           num_images: 1,
           sync_mode: true,
@@ -89,7 +81,7 @@ Output ONLY the English prompt.`;
           model: 'gpt-image-2.5-sunburst',
           prompt: englishPrompt,
           n: 1,
-          size: openaiImageSize, // 動的に比率を渡す
+          size: openaiImageSize, // 常に正方形
           quality: 'high',
           output_format: 'png',
         }),
