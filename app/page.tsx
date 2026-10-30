@@ -16,7 +16,7 @@ import {
 
 import { 
   TRADITIONAL_COLORS, MAX_GENERATIONS_PER_DAY, FORBIDDEN_WORDS, 
-  ALL_CATEGORIES, UNIVERSAL_SCALE_FACTOR 
+  UNIVERSAL_SCALE_FACTOR 
 } from './lib/constants';
 
 import PreviewArea from './components/preview/PreviewArea';
@@ -144,7 +144,6 @@ function HomeContent() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('ct334'); 
   const [creationMode, setCreationMode] = useState<'ai' | 'geometric'>('geometric');
   
-  // デフォルトを「無地（plain）」に設定
   const [geoPatternType, setGeoPatternType] = useState<'plain' | 'stripe' | 'dot' | 'grid' | 'gingham' | 'checker'>('plain');
   const [stripeDir, setStripeDir] = useState<StripeDirection>('vertical');
   const [lineWidth, setLineWidth] = useState(5);
@@ -354,6 +353,7 @@ function HomeContent() {
     } catch { window.open(targetUrl, '_blank', 'noopener,noreferrer'); }
   };
 
+  // マッピング画像保存（京袋帯・着物の実寸400mmスケールに完全同期）
   const handleDownloadMapping = async () => {
     if (!previewContainerRef.current) return;
     try {
@@ -374,7 +374,9 @@ function HomeContent() {
 
       if (itemType === 'hanhaba' || itemType === 'kyobukuro') {
         const pxPerMm = 27 / 11;
-        const bgWidth = creationMode === 'geometric' ? (bgSizeMm * pxPerMm) : (180 * pxPerMm);
+        // 半幅帯は180mm、京袋帯は400mmを原寸としてスケール算出
+        const effectiveBase = itemType === 'hanhaba' ? 180 : 400;
+        const bgWidth = creationMode === 'geometric' ? (bgSizeMm * pxPerMm) : (effectiveBase * pxPerMm);
         const bgScale = bgWidth / Math.max(1, patternImg.width);
         const bgHeight = patternImg.height * bgScale;
         const pCanvas = document.createElement('canvas');
@@ -441,7 +443,7 @@ function HomeContent() {
 
       if (itemType === 'kimono') {
         const kimonoPxPerMm = 1200 / 600; 
-        const kBgWidth = creationMode === 'geometric' ? ((bgSizeMm * kimonoPxPerMm) / 2) : ((180 * kimonoPxPerMm) / 2);
+        const kBgWidth = creationMode === 'geometric' ? ((bgSizeMm * kimonoPxPerMm) / 2) : ((400 * kimonoPxPerMm) / 2);
         const kBgScale = kBgWidth / Math.max(1, patternImg.width);
         const kBgHeight = patternImg.height * kBgScale;
         const kPCanvas = document.createElement('canvas'); kPCanvas.width = kBgWidth; kPCanvas.height = kBgHeight;
