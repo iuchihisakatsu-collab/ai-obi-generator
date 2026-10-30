@@ -93,10 +93,19 @@ function HomeContent() {
       setRemainingOpenAI(Math.max(0, MAX_OPENAI_PER_DAY - parseInt(localStorage.getItem('komon_count_openai') || '0', 10)));
     }
 
+    // 初回のみモーダルを開く（既に閲覧記録があれば開かない）
     if (CURRENT_NOTICE.enabled && localStorage.getItem('last_dismissed_notice_id') !== CURRENT_NOTICE.id) {
       setIsNoticeOpen(true);
     }
   }, []);
+
+  // モーダルを閉じたらブラウザに記録し、次回以降は出さないようにする
+  const handleCloseNotice = () => {
+    setIsNoticeOpen(false);
+    if (CURRENT_NOTICE?.id) {
+      localStorage.setItem('last_dismissed_notice_id', CURRENT_NOTICE.id);
+    }
+  };
 
   const updateGeometricPattern = useCallback(async () => {
     if (creationMode !== 'geometric') return;
@@ -267,23 +276,26 @@ function HomeContent() {
   return (
     <div className="min-h-screen bg-[#f4f4f5] text-zinc-900 flex flex-col items-center justify-start font-sans lg:p-8">
       <div className="w-full max-w-7xl flex flex-col lg:flex-row lg:gap-6 items-start justify-center">
-        {/* PreviewAreaには型定義で許可されているpropsのみを渡す（set関数は渡さない） */}
+        {/* PreviewAreaに各種カラー変更setterを渡し、プレビュー上の着せ替え操作と連動 */}
         <PreviewArea
           imageUrl={imageUrl} blobUrl={blobUrl} rotatedPatternUrl={rotatedPatternUrl}
           serialNumber={serialNumber} itemType={itemType} displayMode={displayMode}
           creationMode={creationMode} bgSizeMm={bgSizeMm}
           geoBgColor={geoBgColor}
           obiLiningColor={obiLiningColor}
+          setObiLiningColor={setObiLiningColor}
           kimonoHaneriColor={kimonoHaneriColor}
+          setKimonoHaneriColor={setKimonoHaneriColor}
           kimonoObiageColor={kimonoObiageColor}
+          setKimonoObiageColor={setKimonoObiageColor}
           kimonoObiColor={kimonoObiColor}
+          setKimonoObiColor={setKimonoObiColor}
           customObiUrl={customObiUrl}
           mockupSubmitting={mockupSubmitting} previewRef={previewRef} previewContainerRef={previewContainerRef}
           handleItemTypeChange={setItemType} setDisplayMode={setDisplayMode}
           handleDownloadMapping={handleDownloadMapping} UNIVERSAL_SCALE_FACTOR={UNIVERSAL_SCALE_FACTOR}
         />
 
-        {/* ControlPanel側にすべてのset関数を渡して、内部のパネルから色を変更できるようにする */}
         <ControlPanel
           creationMode={creationMode} setCreationMode={setCreationMode}
           aiStyle={aiStyle} setAiStyle={setAiStyle} motif={motif} setMotif={setMotif}
@@ -346,8 +358,8 @@ function HomeContent() {
 
       <NoticeModal
         isOpen={isNoticeOpen}
-        onClose={() => setIsNoticeOpen(false)}
-        onGoToGeometric={() => { setIsNoticeOpen(false); setCreationMode('geometric'); }}
+        onClose={handleCloseNotice}
+        onGoToGeometric={() => { handleCloseNotice(); setCreationMode('geometric'); }}
       />
     </div>
   );
