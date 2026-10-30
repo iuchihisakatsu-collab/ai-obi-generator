@@ -29,7 +29,7 @@ function getColorNameFromHex(hex: string): string {
   return found ? found.name.split(' ')[0] : '';
 }
 
-// ★ 追加：AI画像の90度回転処理（半幅帯専用）
+// AI画像の90度回転処理（半幅帯専用）
 async function rotateImage90Degrees(imageUrl: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -68,7 +68,8 @@ function HomeContent() {
   const [showColorPalette, setShowColorPalette] = useState<boolean>(false);
   const [density, setDensity] = useState<string>('四方柄');
 
-  const [geoPatternType, setGeoPatternType] = useState<'plain' | 'stripe' | 'dot' | 'grid' | 'gingham' | 'checker'>('stripe');
+  // ★ デフォルトの幾何学パターンを「無地（plain）」に設定
+  const [geoPatternType, setGeoPatternType] = useState<'plain' | 'stripe' | 'dot' | 'grid' | 'gingham' | 'checker'>('plain');
   const [stripeDir, setStripeDir] = useState<StripeDirection>('vertical');
   const [dotLayout, setDotLayout] = useState<DotLayout>('staggered');
   const [dotRadius, setDotRadius] = useState<number>(5);
@@ -97,7 +98,7 @@ function HomeContent() {
   const [blobUrl, setBlobUrl] = useState<string>('');
   const [rotatedPatternUrl, setRotatedPatternUrl] = useState<string>('');
   const [serialNumber, setSerialNumber] = useState<string>('GEO-INIT');
-  const [patternTitle, setPatternTitle] = useState<string>('万筋縞');
+  const [patternTitle, setPatternTitle] = useState<string>('色無地');
   const [mockupSubmitting, setMockupSubmitting] = useState<boolean>(false);
   const [isNoticeOpen, setIsNoticeOpen] = useState<boolean>(false);
 
@@ -130,7 +131,7 @@ function HomeContent() {
     }
   };
 
-  // ★ 追加：「AI妄想モード × 半幅帯」の時だけ画像を自動90度回転させる
+  // 「AI妄想モード × 半幅帯」の時だけ画像を自動90度回転させる
   useEffect(() => {
     const src = blobUrl || imageUrl;
     if (!src) {
