@@ -67,8 +67,8 @@ export default function PreviewArea({
 
   // 帯や着物のプレビュー（モックアップ）本体を描画する共通関数
   const renderMockup = () => {
-    const patternSize = creationMode === 'geometric' ? `${bgSizeMm * UNIVERSAL_SCALE_FACTOR}% auto` : `${180 * UNIVERSAL_SCALE_FACTOR}% auto`;
-    const kimonoPatternSize = creationMode === 'geometric' ? `${(bgSizeMm * UNIVERSAL_SCALE_FACTOR) / 2}% auto` : `${(180 * UNIVERSAL_SCALE_FACTOR) / 2}% auto`;
+    const patternSize = creationMode === 'geometric' ? `${bgSizeMm * UNIVERSAL_SCALE_FACTOR}\% auto` : `${180 * UNIVERSAL_SCALE_FACTOR}% auto`;
+    const kimonoPatternSize = creationMode === 'geometric' ? `${(bgSizeMm * UNIVERSAL_SCALE_FACTOR) / 2}\% auto` : `${(180 * UNIVERSAL_SCALE_FACTOR) / 2}% auto`;
     const effectivePatternUrl = creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl);
 
     return (
@@ -131,124 +131,5 @@ export default function PreviewArea({
               { id: 'migieri', file: 'migieri_65.png', z: 50, angle: 65, bgX: '30%', bgY: '10%' },
               { id: 'hidarieri', file: 'hidarieri_117.png', z: 55, angle: 117, bgX: '70%', bgY: '10%' },
             ].map((layer) => (
-              <div key={layer.id} className="absolute inset-0 pointer-events-none" style={{ zIndex: layer.z, maskImage: `url('/${layer.file}?v=30')`, WebkitMaskImage: `url('/${layer.file}?v=30')`, maskSize: 'contain', WebkitMaskSize: 'contain', maskRepeat: 'no-repeat', WebkitMaskPosition: 'center' }}>
-                <div style={{ position: 'absolute', top: '-50%', left: '-50%', width: '200%', height: '200%', backgroundImage: `url(${effectivePatternUrl})`, backgroundSize: kimonoPatternSize, backgroundRepeat: 'repeat', backgroundPosition: `${layer.bgX} ${layer.bgY}`, transform: `rotate(${layer.angle - 90}deg)`, transformOrigin: 'center center', backgroundColor: creationMode === 'geometric' ? geoBgColor : 'transparent' }} />
-              </div>
-            ))}
-            <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 45, maskImage: `url('/haneri.png?v=30')`, WebkitMaskImage: `url('/haneri.png?v=30')`, maskSize: 'contain', WebkitMaskSize: 'contain', maskRepeat: 'no-repeat', maskPosition: 'center', WebkitMaskPosition: 'center' }}>
-              <div className="w-full h-full relative" style={{ backgroundColor: kimonoHaneriColor }}>
-                <div className="absolute inset-0" style={{ backgroundColor: 'rgba(0,0,0,0.03)' }} />
-              </div>
-            </div>
-            <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 60, maskImage: `url('/obiage.png?v=30')`, WebkitMaskImage: `url('/obiage.png?v=30')`, maskSize: 'contain', WebkitMaskSize: 'contain', maskRepeat: 'no-repeat', maskPosition: 'center', WebkitMaskPosition: 'center' }}>
-              <div className="w-full h-full" style={{ backgroundColor: kimonoObiageColor }} />
-            </div>
-            <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 65, maskImage: `url('/obi_2.png?v=30')`, WebkitMaskImage: `url('/obi_2.png?v=30')`, maskSize: 'contain', WebkitMaskSize: 'contain', maskRepeat: 'no-repeat', maskPosition: 'center', WebkitMaskPosition: 'center' }}>
-              <div style={{ position: 'absolute', top: '-10%', left: '-10%', width: '120%', height: '120%', backgroundColor: customObiUrl ? 'transparent' : kimonoObiColor, backgroundImage: customObiUrl ? `url(${customObiUrl})` : 'none', backgroundSize: '50% auto', backgroundPosition: 'center', backgroundRepeat: 'repeat' }} />
-            </div>
-            <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 70, backgroundImage: `url('/jyouzan.png?v=30')`, backgroundSize: 'contain', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', mixBlendMode: 'multiply', opacity: 0.5 }} />
-          </div>
-        )}
-      </>
-    );
-  };
-
-  return (
-    <div ref={previewRef} className="w-full lg:w-1/2 shrink-0 lg:sticky lg:top-8 flex flex-col bg-[#e4e4e7] lg:bg-transparent shadow-md lg:shadow-none mb-6 lg:mb-0">
-      {imageUrl && (
-        <div className="w-full bg-[#e4e4e7] flex flex-col relative overflow-hidden">
-          
-          <div className="px-3 py-2 bg-zinc-900 text-white flex items-center justify-between z-30">
-            <span className="text-[10px] font-mono text-zinc-400">ID:{serialNumber}</span>
-            <div className="flex gap-1.5 items-center">
-              <button type="button" onClick={() => handleItemTypeChange('hanhaba')} className={`px-2 py-1 text-[10px] font-black rounded transition-all ${itemType === 'hanhaba' ? 'bg-white text-zinc-950' : 'bg-zinc-800 text-zinc-400 hover:text-white'}`}>半幅帯</button>
-              <button type="button" onClick={() => handleItemTypeChange('kyobukuro')} className={`px-2 py-1 text-[10px] font-black rounded transition-all ${itemType === 'kyobukuro' ? 'bg-white text-zinc-950' : 'bg-zinc-800 text-zinc-400 hover:text-white'}`}>京袋帯</button>
-              <button type="button" onClick={() => handleItemTypeChange('kimono')} className={`px-2 py-1 text-[10px] font-black rounded transition-all flex items-center gap-1 ${itemType === 'kimono' ? 'bg-white text-zinc-950' : 'bg-zinc-800 text-zinc-400 hover:text-white'}`}>
-                着物<span className="text-[7px] bg-red-500 text-white px-1 py-0.5 rounded-sm animate-pulse leading-none shadow-sm">NEW</span>
-              </button>
-            </div>
-          </div>
-
-          <div className="w-full relative shadow-inner overflow-hidden flex items-center justify-center min-h-[380px] sm:min-h-[420px] pt-14 pb-12">
-            
-            <div className="absolute top-3 left-0 right-0 flex justify-center gap-2 px-2 z-20">
-              <button type="button" onClick={() => setDisplayMode('mockup')} className={`px-3 py-1.5 text-[10px] font-bold tracking-wider rounded-full backdrop-blur-md border transition-all shadow-md ${displayMode === 'mockup' ? 'bg-zinc-900/90 text-white border-zinc-900/50' : 'bg-white/70 text-zinc-700 border-white/50 hover:bg-white/90'}`}>
-                {itemType === 'hanhaba' && '半幅帯マッピング'}
-                {itemType === 'kyobukuro' && '京袋帯マッピング'}
-                {itemType === 'kimono' && '着物マッピング'}
-              </button>
-              {itemType === 'kyobukuro' && (
-                <button type="button" onClick={() => setDisplayMode('trim')} className={`px-3 py-1.5 text-[10px] font-bold tracking-wider rounded-full backdrop-blur-md border transition-all shadow-md ${displayMode === 'trim' ? 'bg-zinc-900/90 text-white border-zinc-900/50' : 'bg-white/70 text-zinc-700 border-white/50 hover:bg-white/90'}`}>
-                  34cm裁断イメージ
-                </button>
-              )}
-              <button type="button" onClick={() => setDisplayMode('data')} className={`px-3 py-1.5 text-[10px] font-bold tracking-wider rounded-full backdrop-blur-md border transition-all shadow-md ${displayMode === 'data' ? 'bg-zinc-900/90 text-white border-zinc-900/50' : 'bg-white/70 text-zinc-700 border-white/50 hover:bg-white/90'}`}>
-                {itemType === 'hanhaba' ? '18cmプリントデータ' : '40cm反物データ'}
-              </button>
-            </div>
-
-            {displayMode === 'mockup' && (
-              <div className="w-full flex flex-col items-center animate-fade-in relative z-10 px-4">
-                <div ref={previewContainerRef} className="relative mx-auto drop-shadow-xl w-full max-w-[360px] sm:max-w-[400px]">
-                  {/* 大画面メインプレビュー */}
-                  {renderMockup()}
-                </div>
-              </div>
-            )}
-
-            {displayMode === 'trim' && itemType === 'kyobukuro' && (
-              <div className="w-full flex flex-col items-center animate-fade-in relative z-10 px-4">
-                <div className="relative mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden w-full max-w-[360px] sm:max-w-[400px]" style={{ aspectRatio: '40 / 34' }}>
-                  <div className="absolute inset-0" style={{ backgroundImage: `url(${creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl)})`, backgroundSize: creationMode === 'geometric' ? `${(bgSizeMm / 400) * 100}% auto` : `${(180 / 400) * 100}% auto`, backgroundPosition: 'center center', backgroundRepeat: 'repeat', backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff' }} />
-                </div>
-              </div>
-            )}
-
-            {displayMode === 'data' && (
-              <div className="flex flex-col items-center w-full animate-fade-in relative z-10 px-4">
-                {itemType === 'hanhaba' ? (
-                  <div className="relative mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden w-[216px] h-[480px]">
-                    <div className="absolute inset-0" style={{ backgroundImage: `url(${creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl)})`, backgroundSize: creationMode === 'geometric' ? `${(bgSizeMm / 180) * 100}% auto` : '100% auto', backgroundPosition: 'top left', backgroundRepeat: 'repeat', backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff' }} />
-                  </div>
-                ) : (
-                  <div className="relative mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden w-full max-w-[360px] sm:max-w-[400px] aspect-square">
-                    <div className="absolute inset-0" style={{ backgroundImage: `url(${creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl)})`, backgroundSize: creationMode === 'geometric' ? `${(bgSizeMm / 400) * 100}% auto` : '100% auto', backgroundPosition: 'center', backgroundRepeat: 'repeat', backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff' }} />
-                  </div>
-                )}
-              </div>
-            )}
-
-            {displayMode === 'mockup' && (
-              <button type="button" onClick={handleDownloadMapping} disabled={mockupSubmitting} className={`absolute bottom-3 right-3 z-20 px-4 py-2 text-[10px] font-bold tracking-wider rounded-full shadow-lg backdrop-blur-md border transition-all flex items-center gap-1.5 hover:bg-black ${ mockupSubmitting ? 'bg-zinc-400/80 text-white border-zinc-400 cursor-not-allowed' : 'bg-zinc-900/90 text-white border-zinc-900/50' }`}>
-                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                {mockupSubmitting ? '作成中...' : '画像を保存'}
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* スマホ専用：生中継の小窓（PIPワイプ） - モックアップ完全描画対応！ */}
-      {imageUrl && (
-        <button
-          type="button"
-          onClick={() => { window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-          className={`lg:hidden fixed bottom-6 right-5 z-50 w-32 h-32 sm:w-40 sm:h-40 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.3)] border-[4px] border-white overflow-hidden active:scale-95 transition-all duration-500 group bg-[#e4e4e7] ${isCompact ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-12 pointer-events-none'}`}
-        >
-          {/* scale-[1.15] で帯や着物の中心部分をズームアップしてワイプ枠いっぱいに表示 */}
-          <div className="absolute inset-0 w-full h-full pointer-events-none flex items-center justify-center scale-[1.15] transition-transform duration-500 group-hover:scale-[1.25]">
-            <div className="w-full h-full">
-              {/* 小窓の中にも、上で作った帯・着物のモックアップをそのまま完全再現！ */}
-              {renderMockup()}
-            </div>
-          </div>
-          <div className="absolute inset-0 bg-black/10 flex items-center justify-center transition-colors group-hover:bg-black/20">
-            <div className="bg-black/60 p-2.5 rounded-full backdrop-blur-md shadow-sm">
-              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
-            </div>
-          </div>
-        </button>
-      )}
-    </div>
-  );
-}
+              <div key={layer.id} className="absolute inset-0 pointer-events-none" style={{ zIndex: layer.z, maskImage: `url('/${layer.file}?v=30')`, WebkitMaskImage: `url('/${layer.file}?v=30')`, maskSize: 'contain', WebkitMaskSize: 'contain', maskRepeat: 'no-repeat', maskPosition: 'center', WebkitMaskPosition: 'center' }}>
+                <div style={{ position: 'absolute', top: '-50%', left: '-50%', width: '200%', height: '200%', backgroundImage: `url(${effectivePatternUrl})`, backgroundSize: kimonoPatternSize, backgroundRepeat: 'repeat', backgroundPosition: `${layer.bgX
