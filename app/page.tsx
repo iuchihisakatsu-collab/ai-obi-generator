@@ -24,7 +24,6 @@ function getTodayJST(): string {
   return `${parts.find(p => p.type === 'year')?.value}-${parts.find(p => p.type === 'month')?.value}-${parts.find(p => p.type === 'day')?.value}`;
 }
 
-// 伝統色の色名を取得する関数（例: "#8b1e2a" -> "深緋"）
 function getColorNameFromHex(hex: string): string {
   const found = TRADITIONAL_COLORS.find(c => c.hex.toLowerCase() === hex.toLowerCase());
   return found ? found.name.split(' ')[0] : '';
@@ -74,8 +73,8 @@ function HomeContent() {
   const [imageUrl, setImageUrl] = useState<string>('');
   const [blobUrl, setBlobUrl] = useState<string>('');
   const [rotatedPatternUrl, setRotatedPatternUrl] = useState<string>('');
-  const [serialNumber, setSerialNumber] = useState<string>('');
-  const [patternTitle, setPatternTitle] = useState<string>('');
+  const [serialNumber, setSerialNumber] = useState<string>('GEO-INIT');
+  const [patternTitle, setPatternTitle] = useState<string>('万筋縞');
   const [mockupSubmitting, setMockupSubmitting] = useState<boolean>(false);
   const [isNoticeOpen, setIsNoticeOpen] = useState<boolean>(false);
 
@@ -108,43 +107,56 @@ function HomeContent() {
     }
   };
 
-  // ★ 格子・水玉の生成 ＆ 伝統色名による銘の自動連動
+  // ★ 格子・水玉のSVG即時生成 ＆ 銘の自動連動
   const updateGeometricPattern = useCallback(async () => {
     if (creationMode !== 'geometric') return;
-    let svg = '';
-    let size = 100;
-    
-    if (geoPatternType === 'plain') { 
-      svg = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100" height="100" fill="${geoBgColor}"/></svg>`; 
-      size = 100;
+
+    let svgString = '';
+    let tileSize = 0;
+
+    const period = lineWidth + gapWidth;
+    const dotPitch = (dotRadius * 2) + gapWidth;
+
+    if (geoPatternType === 'plain') {
+      svgString = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100" height="100" fill="${geoBgColor}"/></svg>`;
+      tileSize = 100;
+    } else if (geoPatternType === 'stripe') {
+      svgString = generateStripeSvg({ direction: stripeDir, lineWidth, gap: gapWidth, bgColor: geoBgColor, stripeColor: geoPatternColor });
+      tileSize = stripeDir === 'diagonal' ? period * 2 : period;
+    } else if (geoPatternType === 'dot') {
+      svgString = generateDotSvg({ layout: dotLayout, radius: dotRadius, gap: gapWidth, bgColor: geoBgColor, dotColor: geoPatternColor });
+      tileSize = dotPitch; 
+    } else if (geoPatternType === 'grid') {
+      svgString = generateGridSvg({ lineWidth, gap: gapWidth, bgColor: geoBgColor, gridColor: geoPatternColor });
+      tileSize = period;
+    } else if (geoPatternType === 'gingham') {
+      svgString = generateGinghamSvg({ lineWidth, gap: gapWidth, bgColor: geoBgColor, checkColor: geoPatternColor });
+      tileSize = period;
+    } else if (geoPatternType === 'checker') {
+      svgString = generateCheckerSvg({ blockSize: lineWidth, bgColor: geoBgColor, checkColor: geoPatternColor });
+      tileSize = lineWidth * 2;
     }
-    else if (geoPatternType === 'stripe') { 
-      svg = generateStripeSvg({ direction: stripeDir, lineWidth, gap: gapWidth, bgColor: geoBgColor, stripeColor: geoPatternColor }); 
-      size = stripeDir === 'diagonal' ? (lineWidth + gapWidth) * 2 : (lineWidth + gapWidth); 
-    }
-    else if (geoPatternType === 'dot') { 
-      svg = generateDotSvg({ layout: dotLayout, radius: dotRadius, gap: gapWidth, bgColor: geoBgColor, dotColor: geoPatternColor }); 
-      size = (dotRadius * 2) + gapWidth; 
-    }
-    else if (geoPatternType === 'grid') { 
-      svg = generateGridSvg({ lineWidth, gap: gapWidth, bgColor: geoBgColor, gridColor: geoPatternColor }); 
-      size = lineWidth + gapWidth; 
-    }
-    else if (geoPatternType === 'gingham') { 
-      svg = generateGinghamSvg({ lineWidth, gap: gapWidth, bgColor: geoBgColor, checkColor: geoPatternColor }); 
-      size = lineWidth + gapWidth; 
-    }
-    else if (geoPatternType === 'checker') { 
-      svg = generateCheckerSvg({ blockSize: lineWidth, bgColor: geoBgColor, checkColor: geoPatternColor }); 
-      size = lineWidth * 2; 
-    }
-    
-    setBgSizeMm(size);
-    setImageUrl(await svgToHighResPng(svg, size));
-    setBlobUrl('');
+
+    setBgSizeMm(tileSize);
+    // ★ 即座にブラウザプレビューに反映（0ミリ秒）
+    const svgDataUrl = `data:image/svg+xml;utf8,${encodeURIComponent(svgString)}`;
+    setImageUrl(svgDataUrl);
     setRotatedPatternUrl('');
 
-    // ★ 伝統色名による銘の自動連動
+    // バックグラウンドで高解像度反物データを生成
+    try {
+      const tiledPng = await renderTiledGeometricPng(svgDataUrl, tileSize, geoBgColor, 400, 2400);
+      setBlobUrl(tiledPng);
+    } catch {
+      try {
+        const fallbackPng = await svgToHighResPng(svgString, 2400);
+        setBlobUrl(fallbackPng);
+      } catch {
+        setBlobUrl(svgDataUrl);
+      }
+    }
+
+    // 伝統色名による銘の自動連動
     const bgName = getColorNameFromHex(geoBgColor);
     const patName = getColorNameFromHex(geoPatternColor);
     let baseName = '無題';
@@ -272,7 +284,7 @@ function HomeContent() {
     e.preventDefault();
     try {
       let finalImg = blobUrl || imageUrl;
-      const validSerial = serialNumber || `KOMON-${Math.floor(1000 + Math.random() * 9000)}`;
+      const validSerial = serialNumber || (creationMode === 'geometric' ? `GEO-${Math.floor(1000 + Math.random() * 9000)}` : `KOMON-${Math.floor(1000 + Math.random() * 9000)}`);
       if (!serialNumber) setSerialNumber(validSerial);
 
       if (itemType === 'hanhaba') {
