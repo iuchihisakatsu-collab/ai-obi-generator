@@ -55,7 +55,6 @@ interface ControlPanelProps {
   [key: string]: any;
 }
 
-// 厳選15スタイル ＋ 先頭の「指定なし」＝ 全16枠
 const AI_STYLES = [
   { id: 'none', label: '指定なし（完全自由）', sub: 'すべて自分で考える' },
   { id: 'yuzen', label: 'はんなり友禅', sub: '京友禅・水彩ぼかし' },
@@ -75,7 +74,6 @@ const AI_STYLES = [
   { id: 'retrofuturism', label: 'レトロフューチャー', sub: 'スペースエイジ・宇宙SF' },
 ];
 
-// スマホ画面を圧迫しない1行プルダウン用（厳選18人）
 const MASTER_ARTISTS = [
   {
     group: '和の巨匠（浮世絵・琳派・奇想）',
@@ -230,7 +228,7 @@ export default function ControlPanel({
           格子・水玉製作所
         </button>
         <button type="button" onClick={() => setCreationMode('ai')} className={`flex-1 py-2.5 sm:py-3 text-xs font-black tracking-wider transition-all ${creationMode === 'ai' ? 'bg-zinc-900 text-white shadow' : 'text-zinc-500 hover:text-zinc-800'}`}>
-          AI妄想モード
+          図案妄想モード
         </button>
       </div>
 
@@ -283,9 +281,9 @@ export default function ControlPanel({
                 </button>
               </div>
 
-              {/* 色選びに関する強い引きずられ防止の注記 */}
+              {/* ★ AIの文言を撤去した自然な注記 */}
               <p className="text-[10px] text-zinc-500 leading-relaxed mb-2 bg-amber-50/70 border border-amber-200/60 p-2 rounded-xs">
-                ※ 色を選ぶとAIがその色に<strong className="text-zinc-900">かなり強く引っ張られます</strong>。AIならではの自然で絶妙な色合わせを楽しみたい場合は、<strong className="text-zinc-900">「指定なし（おまかせ）」</strong>のままにするのがおすすめです。
+                ※ 色を選ぶとその色に<strong className="text-zinc-900">かなり強く引っ張られます</strong>。偶然生まれる絶妙な色合わせを楽しみたい場合は、<strong className="text-zinc-900">「指定なし（おまかせ）」</strong>のままにするのがおすすめです。
               </p>
 
               <div className="flex flex-wrap items-center gap-1.5 min-h-[30px]">
@@ -519,7 +517,7 @@ export default function ControlPanel({
             <div className="pt-6 border-t border-zinc-200 space-y-3">
               <label className="flex items-start gap-2.5 cursor-pointer select-none mb-2 group relative z-10">
                 <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-0.5 h-3.5 w-3.5 border-zinc-300 text-zinc-900 focus:ring-zinc-900 transition-colors cursor-pointer" />
-                <span className="text-[10px] text-zinc-500 leading-tight group-hover:text-zinc-800 transition-colors">生成図案はAIによるアイデアであり、仕立て時は職人が手作業で不具合を修正することに同意します。</span>
+                <span className="text-[10px] text-zinc-500 leading-tight group-hover:text-zinc-800 transition-colors">生成図案はデザインのアイデアであり、仕立て時は職人が手作業で不具合を修正することに同意します。</span>
               </label>
               
               {errorMsg && <div className="p-3 bg-red-50 text-red-600 border border-red-200 text-xs font-bold shadow-sm">{errorMsg}</div>}
