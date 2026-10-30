@@ -19,6 +19,8 @@ import {
   UNIVERSAL_SCALE_FACTOR 
 } from './lib/constants';
 
+import { CURRENT_NOTICE } from './lib/noticeConfig';
+import NoticeModal from './components/NoticeModal';
 import PreviewArea from './components/preview/PreviewArea';
 import ControlPanel from './components/controls/ControlPanel';
 
@@ -167,8 +169,31 @@ function HomeContent() {
   const [kimonoObiageColor, setKimonoObiageColor] = useState('#e8d3d1'); 
   const [rotatedPatternUrl, setRotatedPatternUrl] = useState<string>('');
   
+  // 新着ポップアップ状態
+  const [isNoticeOpen, setIsNoticeOpen] = useState(false);
+
   const previewRef = useRef<HTMLDivElement>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
+
+  // 告知IDによる未読チェック（新しいIDになった時だけ自動オープン）
+  useEffect(() => {
+    if (!CURRENT_NOTICE.enabled) return;
+    const dismissedId = localStorage.getItem('komon_notice_dismissed_id');
+    if (dismissedId !== CURRENT_NOTICE.id) {
+      setIsNoticeOpen(true);
+    }
+  }, []);
+
+  const handleCloseNotice = () => {
+    localStorage.setItem('komon_notice_dismissed_id', CURRENT_NOTICE.id);
+    setIsNoticeOpen(false);
+  };
+
+  const handleGoToGeometricFromNotice = () => {
+    handleCloseNotice();
+    setCreationMode('geometric');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   useEffect(() => {
     if (creationMode !== 'geometric') return;
@@ -339,7 +364,7 @@ function HomeContent() {
     }
     if (currentCount >= MAX_GENERATIONS_PER_DAY) {
       setRemainingCount(0);
-      alert('無料での作成は「1日2回まで」とさせていただいております。');
+      alert('無料での作成は「1日1回まで」とさせていただいております。');
       return;
     }
 
@@ -568,6 +593,19 @@ function HomeContent() {
 
   return (
     <div className="min-h-screen bg-[#f4f4f5] text-zinc-900 flex flex-col items-center justify-start font-sans selection:bg-zinc-200 lg:p-8">
+      {/* 画面右上の新着・お知らせリンク */}
+      {CURRENT_NOTICE.enabled && (
+        <div className="w-full max-w-7xl px-4 py-2 flex justify-end">
+          <button
+            type="button"
+            onClick={() => setIsNoticeOpen(true)}
+            className="text-[10px] font-bold text-zinc-500 hover:text-zinc-950 underline decoration-zinc-300 transition-colors"
+          >
+            {CURRENT_NOTICE.category}を確認する
+          </button>
+        </div>
+      )}
+
       <div className="w-full max-w-7xl flex flex-col lg:flex-row lg:gap-6 items-start justify-center">
         <PreviewArea
           imageUrl={imageUrl} blobUrl={blobUrl} rotatedPatternUrl={rotatedPatternUrl}
@@ -603,6 +641,13 @@ function HomeContent() {
           handleDownloadOriginal={handleDownloadOriginal} handleOrderClick={handleOrderClick}
         />
       </div>
+
+      {/* 独立したお知らせ・新着情報モーダル */}
+      <NoticeModal
+        isOpen={isNoticeOpen}
+        onClose={handleCloseNotice}
+        onGoToGeometric={handleGoToGeometricFromNotice}
+      />
     </div>
   );
 }
