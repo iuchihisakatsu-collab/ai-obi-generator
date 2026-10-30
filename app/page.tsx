@@ -14,19 +14,14 @@ import {
   type DotLayout 
 } from './utils/geometricPatterns';
 
-// ▼ 新しく作った部品（コンポーネントと定数）を読み込みます
 import { 
   TRADITIONAL_COLORS, MAX_GENERATIONS_PER_DAY, FORBIDDEN_WORDS, 
   ALL_CATEGORIES, UNIVERSAL_SCALE_FACTOR 
 } from './lib/constants';
 
-// ※もしエラーが出る場合は、下の2行の './components/...' の部分を実際のアドレスに合わせてください
 import PreviewArea from './components/preview/PreviewArea';
 import ControlPanel from './components/controls/ControlPanel';
 
-// ==========================================
-// 裏方関数（データ処理）
-// ==========================================
 function getTodayJST(): string {
   const now = new Date();
   const jstFormatter = new Intl.DateTimeFormat('ja-JP', {
@@ -125,15 +120,10 @@ async function rotateImage90Degrees(imageUrl: string): Promise<string> {
   });
 }
 
-
-// ==========================================
-// メインコンポーネント (状態管理・ロジック層)
-// ==========================================
 function HomeContent() {
   const searchParams = useSearchParams();
   const isShopify = searchParams.get('platform') === 'shopify';
 
-  // --- すべての状態（State）は今まで通りここに残します ---
   const [motif, setMotif] = useState('');
   const [selectedColors, setSelectedColors] = useState<typeof TRADITIONAL_COLORS>([]);
   const [density, setDensity] = useState('四方柄（上下なし）');
@@ -173,23 +163,9 @@ function HomeContent() {
   const [kimonoObiageColor, setKimonoObiageColor] = useState('#e8d3d1'); 
   const [showObiageColorPalette, setShowObiageColorPalette] = useState(false);
   const [rotatedPatternUrl, setRotatedPatternUrl] = useState<string>('');
-  const [isCompact, setIsCompact] = useState(false);
   
   const previewRef = useRef<HTMLDivElement>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      if (window.innerWidth < 1024) { setIsCompact(window.scrollY > 120); } 
-      else { setIsCompact(false); }
-    };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    window.addEventListener('resize', handleScroll, { passive: true });
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-      window.removeEventListener('resize', handleScroll);
-    };
-  }, []);
 
   const handleCustomObiUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -226,7 +202,7 @@ function HomeContent() {
       setLoadingStep(0);
       interval = setInterval(() => {
         setLoadingStep((prev) => {
-          if (prev < 5) return prev + 1; // LOADING_STEPS.length - 1
+          if (prev < 5) return prev + 1;
           return prev;
         });
       }, 4000); 
@@ -391,7 +367,6 @@ function HomeContent() {
       if (!effectivePatternUrl) throw new Error('No image');
       const patternImg = await loadImage(effectivePatternUrl);
 
-      // --- 半幅帯・京袋帯の合成 ---
       if (itemType === 'hanhaba' || itemType === 'kyobukuro') {
         const pxPerMm = 27 / 11;
         const bgWidth = creationMode === 'geometric' ? (bgSizeMm * pxPerMm) : (180 * pxPerMm);
@@ -459,7 +434,6 @@ function HomeContent() {
         }
       }
 
-      // --- 着物マッピングの合成 ---
       if (itemType === 'kimono') {
         const kimonoPxPerMm = 1200 / 600; 
         const kBgWidth = creationMode === 'geometric' ? ((bgSizeMm * kimonoPxPerMm) / 2) : ((180 * kimonoPxPerMm) / 2);
@@ -548,19 +522,13 @@ function HomeContent() {
     } catch { setErrorMsg('通信エラーが発生しました'); }
   };
 
-  // ==========================================
-  // 【超スッキリした View（見た目）部分】
-  // コンポーネントにPropsを渡して描画を委譲します
-  // ==========================================
   return (
     <div className="min-h-screen bg-[#f4f4f5] text-zinc-900 flex flex-col items-center justify-start font-sans selection:bg-zinc-200 lg:p-8">
       <div className="w-full max-w-7xl flex flex-col lg:flex-row lg:gap-6 items-start justify-center">
-        
-        {/* 左側：プレビュー画面 */}
         <PreviewArea
           imageUrl={imageUrl} blobUrl={blobUrl} rotatedPatternUrl={rotatedPatternUrl}
           serialNumber={serialNumber} itemType={itemType} displayMode={displayMode}
-          isCompact={isCompact} creationMode={creationMode} bgSizeMm={bgSizeMm}
+          creationMode={creationMode} bgSizeMm={bgSizeMm}
           geoBgColor={geoBgColor} obiLiningColor={obiLiningColor}
           kimonoHaneriColor={kimonoHaneriColor} kimonoObiageColor={kimonoObiageColor}
           kimonoObiColor={kimonoObiColor} customObiUrl={customObiUrl}
@@ -569,7 +537,6 @@ function HomeContent() {
           handleDownloadMapping={handleDownloadMapping} UNIVERSAL_SCALE_FACTOR={UNIVERSAL_SCALE_FACTOR}
         />
 
-        {/* 右側：操作パネル */}
         <ControlPanel
           creationMode={creationMode} setCreationMode={setCreationMode} motif={motif} setMotif={setMotif}
           showTags={showTags} setShowTags={setShowTags} handleTagClick={handleTagClick}
@@ -594,7 +561,6 @@ function HomeContent() {
           imageUrl={imageUrl} patternTitle={patternTitle} setPatternTitle={setPatternTitle}
           handleDownloadOriginal={handleDownloadOriginal} handleNativeShare={handleNativeShare} handleOrderClick={handleOrderClick}
         />
-
       </div>
     </div>
   );
