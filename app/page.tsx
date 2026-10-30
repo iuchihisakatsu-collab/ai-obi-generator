@@ -153,7 +153,6 @@ function HomeContent() {
   const [serialNumber, setSerialNumber] = useState('');
   const [showColorPalette, setShowColorPalette] = useState(false);
   
-  // デュアルエンジン残回数（FLUX 24回 / OpenAI 1回）
   const [remainingFlux, setRemainingFlux] = useState<number>(MAX_FLUX_PER_DAY);
   const [remainingOpenAI, setRemainingOpenAI] = useState<number>(MAX_OPENAI_PER_DAY);
   
@@ -296,7 +295,7 @@ function HomeContent() {
       setRemainingFlux(MAX_FLUX_PER_DAY);
       setRemainingOpenAI(MAX_OPENAI_PER_DAY);
       setMotif('');
-      alert('【管理者モード】本日の生成回数をすべて全回復しました。\n・創作図案（FLUX）: 24回\n・本番清書（OpenAI）: 1回');
+      alert('【管理者モード】本日の生成回数をすべて全回復しました。\n・falエンジン: 24回\n・OpenAIエンジン: 1回');
     }
   }, [motif]);
 
@@ -392,12 +391,12 @@ function HomeContent() {
 
     if (engine === 'flux' && fCount >= MAX_FLUX_PER_DAY) {
       setRemainingFlux(0);
-      alert('[本日の創作図案上限に達しました]\n\n創作図案は1日24回までたっぷりご利用いただけます。また明日お試しいただくか、「本番清書」をお試しください。');
+      alert('[本日の上限に達しました]\n\nfalエンジンは1日24回までご利用いただけます。');
       return;
     }
     if (engine === 'openai' && oCount >= MAX_OPENAI_PER_DAY) {
       setRemainingOpenAI(0);
-      alert('[本日の清書上限に達しました]\n\n最高精細の「本番清書」はお一人様1日1回までとなっております。創作図案は引き続きご利用いただけます。');
+      alert('[本日の上限に達しました]\n\nOpenAIエンジンはお一人様1日1回までとなっております。');
       return;
     }
 
@@ -639,17 +638,6 @@ function HomeContent() {
 
   return (
     <div className="min-h-screen bg-[#f4f4f5] text-zinc-900 flex flex-col items-center justify-start font-sans selection:bg-zinc-200 lg:p-8">
-      {CURRENT_NOTICE.enabled && (
-        <div className="w-full max-w-7xl px-4 py-2 flex justify-end">
-          <button
-            type="button"
-            onClick={() => setIsNoticeOpen(true)}
-            className="text-[10px] font-bold text-zinc-500 hover:text-zinc-950 underline decoration-zinc-300 transition-colors"
-          >
-            {CURRENT_NOTICE.category}を確認する
-          </button>
-        </div>
-      )}
 
       <div className="w-full max-w-7xl flex flex-col lg:flex-row lg:gap-6 items-start justify-center">
         <PreviewArea
@@ -688,6 +676,19 @@ function HomeContent() {
           handleDownloadOriginal={handleDownloadOriginal} handleOrderClick={handleOrderClick}
         />
       </div>
+
+      {/* トップから移動してきたお知らせリンク */}
+      {CURRENT_NOTICE.enabled && (
+        <div className="w-full max-w-7xl px-4 py-8 mt-12 flex justify-center border-t border-zinc-200">
+          <button
+            type="button"
+            onClick={() => setIsNoticeOpen(true)}
+            className="text-xs font-bold text-zinc-500 hover:text-zinc-950 underline decoration-zinc-300 transition-colors"
+          >
+            {CURRENT_NOTICE.category}を確認する
+          </button>
+        </div>
+      )}
 
       <NoticeModal
         isOpen={isNoticeOpen}
