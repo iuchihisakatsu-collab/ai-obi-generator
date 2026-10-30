@@ -2,7 +2,7 @@
 'use client';
 
 import { MouseEvent } from 'react';
-import { TRADITIONAL_COLORS, CategoryItem, LOADING_STEPS } from '../../lib/constants';
+import { TRADITIONAL_COLORS, CategoryItem } from '../../lib/constants';
 
 interface ControlPanelProps {
   creationMode?: 'ai' | 'geometric';
@@ -42,11 +42,9 @@ interface ControlPanelProps {
   errorMsg?: string;
   loading?: boolean;
   loadingEngine?: 'flux' | 'openai' | null;
-  remainingCount?: number | null;
-  remainingFlux?: number;
-  remainingOpenAI?: number;
+  remainingCount?: number;
   loadingStep?: number;
-  handleGenerate?: (engine: 'flux' | 'openai') => void;
+  handleGenerate?: () => void;
   imageUrl?: string;
   patternTitle?: string;
   setPatternTitle?: (val: string) => void;
@@ -89,6 +87,14 @@ const PULLDOWN_MOTIFS = [
   }
 ];
 
+const WAITING_MESSAGES = [
+  "出てきた作品は一期一会。更新すると二度と戻りません。「気に入ったらまず保存」これが鉄則です！",
+  "実は1回描くごとにゴフクヤサンにリアルに課金されてます（笑）言葉をよーく選んで試してみて！",
+  "画面を眺めるだけじゃもったいない！この柄、本当に着物や帯に仕立てられます。「妄想を現実に」ボタンをぜひ。",
+  "ご注文後は必ず職人が目視と手作業で柄の不具合を修正してから仕立てに出します。安心してお任せを。",
+  "「柄は最高だけど地色が惜しい！」などあれば注文時に教えてください。背景色の変更もやります！"
+];
+
 export default function ControlPanel({
   creationMode = 'geometric',
   setCreationMode = () => {},
@@ -103,7 +109,7 @@ export default function ControlPanel({
   setShowColorPalette = () => {},
   density = '四方柄',
   setDensity = () => {},
-  geoPatternType = 'stripe',
+  geoPatternType = 'plain',
   setGeoPatternType = () => {},
   stripeDir = 'vertical',
   setStripeDir = () => {},
@@ -126,9 +132,7 @@ export default function ControlPanel({
   errorMsg = '',
   loading = false,
   loadingEngine = null,
-  remainingCount = 1,
-  remainingFlux = 15,
-  remainingOpenAI = 1,
+  remainingCount = 20,
   loadingStep = 0,
   handleGenerate = () => {},
   imageUrl = '',
@@ -173,20 +177,10 @@ export default function ControlPanel({
     window.open('https://www.instagram.com/', '_blank', 'noopener,noreferrer');
   };
 
-  const primaryMotif = motif.trim() ? motif.split(/[、\s ]+/)[0] : '';
-  const makeshopSearchUrl = primaryMotif 
-    ? `https://store.gofukuyasan.com/view/search?search_keyword=${encodeURIComponent(primaryMotif)}` 
-    : 'https://store.gofukuyasan.com/';
-
   const handleQuickAdd = (word: string) => {
     if (!motif.includes(word)) {
       setMotif(motif ? `${motif}、${word}` : word);
     }
-  };
-
-  const switchToGeometric = () => {
-    setCreationMode('geometric');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
@@ -322,7 +316,6 @@ export default function ControlPanel({
           </>
         ) : (
           <div className="space-y-6 animate-fade-in">
-            {/* 不要な（カッコ）を排除してスッキリさせたUI */}
             <div className={`grid ${geoPatternType === 'plain' ? 'grid-cols-1' : 'grid-cols-2'} gap-4`}>
               <div>
                 <label className="block text-[11px] font-bold text-zinc-900 mb-1.5">柄の種類</label>
@@ -451,73 +444,51 @@ export default function ControlPanel({
           </div>
         )}
 
-        {/* AI生成ボタンエリア（デュアルエンジン：FLUX 15回 / OpenAI 1回） */}
+        {/* ★ モノトーンのハイブランド調で目立たせた「妄想した図案をつくる」ボタン */}
         <div className="space-y-4 mt-6">
           {creationMode === 'ai' && (
             <div className="pt-6 border-t border-zinc-200 space-y-3">
               <label className="flex items-start gap-2.5 cursor-pointer select-none mb-2 group relative z-10">
                 <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-0.5 h-3.5 w-3.5 border-zinc-300 text-zinc-900 focus:ring-zinc-900 transition-colors cursor-pointer" />
-                <span className="text-[10px] text-zinc-500 leading-tight group-hover:text-zinc-800 transition-colors">生成図案はAIによるアイデアであり、仕立て時はゴフクヤサンが手作業で不具合を修正することに同意します。</span>
+                <span className="text-[10px] text-zinc-500 leading-tight group-hover:text-zinc-800 transition-colors">生成図案はAIによるアイデアであり、仕立て時は職人が手作業で不具合を修正することに同意します。</span>
               </label>
               
               {errorMsg && <div className="p-3 bg-red-50 text-red-600 border border-red-200 text-xs font-bold shadow-sm">{errorMsg}</div>}
               
-              {/* ボタン1：軽快スケッチ（FLUX / 15回 / 爆速） */}
               <button 
                 type="button" 
-                onClick={() => handleGenerate('flux')} 
-                disabled={loading || remainingFlux === 0} 
-                className={`w-full py-3.5 px-4 font-black text-xs sm:text-sm tracking-widest transition-all duration-200 flex flex-col items-center justify-center gap-0.5 shadow-md relative z-10 ${
-                  remainingFlux === 0 
-                    ? 'bg-zinc-100 text-zinc-400 border border-zinc-200 cursor-not-allowed' 
-                    : 'bg-zinc-950 text-white hover:bg-zinc-800 hover:shadow-lg disabled:opacity-50'
+                onClick={handleGenerate} 
+                disabled={loading || remainingCount <= 0} 
+                className={`w-full relative overflow-hidden font-black transition-all duration-300 flex flex-col items-center justify-center gap-1 shadow-md z-10 ${
+                  remainingCount <= 0 
+                    ? 'bg-zinc-100 text-zinc-400 border-2 border-zinc-200 cursor-not-allowed py-5' 
+                    : loading
+                      ? 'bg-zinc-900 text-white border-2 border-zinc-900 py-4'
+                      : 'bg-zinc-950 text-white hover:bg-black hover:shadow-xl hover:scale-[1.01] border-2 border-zinc-950 py-5'
                 }`}
               >
-                {loading && loadingEngine === 'flux' ? (
-                  <span className="text-xs">⚡ FLUXで高速スケッチ中（約1〜2秒）...</span>
-                ) : (
-                  <>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-amber-400">⚡</span>
-                      <span>軽快スケッチで試す (残り {remainingFlux} 回)</span>
-                    </div>
-                    <span className="text-[9px] font-normal text-zinc-400 tracking-normal">
-                      爆速でアイデア出し・何パターンも試せます
+                {loading ? (
+                  <div className="flex flex-col items-center w-full max-w-sm px-4">
+                    {loadingEngine === 'openai' ? (
+                      <span className="text-[10.5px] text-amber-300 animate-pulse font-bold tracking-[0.2em] mb-2 flex items-center gap-1.5">
+                        🎯 大当たり！最高峰モードで作画中...
+                      </span>
+                    ) : (
+                      <span className="text-[10.5px] text-zinc-300 font-bold tracking-[0.2em] mb-2">
+                        図案を紡いでいます...
+                      </span>
+                    )}
+                    {/* おっちゃんのテロップアニメーション */}
+                    <span key={loadingStep} className="text-[10px] leading-relaxed text-zinc-100 font-medium animate-fade-in text-center h-8 flex items-center justify-center tracking-wider">
+                      {WAITING_MESSAGES[loadingStep % WAITING_MESSAGES.length]}
                     </span>
-                  </>
-                )}
-              </button>
-
-              {/* ボタン2：本番清書（OpenAI / 1回 / 最高精細） */}
-              <button 
-                type="button" 
-                onClick={() => handleGenerate('openai')} 
-                disabled={loading || remainingOpenAI === 0} 
-                className={`w-full py-3 px-4 font-bold text-xs tracking-wider transition-all duration-200 flex flex-col items-center justify-center gap-0.5 border relative z-10 ${
-                  remainingOpenAI === 0 
-                    ? 'bg-zinc-50 text-zinc-400 border-zinc-200 cursor-not-allowed' 
-                    : 'bg-white text-zinc-900 border-zinc-900 hover:bg-zinc-100 hover:shadow-md disabled:opacity-50'
-                }`}
-              >
-                {loading && loadingEngine === 'openai' ? (
-                  <div className="flex flex-col items-center gap-1">
-                    <span className="text-xs">{LOADING_STEPS[loadingStep]}</span>
-                    <span className="text-[8px] text-zinc-400">OPENAI HIGH-RES RENDERING...</span>
                   </div>
                 ) : (
-                  <>
-                    <div className="flex items-center gap-1.5">
-                      <span>✨</span>
-                      <span>
-                        {remainingOpenAI === 0 
-                          ? '本日の清書上限に達しました (1/1)' 
-                          : `本番清書で仕上げる (残り ${remainingOpenAI} 回)`}
-                      </span>
-                    </div>
-                    <span className="text-[9px] font-normal text-zinc-500 tracking-normal">
-                      モナリザ印刷用の最高精細仕上げ（1日1回限定）
-                    </span>
-                  </>
+                  <span className="text-[15px] sm:text-base tracking-[0.3em] font-black">
+                    {remainingCount <= 0 
+                      ? '本日の図案制作枠が終了しました' 
+                      : '妄想した図案をつくる'}
+                  </span>
                 )}
               </button>
             </div>
@@ -572,6 +543,12 @@ export default function ControlPanel({
                   <button type="button" onClick={shareToPinterest} className="flex flex-col items-center justify-center w-10 h-10 bg-white border border-zinc-300 rounded-full hover:bg-zinc-950 hover:text-white hover:border-zinc-950 transition-all shadow-sm group" title="Pinterestにピン留め">
                     <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" className="transition-transform group-hover:scale-110">
                       <path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.162-.105-.949-.199-2.403.041-3.439.219-.937 1.406-5.957s-.359-.72-.359-1.781c0-1.663.967-2.911 2.168-2.911 1.024 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738a.36.36 0 0 1 .083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.631-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146 1.124.347 2.317.535 3.554.535 6.627 0 12.004-5.367 12.004-11.987C24.02 5.367 18.644 0 12.017 0z"/>
+                    </svg>
+                  </button>
+
+                  <button type="button" onClick={shareToFacebook} className="flex flex-col items-center justify-center w-10 h-10 bg-white border border-zinc-300 rounded-full hover:bg-zinc-950 hover:text-white hover:border-zinc-950 transition-all shadow-sm group" title="Facebookでシェア">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" className="transition-transform group-hover:scale-110">
+                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
                     </svg>
                   </button>
                 </div>
