@@ -183,22 +183,22 @@ export default function PreviewArea(props: PreviewAreaProps) {
     UNIVERSAL_SCALE_FACTOR = 3 / 22
   } = props;
 
-  // 親からsetterが渡されていなくても単体で動く二重防壁（内部State）
+  // 親setter未指定時でも単体稼働する内部State
   const [activeLiningColor, setActiveLiningColor] = useState(props.obiLiningColor || '#f8fbf8');
   const [activeHaneriColor, setActiveHaneriColor] = useState(props.kimonoHaneriColor || '#ffffff');
   const [activeObiageColor, setActiveObiageColor] = useState(props.kimonoObiageColor || '#d3381c');
   const [activeObiColor, setActiveObiColor] = useState(props.kimonoObiColor || '#161616');
 
-  // 着物モード時の編集対象パーツ（haneri, obiage, obi）
+  // 着物モード時の対象部位セレクター
   const [kimonoPartTarget, setKimonoPartTarget] = useState<'haneri' | 'obiage' | 'obi'>('obi');
 
-  // 102色フロートモーダルの開閉状態
+  // 102色フロートパレットの開閉
   const [showFloatModal, setShowFloatModal] = useState(false);
 
-  // スマホ専用PIPワイプ（丸い生中継小窓）のスクロール出現フラグ
+  // スマホ専用PIPワイプ（丸い生中継小窓）スクロール出現
   const [isCompact, setIsCompact] = useState(false);
 
-  // 親propsが変更された場合の同期
+  // 親propsとの同期
   useEffect(() => {
     if (props.obiLiningColor) setActiveLiningColor(props.obiLiningColor);
   }, [props.obiLiningColor]);
@@ -215,7 +215,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
     if (props.kimonoObiColor) setActiveObiColor(props.kimonoObiColor);
   }, [props.kimonoObiColor]);
 
-  // スクロール検知：スマホで140px以上スクロールしたら丸い生中継フロート小窓を出現
+  // スマホスクロール監視
   useEffect(() => {
     const handleScroll = () => {
       const top = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
@@ -230,7 +230,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // カラー変更ハンドラー（親propsがあれば通知、内部stateも更新）
+  // カラー変更ハンドラー
   const handleColorChange = (colorHex: string) => {
     if (itemType === 'hanhaba' || itemType === 'kyobukuro') {
       setActiveLiningColor(colorHex);
@@ -252,14 +252,13 @@ export default function PreviewArea(props: PreviewAreaProps) {
   const effectivePatternUrl = creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl);
   const hasPattern = Boolean(effectivePatternUrl);
 
-  // モックアップ描画関数
-  const renderMockup = () => {
-    const patternSize = creationMode === 'geometric' ? `${bgSizeMm * UNIVERSAL_SCALE_FACTOR}% auto` : `${180 * UNIVERSAL_SCALE_FACTOR}% auto`;
-    const kimonoPatternSize = creationMode === 'geometric' ? `${(bgSizeMm * UNIVERSAL_SCALE_FACTOR) / 2}% auto` : `${(180 * UNIVERSAL_SCALE_FACTOR) / 2}% auto`;
+  const patternSize = creationMode === 'geometric' ? `${bgSizeMm * UNIVERSAL_SCALE_FACTOR}% auto` : `${180 * UNIVERSAL_SCALE_FACTOR}% auto`;
+  const kimonoPatternSize = creationMode === 'geometric' ? `${(bgSizeMm * UNIVERSAL_SCALE_FACTOR) / 2}% auto` : `${(180 * UNIVERSAL_SCALE_FACTOR) / 2}% auto`;
 
+  // モックアップ本体の描画
+  const renderMockup = () => {
     return (
-      <>
-        {/* 半幅帯マッピング */}
+      <div className="relative w-full h-full overflow-hidden">
         {itemType === 'hanhaba' && (
           <div className="relative w-full h-full overflow-hidden">
             {[ 
@@ -334,7 +333,6 @@ export default function PreviewArea(props: PreviewAreaProps) {
           </div>
         )}
 
-        {/* 京袋帯マッピング */}
         {itemType === 'kyobukuro' && (
           <div className="relative w-full h-full overflow-hidden">
             <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 10 }}>
@@ -409,7 +407,6 @@ export default function PreviewArea(props: PreviewAreaProps) {
           </div>
         )}
 
-        {/* 着物マッピング */}
         {itemType === 'kimono' && (
           <div className="relative w-full h-full overflow-hidden bg-white">
             <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 1 }}>
@@ -523,7 +520,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
             />
           </div>
         )}
-      </>
+      </div>
     );
   };
 
@@ -565,7 +562,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
             </button>
           </div>
 
-          {/* 1. モックアップ表示（寸法固定でSafariの潰れを完全防止） */}
+          {/* 1. モックアップ表示 */}
           {displayMode === 'mockup' && (
             <div className="w-full flex flex-col items-center animate-fade-in relative z-10 px-4">
               <div 
@@ -575,7 +572,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
                 {renderMockup()}
               </div>
 
-              {/* 【フロート機能 1】プレビュー直下のフローティング着せ替えセレクター */}
+              {/* フローティング着せ替えセレクター */}
               <div className="mt-3 flex flex-wrap items-center justify-center gap-2 bg-white/95 backdrop-blur-md px-3.5 py-1.5 rounded-full shadow-md border border-zinc-200 z-20 max-w-full">
                 
                 {/* 帯モード：裏地色セレクター */}
@@ -668,7 +665,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
             </div>
           )}
 
-          {/* 2. トリム表示（京袋帯のみ） */}
+          {/* 2. トリム表示 */}
           {displayMode === 'trim' && itemType === 'kyobukuro' && (
             <div className="w-full flex flex-col items-center animate-fade-in relative z-10 px-4">
               <div className="relative mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden w-[280px] h-[238px] sm:w-[350px] sm:h-[298px] flex items-center justify-center">
@@ -704,7 +701,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
             </div>
           )}
 
-          {/* 【フロート機能 2】右下に浮かぶ「画像を保存」ボタン */}
+          {/* フローティング「画像を保存」ボタン */}
           {displayMode === 'mockup' && (
             <button 
               type="button" 
@@ -717,7 +714,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
             </button>
           )}
 
-          {/* 【フロート機能 3】最下部の手作業修正フローティング注釈バー */}
+          {/* 最下部の手作業修正フローティング注釈バー */}
           <div className="absolute bottom-0 left-0 right-0 z-20 bg-white/90 backdrop-blur-md border-t border-zinc-200 px-3 py-2 shadow-sm flex items-center justify-center pointer-events-none">
             <p className="text-[9px] sm:text-[10px] text-zinc-700 font-medium leading-tight text-center tracking-wide">
               ※ 画面上は柄のつなぎ目が切れて見える場合がありますが、実際のお仕立て時は<br className="sm:hidden" />
@@ -725,7 +722,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
             </p>
           </div>
 
-          {/* 【フロート機能 4】102色伝統色パレット（フロートモーダル） */}
+          {/* 102色伝統色パレット（フロートモーダル） */}
           {showFloatModal && (
             <div className="absolute inset-0 z-40 bg-black/40 backdrop-blur-xs flex items-center justify-center p-3 animate-fade-in">
               <div className="bg-white rounded-md shadow-2xl border border-zinc-300 w-full max-w-[340px] max-h-[85%] flex flex-col overflow-hidden">
@@ -766,7 +763,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
         </div>
       </div>
 
-      {/* 【フロート機能 5】スマホ専用：右下生中継フロート小窓（PIPワイプ） */}
+      {/* スマホ専用：右下生中継フロート小窓（PIPワイプ） */}
       <button
         type="button"
         onClick={() => { window.scrollTo({ top: 0, behavior: 'smooth' }); }}
