@@ -231,7 +231,7 @@ function HomeContent() {
     }
   };
 
-  // ★ 1日20回制限 ＆ 5%の確率でOpenAIが当たるロジック
+  // ★ 1日20回制限 ＆ 5%の確率でOpenAIが当たり ＆ 最低20秒待たせる重厚演出
   const handleGenerate = async () => {
     if (loading || remainingCount <= 0) return;
     setErrorMsg('');
@@ -245,7 +245,12 @@ function HomeContent() {
     setLoading(true);
     setLoadingEngine(selectedEngine);
     setLoadingStep(0);
-    const stepTimer = setInterval(() => setLoadingStep(prev => prev < 4 ? prev + 1 : 0), 4000);
+
+    // ★ 重み演出のための開始時間記録
+    const startTime = Date.now();
+
+    // 4秒ごとにテロップを切り替え（20秒で5つのメッセージがちょうど1周する）
+    const stepTimer = setInterval(() => setLoadingStep(prev => (prev + 1) % 5), 4000);
 
     try {
       const colorNames = selectedColors.map(c => getColorNameFromHex(c.hex)).join('、');
@@ -256,6 +261,13 @@ function HomeContent() {
       });
       const data = await res.json();
       if (!res.ok || data.error) throw new Error(data.error || '画像生成に失敗しました');
+
+      // ★ 最低20秒（20000ms）経つまで待機して「重み」を持たせる
+      const elapsedTime = Date.now() - startTime;
+      const MIN_WAIT_MS = 20000;
+      if (elapsedTime < MIN_WAIT_MS) {
+        await new Promise((resolve) => setTimeout(resolve, MIN_WAIT_MS - elapsedTime));
+      }
 
       setImageUrl(data.imageUrl);
       setBlobUrl(data.blobUrl);
