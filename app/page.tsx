@@ -16,8 +16,7 @@ import ControlPanel from './components/controls/ControlPanel';
 import { PlatformType, submitOrder } from './lib/orders';
 import { renderTiledGeometricPng, render18cmPrintDataPng } from './lib/production/canvasRenderer';
 
-const MAX_FLUX_PER_DAY = 24;
-const MAX_OPENAI_PER_DAY = 1;
+const MAX_GENERATE_PER_DAY = 20;
 
 function getTodayJST(): string {
   const parts = new Intl.DateTimeFormat('ja-JP', { timeZone: 'Asia/Tokyo', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date());
@@ -29,7 +28,6 @@ function getColorNameFromHex(hex: string): string {
   return found ? found.name.split(' ')[0] : '';
 }
 
-// AI画像の90度回転処理（半幅帯専用）
 async function rotateImage90Degrees(imageUrl: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -68,7 +66,6 @@ function HomeContent() {
   const [showColorPalette, setShowColorPalette] = useState<boolean>(false);
   const [density, setDensity] = useState<string>('四方柄');
 
-  // ★ デフォルトの幾何学パターンを「無地（plain）」に設定
   const [geoPatternType, setGeoPatternType] = useState<'plain' | 'stripe' | 'dot' | 'grid' | 'gingham' | 'checker'>('plain');
   const [stripeDir, setStripeDir] = useState<StripeDirection>('vertical');
   const [dotLayout, setDotLayout] = useState<DotLayout>('staggered');
@@ -90,8 +87,7 @@ function HomeContent() {
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [loadingEngine, setLoadingEngine] = useState<'flux' | 'openai' | null>(null);
-  const [remainingFlux, setRemainingFlux] = useState<number>(MAX_FLUX_PER_DAY);
-  const [remainingOpenAI, setRemainingOpenAI] = useState<number>(MAX_OPENAI_PER_DAY);
+  const [remainingCount, setRemainingCount] = useState<number>(MAX_GENERATE_PER_DAY);
   const [loadingStep, setLoadingStep] = useState<number>(0);
 
   const [imageUrl, setImageUrl] = useState<string>('');
@@ -110,13 +106,10 @@ function HomeContent() {
     const storedDate = localStorage.getItem('komon_usage_date');
     if (storedDate !== today) {
       localStorage.setItem('komon_usage_date', today);
-      localStorage.setItem('komon_count_flux', '0');
-      localStorage.setItem('komon_count_openai', '0');
-      setRemainingFlux(MAX_FLUX_PER_DAY);
-      setRemainingOpenAI(MAX_OPENAI_PER_DAY);
+      localStorage.setItem('komon_count_total', '0');
+      setRemainingCount(MAX_GENERATE_PER_DAY);
     } else {
-      setRemainingFlux(Math.max(0, MAX_FLUX_PER_DAY - parseInt(localStorage.getItem('komon_count_flux') || '0', 10)));
-      setRemainingOpenAI(Math.max(0, MAX_OPENAI_PER_DAY - parseInt(localStorage.getItem('komon_count_openai') || '0', 10)));
+      setRemainingCount(Math.max(0, MAX_GENERATE_PER_DAY - parseInt(localStorage.getItem('komon_count_total') || '0', 10)));
     }
 
     if (CURRENT_NOTICE.enabled && localStorage.getItem('last_dismissed_notice_id') !== CURRENT_NOTICE.id) {
@@ -131,7 +124,6 @@ function HomeContent() {
     }
   };
 
-  // 「AI妄想モード × 半幅帯」の時だけ画像を自動90度回転させる
   useEffect(() => {
     const src = blobUrl || imageUrl;
     if (!src) {
@@ -182,6 +174,7 @@ function HomeContent() {
     setBgSizeMm(tileSize);
     const svgDataUrl = `data:image/svg+xml;utf8,${encodeURIComponent(svgString)}`;
     setImageUrl(svgDataUrl);
+    setRotatedPatternUrl('');
 
     try {
       const tiledPng = await renderTiledGeometricPng(svgDataUrl, tileSize, geoBgColor, 400, 2400);
@@ -238,25 +231,28 @@ function HomeContent() {
     }
   };
 
-  const handleGenerate = async (engine: 'flux' | 'openai') => {
-    if (loading) return;
+  // ★ 1日20回制限 ＆ 5%の確率でOpenAIが当たるロジック
+  const handleGenerate = async () => {
+    if (loading || remainingCount <= 0) return;
     setErrorMsg('');
     if (creationMode === 'ai' && !motif.trim()) { setErrorMsg('描きたいモチーフを入力してください。'); return; }
     for (const forbidden of FORBIDDEN_WORDS) {
       if (motif.includes(forbidden)) { setErrorMsg(`禁止ワード「${forbidden}」が含まれています。`); return; }
     }
 
+    const selectedEngine: 'flux' | 'openai' = Math.random() < 0.05 ? 'openai' : 'flux';
+
     setLoading(true);
-    setLoadingEngine(engine);
+    setLoadingEngine(selectedEngine);
     setLoadingStep(0);
-    const stepTimer = setInterval(() => setLoadingStep(prev => prev < 4 ? prev + 1 : prev), 4000);
+    const stepTimer = setInterval(() => setLoadingStep(prev => prev < 4 ? prev + 1 : 0), 4000);
 
     try {
       const colorNames = selectedColors.map(c => getColorNameFromHex(c.hex)).join('、');
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ motif: motif.trim(), color: colorNames || 'おまかせ', density, itemType, aiStyle, engine })
+        body: JSON.stringify({ motif: motif.trim(), color: colorNames || 'おまかせ', density, itemType, aiStyle, engine: selectedEngine })
       });
       const data = await res.json();
       if (!res.ok || data.error) throw new Error(data.error || '画像生成に失敗しました');
@@ -270,12 +266,9 @@ function HomeContent() {
       const colorPrefix = selectedColors.length > 0 ? `${getColorNameFromHex(selectedColors[0].hex)}の` : '';
       setPatternTitle(motif.trim() ? `${colorPrefix}${motif.trim()}小紋` : '無題の小紋');
 
-      const storageKey = engine === 'flux' ? 'komon_count_flux' : 'komon_count_openai';
-      const maxCount = engine === 'flux' ? MAX_FLUX_PER_DAY : MAX_OPENAI_PER_DAY;
-      const setter = engine === 'flux' ? setRemainingFlux : setRemainingOpenAI;
-      const used = parseInt(localStorage.getItem(storageKey) || '0', 10) + 1;
-      localStorage.setItem(storageKey, used.toString());
-      setter(Math.max(0, maxCount - used));
+      const used = parseInt(localStorage.getItem('komon_count_total') || '0', 10) + 1;
+      localStorage.setItem('komon_count_total', used.toString());
+      setRemainingCount(Math.max(0, MAX_GENERATE_PER_DAY - used));
 
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err: any) {
@@ -392,10 +385,9 @@ function HomeContent() {
           handleCustomObiUpload={handleCustomObiUpload}
           agreed={agreed} setAgreed={setAgreed} errorMsg={errorMsg}
           loading={loading} loadingEngine={loadingEngine}
-          remainingFlux={remainingFlux} remainingOpenAI={remainingOpenAI} loadingStep={loadingStep}
+          remainingCount={remainingCount} loadingStep={loadingStep}
           handleGenerate={handleGenerate} imageUrl={imageUrl} patternTitle={patternTitle} setPatternTitle={setPatternTitle}
           handleDownloadOriginal={handleDownloadOriginal} handleOrderClick={handleOrderClick}
-          platform={platform} designFee={designFee} setDesignFee={setDesignFee}
         />
       </div>
 
