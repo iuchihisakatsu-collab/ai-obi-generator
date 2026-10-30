@@ -1,6 +1,6 @@
 // lib/constants.ts
 
-export const MAX_GENERATIONS_PER_DAY = 2;
+export const MAX_GENERATIONS_PER_DAY = 1;
 
 export const FORBIDDEN_WORDS = [
   'ディズニー', 'disney', 'ミッキー', 'mickey', 'ピカチュウ', 'ポケモン', 'pokemon',
