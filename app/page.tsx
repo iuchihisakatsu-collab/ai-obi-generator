@@ -102,12 +102,31 @@ function HomeContent() {
     if (creationMode !== 'geometric') return;
     let svg = '';
     let size = 100;
-    if (geoPatternType === 'plain') { svg = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100" height="100" fill="${geoBgColor}"/></svg>`; }
-    else if (geoPatternType === 'stripe') { svg = generateStripeSvg(lineWidth, gapWidth, geoPatternColor, geoBgColor, stripeDir); size = lineWidth + gapWidth; }
-    else if (geoPatternType === 'dot') { svg = generateDotSvg(dotRadius, gapWidth, geoPatternColor, geoBgColor, dotLayout); size = (dotRadius * 2) + gapWidth; }
-    else if (geoPatternType === 'grid') { svg = generateGridSvg(lineWidth, gapWidth, geoPatternColor, geoBgColor); size = lineWidth + gapWidth; }
-    else if (geoPatternType === 'gingham') { svg = generateGinghamSvg(lineWidth, geoPatternColor, geoBgColor); size = lineWidth * 2; }
-    else if (geoPatternType === 'checker') { svg = generateCheckerSvg(lineWidth, geoPatternColor, geoBgColor); size = lineWidth * 2; }
+    
+    if (geoPatternType === 'plain') { 
+      svg = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100" height="100" fill="${geoBgColor}"/></svg>`; 
+    }
+    else if (geoPatternType === 'stripe') { 
+      svg = generateStripeSvg({ direction: stripeDir, lineWidth, gap: gapWidth, bgColor: geoBgColor, stripeColor: geoPatternColor }); 
+      size = stripeDir === 'diagonal' ? (lineWidth + gapWidth) * 2 : (lineWidth + gapWidth); 
+    }
+    else if (geoPatternType === 'dot') { 
+      svg = generateDotSvg({ layout: dotLayout, radius: dotRadius, gap: gapWidth, bgColor: geoBgColor, dotColor: geoPatternColor }); 
+      size = (dotRadius * 2) + gapWidth; 
+    }
+    else if (geoPatternType === 'grid') { 
+      svg = generateGridSvg({ lineWidth, gap: gapWidth, bgColor: geoBgColor, gridColor: geoPatternColor }); 
+      size = lineWidth + gapWidth; 
+    }
+    else if (geoPatternType === 'gingham') { 
+      svg = generateGinghamSvg({ lineWidth, gap: gapWidth, bgColor: geoBgColor, checkColor: geoPatternColor }); 
+      size = lineWidth + gapWidth; 
+    }
+    else if (geoPatternType === 'checker') { 
+      svg = generateCheckerSvg({ blockSize: lineWidth, bgColor: geoBgColor, checkColor: geoPatternColor }); 
+      size = lineWidth * 2; 
+    }
+    
     setBgSizeMm(size);
     setImageUrl(await svgToHighResPng(svg, size));
     setBlobUrl('');
@@ -125,6 +144,14 @@ function HomeContent() {
       if (selectedColors.length >= 3) { setErrorMsg('選択できる色は最大3色までです'); return; }
       setSelectedColors([...selectedColors, colorObj]);
       setErrorMsg('');
+    }
+  };
+
+  const handleCustomObiUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setCustomObiUrl(url);
     }
   };
 
@@ -245,11 +272,12 @@ function HomeContent() {
           serialNumber={serialNumber} itemType={itemType} displayMode={displayMode}
           creationMode={creationMode} bgSizeMm={bgSizeMm}
           geoBgColor={geoBgColor}
-          obiLiningColor={obiLiningColor}
-          kimonoHaneriColor={kimonoHaneriColor}
-          kimonoObiageColor={kimonoObiageColor}
-          kimonoObiColor={kimonoObiColor}
-          customObiUrl={customObiUrl}
+          obiLiningColor={obiLiningColor} setObiLiningColor={setObiLiningColor}
+          kimonoHaneriColor={kimonoHaneriColor} setKimonoHaneriColor={setKimonoHaneriColor}
+          kimonoObiageColor={kimonoObiageColor} setKimonoObiageColor={setKimonoObiageColor}
+          kimonoObiColor={kimonoObiColor} setKimonoObiColor={setKimonoObiColor}
+          customObiUrl={customObiUrl} setCustomObiUrl={setCustomObiUrl}
+          handleCustomObiUpload={handleCustomObiUpload}
           mockupSubmitting={mockupSubmitting} previewRef={previewRef} previewContainerRef={previewContainerRef}
           handleItemTypeChange={setItemType} setDisplayMode={setDisplayMode}
           handleDownloadMapping={handleDownloadMapping} UNIVERSAL_SCALE_FACTOR={UNIVERSAL_SCALE_FACTOR}
