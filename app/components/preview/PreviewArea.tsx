@@ -2,9 +2,9 @@
 'use client';
 /* eslint-disable @next/next/no-img-element */
 
-import { useState, useEffect, RefObject } from 'react';
+import { useState, useEffect, useRef, RefObject } from 'react';
 
-// 定番裏地カラー（昨日の洗練されたコンパクトパレット）
+// 定番裏地カラー（洗練されたコンパクトパレット）
 const COMPACT_LININGS = [
   { name: '白磁', hex: '#f8fbf8', border: '#d4d4d8' },
   { name: '灰桜', hex: '#e8d3d1', border: '#d4d4d8' },
@@ -70,6 +70,16 @@ export default function PreviewArea(props: PreviewAreaProps) {
 
   const [isCompact, setIsCompact] = useState(false);
 
+  // ★ フローティング小窓を指やマウスで自由に動かせる（ドラッグ移動）ステート
+  const [pipPos, setPipPos] = useState<{ x: number; y: number } | null>(null);
+  const dragInfo = useRef<{ startX: number; startY: number; initialX: number; initialY: number; moved: boolean }>({
+    startX: 0,
+    startY: 0,
+    initialX: 0,
+    initialY: 0,
+    moved: false,
+  });
+
   useEffect(() => {
     const handleScroll = () => {
       const top = window.pageYOffset || document.documentElement.scrollTop || 0;
@@ -84,9 +94,83 @@ export default function PreviewArea(props: PreviewAreaProps) {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // スマホ（タッチ操作）でのドラッグ移動
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    const touch = e.touches[0];
+    const rect = e.currentTarget.getBoundingClientRect();
+    dragInfo.current = {
+      startX: touch.clientX,
+      startY: touch.clientY,
+      initialX: rect.left,
+      initialY: rect.top,
+      moved: false,
+    };
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    const touch = e.touches[0];
+    const dx = touch.clientX - dragInfo.current.startX;
+    const dy = touch.clientY - dragInfo.current.startY;
+    if (Math.abs(dx) > 6 || Math.abs(dy) > 6) {
+      dragInfo.current.moved = true;
+    }
+    const windowW = window.innerWidth;
+    const windowH = window.innerHeight;
+    const targetW = 170;
+    const targetH = 170;
+    const nextX = Math.max(10, Math.min(windowW - targetW - 10, dragInfo.current.initialX + dx));
+    const nextY = Math.max(10, Math.min(windowH - targetH - 10, dragInfo.current.initialY + dy));
+    setPipPos({ x: nextX, y: nextY });
+  };
+
+  const handleTouchEnd = () => {
+    // 指を動かさずにポンとタップした時だけ画面上部へスクロール
+    if (!dragInfo.current.moved) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  // PC（マウス操作）でのドラッグ移動
+  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    dragInfo.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      initialX: rect.left,
+      initialY: rect.top,
+      moved: false,
+    };
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const dx = moveEvent.clientX - dragInfo.current.startX;
+      const dy = moveEvent.clientY - dragInfo.current.startY;
+      if (Math.abs(dx) > 6 || Math.abs(dy) > 6) {
+        dragInfo.current.moved = true;
+      }
+      const windowW = window.innerWidth;
+      const windowH = window.innerHeight;
+      const targetW = 170;
+      const targetH = 170;
+      const nextX = Math.max(10, Math.min(windowW - targetW - 10, dragInfo.current.initialX + dx));
+      const nextY = Math.max(10, Math.min(windowH - targetH - 10, dragInfo.current.initialY + dy));
+      setPipPos({ x: nextX, y: nextY });
+    };
+
+    const handleMouseUp = () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      if (!dragInfo.current.moved) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  };
+
   const effectivePatternUrl = creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl);
-  const patternSize = creationMode === 'geometric' ? `${bgSizeMm * UNIVERSAL_SCALE_FACTOR}\% auto` : `${180 * UNIVERSAL_SCALE_FACTOR}% auto`;
-  const kimonoPatternSize = creationMode === 'geometric' ? `${(bgSizeMm * UNIVERSAL_SCALE_FACTOR) / 2}\% auto` : `${(180 * UNIVERSAL_SCALE_FACTOR) / 2}% auto`;
+  const patternSize = creationMode === 'geometric' ? `${bgSizeMm * UNIVERSAL_SCALE_FACTOR}% auto` : `${180 * UNIVERSAL_SCALE_FACTOR}% auto`;
+  const kimonoPatternSize = creationMode === 'geometric' ? `${(bgSizeMm * UNIVERSAL_SCALE_FACTOR) / 2}% auto` : `${(180 * UNIVERSAL_SCALE_FACTOR) / 2}% auto`;
 
   const renderMockup = () => {
     return (
@@ -106,7 +190,8 @@ export default function PreviewArea(props: PreviewAreaProps) {
                 className="absolute inset-0 pointer-events-none" 
                 style={{ 
                   zIndex: layer.z, 
-                  maskImage: `url('/${layer.file}?v=21')`, WebkitMaskImage: `url('/${layer.file}?v=21')`, 
+                  maskImage: `url('/${layer.file}?v=21')`, 
+                  WebkitMaskImage: `url('/${layer.file}?v=21')`, 
                   maskSize: 'contain', 
                   WebkitMaskSize: 'contain', 
                   maskRepeat: 'no-repeat', 
@@ -121,7 +206,11 @@ export default function PreviewArea(props: PreviewAreaProps) {
                   left: '-25%', 
                   width: '150%', 
                   height: '150%', 
-                  backgroundImage: effectivePatternUrl ? `url(${effectivePatternUrl})` : 'none', backgroundSize: patternSize, backgroundRepeat: 'repeat', backgroundPosition: `${layer.bgX} ${layer.bgY}`, transform: `rotate(${layer.rot}deg)`, 
+                  backgroundImage: effectivePatternUrl ? `url(${effectivePatternUrl})` : 'none', 
+                  backgroundSize: patternSize, 
+                  backgroundRepeat: 'repeat', 
+                  backgroundPosition: `${layer.bgX} ${layer.bgY}`, 
+                  transform: `rotate(${layer.rot}deg)`, 
                   transformOrigin: 'center center', 
                   backgroundColor: effectivePatternUrl ? (creationMode === 'geometric' ? geoBgColor : 'transparent') : '#f4f4f5' 
                 }} />
@@ -189,7 +278,8 @@ export default function PreviewArea(props: PreviewAreaProps) {
                 className="absolute inset-0 pointer-events-none" 
                 style={{ 
                   zIndex: layer.z, 
-                  maskImage: `url('/${layer.file}?v=21')`, WebkitMaskImage: `url('/${layer.file}?v=21')`, 
+                  maskImage: `url('/${layer.file}?v=21')`, 
+                  WebkitMaskImage: `url('/${layer.file}?v=21')`, 
                   maskSize: 'contain', 
                   WebkitMaskSize: 'contain', 
                   maskRepeat: 'no-repeat', 
@@ -204,7 +294,11 @@ export default function PreviewArea(props: PreviewAreaProps) {
                   left: '-25%', 
                   width: '150%', 
                   height: '150%', 
-                  backgroundImage: effectivePatternUrl ? `url(${effectivePatternUrl})` : 'none', backgroundSize: patternSize, backgroundRepeat: 'repeat', backgroundPosition: `${layer.bgX} ${layer.bgY}`, transform: `rotate(${layer.rot}deg)`, 
+                  backgroundImage: effectivePatternUrl ? `url(${effectivePatternUrl})` : 'none', 
+                  backgroundSize: patternSize, 
+                  backgroundRepeat: 'repeat', 
+                  backgroundPosition: `${layer.bgX} ${layer.bgY}`, 
+                  transform: `rotate(${layer.rot}deg)`, 
                   transformOrigin: 'center center', 
                   backgroundColor: effectivePatternUrl ? (creationMode === 'geometric' ? geoBgColor : 'transparent') : '#f4f4f5' 
                 }} />
@@ -246,7 +340,8 @@ export default function PreviewArea(props: PreviewAreaProps) {
                 className="absolute inset-0 pointer-events-none" 
                 style={{ 
                   zIndex: layer.z, 
-                  maskImage: `url('/${layer.file}?v=30')`, WebkitMaskImage: `url('/${layer.file}?v=30')`, 
+                  maskImage: `url('/${layer.file}?v=30')`, 
+                  WebkitMaskImage: `url('/${layer.file}?v=30')`, 
                   maskSize: 'contain', 
                   WebkitMaskSize: 'contain', 
                   maskRepeat: 'no-repeat', 
@@ -261,7 +356,11 @@ export default function PreviewArea(props: PreviewAreaProps) {
                   left: '-50%', 
                   width: '200%', 
                   height: '200%', 
-                  backgroundImage: effectivePatternUrl ? `url(${effectivePatternUrl})` : 'none', backgroundSize: kimonoPatternSize, backgroundRepeat: 'repeat', backgroundPosition: `${layer.bgX} ${layer.bgY}`, transform: `rotate(${layer.angle - 90}deg)`, 
+                  backgroundImage: effectivePatternUrl ? `url(${effectivePatternUrl})` : 'none', 
+                  backgroundSize: kimonoPatternSize, 
+                  backgroundRepeat: 'repeat', 
+                  backgroundPosition: `${layer.bgX} ${layer.bgY}`, 
+                  transform: `rotate(${layer.angle - 90}deg)`, 
                   transformOrigin: 'center center', 
                   backgroundColor: effectivePatternUrl ? (creationMode === 'geometric' ? geoBgColor : 'transparent') : '#f4f4f5' 
                 }} />
@@ -315,7 +414,34 @@ export default function PreviewArea(props: PreviewAreaProps) {
                 WebkitMaskPosition: 'center' 
               }}
             >
-              <div style={{ position: 'absolute', top: '-10%', left: '-10%', width: '120%', height: '120%', backgroundColor: customObiUrl ? 'transparent' : kimonoObiColor, backgroundImage: customObiUrl ? `url(${customObiUrl})` : 'none', backgroundSize: '50\% auto', backgroundPosition: 'center', backgroundRepeat: 'repeat' }} /> </div> <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 70, backgroundImage: `url('/jyouzan.png?v=30')`, backgroundSize: 'contain', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', mixBlendMode: 'multiply', opacity: 0.5 }} /> </div> )} </div> ); };  return ( <div ref={previewRef} className="w-full lg:w-1/2 shrink-0 lg:sticky lg:top-8 flex flex-col bg-[#e4e4e7] lg:bg-transparent shadow-md lg:shadow-none mb-4 lg:mb-0"> <div className="w-full bg-[#e4e4e7] flex flex-col relative overflow-hidden">  {/* アイテム切替バー */} <div className="px-3 py-2 bg-zinc-900 text-white flex items-center justify-between z-30"> <span className="text-[10px] font-mono text-zinc-400"> {serialNumber ? `ID:${serialNumber}` : 'ID:PREVIEW'}
+              <div style={{ position: 'absolute', top: '-10%', left: '-10%', width: '120%', height: '120%', backgroundColor: customObiUrl ? 'transparent' : kimonoObiColor, backgroundImage: customObiUrl ? `url(${customObiUrl})` : 'none', backgroundSize: '50% auto', backgroundPosition: 'center', backgroundRepeat: 'repeat' }} />
+            </div>
+            <div 
+              className="absolute inset-0 pointer-events-none" 
+              style={{ 
+                zIndex: 70, 
+                backgroundImage: `url('/jyouzan.png?v=30')`, 
+                backgroundSize: 'contain', 
+                backgroundPosition: 'center', 
+                backgroundRepeat: 'no-repeat', 
+                mixBlendMode: 'multiply', 
+                opacity: 0.5 
+              }} 
+            />
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div ref={previewRef} className="w-full lg:w-1/2 shrink-0 lg:sticky lg:top-8 flex flex-col bg-[#e4e4e7] lg:bg-transparent shadow-md lg:shadow-none mb-4 lg:mb-0">
+      <div className="w-full bg-[#e4e4e7] flex flex-col relative overflow-hidden">
+        
+        {/* アイテム切替バー */}
+        <div className="px-3 py-2 bg-zinc-900 text-white flex items-center justify-between z-30">
+          <span className="text-[10px] font-mono text-zinc-400">
+            {serialNumber ? `ID:${serialNumber}` : 'ID:PREVIEW'}
           </span>
           <div className="flex gap-1.5 items-center">
             <button type="button" onClick={() => handleItemTypeChange('hanhaba')} className={`px-2.5 py-1 text-[10px] font-black rounded transition-all ${itemType === 'hanhaba' ? 'bg-white text-zinc-950 shadow' : 'bg-zinc-800 text-zinc-400 hover:text-white'}`}>半幅帯</button>
@@ -326,7 +452,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
           </div>
         </div>
 
-        {/* プレビュー本体（★スマホ画面横幅いっぱいにドカンと表示！） */}
+        {/* プレビュー本体（スマホ画面横幅いっぱいにドカンと大迫力表示） */}
         <div className="w-full relative shadow-inner overflow-hidden flex flex-col items-center justify-center p-3 sm:p-5 pt-12 pb-12 bg-[#dedee2]">
           
           {/* 上部タブ切替 */}
@@ -346,7 +472,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
             </button>
           </div>
 
-          {/* 1. モックアップ（★画面横幅いっぱい w-full max-w-[390px] sm:max-w-[420px]） */}
+          {/* 1. モックアップ（スマホ横幅いっぱい w-full max-w-[390px] sm:max-w-[420px]） */}
           {displayMode === 'mockup' && (
             <div className="w-full flex flex-col items-center animate-fade-in relative z-10">
               <div 
@@ -356,7 +482,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
                 {renderMockup()}
               </div>
 
-              {/* 【昨日通りの洗練されたコンパクト裏地フロート】 */}
+              {/* 【洗練されたコンパクト裏地フロート】 */}
               {(itemType === 'hanhaba' || itemType === 'kyobukuro') && (
                 <div className="mt-2.5 flex items-center gap-1.5 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full shadow-sm border border-zinc-200 z-20">
                   <span className="text-[9px] font-black text-zinc-500 mr-0.5 tracking-wider">裏地:</span>
@@ -366,7 +492,24 @@ export default function PreviewArea(props: PreviewAreaProps) {
                       type="button"
                       title={col.name}
                       onClick={() => setObiLiningColor(col.hex)}
-                      className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full border transition-transform ${ obiLiningColor.toLowerCase() === col.hex.toLowerCase() ? 'scale-125 ring-2 ring-zinc-900 shadow' : 'hover:scale-110 opacity-80 hover:opacity-100' }`} style={{ backgroundColor: col.hex, borderColor: col.border }} /> ))} </div> )} </div> )}  {/* 2. トリム表示 */} {displayMode === 'trim' && itemType === 'kyobukuro' && ( <div className="w-full flex flex-col items-center animate-fade-in relative z-10"> <div className="relative mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden w-full max-w-[390px] sm:max-w-[420px]" style={{ aspectRatio: '40 / 34' }}> <div className="absolute inset-0" style={{ backgroundImage: `url(${effectivePatternUrl})`, backgroundSize: creationMode === 'geometric' ? `${(bgSizeMm / 400) * 100}\% auto` : `${(180 / 400) * 100}% auto`, backgroundPosition: 'center center', backgroundRepeat: 'repeat', backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff' }} />
+                      className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full border transition-transform ${
+                        obiLiningColor.toLowerCase() === col.hex.toLowerCase() 
+                          ? 'scale-125 ring-2 ring-zinc-900 shadow' 
+                          : 'hover:scale-110 opacity-80 hover:opacity-100'
+                      }`}
+                      style={{ backgroundColor: col.hex, borderColor: col.border }}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 2. トリム表示 */}
+          {displayMode === 'trim' && itemType === 'kyobukuro' && (
+            <div className="w-full flex flex-col items-center animate-fade-in relative z-10">
+              <div className="relative mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden w-full max-w-[390px] sm:max-w-[420px]" style={{ aspectRatio: '40 / 34' }}>
+                <div className="absolute inset-0" style={{ backgroundImage: `url(${effectivePatternUrl})`, backgroundSize: creationMode === 'geometric' ? `${(bgSizeMm / 400) * 100}% auto` : `${(180 / 400) * 100}% auto`, backgroundPosition: 'center center', backgroundRepeat: 'repeat', backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff' }} />
               </div>
             </div>
           )}
@@ -409,103 +552,30 @@ export default function PreviewArea(props: PreviewAreaProps) {
         </div>
       </div>
 
-      {/* スマホ専用：生中継の丸いフロート小窓（昨日の大迫力サイズ 180px） */}
+      {/* ★ 指で自由に好きな位置へ動かせる（Draggable）生中継丸型フロート小窓 */}
       {effectivePatternUrl && (
-        <button
-          type="button"
-          onClick={() => { window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-          className={`lg:hidden fixed bottom-6 right-4 z-50 w-[170px] h-[170px] sm:w-[200px] sm:h-[200px] rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.3)] border-[4px] border-white overflow-hidden active:scale-95 transition-all duration-500 group bg-[#dedee2] ${isCompact ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-12 pointer-events-none'}`} > <div className="absolute inset-0 w-full h-full pointer-events-none flex items-center justify-center scale-[1.15] transition-transform duration-500 group-hover:scale-[1.25]"> <div className="w-[170px] h-[170px] sm:w-[200px] sm:h-[200px]"> {renderMockup()} </div> </div> <div className="absolute inset-0 bg-black/10 flex items-center justify-center transition-colors group-hover:bg-black/20"> <div className="bg-black/60 p-2.5 rounded-full backdrop-blur-md shadow-sm"> <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg> </div> </div> </button> )} </div> ); } ```  ---  ### 2. `app/page.tsx` の完全復元コード（伝統色名＆銘の自動連動） 格子・水玉製作所で選んだ伝統色の名前（「深緋」「水色」「漆黒」など）を自動で作品名（銘）に反映し、ポップアップも二度と出ない完全版です。 GitHubで **`app/page.tsx`** を開き、丸ごと上書き保存してください。  ```tsx // app/page.tsx 'use client';  import { useState, useEffect, type MouseEvent, useCallback, Suspense, useRef } from 'react'; import { useSearchParams } from 'next/navigation'; import { generateStripeSvg, generateDotSvg, generateGridSvg, generateGinghamSvg, generateCheckerSvg, svgToHighResPng, type StripeDirection, type DotLayout } from './utils/geometricPatterns'; import { TRADITIONAL_COLORS, FORBIDDEN_WORDS, UNIVERSAL_SCALE_FACTOR } from './lib/constants'; import { CURRENT_NOTICE } from './lib/noticeConfig'; import NoticeModal from './components/NoticeModal'; import PreviewArea from './components/preview/PreviewArea'; import ControlPanel from './components/controls/ControlPanel'; import { PlatformType, submitOrder } from './lib/orders'; import { renderTiledGeometricPng, render18cmPrintDataPng } from './lib/production/canvasRenderer';  const MAX_FLUX_PER_DAY = 24; const MAX_OPENAI_PER_DAY = 1;  function getTodayJST(): string { const parts = new Intl.DateTimeFormat('ja-JP', { timeZone: 'Asia/Tokyo', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date()); return `${parts.find(p => p.type === 'year')?.value}-${parts.find(p => p.type === 'month')?.value}-${parts.find(p => p.type === 'day')?.value}`;
+        <div
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onMouseDown={handleMouseDown}
+          style={pipPos ? { left: `${pipPos.x}px`, top: `${pipPos.y}px`, bottom: 'auto', right: 'auto' } : undefined}
+          className={`lg:hidden fixed z-50 w-[170px] h-[170px] sm:w-[200px] sm:h-[200px] rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.35)] border-[4.5px] border-white overflow-hidden active:scale-95 transition-transform duration-100 group bg-[#dedee2] cursor-move select-none touch-none ${
+            pipPos ? '' : 'bottom-6 right-4'
+          } ${isCompact ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-12 pointer-events-none'}`}
+        >
+          <div className="absolute inset-0 w-full h-full pointer-events-none flex items-center justify-center scale-[1.15]">
+            <div className="w-[170px] h-[170px] sm:w-[200px] sm:h-[200px]">
+              {renderMockup()}
+            </div>
+          </div>
+          <div className="absolute inset-0 bg-black/10 flex items-center justify-center transition-colors group-hover:bg-black/20 pointer-events-none">
+            <div className="bg-black/60 p-2.5 rounded-full backdrop-blur-md shadow-sm">
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
-
-// 伝統色の色名を取得する関数（例: "#8b1e2a" -> "深緋"）
-function getColorNameFromHex(hex: string): string {
-  const found = TRADITIONAL_COLORS.find(c => c.hex.toLowerCase() === hex.toLowerCase());
-  return found ? found.name.split(' ')[0] : '';
-}
-
-function HomeContent() {
-  const searchParams = useSearchParams();
-  const [platform, setPlatform] = useState<PlatformType>((searchParams.get('platform') as PlatformType) || 'makeshop');
-  const [designFee, setDesignFee] = useState<number>(1000);
-
-  const [creationMode, setCreationMode] = useState<'ai' | 'geometric'>('geometric');
-  const [itemType, setItemType] = useState<'hanhaba' | 'kyobukuro' | 'kimono'>('hanhaba');
-  const [displayMode, setDisplayMode] = useState<'mockup' | 'trim' | 'data'>('mockup');
-  
-  const [aiStyle, setAiStyle] = useState<string>('mingei');
-  const [motif, setMotif] = useState<string>('');
-  const [selectedColors, setSelectedColors] = useState<typeof TRADITIONAL_COLORS>([]);
-  const [showColorPalette, setShowColorPalette] = useState<boolean>(false);
-  const [density, setDensity] = useState<string>('四方柄（上下なし）');
-
-  // 格子・水玉製作所ステート
-  const [geoPatternType, setGeoPatternType] = useState<'plain' | 'stripe' | 'dot' | 'grid' | 'gingham' | 'checker'>('stripe');
-  const [stripeDir, setStripeDir] = useState<StripeDirection>('vertical');
-  const [dotLayout, setDotLayout] = useState<DotLayout>('staggered');
-  const [dotRadius, setDotRadius] = useState<number>(5);
-  const [gapWidth, setGapWidth] = useState<number>(10);
-  const [lineWidth, setLineWidth] = useState<number>(5);
-  const [geoBgColor, setGeoBgColor] = useState<string>('#fffffc');
-  const [geoPatternColor, setGeoPatternColor] = useState<string>('#161616');
-  const [showGeoPaletteFor, setShowGeoPaletteFor] = useState<'bg' | 'pattern' | null>(null);
-  const [bgSizeMm, setBgSizeMm] = useState<number>(100);
-
-  const [obiLiningColor, setObiLiningColor] = useState<string>('#dcdddd');
-  const [kimonoHaneriColor, setKimonoHaneriColor] = useState<string>('#ffffff');
-  const [kimonoObiageColor, setKimonoObiageColor] = useState<string>('#c82a36');
-  const [kimonoObiColor, setKimonoObiColor] = useState<string>('#1a1a1a');
-  const [customObiUrl, setCustomObiUrl] = useState<string | null>(null);
-
-  const [agreed, setAgreed] = useState<boolean>(false);
-  const [errorMsg, setErrorMsg] = useState<string>('');
-  const [loading, setLoading] = useState<boolean>(false);
-  const [loadingEngine, setLoadingEngine] = useState<'flux' | 'openai' | null>(null);
-  const [remainingFlux, setRemainingFlux] = useState<number>(MAX_FLUX_PER_DAY);
-  const [remainingOpenAI, setRemainingOpenAI] = useState<number>(MAX_OPENAI_PER_DAY);
-  const [loadingStep, setLoadingStep] = useState<number>(0);
-
-  const [imageUrl, setImageUrl] = useState<string>('');
-  const [blobUrl, setBlobUrl] = useState<string>('');
-  const [rotatedPatternUrl, setRotatedPatternUrl] = useState<string>('');
-  const [serialNumber, setSerialNumber] = useState<string>('');
-  const [patternTitle, setPatternTitle] = useState<string>('');
-  const [mockupSubmitting, setMockupSubmitting] = useState<boolean>(false);
-  const [isNoticeOpen, setIsNoticeOpen] = useState<boolean>(false);
-
-  const previewRef = useRef<HTMLDivElement>(null);
-  const previewContainerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const today = getTodayJST();
-    const storedDate = localStorage.getItem('komon_usage_date');
-    if (storedDate !== today) {
-      localStorage.setItem('komon_usage_date', today);
-      localStorage.setItem('komon_count_flux', '0');
-      localStorage.setItem('komon_count_openai', '0');
-      setRemainingFlux(MAX_FLUX_PER_DAY);
-      setRemainingOpenAI(MAX_OPENAI_PER_DAY);
-    } else {
-      setRemainingFlux(Math.max(0, MAX_FLUX_PER_DAY - parseInt(localStorage.getItem('komon_count_flux') || '0', 10)));
-      setRemainingOpenAI(Math.max(0, MAX_OPENAI_PER_DAY - parseInt(localStorage.getItem('komon_count_openai') || '0', 10)));
-    }
-
-    if (CURRENT_NOTICE.enabled && localStorage.getItem('last_dismissed_notice_id') !== CURRENT_NOTICE.id) {
-      setIsNoticeOpen(true);
-    }
-  }, []);
-
-  const handleCloseNotice = () => {
-    setIsNoticeOpen(false);
-    if (CURRENT_NOTICE?.id) {
-      localStorage.setItem('last_dismissed_notice_id', CURRENT_NOTICE.id);
-    }
-  };
-
-  // ★ 格子・水玉の生成 ＆ 伝統色名による銘の自動連動
-  const updateGeometricPattern = useCallback(async () => {
-    if (creationMode !== 'geometric') return;
-    let svg = '';
-    let size = 100;
-    
-    if (geoPatternType === 'plain') { 
-      svg = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100
