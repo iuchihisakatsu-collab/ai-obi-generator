@@ -365,11 +365,24 @@ function HomeContent() {
         setBlobUrl(data.blobUrl);   
         setSerialNumber(`KOMON-${Math.floor(1000 + Math.random() * 9000)}`);
         
+        // 12スタイルに完全対応した作品名の自動命名
         if (creationMode === 'ai') {
           const styleLabels: Record<string, string> = {
-            'mingei': '民藝図案', 'retro': '浪漫小紋', 'mode': '幾何学アート', 'sarasa': '更紗文様', 'classic': '古典見立て'
+            'mingei': '型染め小紋',
+            'retro': '浪漫小紋',
+            'kissaten': '喫茶文様',
+            'nordic': 'モダン小紋',
+            'morris': 'ボタニカル文様',
+            'sarasa': '更紗帯地',
+            'classic': '古典見立て織風',
+            'mode': 'モードアート小紋',
+            'yuzen': 'はんなり友禅調',
+            'etching': '銅版画調図案',
+            'silhouette': '切り絵小紋',
+            'artdeco': 'アールデコ文様'
           };
-          const generatedTitle = `${motif.split(/[、\s ]+/)[0]}の${styleLabels[aiStyle] || '図案'}`;
+          const cleanMotif = motif.split(/[、\s ]+/)[0];
+          const generatedTitle = `${cleanMotif}の${styleLabels[aiStyle] || '図案'}`;
           setPatternTitle(generatedTitle);
         }
 
@@ -400,6 +413,7 @@ function HomeContent() {
     } catch { window.open(targetUrl, '_blank', 'noopener,noreferrer'); }
   };
 
+  // ★ 全アイテム共通の実寸マッピング合成画像ダウンロード（スケール拡大を完全同期！）
   const handleDownloadMapping = async () => {
     if (!previewContainerRef.current) return;
     try {
@@ -420,7 +434,9 @@ function HomeContent() {
 
       if (itemType === 'hanhaba' || itemType === 'kyobukuro') {
         const pxPerMm = 27 / 11;
-        const bgWidth = creationMode === 'geometric' ? (bgSizeMm * pxPerMm) : (180 * pxPerMm);
+        // 京袋帯は65%（約780px）、半幅帯は45%（約540px）で描画
+        const effectiveBase = itemType === 'hanhaba' ? (size * 0.45) : (size * 0.65);
+        const bgWidth = creationMode === 'geometric' ? (bgSizeMm * pxPerMm) : effectiveBase;
         const bgScale = bgWidth / Math.max(1, patternImg.width);
         const bgHeight = patternImg.height * bgScale;
         const pCanvas = document.createElement('canvas');
@@ -487,7 +503,8 @@ function HomeContent() {
 
       if (itemType === 'kimono') {
         const kimonoPxPerMm = 1200 / 600; 
-        const kBgWidth = creationMode === 'geometric' ? ((bgSizeMm * kimonoPxPerMm) / 2) : ((180 * kimonoPxPerMm) / 2);
+        // 着物は42%（約504px）の堂々たるスケールで描画
+        const kBgWidth = creationMode === 'geometric' ? ((bgSizeMm * kimonoPxPerMm) / 2) : (size * 0.42);
         const kBgScale = kBgWidth / Math.max(1, patternImg.width);
         const kBgHeight = patternImg.height * kBgScale;
         const kPCanvas = document.createElement('canvas'); kPCanvas.width = kBgWidth; kPCanvas.height = kBgHeight;
