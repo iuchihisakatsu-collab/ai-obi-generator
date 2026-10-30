@@ -128,7 +128,6 @@ async function rotateImage90Degrees(imageUrl: string): Promise<string> {
 
 function HomeContent() {
   const searchParams = useSearchParams();
-  const isShopify = searchParams.get('platform') === 'shopify';
 
   const [aiStyle, setAiStyle] = useState('mingei');
   const [motif, setMotif] = useState('');
@@ -146,10 +145,8 @@ function HomeContent() {
   const [displayMode, setDisplayMode] = useState<'mockup' | 'trim' | 'data'>('mockup');
   const [mockupSubmitting, setMockupSubmitting] = useState(false);
   const [serialNumber, setSerialNumber] = useState('');
-  const [showTags, setShowTags] = useState(false);
   const [showColorPalette, setShowColorPalette] = useState(false);
   const [remainingCount, setRemainingCount] = useState<number | null>(null);
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('ct334'); 
   const [creationMode, setCreationMode] = useState<'ai' | 'geometric'>('geometric');
   
   const [geoPatternType, setGeoPatternType] = useState<'plain' | 'stripe' | 'dot' | 'grid' | 'gingham' | 'checker'>('plain');
@@ -162,15 +159,13 @@ function HomeContent() {
   const [geoPatternColor, setGeoPatternColor] = useState('#161616');
   const [showGeoPaletteFor, setShowGeoPaletteFor] = useState<'bg' | 'pattern' | null>(null);
   const [bgSizeMm, setBgSizeMm] = useState(100);
+  
+  // マッピング操作用ステート
   const [obiLiningColor, setObiLiningColor] = useState('#dcdddd'); 
-  const [showLiningPalette, setShowLiningPalette] = useState(false);
   const [kimonoObiColor, setKimonoObiColor] = useState('#161616'); 
   const [customObiUrl, setCustomObiUrl] = useState<string | null>(null);
-  const [showObiColorPalette, setShowObiColorPalette] = useState(false);
   const [kimonoHaneriColor, setKimonoHaneriColor] = useState('#fffffc'); 
-  const [showHaneriColorPalette, setShowHaneriColorPalette] = useState(false);
   const [kimonoObiageColor, setKimonoObiageColor] = useState('#e8d3d1'); 
-  const [showObiageColorPalette, setShowObiageColorPalette] = useState(false);
   const [rotatedPatternUrl, setRotatedPatternUrl] = useState<string>('');
   
   const previewRef = useRef<HTMLDivElement>(null);
@@ -254,7 +249,7 @@ function HomeContent() {
       localStorage.removeItem('komon_generations');
       setRemainingCount(MAX_GENERATIONS_PER_DAY);
       setMotif('');
-      alert('【管理者モード】本日の生成回数を全回復しました。');
+      alert('管理者モード：本日の生成回数を全回復しました。');
     }
   }, [motif]);
 
@@ -317,7 +312,6 @@ function HomeContent() {
     if (!motif.includes(item.label)) {
       setMotif(motif ? `${motif}、${item.label}` : item.label);
     }
-    setSelectedCategoryId(item.id);
   };
 
   const handleColorToggle = (col: typeof TRADITIONAL_COLORS[0]) => {
@@ -365,7 +359,6 @@ function HomeContent() {
         setBlobUrl(data.blobUrl);   
         setSerialNumber(`KOMON-${Math.floor(1000 + Math.random() * 9000)}`);
         
-        // 12スタイルに完全対応した作品名の自動命名
         if (creationMode === 'ai') {
           const styleLabels: Record<string, string> = {
             'mingei': '型染め小紋',
@@ -413,7 +406,6 @@ function HomeContent() {
     } catch { window.open(targetUrl, '_blank', 'noopener,noreferrer'); }
   };
 
-  // ★ 全アイテム共通の実寸マッピング合成画像ダウンロード（スケール拡大を完全同期！）
   const handleDownloadMapping = async () => {
     if (!previewContainerRef.current) return;
     try {
@@ -434,7 +426,6 @@ function HomeContent() {
 
       if (itemType === 'hanhaba' || itemType === 'kyobukuro') {
         const pxPerMm = 27 / 11;
-        // 京袋帯は65%（約780px）、半幅帯は45%（約540px）で描画
         const effectiveBase = itemType === 'hanhaba' ? (size * 0.45) : (size * 0.65);
         const bgWidth = creationMode === 'geometric' ? (bgSizeMm * pxPerMm) : effectiveBase;
         const bgScale = bgWidth / Math.max(1, patternImg.width);
@@ -503,7 +494,6 @@ function HomeContent() {
 
       if (itemType === 'kimono') {
         const kimonoPxPerMm = 1200 / 600; 
-        // 着物は42%（約504px）の堂々たるスケールで描画
         const kBgWidth = creationMode === 'geometric' ? ((bgSizeMm * kimonoPxPerMm) / 2) : (size * 0.42);
         const kBgScale = kBgWidth / Math.max(1, patternImg.width);
         const kBgHeight = patternImg.height * kBgScale;
@@ -555,17 +545,6 @@ function HomeContent() {
   const colorSummary = selectedColors.length > 0 ? selectedColors.map((c) => c.name.split(' ')[0]).join('・') : '自由配色';
   const shareText = encodeURIComponent(`「妄想きもの図案帳」で柄のアイデアを試してみました。\n作品名：『${finalTitle}』\n配色：${colorSummary}\n#妄想きもの図案帳`);
   
-  const handleNativeShare = async () => {
-    const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
-    const decodedText = decodeURIComponent(shareText);
-    if (navigator.share) {
-      try { await navigator.share({ title: finalTitle, text: decodedText, url: shareUrl }); } catch {}
-    } else {
-      await navigator.clipboard.writeText(decodedText + '\n' + shareUrl).catch(()=>{});
-      alert('シェア用のテキストとURLをコピーしました！');
-    }
-  };
-  
   const handleOrderClick = async (e: MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault(); 
     try {
@@ -597,9 +576,13 @@ function HomeContent() {
           imageUrl={imageUrl} blobUrl={blobUrl} rotatedPatternUrl={rotatedPatternUrl}
           serialNumber={serialNumber} itemType={itemType} displayMode={displayMode}
           creationMode={creationMode} bgSizeMm={bgSizeMm}
-          geoBgColor={geoBgColor} obiLiningColor={obiLiningColor}
-          kimonoHaneriColor={kimonoHaneriColor} kimonoObiageColor={kimonoObiageColor}
-          kimonoObiColor={kimonoObiColor} customObiUrl={customObiUrl}
+          geoBgColor={geoBgColor}
+          obiLiningColor={obiLiningColor} setObiLiningColor={setObiLiningColor}
+          kimonoHaneriColor={kimonoHaneriColor} setKimonoHaneriColor={setKimonoHaneriColor}
+          kimonoObiageColor={kimonoObiageColor} setKimonoObiageColor={setKimonoObiageColor}
+          kimonoObiColor={kimonoObiColor} setKimonoObiColor={setKimonoObiColor}
+          customObiUrl={customObiUrl} setCustomObiUrl={setCustomObiUrl}
+          handleCustomObiUpload={handleCustomObiUpload}
           mockupSubmitting={mockupSubmitting} previewRef={previewRef} previewContainerRef={previewContainerRef}
           handleItemTypeChange={handleItemTypeChange} setDisplayMode={setDisplayMode}
           handleDownloadMapping={handleDownloadMapping} UNIVERSAL_SCALE_FACTOR={UNIVERSAL_SCALE_FACTOR}
@@ -609,7 +592,7 @@ function HomeContent() {
           creationMode={creationMode} setCreationMode={setCreationMode} 
           aiStyle={aiStyle} setAiStyle={setAiStyle}
           motif={motif} setMotif={setMotif}
-          showTags={showTags} setShowTags={setShowTags} handleTagClick={handleTagClick}
+          handleTagClick={handleTagClick}
           selectedColors={selectedColors} setSelectedColors={setSelectedColors} handleColorToggle={handleColorToggle}
           showColorPalette={showColorPalette} setShowColorPalette={setShowColorPalette} density={density} setDensity={setDensity}
           geoPatternType={geoPatternType} setGeoPatternType={setGeoPatternType} stripeDir={stripeDir} setStripeDir={setStripeDir}
@@ -617,19 +600,10 @@ function HomeContent() {
           gapWidth={gapWidth} setGapWidth={setGapWidth} lineWidth={lineWidth} setLineWidth={setLineWidth}
           geoBgColor={geoBgColor} setGeoBgColor={setGeoBgColor} geoPatternColor={geoPatternColor} setGeoPatternColor={setGeoPatternColor}
           showGeoPaletteFor={showGeoPaletteFor} setShowGeoPaletteFor={setShowGeoPaletteFor}
-          itemType={itemType} obiLiningColor={obiLiningColor} setObiLiningColor={setObiLiningColor}
-          showLiningPalette={showLiningPalette} setShowLiningPalette={setShowLiningPalette}
-          kimonoObiColor={kimonoObiColor} setKimonoObiColor={setKimonoObiColor}
-          customObiUrl={customObiUrl} setCustomObiUrl={setCustomObiUrl}
-          showObiColorPalette={showObiColorPalette} setShowObiColorPalette={setShowObiColorPalette}
-          kimonoHaneriColor={kimonoHaneriColor} setKimonoHaneriColor={setKimonoHaneriColor}
-          showHaneriColorPalette={showHaneriColorPalette} setShowHaneriColorPalette={setShowHaneriColorPalette}
-          kimonoObiageColor={kimonoObiageColor} setKimonoObiageColor={setKimonoObiageColor}
-          showObiageColorPalette={showObiageColorPalette} setShowObiageColorPalette={setShowObiageColorPalette}
-          handleCustomObiUpload={handleCustomObiUpload} agreed={agreed} setAgreed={setAgreed} errorMsg={errorMsg}
+          agreed={agreed} setAgreed={setAgreed} errorMsg={errorMsg}
           loading={loading} remainingCount={remainingCount} loadingStep={loadingStep} handleGenerate={handleGenerate}
           imageUrl={imageUrl} patternTitle={patternTitle} setPatternTitle={setPatternTitle}
-          handleDownloadOriginal={handleDownloadOriginal} handleNativeShare={handleNativeShare} handleOrderClick={handleOrderClick}
+          handleDownloadOriginal={handleDownloadOriginal} handleOrderClick={handleOrderClick}
         />
       </div>
     </div>
