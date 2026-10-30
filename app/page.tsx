@@ -143,7 +143,9 @@ function HomeContent() {
   const [remainingCount, setRemainingCount] = useState<number | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('ct334'); 
   const [creationMode, setCreationMode] = useState<'ai' | 'geometric'>('geometric');
-  const [geoPatternType, setGeoPatternType] = useState<'stripe' | 'dot' | 'grid' | 'gingham' | 'checker'>('stripe');
+  
+  // デフォルトを「無地（plain）」に設定
+  const [geoPatternType, setGeoPatternType] = useState<'plain' | 'stripe' | 'dot' | 'grid' | 'gingham' | 'checker'>('plain');
   const [stripeDir, setStripeDir] = useState<StripeDirection>('vertical');
   const [lineWidth, setLineWidth] = useState(5);
   const [gapWidth, setGapWidth] = useState(10);
@@ -238,7 +240,10 @@ function HomeContent() {
     const period = lineWidth + gapWidth;
     const dotPitch = (dotRadius * 2) + gapWidth;
 
-    if (geoPatternType === 'stripe') {
+    if (geoPatternType === 'plain') {
+      svgString = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="${geoBgColor}"/></svg>`;
+      tileSize = 100;
+    } else if (geoPatternType === 'stripe') {
       svgString = generateStripeSvg({ direction: stripeDir, lineWidth, gap: gapWidth, bgColor: geoBgColor, stripeColor: geoPatternColor });
       tileSize = stripeDir === 'diagonal' ? period * 2 : period;
     } else if (geoPatternType === 'dot') {
