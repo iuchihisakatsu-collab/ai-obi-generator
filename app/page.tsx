@@ -60,7 +60,11 @@ function HomeContent() {
   const [itemType, setItemType] = useState<'hanhaba' | 'kyobukuro' | 'kimono'>('hanhaba');
   const [displayMode, setDisplayMode] = useState<'mockup' | 'trim' | 'data'>('mockup');
   
-  const [aiStyle, setAiStyle] = useState<string>('mingei');
+  // ★ 初期値は「none（指定なし・完全自由）」
+  const [aiStyle, setAiStyle] = useState<string>('none');
+  // ★ 名画・巨匠の筆致ステート
+  const [selectedArtist, setSelectedArtist] = useState<string>('none');
+
   const [motif, setMotif] = useState<string>('');
   const [selectedColors, setSelectedColors] = useState<typeof TRADITIONAL_COLORS>([]);
   const [showColorPalette, setShowColorPalette] = useState<boolean>(false);
@@ -231,7 +235,6 @@ function HomeContent() {
     }
   };
 
-  // ★ 1日20回制限 ＆ 5%の確率でOpenAIが当たり ＆ 最低20秒待たせる重厚演出
   const handleGenerate = async () => {
     if (loading || remainingCount <= 0) return;
     setErrorMsg('');
@@ -246,10 +249,7 @@ function HomeContent() {
     setLoadingEngine(selectedEngine);
     setLoadingStep(0);
 
-    // ★ 重み演出のための開始時間記録
     const startTime = Date.now();
-
-    // 4秒ごとにテロップを切り替え（20秒で5つのメッセージがちょうど1周する）
     const stepTimer = setInterval(() => setLoadingStep(prev => (prev + 1) % 5), 4000);
 
     try {
@@ -257,12 +257,19 @@ function HomeContent() {
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ motif: motif.trim(), color: colorNames || 'おまかせ', density, itemType, aiStyle, engine: selectedEngine })
+        body: JSON.stringify({ 
+          motif: motif.trim(), 
+          color: colorNames || 'おまかせ', 
+          density, 
+          itemType, 
+          aiStyle, 
+          artist: selectedArtist,
+          engine: selectedEngine 
+        })
       });
       const data = await res.json();
       if (!res.ok || data.error) throw new Error(data.error || '画像生成に失敗しました');
 
-      // ★ 最低20秒（20000ms）経つまで待機して「重み」を持たせる
       const elapsedTime = Date.now() - startTime;
       const MIN_WAIT_MS = 20000;
       if (elapsedTime < MIN_WAIT_MS) {
@@ -379,7 +386,9 @@ function HomeContent() {
 
         <ControlPanel
           creationMode={creationMode} setCreationMode={setCreationMode}
-          aiStyle={aiStyle} setAiStyle={setAiStyle} motif={motif} setMotif={setMotif}
+          aiStyle={aiStyle} setAiStyle={setAiStyle}
+          selectedArtist={selectedArtist} setSelectedArtist={setSelectedArtist}
+          motif={motif} setMotif={setMotif}
           selectedColors={selectedColors} setSelectedColors={setSelectedColors} handleColorToggle={handleColorToggle}
           showColorPalette={showColorPalette} setShowColorPalette={setShowColorPalette}
           density={density} setDensity={setDensity}
