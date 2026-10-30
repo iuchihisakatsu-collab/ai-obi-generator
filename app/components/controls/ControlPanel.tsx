@@ -2,7 +2,7 @@
 'use client';
 
 import { MouseEvent } from 'react';
-import { TRADITIONAL_COLORS, TAG_CATEGORIES, CategoryItem, LOADING_STEPS } from '../../lib/constants';
+import { TRADITIONAL_COLORS, CategoryItem, LOADING_STEPS } from '../../lib/constants';
 
 interface ControlPanelProps {
   creationMode: 'ai' | 'geometric';
@@ -74,16 +74,44 @@ interface ControlPanelProps {
   handleOrderClick: (e: MouseEvent<HTMLAnchorElement>) => void;
 }
 
+// 収まりの良い12大スタイル定義（3列×4行）
 const AI_STYLES = [
-  { id: 'mingei', label: '民藝と手仕事', sub: '型染め・素朴' },
-  { id: 'retro', label: '喫茶と文学', sub: '大正ノスタルジー' },
-  { id: 'mode', label: 'モード＆アート', sub: 'モノトーン・幾何学' },
-  { id: 'sarasa', label: 'エキゾチック更紗', sub: 'バティック調' },
-  { id: 'classic', label: '騙し絵クラシック', sub: '金襴・織物風' },
+  { id: 'mingei', label: '民藝と型染め', sub: '芹沢銈介風・素朴' },
+  { id: 'retro', label: '大正ロマン', sub: '竹久夢二・銘仙' },
+  { id: 'kissaten', label: '純喫茶レトロ', sub: '昭和ノスタルジー' },
+  { id: 'nordic', label: '北欧モダン', sub: 'ミニマル・大柄' },
+  { id: 'morris', label: '英国ボタニカル', sub: 'モリス調・草花' },
+  { id: 'sarasa', label: 'エキゾチック更紗', sub: 'バティック・唐草' },
+  { id: 'classic', label: '騙し絵クラシック', sub: '金襴・西陣織風' },
+  { id: 'mode', label: 'モード＆ストリート', sub: 'モノトーン・エッジ' },
+  { id: 'yuzen', label: 'はんなり友禅', sub: '上品・水彩ぼかし' },
+  { id: 'etching', label: 'アンティーク銅版画', sub: '幻想・ペン画' },
+  { id: 'silhouette', label: '切り絵影絵', sub: 'コントラスト' },
+  { id: 'artdeco', label: 'アール・デコ', sub: '1920s幾何学装飾' },
+];
+
+// プルダウン用カテゴリ別モチーフ
+const PULLDOWN_MOTIFS = [
+  {
+    group: '生き物・動物',
+    items: ['犬', 'うさぎ', '小鳥', '金魚', '蝶', '虎', 'ペンギン', '恐竜']
+  },
+  {
+    group: '花・植物・果実',
+    items: ['椿', '桜', '紫陽花', 'キノコ', '林檎', '紅葉・イチョウ', '唐草']
+  },
+  {
+    group: '趣味・嗜好品',
+    items: ['ビール・洋酒', '本・古書・万年筆', '楽器・音楽', 'レコード', 'カメラ', '和菓子']
+  },
+  {
+    group: '自然・天体・道具',
+    items: ['鉱物・水晶', '波・雲', '自転車', '気球', 'アンティーク時計', 'リボン・レース']
+  }
 ];
 
 export default function ControlPanel({
-  creationMode, setCreationMode, aiStyle, setAiStyle, motif, setMotif, showTags, setShowTags, handleTagClick,
+  creationMode, setCreationMode, aiStyle, setAiStyle, motif, setMotif, handleTagClick,
   selectedColors, setSelectedColors, handleColorToggle, showColorPalette, setShowColorPalette,
   density, setDensity, geoPatternType, setGeoPatternType, stripeDir, setStripeDir,
   dotLayout, setDotLayout, dotRadius, setDotRadius, gapWidth, setGapWidth, lineWidth, setLineWidth,
@@ -134,6 +162,12 @@ export default function ControlPanel({
   const primaryMotif = patternTitle ? (motif.trim() ? motif.split(/[、\s ]+/)[0] : '') : '';
   const makeshopSearchUrl = primaryMotif ? `https://store.gofukuyasan.com/view/search?search_keyword=${encodeURIComponent(primaryMotif)}` : '';
 
+  const handleQuickAdd = (word: string) => {
+    if (!motif.includes(word)) {
+      setMotif(motif ? `${motif}、${word}` : word);
+    }
+  };
+
   return (
     <div className="w-full lg:w-1/2 bg-white border border-zinc-200 p-4 sm:p-8 lg:p-10 shrink-0 shadow-sm z-10 relative">
       <div className="flex bg-zinc-50 border border-zinc-200 p-1 mb-6 shadow-sm">
@@ -148,52 +182,26 @@ export default function ControlPanel({
       <div className="space-y-6">
         {creationMode === 'ai' ? (
           <>
+            {/* 01. どんな世界観で？（12スタイル選択） */}
             <div>
-              <label className="block text-xs font-bold text-zinc-900 tracking-wider mb-2">01. どんな世界観で？（スタイル）</label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 mb-6">
+              <label className="block text-xs font-bold text-zinc-900 tracking-wider mb-2">01. どんな世界観で？（12のスタイル）</label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 mb-2">
                 {AI_STYLES.map((s) => (
-                  <button key={s.id} type="button" onClick={() => setAiStyle(s.id)} className={`flex flex-col items-center justify-center p-2.5 border transition-all shadow-sm ${aiStyle === s.id ? 'bg-zinc-900 text-white border-zinc-900 scale-95 ring-2 ring-zinc-900' : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50 hover:scale-[1.02]'}`}>
-                    <span className="text-[11px] font-black">{s.label}</span>
-                    <span className="text-[9px] opacity-70 mt-0.5">{s.sub}</span>
+                  <button key={s.id} type="button" onClick={() => setAiStyle(s.id)} className={`flex flex-col items-center justify-center p-2 sm:p-2.5 border transition-all shadow-sm ${aiStyle === s.id ? 'bg-zinc-900 text-white border-zinc-900 scale-95 ring-2 ring-zinc-900' : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50 hover:scale-[1.01]'}`}>
+                    <span className="text-[10px] sm:text-[11px] font-black leading-tight text-center">{s.label}</span>
+                    <span className="text-[8px] sm:text-[9px] opacity-70 mt-0.5 leading-none text-center">{s.sub}</span>
                   </button>
                 ))}
               </div>
             </div>
 
-            <div className="pt-4 border-t border-zinc-100">
-              <div className="flex justify-between items-baseline mb-2">
-                <label className="block text-xs font-bold text-zinc-900 tracking-wider">02. 何を描く？（モチーフ）</label>
-                {motif && <button onClick={() => setMotif('')} className="text-[10px] font-bold text-zinc-400 hover:text-zinc-800 tracking-widest uppercase transition-colors">Clear</button>}
-              </div>
-              <textarea className="w-full border border-zinc-300 p-3 sm:p-4 bg-white text-xs sm:text-sm focus:outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 resize-none transition-all duration-200 leading-relaxed font-medium shadow-sm" placeholder="例：猫、金魚、珈琲、天体 など（単語を入れるだけでOK！）" rows={2} value={motif} onChange={(e) => setMotif(e.target.value)} disabled={loading} />
-              
-              <div className="mt-2 text-right">
-                <button type="button" onClick={() => setShowTags(!showTags)} className="inline-flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-900 font-bold transition-colors py-1">
-                  <span>{showTags ? 'ヒントを閉じる' : '人気のモチーフから選ぶ'}</span>
-                  <span className="text-[9px] transform transition-transform duration-200">{showTags ? '▲' : '▼'}</span>
-                </button>
-              </div>
-              {showTags && (
-                <div className="mt-2 p-3 bg-zinc-50 border border-zinc-200 space-y-3 max-h-[220px] overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-200 animate-fade-in shadow-inner relative z-20">
-                  {TAG_CATEGORIES.map((cat) => (
-                    <div key={cat.title}>
-                      <p className="text-[10px] font-bold text-zinc-400 tracking-wider mb-1">{cat.title}</p>
-                      <div className="flex flex-wrap gap-1">
-                        {cat.items.map((item) => ( 
-                          <button key={item.label} type="button" onClick={() => handleTagClick(item)} className="px-2 py-1 bg-white border border-zinc-200 text-[10px] font-medium text-zinc-600 hover:bg-zinc-900 hover:text-white transition-all shadow-sm">
-                            {item.label}
-                          </button> 
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
+            {/* 02. 好きな色（テーマカラー）※01のすぐ下へ統合！ */}
             <div className="pt-4 border-t border-zinc-100 relative">
               <div className="flex justify-between items-baseline mb-2">
-                <label className="block text-xs font-bold text-zinc-900 tracking-wider">03. 配色・地色</label>
+                <div>
+                  <label className="block text-xs font-bold text-zinc-900 tracking-wider">02. 好きな色（着物のテーマカラー）</label>
+                  <p className="text-[10px] text-zinc-400 mt-0.5">選んだ色が地色や柄色として優先的に反映されます</p>
+                </div>
                 <button type="button" onClick={() => setShowColorPalette(!showColorPalette)} className="inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-900 font-bold transition-colors">
                   <span>{showColorPalette ? '閉じる' : '色見本から選ぶ (102色)'}</span>
                 </button>
@@ -231,6 +239,61 @@ export default function ControlPanel({
               )}
             </div>
 
+            {/* 03. 何を描く？（モチーフ ＋ 入力アシスト） */}
+            <div className="pt-4 border-t border-zinc-100">
+              <div className="flex justify-between items-baseline mb-1">
+                <label className="block text-xs font-bold text-zinc-900 tracking-wider">03. 何を描く？（モチーフ）</label>
+                {motif && <button onClick={() => setMotif('')} className="text-[10px] font-bold text-zinc-400 hover:text-zinc-800 tracking-widest uppercase transition-colors">Clear</button>}
+              </div>
+              <p className="text-[10px] text-zinc-400 mb-2">難しい文章は不要です。好きな単語をポンと1つ入れるだけで、ゴフクヤサンが素敵な図案に仕立てます。</p>
+              
+              <textarea 
+                className="w-full border border-zinc-300 p-3 sm:p-4 bg-white text-xs sm:text-sm focus:outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 resize-none transition-all duration-200 leading-relaxed font-medium shadow-sm" 
+                placeholder="例：黒猫、ホットケーキ、月、バイオリン（思いついた言葉をそのままどうぞ）" 
+                rows={2} 
+                value={motif} 
+                onChange={(e) => setMotif(e.target.value)} 
+                disabled={loading} 
+              />
+              
+              {/* 入力アシスト（1行王道ボタン ＋ プルダウン） */}
+              <div className="mt-2.5 pt-2 border-t border-zinc-100 flex flex-wrap items-center gap-1.5">
+                <span className="text-[10px] font-black text-zinc-400 uppercase tracking-wider mr-1">入力アシスト:</span>
+                {['ねこ', '珈琲', '薔薇', '月と星'].map((w) => (
+                  <button
+                    key={w}
+                    type="button"
+                    onClick={() => handleQuickAdd(w)}
+                    className="px-2.5 py-1 bg-zinc-100 hover:bg-zinc-900 hover:text-white border border-zinc-200 text-zinc-700 text-[10px] font-bold rounded-sm transition-all shadow-2xs"
+                  >
+                    + {w}
+                  </button>
+                ))}
+
+                {/* その他プルダウン */}
+                <select
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      handleQuickAdd(e.target.value);
+                      e.target.value = '';
+                    }
+                  }}
+                  className="px-2 py-1 bg-white border border-zinc-300 text-zinc-600 text-[10px] font-bold rounded-sm focus:outline-none focus:border-zinc-900 cursor-pointer shadow-2xs"
+                  defaultValue=""
+                >
+                  <option value="" disabled>その他のモチーフから選ぶ ▼</option>
+                  {PULLDOWN_MOTIFS.map((g) => (
+                    <optgroup key={g.group} label={g.group}>
+                      {g.items.map((item) => (
+                        <option key={item} value={item}>{item}</option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* 04. 柄の配置 */}
             <div className="pt-4 border-t border-zinc-200">
               <label className="block text-xs font-bold text-zinc-800 tracking-wider mb-2">04. 柄の配置</label>
               <div className="flex flex-col gap-1.5">
