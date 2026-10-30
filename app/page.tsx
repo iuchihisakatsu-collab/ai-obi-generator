@@ -35,6 +35,12 @@ function getTodayJST(): string {
   return `${year}-${month}-${day}`;
 }
 
+function getColorLabel(hex: string): string {
+  const target = hex.toLowerCase();
+  const found = TRADITIONAL_COLORS.find((c) => c.hex.toLowerCase() === target);
+  return found ? found.name.split(' ')[0] : '';
+}
+
 async function renderTiledGeometricPng(svgDataUrl: string, bgSizeMm: number, bgColor: string, targetWidthMm: number = 400, resolutionPx: number = 2400): Promise<string> {
   return new Promise((resolve) => {
     const img = new Image();
@@ -129,6 +135,7 @@ function HomeContent() {
   const [density, setDensity] = useState('四方柄（上下なし）');
   const [itemType, setItemType] = useState<'hanhaba' | 'kyobukuro' | 'kimono'>('hanhaba'); 
   const [patternTitle, setPatternTitle] = useState('');
+  const [isTitleManual, setIsTitleManual] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
   const [imageUrl, setImageUrl] = useState(''); 
@@ -167,6 +174,34 @@ function HomeContent() {
   
   const previewRef = useRef<HTMLDivElement>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
+
+  // 格子・水玉製作所：色と柄の種類から作品名を自動生成するロジック
+  useEffect(() => {
+    if (creationMode !== 'geometric') return;
+    if (isTitleManual && patternTitle.trim() !== '') return;
+
+    const bgName = getColorLabel(geoBgColor) || '生成り';
+    const patName = getColorLabel(geoPatternColor) || '墨黒';
+
+    let autoName = '';
+    if (geoPatternType === 'plain') {
+      autoName = `${bgName}の色無地`;
+    } else if (geoPatternType === 'stripe') {
+      const dirText = stripeDir === 'vertical' ? '縦縞' : stripeDir === 'horizontal' ? '横縞' : '斜め縞';
+      autoName = `${bgName}に${patName}の${dirText}`;
+    } else if (geoPatternType === 'dot') {
+      const dotText = dotLayout === 'staggered' ? '千鳥水玉' : '水玉';
+      autoName = `${bgName}に${patName}の${dotText}`;
+    } else if (geoPatternType === 'grid') {
+      autoName = `${bgName}に${patName}の格子`;
+    } else if (geoPatternType === 'gingham') {
+      autoName = `${bgName}に${patName}のギンガムチェック`;
+    } else if (geoPatternType === 'checker') {
+      autoName = `${bgName}と${patName}の市松`;
+    }
+
+    setPatternTitle(autoName);
+  }, [creationMode, geoPatternType, stripeDir, dotLayout, geoBgColor, geoPatternColor, isTitleManual, patternTitle]);
 
   const handleCustomObiUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -373,7 +408,6 @@ function HomeContent() {
 
       if (itemType === 'hanhaba' || itemType === 'kyobukuro') {
         const pxPerMm = 27 / 11;
-        // AIモード時はすべてのアイテムで基準を180mmに統一
         const bgWidth = creationMode === 'geometric' ? (bgSizeMm * pxPerMm) : (180 * pxPerMm);
         const bgScale = bgWidth / Math.max(1, patternImg.width);
         const bgHeight = patternImg.height * bgScale;
@@ -441,7 +475,6 @@ function HomeContent() {
 
       if (itemType === 'kimono') {
         const kimonoPxPerMm = 1200 / 600; 
-        // AIモード時はすべてのアイテムで基準を180mmに統一
         const kBgWidth = creationMode === 'geometric' ? ((bgSizeMm * kimonoPxPerMm) / 2) : ((180 * kimonoPxPerMm) / 2);
         const kBgScale = kBgWidth / Math.max(1, patternImg.width);
         const kBgHeight = patternImg.height * kBgScale;
@@ -491,7 +524,7 @@ function HomeContent() {
 
   const finalTitle = patternTitle.trim() || '（無題）';
   const colorSummary = selectedColors.length > 0 ? selectedColors.map((c) => c.name.split(' ')[0]).join('・') : '自由配色';
-  const shareText = encodeURIComponent(`「妄想きもの図案帳」で柄のアイデアを試してみました。\n銘：『${finalTitle}』\n配色：${colorSummary}\n#妄想きもの図案帳`);
+  const shareText = encodeURIComponent(`「妄想きもの図案帳」で柄のアイデアを試してみました。\n作品名：『${finalTitle}』\n配色：${colorSummary}\n#妄想きもの図案帳`);
   
   const handleNativeShare = async () => {
     const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
@@ -522,7 +555,7 @@ function HomeContent() {
       const result = await response.json();
       if (!response.ok || !result.success) { setErrorMsg(`送信エラー`); return; }
 
-      await navigator.clipboard.writeText(`図案ID: ${validSerial}\n銘: ${finalTitle}`).catch(()=>{});
+      await navigator.clipboard.writeText(`図案ID: ${validSerial}\n作品名: ${finalTitle}`).catch(()=>{});
       alert(`[工場へのデータ送信完了]\n自動入力されているかご確認ください。`); 
       window.location.href = `https://store.gofukuyasan.com/view/item/000000007300?komon_id=${encodeURIComponent(validSerial)}&title=${encodeURIComponent(finalTitle)}&image_url=${encodeURIComponent(finalImageUrl)}`;
     } catch { setErrorMsg('通信エラーが発生しました'); }
@@ -565,6 +598,7 @@ function HomeContent() {
           handleCustomObiUpload={handleCustomObiUpload} agreed={agreed} setAgreed={setAgreed} errorMsg={errorMsg}
           loading={loading} remainingCount={remainingCount} loadingStep={loadingStep} handleGenerate={handleGenerate}
           imageUrl={imageUrl} patternTitle={patternTitle} setPatternTitle={setPatternTitle}
+          setIsTitleManual={setIsTitleManual}
           handleDownloadOriginal={handleDownloadOriginal} handleNativeShare={handleNativeShare} handleOrderClick={handleOrderClick}
         />
       </div>
