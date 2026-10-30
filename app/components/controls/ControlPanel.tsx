@@ -9,6 +9,8 @@ interface ControlPanelProps {
   setCreationMode?: (mode: 'ai' | 'geometric') => void;
   aiStyle?: string;
   setAiStyle?: (val: string) => void;
+  selectedArtist?: string;
+  setSelectedArtist?: (val: string) => void;
   motif?: string;
   setMotif?: (val: string) => void;
   handleTagClick?: (item: CategoryItem) => void;
@@ -53,19 +55,56 @@ interface ControlPanelProps {
   [key: string]: any;
 }
 
+// 厳選15スタイル ＋ 先頭の「指定なし」＝ 全16枠
 const AI_STYLES = [
+  { id: 'none', label: '指定なし（完全自由）', sub: 'すべて自分で考える' },
+  { id: 'yuzen', label: 'はんなり友禅', sub: '京友禅・水彩ぼかし' },
   { id: 'mingei', label: '民藝と型染め', sub: '芹沢銈介風' },
   { id: 'retro', label: '大正ロマン', sub: '竹久夢二・銘仙' },
-  { id: 'kissaten', label: '純喫茶レトロ', sub: '昭和ノスタルジー' },
-  { id: 'nordic', label: '北欧モダン', sub: 'ミニマル・大柄' },
-  { id: 'morris', label: '英国ボタニカル', sub: 'モリス調・草花' },
   { id: 'sarasa', label: 'エキゾチック更紗', sub: 'バティック・唐草' },
-  { id: 'classic', label: '騙し絵クラシック', sub: '西陣織風' },
-  { id: 'mode', label: 'モード＆ストリート', sub: 'モノトーン' },
-  { id: 'yuzen', label: 'はんなり友禅', sub: '上品・水彩ぼかし' },
-  { id: 'etching', label: 'アンティーク銅版画', sub: '幻想・ペン画' },
-  { id: 'silhouette', label: '切り絵影絵', sub: 'コントラスト' },
-  { id: 'artdeco', label: 'アール・デコ', sub: '1920s幾何学装飾' },
+  { id: 'morris', label: '英国ボタニカル', sub: 'ウィリアム・モリス調' },
+  { id: 'botanical', label: 'ボタニカル', sub: '植物図譜・水彩花' },
+  { id: 'artnouveau', label: 'アール・ヌーヴォー', sub: 'ミュシャ調・優美な曲線' },
+  { id: 'nordic', label: '北欧モダン', sub: 'マリメッコ調・大柄' },
+  { id: 'kissaten', label: '純喫茶レトロ', sub: '昭和ノスタルジー' },
+  { id: 'psychedelic', label: '70sサイケ', sub: 'うねり・レトロポップ' },
+  { id: 'anime', label: 'アニメ調', sub: '明快なセル画線画' },
+  { id: 'lollipop', label: 'ロリポップ', sub: 'ファンシー・ゆめかわ' },
+  { id: 'cyberpunk', label: 'サイバーパンク', sub: 'ネオン・電子回路' },
+  { id: 'steampunk', label: 'スチームパンク', sub: '歯車・真鍮時計' },
+  { id: 'retrofuturism', label: 'レトロフューチャー', sub: 'スペースエイジ・宇宙SF' },
+];
+
+// スマホ画面を圧迫しない1行プルダウン用（厳選18人）
+const MASTER_ARTISTS = [
+  {
+    group: '和の巨匠（浮世絵・琳派・奇想）',
+    items: [
+      { id: 'hokusai', label: '葛飾北斎（冨嶽三十六景・藍の濃淡）' },
+      { id: 'jakuchu', label: '伊藤若冲（超細密花鳥・極彩色）' },
+      { id: 'kuniyoshi', label: '歌川国芳（奇想天外・武者絵・猫）' },
+      { id: 'korin', label: '尾形光琳（琳派・金地流水）' },
+      { id: 'hoitsu', label: '酒井抱一（江戸琳派・洗練四季草花）' },
+      { id: 'kyosai', label: '河鍋暁斎（躍動感・洒脱な墨絵妖怪）' },
+      { id: 'utamaro', label: '喜多川歌麿（美人画・繊細な極細線）' },
+      { id: 'koson', label: '小原古邨（新版画・花鳥木版画）' },
+      { id: 'sharaku', label: '東洲斎写楽（強烈な役者絵デフォルメ）' },
+    ]
+  },
+  {
+    group: '洋の巨匠（装飾・印象派・色彩）',
+    items: [
+      { id: 'klimt', label: 'グスタフ・クリムト（黄金様式・幾何学装飾）' },
+      { id: 'mucha', label: 'アルフォンス・ミュシャ（流麗な植物枠装飾）' },
+      { id: 'vangogh', label: 'フィンセント・ファン・ゴッホ（うねる筆致・星月夜）' },
+      { id: 'monet', label: 'クロード・モネ（睡蓮・光と印象派）' },
+      { id: 'rousseau', label: 'アンリ・ルソー（幻想の密林ジャングル）' },
+      { id: 'matisse', label: 'アンリ・マティス（色彩の魔術師・切り絵）' },
+      { id: 'redon', label: 'オディロン・ルドン（夢幻のパステル神秘花）' },
+      { id: 'gauguin', label: 'ポール・ゴーギャン（鮮烈で平面的色彩）' },
+      { id: 'bonnard', label: 'ピエール・ボナール（光と色彩のモザイク）' },
+    ]
+  }
 ];
 
 const PULLDOWN_MOTIFS = [
@@ -98,8 +137,10 @@ const WAITING_MESSAGES = [
 export default function ControlPanel({
   creationMode = 'geometric',
   setCreationMode = () => {},
-  aiStyle = 'mingei',
+  aiStyle = 'none',
   setAiStyle = () => {},
+  selectedArtist = 'none',
+  setSelectedArtist = () => {},
   motif = '',
   setMotif = () => {},
   selectedColors = [],
@@ -155,7 +196,6 @@ export default function ControlPanel({
 
   const shareToThreads = () => {
     const textWithUrl = `${shareText}\n${currentUrl}`;
-    const url = `https://www.threads.net/intent/post?text=${encodeURIComponent(textWithUrl)}`;
     window.open(url, '_blank', 'noopener,noreferrer,width=600,height=550');
   };
 
@@ -198,8 +238,11 @@ export default function ControlPanel({
         {creationMode === 'ai' ? (
           <>
             <div>
-              <label className="block text-xs font-bold text-zinc-900 tracking-wider mb-2">01. どんな世界観で？（12のスタイル）</label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 mb-2">
+              <div className="flex justify-between items-baseline mb-2">
+                <label className="block text-xs font-bold text-zinc-900 tracking-wider">01. どんな世界観で？（15のスタイル）</label>
+                <span className="text-[10px] text-zinc-400">先頭ボタンで自由設定可能</span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 mb-3">
                 {AI_STYLES.map((s) => (
                   <button key={s.id} type="button" onClick={() => setAiStyle(s.id)} className={`flex flex-col items-center justify-center p-2 sm:p-2.5 border transition-all shadow-sm ${aiStyle === s.id ? 'bg-zinc-900 text-white border-zinc-900 scale-95 ring-2 ring-zinc-900' : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50 hover:scale-[1.01]'}`}>
                     <span className="text-[10px] sm:text-[11px] font-black leading-tight text-center">{s.label}</span>
@@ -207,18 +250,44 @@ export default function ControlPanel({
                   </button>
                 ))}
               </div>
+
+              {/* 名画・巨匠の筆致プルダウン（スマホを圧迫しない1行セレクト） */}
+              <div className="pt-2 border-t border-dashed border-zinc-200">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-bold text-zinc-500 shrink-0">名画・巨匠の筆致 (任意):</span>
+                  <select
+                    value={selectedArtist}
+                    onChange={(e) => setSelectedArtist(e.target.value)}
+                    className="flex-1 py-1.5 px-2.5 bg-zinc-50 border border-zinc-300 text-zinc-800 text-xs font-bold rounded-xs focus:outline-none focus:border-zinc-900 cursor-pointer shadow-xs truncate"
+                  >
+                    <option value="none">指定なし（なし）</option>
+                    {MASTER_ARTISTS.map((g) => (
+                      <optgroup key={g.group} label={g.group}>
+                        {g.items.map((a) => (
+                          <option key={a.id} value={a.id}>{a.label}</option>
+                        ))}
+                      </optgroup>
+                    ))}
+                  </select>
+                </div>
+              </div>
             </div>
 
             <div className="pt-4 border-t border-zinc-100 relative">
-              <div className="flex justify-between items-baseline mb-2">
+              <div className="flex justify-between items-baseline mb-1">
                 <div>
                   <label className="block text-xs font-bold text-zinc-900 tracking-wider">02. 好きな色（着物のテーマカラー）</label>
-                  <p className="text-[10px] text-zinc-400 mt-0.5">選んだ色が地色や柄色として優先的に反映されます</p>
                 </div>
                 <button type="button" onClick={() => setShowColorPalette(!showColorPalette)} className="inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-900 font-bold transition-colors">
                   <span>{showColorPalette ? '閉じる' : '色見本から選ぶ (102色)'}</span>
                 </button>
               </div>
+
+              {/* 色選びに関する強い引きずられ防止の注記 */}
+              <p className="text-[10px] text-zinc-500 leading-relaxed mb-2 bg-amber-50/70 border border-amber-200/60 p-2 rounded-xs">
+                ※ 色を選ぶとAIがその色に<strong className="text-zinc-900">かなり強く引っ張られます</strong>。AIならではの自然で絶妙な色合わせを楽しみたい場合は、<strong className="text-zinc-900">「指定なし（おまかせ）」</strong>のままにするのがおすすめです。
+              </p>
+
               <div className="flex flex-wrap items-center gap-1.5 min-h-[30px]">
                 {selectedColors.length === 0 ? ( 
                   <span className="text-xs text-zinc-400 italic">指定なし（ゴフクヤサンにおまかせ）</span> 
@@ -257,11 +326,11 @@ export default function ControlPanel({
                 <label className="block text-xs font-bold text-zinc-900 tracking-wider">03. 何を描く？（モチーフ）</label>
                 {motif && <button onClick={() => setMotif('')} className="text-[10px] font-bold text-zinc-400 hover:text-zinc-800 tracking-widest uppercase transition-colors">Clear</button>}
               </div>
-              <p className="text-[10px] text-zinc-400 mb-2">難しい文章は不要です。好きな単語をポンと1つ入れるだけで、ゴフクヤサンが素敵な図案に仕立てます。</p>
+              <p className="text-[10px] text-zinc-400 mb-2">言葉を細かく足していくほど、あなたの理想の図案に近づきます。</p>
               
               <textarea 
                 className="w-full border border-zinc-300 p-3 sm:p-4 bg-white text-xs sm:text-sm focus:outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 resize-none transition-all duration-200 leading-relaxed font-medium shadow-sm" 
-                placeholder="例：黒猫、ホットケーキ、月、バイオリン（思いついた言葉をそのままどうぞ）" 
+                placeholder="例：黒猫、満月、星空、バイオリン（言葉を細かく足していくほど、あなたの理想の図案に近づきます）" 
                 rows={2} 
                 value={motif} 
                 onChange={(e) => setMotif(e.target.value)} 
@@ -444,7 +513,7 @@ export default function ControlPanel({
           </div>
         )}
 
-        {/* ★ モノトーンのハイブランド調で目立たせた「妄想した図案をつくる」ボタン */}
+        {/* モノトーンのハイブランド調「妄想した図案をつくる」ボタン */}
         <div className="space-y-4 mt-6">
           {creationMode === 'ai' && (
             <div className="pt-6 border-t border-zinc-200 space-y-3">
@@ -478,7 +547,6 @@ export default function ControlPanel({
                         図案を紡いでいます...
                       </span>
                     )}
-                    {/* おっちゃんのテロップアニメーション */}
                     <span key={loadingStep} className="text-[10px] leading-relaxed text-zinc-100 font-medium animate-fade-in text-center h-8 flex items-center justify-center tracking-wider">
                       {WAITING_MESSAGES[loadingStep % WAITING_MESSAGES.length]}
                     </span>
