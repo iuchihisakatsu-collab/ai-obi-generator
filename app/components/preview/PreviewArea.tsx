@@ -2,67 +2,68 @@
 'use client';
 /* eslint-disable @next/next/no-img-element */
 
-import { useState, useEffect, RefObject, ChangeEvent } from 'react';
+import { useState, useEffect } from 'react';
 import { TRADITIONAL_COLORS } from '../../lib/constants';
 
 interface PreviewAreaProps {
-  imageUrl: string;
-  blobUrl: string;
-  rotatedPatternUrl: string;
-  serialNumber: string;
-  itemType: 'hanhaba' | 'kyobukuro' | 'kimono';
-  displayMode: 'mockup' | 'trim' | 'data';
-  creationMode: 'ai' | 'geometric';
-  bgSizeMm: number;
-  geoBgColor: string;
-  obiLiningColor: string;
-  setObiLiningColor: (color: string) => void;
-  kimonoHaneriColor: string;
-  setKimonoHaneriColor: (color: string) => void;
-  kimonoObiageColor: string;
-  setKimonoObiageColor: (color: string) => void;
-  kimonoObiColor: string;
-  setKimonoObiColor: (color: string) => void;
-  customObiUrl: string | null;
-  setCustomObiUrl: (url: string | null) => void;
-  handleCustomObiUpload: (e: ChangeEvent<HTMLInputElement>) => void;
-  mockupSubmitting: boolean;
-  previewRef: RefObject<HTMLDivElement>;
-  previewContainerRef: RefObject<HTMLDivElement>;
-  handleItemTypeChange: (type: 'hanhaba' | 'kyobukuro' | 'kimono') => void;
-  setDisplayMode: (mode: 'mockup' | 'trim' | 'data') => void;
-  handleDownloadMapping: () => void;
-  UNIVERSAL_SCALE_FACTOR: number;
+  imageUrl?: string;
+  blobUrl?: string;
+  rotatedPatternUrl?: string;
+  serialNumber?: string;
+  itemType?: 'hanhaba' | 'kyobukuro' | 'kimono';
+  displayMode?: 'mockup' | 'trim' | 'data';
+  creationMode?: 'ai' | 'geometric';
+  bgSizeMm?: number;
+  geoBgColor?: string;
+  obiLiningColor?: string;
+  setObiLiningColor?: (color: string) => void;
+  kimonoHaneriColor?: string;
+  setKimonoHaneriColor?: (color: string) => void;
+  kimonoObiageColor?: string;
+  setKimonoObiageColor?: (color: string) => void;
+  kimonoObiColor?: string;
+  setKimonoObiColor?: (color: string) => void;
+  customObiUrl?: string | null;
+  setCustomObiUrl?: (url: string | null) => void;
+  handleCustomObiUpload?: (e: any) => void;
+  mockupSubmitting?: boolean;
+  previewRef?: any;
+  previewContainerRef?: any;
+  handleItemTypeChange?: (type: 'hanhaba' | 'kyobukuro' | 'kimono') => void;
+  setDisplayMode?: (mode: 'mockup' | 'trim' | 'data') => void;
+  handleDownloadMapping?: () => void;
+  UNIVERSAL_SCALE_FACTOR?: number;
+  [key: string]: any;
 }
 
 export default function PreviewArea({
-  imageUrl,
-  blobUrl,
-  rotatedPatternUrl,
-  serialNumber,
-  itemType,
-  displayMode,
-  creationMode,
-  bgSizeMm,
-  geoBgColor,
-  obiLiningColor,
-  setObiLiningColor,
-  kimonoHaneriColor,
-  setKimonoHaneriColor,
-  kimonoObiageColor,
-  setKimonoObiageColor,
-  kimonoObiColor,
-  setKimonoObiColor,
-  customObiUrl,
-  setCustomObiUrl,
-  handleCustomObiUpload,
-  mockupSubmitting,
+  imageUrl = '',
+  blobUrl = '',
+  rotatedPatternUrl = '',
+  serialNumber = '',
+  itemType = 'hanhaba',
+  displayMode = 'mockup',
+  creationMode = 'geometric',
+  bgSizeMm = 100,
+  geoBgColor = '#fffffc',
+  obiLiningColor = '#dcdddd',
+  setObiLiningColor = () => {},
+  kimonoHaneriColor = '#fffffc',
+  setKimonoHaneriColor = () => {},
+  kimonoObiageColor = '#e8d3d1',
+  setKimonoObiageColor = () => {},
+  kimonoObiColor = '#161616',
+  setKimonoObiColor = () => {},
+  customObiUrl = null,
+  setCustomObiUrl = () => {},
+  handleCustomObiUpload = () => {},
+  mockupSubmitting = false,
   previewRef,
   previewContainerRef,
-  handleItemTypeChange,
-  setDisplayMode,
-  handleDownloadMapping,
-  UNIVERSAL_SCALE_FACTOR
+  handleItemTypeChange = () => {},
+  setDisplayMode = () => {},
+  handleDownloadMapping = () => {},
+  UNIVERSAL_SCALE_FACTOR = 0.5
 }: PreviewAreaProps) {
   
   const [isCompact, setIsCompact] = useState(false);
@@ -209,20 +210,20 @@ export default function PreviewArea({
                 <div ref={previewContainerRef} className="relative mx-auto drop-shadow-xl w-full max-w-[360px] sm:max-w-[400px]">
                   {renderMockup()}
 
-                  {/* 半幅帯・京袋帯のフローティング裏地カラー設定 */}
+                  {/* 半幅帯・京袋帯のフローティング裏地カラー設定（z-index: 100 で最前面へ完全配置） */}
                   {(itemType === 'hanhaba' || itemType === 'kyobukuro') && (
-                    <div className="absolute bottom-2 left-2 z-40">
+                    <div className="absolute bottom-3 left-3 z-[100]">
                       <button
                         type="button"
                         onClick={() => setShowLiningPopover(!showLiningPopover)}
-                        className="px-2.5 py-1.5 bg-white/90 backdrop-blur-md border border-zinc-300 rounded-full shadow-md flex items-center gap-1.5 hover:bg-white transition-all text-left"
+                        className="px-2.5 py-1.5 bg-white/95 backdrop-blur-md border border-zinc-300 rounded-full shadow-lg flex items-center gap-1.5 hover:bg-white transition-all text-left"
                       >
                         <span className="w-3.5 h-3.5 rounded-full border border-zinc-400 shrink-0 shadow-2xs" style={{ backgroundColor: obiLiningColor }} />
-                        <span className="text-[10px] font-bold text-zinc-800">裏地の色</span>
+                        <span className="text-[10px] font-black text-zinc-800">裏地の色</span>
                       </button>
 
                       {showLiningPopover && (
-                        <div className="absolute bottom-full left-0 mb-2 p-3 bg-white/95 backdrop-blur-md border border-zinc-300 rounded-lg shadow-xl w-[260px] animate-fade-in z-50">
+                        <div className="absolute bottom-full left-0 mb-2 p-3 bg-white/98 backdrop-blur-md border border-zinc-300 rounded-lg shadow-2xl w-[260px] animate-fade-in z-[110]">
                           <div className="flex justify-between items-center mb-2 pb-1 border-b border-zinc-200">
                             <span className="text-[10px] font-bold text-zinc-800">裏地の色を選択</span>
                             <button type="button" onClick={() => setShowLiningPopover(false)} className="text-[10px] font-bold text-zinc-400 hover:text-zinc-800">閉じる</button>
@@ -245,30 +246,29 @@ export default function PreviewArea({
                     </div>
                   )}
 
-                  {/* 着物のフローティングコーディネート調整 */}
+                  {/* 着物のフローティングコーディネート調整（z-index: 100 で最前面へ完全配置） */}
                   {itemType === 'kimono' && (
-                    <div className="absolute top-2 right-2 z-40">
+                    <div className="absolute top-3 right-3 z-[100]">
                       <button
                         type="button"
                         onClick={() => { setShowCoordPanel(!showCoordPanel); setActivePalette(null); }}
-                        className="px-3 py-1.5 bg-white/90 backdrop-blur-md border border-zinc-300 rounded-full shadow-md flex items-center gap-2 hover:bg-white transition-all text-left"
+                        className="px-3 py-1.5 bg-white/95 backdrop-blur-md border border-zinc-300 rounded-full shadow-lg flex items-center gap-2 hover:bg-white transition-all text-left"
                       >
                         <div className="flex items-center -space-x-1">
                           <span className="w-3 h-3 rounded-full border border-white" style={{ backgroundColor: kimonoObiColor }} />
                           <span className="w-3 h-3 rounded-full border border-white" style={{ backgroundColor: kimonoHaneriColor }} />
                           <span className="w-3 h-3 rounded-full border border-white" style={{ backgroundColor: kimonoObiageColor }} />
                         </div>
-                        <span className="text-[10px] font-bold text-zinc-800">コーデ調整</span>
+                        <span className="text-[10px] font-black text-zinc-800">コーデ調整</span>
                       </button>
 
                       {showCoordPanel && (
-                        <div className="absolute top-full right-0 mt-2 p-3.5 bg-white/95 backdrop-blur-md border border-zinc-300 rounded-lg shadow-xl w-[280px] animate-fade-in z-50 space-y-3">
+                        <div className="absolute top-full right-0 mt-2 p-3.5 bg-white/98 backdrop-blur-md border border-zinc-300 rounded-lg shadow-2xl w-[280px] animate-fade-in z-[110] space-y-3">
                           <div className="flex justify-between items-center pb-2 border-b border-zinc-200">
                             <span className="text-[11px] font-black text-zinc-900">着物コーディネート</span>
                             <button type="button" onClick={() => { setShowCoordPanel(false); setActivePalette(null); }} className="text-[10px] font-bold text-zinc-400 hover:text-zinc-800">閉じる</button>
                           </div>
 
-                          {/* 帯 */}
                           <div className="space-y-1.5">
                             <div className="flex justify-between items-center">
                               <span className="text-[10px] font-bold text-zinc-600">帯</span>
@@ -292,7 +292,6 @@ export default function PreviewArea({
                             </div>
                           </div>
 
-                          {/* 半衿 */}
                           <div className="space-y-1.5">
                             <span className="text-[10px] font-bold text-zinc-600">半衿</span>
                             <button
@@ -305,7 +304,6 @@ export default function PreviewArea({
                             </button>
                           </div>
 
-                          {/* 帯揚げ */}
                           <div className="space-y-1.5">
                             <span className="text-[10px] font-bold text-zinc-600">帯揚げ</span>
                             <button
@@ -318,7 +316,6 @@ export default function PreviewArea({
                             </button>
                           </div>
 
-                          {/* 伝統色パレット（展開時） */}
                           {activePalette && (
                             <div className="pt-2 border-t border-zinc-200 animate-fade-in">
                               <div className="flex justify-between items-center mb-1.5">
