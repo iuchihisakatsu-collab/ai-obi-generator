@@ -1,6 +1,6 @@
 // lib/constants.ts
 
-export const MAX_GENERATIONS_PER_DAY = 3;
+export const MAX_GENERATIONS_PER_DAY = 2;
 
 export const FORBIDDEN_WORDS = [
   'ディズニー', 'disney', 'ミッキー', 'mickey', 'ピカチュウ', 'ポケモン', 'pokemon',
@@ -101,7 +101,7 @@ export const TRADITIONAL_COLORS = [
   { name: '瑠璃 (るり)', text: '鮮やかなロイヤルブルー地', hex: '#1e50a2', isDark: true },
   { name: '群青 (ぐんじょう)', text: '鮮やかなウルトラマリン地', hex: '#4c6cb3', isDark: true },
   { name: '藍色 (あい)', text: '深いネイビー・藍地', hex: '#163b5c', isDark: true },
-  { name: '紺青 (こんじょう)', text: '深みのあるダークネイビー地', hex: '#192f60', isDark: true },
+  { name: '紺青 (conjou)', text: '深みのあるダークネイビー地', hex: '#192f60', isDark: true },
   { name: '鉄紺 (てっこん)', text: '極めて暗い紫みの紺地', hex: '#17184b', isDark: true },
   { name: '納戸 (なんど)', text: '深みのあるティールブルー地', hex: '#004055', isDark: true },
   { name: '碧色 (へきしょく)', text: '神秘的なピーコックブルー地', hex: '#007380', isDark: true },
@@ -132,99 +132,8 @@ export interface CategoryItem {
   id: string; 
 }
 
-export const TAG_CATEGORIES: { title: string; items: CategoryItem[] }[] = [
-  {
-    title: '【1】生き物・モチーフ',
-    items: [
-      { label: 'ねこ', id: 'ct300' },
-      { label: '犬', id: 'ct301' },
-      { label: 'うさぎ', id: 'ct303' },    
-      { label: '虎', id: 'ct303' },    
-      { label: '蛇', id: 'ct303' },
-      { label: '鳥', id: 'ct269' },
-      { label: '魚', id: 'ct265' },
-      { label: '昆虫', id: 'ct188' },
-      { label: '動物', id: 'ct47' },
-      { label: '植物', id: 'ct46' },
-      { label: '恐竜', id: 'ct267' },
-      { label: 'リボン・レース', id: 'ct312' },
-    ]
-  },
-  {
-    title: '【2】世界観・テーマ',
-    items: [
-      { label: '宇宙', id: 'ct51' },
-      { label: 'お菓子', id: 'ct48' },
-      { label: 'ロリポップ・キャンディ', id: 'ct48' },
-      { label: '音楽', id: 'ct315' },
-      { label: '乗り物', id: 'ct320' },
-      { label: '建造物', id: 'ct268' },
-      { label: '鉱物・宝石', id: 'ct170' },
-      { label: '玩具', id: 'ct319' },
-      { label: '妖怪・おばけ・ドクロ', id: 'ct175' },
-    ]
-  },
-  {
-    title: '【3】柄・地紋',
-    items: [
-      { label: '水玉・ドット', id: 'ct310' },
-      { label: '縞・ストライプ', id: 'ct309' },
-      { label: '格子・チェック', id: 'ct311' },
-      { label: '市松', id: 'ct53' },
-      { label: '七宝', id: 'ct53' },     
-      { label: '疋田絞', id: 'ct53' },
-      { label: '青海波', id: 'ct53' },
-      { label: '麻の葉', id: 'ct53' },
-      { label: '矢絣', id: 'ct53' },
-      { label: '亀甲', id: 'ct53' },
-      { label: '唐草', id: 'ct53' },
-      { label: '紗綾形', id: 'ct53' },
-      { label: '千鳥格子', id: 'ct311' },
-      { label: '幾何学模様', id: 'ct53' },
-      { label: '墨流', id: 'ct171' },
-    ]
-  },
-  {
-    title: '【4】和の技法・様式',
-    items: [
-      { label: '友禅染め風', id: 'ct49' },
-      { label: '紅型', id: 'ct49' },
-      { label: '浮世絵', id: 'ct49' },
-      { label: '水墨画', id: 'ct49' },
-      { label: '琳派', id: 'ct49' },
-      { label: '絞り染め風', id: 'ct53' },
-      { label: '江戸小紋', id: 'ct53' },
-      { label: '金彩・蒔絵風', id: 'ct49' },
-    ]
-  },
-  {
-    title: '【5】画材・タッチ',
-    items: [
-      { label: '水彩画', id: 'ct50' },
-      { label: '油絵・厚塗り', id: 'ct50' },
-      { label: 'ペン画・線画', id: 'ct50' },
-      { label: '色鉛筆・パステル', id: 'ct50' },
-      { label: '版画・切り絵風', id: 'ct49' },
-      { label: 'リアルタッチ・写実的', id: 'ct50' },
-      { label: 'アニメ塗り・ポップ', id: 'ct312' },
-    ]
-  },
-  {
-    title: '【6】テイスト・雰囲気',
-    items: [
-      { label: 'ファンシー・ゆめかわ', id: 'ct312' },
-      { label: 'ゴスロリ・ロリータ', id: 'ct354' },
-      { label: 'レトロ・大正ロマン', id: 'ct49' },
-      { label: '西洋名画風', id: 'ct50' },
-      { label: 'アールヌーヴォー・デコ', id: 'ct312' },
-      { label: 'ゴシック・ダーク', id: 'ct354' },
-      { label: 'オリエンタル', id: 'ct295' },
-      { label: 'ミッドセンチュリー', id: 'ct352' },
-    ]
-  }
-];
-
-export const ALL_CATEGORIES = TAG_CATEGORIES.flatMap((cat) => cat.items);
+export const TAG_CATEGORIES: { title: string; items: CategoryItem[] }[] = [];
+export const ALL_CATEGORIES = [];
 
 export const LOADING_STEPS = [
   '思い描いた意匠から、図案のアイデアを練り上げています...',
@@ -235,5 +144,4 @@ export const LOADING_STEPS = [
   '仕上がりを表示する準備をしています...',
 ];
 
-// 全アイテム共通・実寸ロック黄金比率
 export const UNIVERSAL_SCALE_FACTOR = 3 / 22;
