@@ -52,7 +52,7 @@ export default function PreviewArea({
   UNIVERSAL_SCALE_FACTOR
 }: PreviewAreaProps) {
   
-  // 生中継小窓を表示するかどうかの判定（page.tsxからこちらに移動！）
+  // 生中継小窓を表示するかどうかの判定（page.tsxから完全に分離）
   const [isCompact, setIsCompact] = useState(false);
   useEffect(() => {
     const handleScroll = () => {
