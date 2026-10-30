@@ -29,6 +29,30 @@ function getColorNameFromHex(hex: string): string {
   return found ? found.name.split(' ')[0] : '';
 }
 
+// ★ 追加：AI画像の90度回転処理（半幅帯専用）
+async function rotateImage90Degrees(imageUrl: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalHeight;
+      canvas.height = img.naturalWidth;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        reject(new Error('Canvas context failed'));
+        return;
+      }
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.rotate((90 * Math.PI) / 180);
+      ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
+      resolve(canvas.toDataURL('image/png'));
+    };
+    img.onerror = (e) => reject(e);
+    img.src = imageUrl;
+  });
+}
+
 function HomeContent() {
   const searchParams = useSearchParams();
   const [platform, setPlatform] = useState<PlatformType>((searchParams.get('platform') as PlatformType) || 'makeshop');
@@ -44,7 +68,6 @@ function HomeContent() {
   const [showColorPalette, setShowColorPalette] = useState<boolean>(false);
   const [density, setDensity] = useState<string>('四方柄');
 
-  // 格子・水玉製作所ステート
   const [geoPatternType, setGeoPatternType] = useState<'plain' | 'stripe' | 'dot' | 'grid' | 'gingham' | 'checker'>('stripe');
   const [stripeDir, setStripeDir] = useState<StripeDirection>('vertical');
   const [dotLayout, setDotLayout] = useState<DotLayout>('staggered');
@@ -107,12 +130,31 @@ function HomeContent() {
     }
   };
 
+  // ★ 追加：「AI妄想モード × 半幅帯」の時だけ画像を自動90度回転させる
+  useEffect(() => {
+    const src = blobUrl || imageUrl;
+    if (!src) {
+      setRotatedPatternUrl('');
+      return;
+    }
+
+    if (creationMode === 'ai' && itemType === 'hanhaba') {
+      rotateImage90Degrees(src)
+        .then((rotated) => setRotatedPatternUrl(rotated))
+        .catch((err) => {
+          console.error('画像90度回転に失敗:', err);
+          setRotatedPatternUrl(src);
+        });
+    } else {
+      setRotatedPatternUrl(src);
+    }
+  }, [blobUrl, imageUrl, creationMode, itemType]);
+
   const updateGeometricPattern = useCallback(async () => {
     if (creationMode !== 'geometric') return;
 
     let svgString = '';
     let tileSize = 0;
-
     const period = lineWidth + gapWidth;
     const dotPitch = (dotRadius * 2) + gapWidth;
 
@@ -139,9 +181,7 @@ function HomeContent() {
     setBgSizeMm(tileSize);
     const svgDataUrl = `data:image/svg+xml;utf8,${encodeURIComponent(svgString)}`;
     setImageUrl(svgDataUrl);
-    setRotatedPatternUrl('');
 
-    // バックグラウンドで高解像度反物データを生成
     try {
       const tiledPng = await renderTiledGeometricPng(svgDataUrl, tileSize, geoBgColor, 400, 2400);
       setBlobUrl(tiledPng);
@@ -154,7 +194,6 @@ function HomeContent() {
       }
     }
 
-    // 伝統色名による銘の自動連動
     const bgName = getColorNameFromHex(geoBgColor);
     const patName = getColorNameFromHex(geoPatternColor);
     let baseName = '無題';
@@ -162,7 +201,7 @@ function HomeContent() {
     if (geoPatternType === 'stripe') baseName = '万筋縞';
     if (geoPatternType === 'dot') baseName = '千鳥水玉';
     if (geoPatternType === 'grid') baseName = '格子柄';
-    if (geoPatternType === 'gingham') baseName = '吟風（ギンガム）';
+    if (geoPatternType === 'gingham') baseName = '吟風';
     if (geoPatternType === 'checker') baseName = '市松模様';
 
     let autoTitle = baseName;
@@ -223,7 +262,7 @@ function HomeContent() {
 
       setImageUrl(data.imageUrl);
       setBlobUrl(data.blobUrl);
-      setRotatedPatternUrl(data.rotatedPatternUrl || data.imageUrl);
+      
       const newSerial = `KOMON-${Math.floor(1000 + Math.random() * 9000)}`;
       setSerialNumber(newSerial);
 
@@ -313,7 +352,6 @@ function HomeContent() {
     <div className="min-h-screen bg-[#f4f4f5] text-zinc-900 flex flex-col items-center justify-start font-sans lg:p-8">
       <div className="w-full max-w-7xl flex flex-col lg:flex-row lg:gap-6 items-start justify-center">
         
-        {/* スマホ全幅・大迫力のプレビューエリア */}
         <PreviewArea
           imageUrl={imageUrl} blobUrl={blobUrl} rotatedPatternUrl={rotatedPatternUrl}
           serialNumber={serialNumber} itemType={itemType} displayMode={displayMode}
@@ -333,7 +371,6 @@ function HomeContent() {
           handleDownloadMapping={handleDownloadMapping} UNIVERSAL_SCALE_FACTOR={UNIVERSAL_SCALE_FACTOR}
         />
 
-        {/* 格子・水玉の伝統色パレット連携済みコントロールパネル */}
         <ControlPanel
           creationMode={creationMode} setCreationMode={setCreationMode}
           aiStyle={aiStyle} setAiStyle={setAiStyle} motif={motif} setMotif={setMotif}
@@ -372,7 +409,6 @@ function HomeContent() {
           </button>
         </div>
       )}
-
       <NoticeModal
         isOpen={isNoticeOpen}
         onClose={handleCloseNotice}
