@@ -9,6 +9,35 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+// 日本語のモチーフをFLUXが理解できる英語キーワードに即時変換（0.2秒）
+async function translateToEnglish(text: string): Promise<string> {
+  if (!text || !text.trim()) return '';
+  const hasJapanese = /[^\x00-\x7F]/.test(text);
+  if (!hasJapanese) return text.trim();
+
+  try {
+    const res = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: "You are a professional textile prompt translator. Translate the given Japanese motifs into clear, specific English keywords suitable for pattern generation. Output ONLY English comma-separated keywords, no markdown, no quotes."
+        },
+        {
+          role: "user",
+          content: text
+        }
+      ],
+      temperature: 0.2,
+      max_tokens: 150,
+    });
+    return res.choices[0]?.message?.content?.trim() || text;
+  } catch (err) {
+    console.error("Translation error:", err);
+    return text;
+  }
+}
+
 // 15スタイル専用の英語プロンプト辞書
 const STYLE_PROMPTS: Record<string, string> = {
   none: '',
@@ -68,6 +97,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'モチーフを指定してください。' }, { status: 400 });
     }
 
+    // ★ 日本語のモチーフを英語に即時翻訳（FLUXが確実に理解できるようにする）
+    const englishMotif = await translateToEnglish(motif);
+
     let baseInstruction = "Flat overhead shot, 2D seamless repeating textile graphic design. High-end digital textile printing. High resolution, crisp details, vivid color separation, no halftone dots. ";
     
     let layoutInstruction = "";
@@ -80,7 +112,6 @@ export async function POST(req: Request) {
       layoutInstruction = "Scattered motifs with elegant negative space, refined balanced layout, well-spaced floating elements (Tobigara).";
     }
 
-    // スタイルと巨匠のプロンプトを合成
     const styleDetail = STYLE_PROMPTS[aiStyle] || '';
     const artistDetail = ARTIST_PROMPTS[artist] || '';
 
@@ -90,11 +121,12 @@ export async function POST(req: Request) {
 
     const negativePrompt = "NO humans, NO faces, NO body parts, NO clothing items being worn. NO 3D perspective, NO drop shadows, NO photographic blur, NO realistic fabric wrinkles, NO backgrounds.";
 
+    // 英語化されたモチーフをプロンプトの最優先位置に配置
     const prompt = `${baseInstruction}
 ${layoutInstruction}
 
 【Subject Motifs】
-${motif}
+${englishMotif} (${motif})
 
 【Style & Aesthetic】
 ${styleDetail}
