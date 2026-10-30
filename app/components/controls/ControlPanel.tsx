@@ -443,7 +443,7 @@ export default function ControlPanel({
 
         {imageUrl && (
           <div className="pt-8 mt-8 border-t-2 border-zinc-950 space-y-5 relative z-10 animate-fade-in bg-zinc-50 -mx-4 sm:-mx-8 lg:-mx-10 px-4 sm:px-8 lg:px-10 pb-8">
-            <h3 className="text-center font-bold text-sm tracking-widest text-zinc-800 pt-6">🌸 あなただけの作品が完成しました</h3>
+            <h3 className="text-center font-bold text-sm tracking-widest text-zinc-800 pt-6">あなただけの作品が完成しました</h3>
             <div className="space-y-1.5 pt-2">
               <label className="block text-xs font-bold text-zinc-700 tracking-wider">作品に『銘（タイトル）』を打つ <span className="font-normal text-[10px] text-zinc-400">（任意）</span></label>
               <input type="text" className="w-full border-b-2 border-zinc-300 p-3 bg-transparent text-sm focus:outline-none focus:border-zinc-950 transition-colors" placeholder="例：遊泳金魚図" value={patternTitle} onChange={(e) => setPatternTitle(e.target.value)} disabled={loading} />
