@@ -2,7 +2,8 @@
 'use client';
 /* eslint-disable @next/next/no-img-element */
 
-import { useState, useEffect, RefObject } from 'react';
+import { useState, useEffect, RefObject, ChangeEvent } from 'react';
+import { TRADITIONAL_COLORS } from '../../lib/constants';
 
 interface PreviewAreaProps {
   imageUrl: string;
@@ -15,10 +16,16 @@ interface PreviewAreaProps {
   bgSizeMm: number;
   geoBgColor: string;
   obiLiningColor: string;
+  setObiLiningColor: (color: string) => void;
   kimonoHaneriColor: string;
+  setKimonoHaneriColor: (color: string) => void;
   kimonoObiageColor: string;
+  setKimonoObiageColor: (color: string) => void;
   kimonoObiColor: string;
+  setKimonoObiColor: (color: string) => void;
   customObiUrl: string | null;
+  setCustomObiUrl: (url: string | null) => void;
+  handleCustomObiUpload: (e: ChangeEvent<HTMLInputElement>) => void;
   mockupSubmitting: boolean;
   previewRef: RefObject<HTMLDivElement>;
   previewContainerRef: RefObject<HTMLDivElement>;
@@ -39,10 +46,16 @@ export default function PreviewArea({
   bgSizeMm,
   geoBgColor,
   obiLiningColor,
+  setObiLiningColor,
   kimonoHaneriColor,
+  setKimonoHaneriColor,
   kimonoObiageColor,
+  setKimonoObiageColor,
   kimonoObiColor,
+  setKimonoObiColor,
   customObiUrl,
+  setCustomObiUrl,
+  handleCustomObiUpload,
   mockupSubmitting,
   previewRef,
   previewContainerRef,
@@ -53,7 +66,10 @@ export default function PreviewArea({
 }: PreviewAreaProps) {
   
   const [isCompact, setIsCompact] = useState(false);
-  
+  const [showLiningPopover, setShowLiningPopover] = useState(false);
+  const [showCoordPanel, setShowCoordPanel] = useState(false);
+  const [activePalette, setActivePalette] = useState<'obi' | 'haneri' | 'obiage' | null>(null);
+
   useEffect(() => {
     const handleScroll = () => {
       if (window.innerWidth < 1024) {
@@ -67,10 +83,8 @@ export default function PreviewArea({
   }, []);
 
   const renderMockup = () => {
-    // ★ AIモード時：京袋帯とお太鼓でしっかり柄が主張する約3倍のスケール（65%）へ拡大！
     const hanhabaPatternSize = creationMode === 'geometric' ? `${bgSizeMm * UNIVERSAL_SCALE_FACTOR}% auto` : '45% auto';
     const kyobukuroPatternSize = creationMode === 'geometric' ? `${bgSizeMm * UNIVERSAL_SCALE_FACTOR}% auto` : '65% auto';
-    // ★ 着物時：身頃に対して豆粒にならない約3.5倍のスケール（42%）へ拡大！
     const kimonoPatternSize = creationMode === 'geometric' ? `${(bgSizeMm * UNIVERSAL_SCALE_FACTOR) / 2}% auto` : '42% auto';
     const effectivePatternUrl = creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl);
 
@@ -167,7 +181,7 @@ export default function PreviewArea({
               <button type="button" onClick={() => handleItemTypeChange('hanhaba')} className={`px-2 py-1 text-[10px] font-black rounded transition-all ${itemType === 'hanhaba' ? 'bg-white text-zinc-950' : 'bg-zinc-800 text-zinc-400 hover:text-white'}`}>半幅帯</button>
               <button type="button" onClick={() => handleItemTypeChange('kyobukuro')} className={`px-2 py-1 text-[10px] font-black rounded transition-all ${itemType === 'kyobukuro' ? 'bg-white text-zinc-950' : 'bg-zinc-800 text-zinc-400 hover:text-white'}`}>京袋帯</button>
               <button type="button" onClick={() => handleItemTypeChange('kimono')} className={`px-2 py-1 text-[10px] font-black rounded transition-all flex items-center gap-1 ${itemType === 'kimono' ? 'bg-white text-zinc-950' : 'bg-zinc-800 text-zinc-400 hover:text-white'}`}>
-                着物<span className="text-[7px] bg-red-500 text-white px-1 py-0.5 rounded-sm animate-pulse leading-none shadow-sm">NEW</span>
+                着物<span className="text-[7px] bg-red-500 text-white px-1 py-0.5 rounded-sm leading-none shadow-sm font-bold">NEW</span>
               </button>
             </div>
           </div>
@@ -194,6 +208,152 @@ export default function PreviewArea({
               <div className="w-full flex flex-col items-center animate-fade-in relative z-10 px-4">
                 <div ref={previewContainerRef} className="relative mx-auto drop-shadow-xl w-full max-w-[360px] sm:max-w-[400px]">
                   {renderMockup()}
+
+                  {/* 半幅帯・京袋帯のフローティング裏地カラー設定 */}
+                  {(itemType === 'hanhaba' || itemType === 'kyobukuro') && (
+                    <div className="absolute bottom-2 left-2 z-40">
+                      <button
+                        type="button"
+                        onClick={() => setShowLiningPopover(!showLiningPopover)}
+                        className="px-2.5 py-1.5 bg-white/90 backdrop-blur-md border border-zinc-300 rounded-full shadow-md flex items-center gap-1.5 hover:bg-white transition-all text-left"
+                      >
+                        <span className="w-3.5 h-3.5 rounded-full border border-zinc-400 shrink-0 shadow-2xs" style={{ backgroundColor: obiLiningColor }} />
+                        <span className="text-[10px] font-bold text-zinc-800">裏地の色</span>
+                      </button>
+
+                      {showLiningPopover && (
+                        <div className="absolute bottom-full left-0 mb-2 p-3 bg-white/95 backdrop-blur-md border border-zinc-300 rounded-lg shadow-xl w-[260px] animate-fade-in z-50">
+                          <div className="flex justify-between items-center mb-2 pb-1 border-b border-zinc-200">
+                            <span className="text-[10px] font-bold text-zinc-800">裏地の色を選択</span>
+                            <button type="button" onClick={() => setShowLiningPopover(false)} className="text-[10px] font-bold text-zinc-400 hover:text-zinc-800">閉じる</button>
+                          </div>
+                          <div className="max-h-[160px] overflow-y-auto pr-1 grid grid-cols-4 gap-1">
+                            {TRADITIONAL_COLORS.map((col) => (
+                              <button
+                                key={`lining-${col.name}`}
+                                type="button"
+                                onClick={() => { setObiLiningColor(col.hex); setShowLiningPopover(false); }}
+                                className="h-7 p-1 flex flex-col justify-end text-left border border-zinc-200 shadow-2xs rounded-xs hover:scale-105 transition-transform"
+                                style={{ backgroundColor: col.hex }}
+                              >
+                                <span className={`text-[8px] font-bold truncate leading-none ${col.isDark ? 'text-white' : 'text-zinc-900'}`}>{col.name.split(' ')[0]}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* 着物のフローティングコーディネート調整 */}
+                  {itemType === 'kimono' && (
+                    <div className="absolute top-2 right-2 z-40">
+                      <button
+                        type="button"
+                        onClick={() => { setShowCoordPanel(!showCoordPanel); setActivePalette(null); }}
+                        className="px-3 py-1.5 bg-white/90 backdrop-blur-md border border-zinc-300 rounded-full shadow-md flex items-center gap-2 hover:bg-white transition-all text-left"
+                      >
+                        <div className="flex items-center -space-x-1">
+                          <span className="w-3 h-3 rounded-full border border-white" style={{ backgroundColor: kimonoObiColor }} />
+                          <span className="w-3 h-3 rounded-full border border-white" style={{ backgroundColor: kimonoHaneriColor }} />
+                          <span className="w-3 h-3 rounded-full border border-white" style={{ backgroundColor: kimonoObiageColor }} />
+                        </div>
+                        <span className="text-[10px] font-bold text-zinc-800">コーデ調整</span>
+                      </button>
+
+                      {showCoordPanel && (
+                        <div className="absolute top-full right-0 mt-2 p-3.5 bg-white/95 backdrop-blur-md border border-zinc-300 rounded-lg shadow-xl w-[280px] animate-fade-in z-50 space-y-3">
+                          <div className="flex justify-between items-center pb-2 border-b border-zinc-200">
+                            <span className="text-[11px] font-black text-zinc-900">着物コーディネート</span>
+                            <button type="button" onClick={() => { setShowCoordPanel(false); setActivePalette(null); }} className="text-[10px] font-bold text-zinc-400 hover:text-zinc-800">閉じる</button>
+                          </div>
+
+                          {/* 帯 */}
+                          <div className="space-y-1.5">
+                            <div className="flex justify-between items-center">
+                              <span className="text-[10px] font-bold text-zinc-600">帯</span>
+                              {customObiUrl && (
+                                <button type="button" onClick={() => setCustomObiUrl(null)} className="text-[9px] text-zinc-400 hover:text-zinc-800 underline">画像解除</button>
+                              )}
+                            </div>
+                            <div className="flex gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => setActivePalette(activePalette === 'obi' ? null : 'obi')}
+                                className="flex-1 h-7 px-2 border border-zinc-300 rounded-xs flex items-center gap-1.5 bg-white hover:bg-zinc-50"
+                              >
+                                <span className="w-3.5 h-3.5 rounded-full border border-zinc-400 shrink-0" style={{ backgroundColor: kimonoObiColor }} />
+                                <span className="text-[9px] font-bold text-zinc-700 truncate">色を選ぶ</span>
+                              </button>
+                              <label className="flex-1 h-7 px-2 border border-zinc-800 bg-zinc-900 text-white rounded-xs flex items-center justify-center text-[9px] font-bold cursor-pointer hover:bg-zinc-800 transition-colors">
+                                画像を乗せる
+                                <input type="file" accept="image/*" className="hidden" onChange={handleCustomObiUpload} />
+                              </label>
+                            </div>
+                          </div>
+
+                          {/* 半衿 */}
+                          <div className="space-y-1.5">
+                            <span className="text-[10px] font-bold text-zinc-600">半衿</span>
+                            <button
+                              type="button"
+                              onClick={() => setActivePalette(activePalette === 'haneri' ? null : 'haneri')}
+                              className="w-full h-7 px-2 border border-zinc-300 rounded-xs flex items-center gap-1.5 bg-white hover:bg-zinc-50"
+                            >
+                              <span className="w-3.5 h-3.5 rounded-full border border-zinc-400 shrink-0" style={{ backgroundColor: kimonoHaneriColor }} />
+                              <span className="text-[9px] font-bold text-zinc-700 truncate">色を選ぶ</span>
+                            </button>
+                          </div>
+
+                          {/* 帯揚げ */}
+                          <div className="space-y-1.5">
+                            <span className="text-[10px] font-bold text-zinc-600">帯揚げ</span>
+                            <button
+                              type="button"
+                              onClick={() => setActivePalette(activePalette === 'obiage' ? null : 'obiage')}
+                              className="w-full h-7 px-2 border border-zinc-300 rounded-xs flex items-center gap-1.5 bg-white hover:bg-zinc-50"
+                            >
+                              <span className="w-3.5 h-3.5 rounded-full border border-zinc-400 shrink-0" style={{ backgroundColor: kimonoObiageColor }} />
+                              <span className="text-[9px] font-bold text-zinc-700 truncate">色を選ぶ</span>
+                            </button>
+                          </div>
+
+                          {/* 伝統色パレット（展開時） */}
+                          {activePalette && (
+                            <div className="pt-2 border-t border-zinc-200 animate-fade-in">
+                              <div className="flex justify-between items-center mb-1.5">
+                                <span className="text-[9px] font-bold text-zinc-500">
+                                  {activePalette === 'obi' && '帯の色'}
+                                  {activePalette === 'haneri' && '半衿の色'}
+                                  {activePalette === 'obiage' && '帯揚げの色'}
+                                </span>
+                                <button type="button" onClick={() => setActivePalette(null)} className="text-[9px] text-zinc-400 font-bold">閉じる</button>
+                              </div>
+                              <div className="max-h-[140px] overflow-y-auto pr-1 grid grid-cols-4 gap-1">
+                                {TRADITIONAL_COLORS.map((col) => (
+                                  <button
+                                    key={`palette-${activePalette}-${col.name}`}
+                                    type="button"
+                                    onClick={() => {
+                                      if (activePalette === 'obi') { setKimonoObiColor(col.hex); setCustomObiUrl(null); }
+                                      if (activePalette === 'haneri') setKimonoHaneriColor(col.hex);
+                                      if (activePalette === 'obiage') setKimonoObiageColor(col.hex);
+                                      setActivePalette(null);
+                                    }}
+                                    className="h-6 p-0.5 flex flex-col justify-end text-left border border-zinc-200 shadow-2xs rounded-xs hover:scale-105 transition-transform"
+                                    style={{ backgroundColor: col.hex }}
+                                  >
+                                    <span className={`text-[7px] font-bold truncate leading-none ${col.isDark ? 'text-white' : 'text-zinc-900'}`}>{col.name.split(' ')[0]}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                 </div>
               </div>
             )}
