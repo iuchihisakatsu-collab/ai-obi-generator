@@ -24,7 +24,8 @@ function getTodayJST(): string {
   return `${parts.find(p => p.type === 'year')?.value}-${parts.find(p => p.type === 'month')?.value}-${parts.find(p => p.type === 'day')?.value}`;
 }
 
-function getColorLabel(hex: string): string {
+// 伝統色の色名を取得する関数（例: "#8b1e2a" -> "深緋"）
+function getColorNameFromHex(hex: string): string {
   const found = TRADITIONAL_COLORS.find(c => c.hex.toLowerCase() === hex.toLowerCase());
   return found ? found.name.split(' ')[0] : '';
 }
@@ -34,7 +35,7 @@ function HomeContent() {
   const [platform, setPlatform] = useState<PlatformType>((searchParams.get('platform') as PlatformType) || 'makeshop');
   const [designFee, setDesignFee] = useState<number>(1000);
 
-  const [creationMode, setCreationMode] = useState<'ai' | 'geometric'>('ai');
+  const [creationMode, setCreationMode] = useState<'ai' | 'geometric'>('geometric');
   const [itemType, setItemType] = useState<'hanhaba' | 'kyobukuro' | 'kimono'>('hanhaba');
   const [displayMode, setDisplayMode] = useState<'mockup' | 'trim' | 'data'>('mockup');
   
@@ -42,19 +43,21 @@ function HomeContent() {
   const [motif, setMotif] = useState<string>('');
   const [selectedColors, setSelectedColors] = useState<typeof TRADITIONAL_COLORS>([]);
   const [showColorPalette, setShowColorPalette] = useState<boolean>(false);
-  const [density, setDensity] = useState<string>('標準（バランス）');
+  const [density, setDensity] = useState<string>('四方柄（上下なし）');
 
+  // 格子・水玉製作所ステート
   const [geoPatternType, setGeoPatternType] = useState<'plain' | 'stripe' | 'dot' | 'grid' | 'gingham' | 'checker'>('stripe');
   const [stripeDir, setStripeDir] = useState<StripeDirection>('vertical');
   const [dotLayout, setDotLayout] = useState<DotLayout>('staggered');
-  const [dotRadius, setDotRadius] = useState<number>(20);
-  const [gapWidth, setGapWidth] = useState<number>(20);
-  const [lineWidth, setLineWidth] = useState<number>(10);
-  const [geoBgColor, setGeoBgColor] = useState<string>('#ffffff');
-  const [geoPatternColor, setGeoPatternColor] = useState<string>('#000000');
+  const [dotRadius, setDotRadius] = useState<number>(5);
+  const [gapWidth, setGapWidth] = useState<number>(10);
+  const [lineWidth, setLineWidth] = useState<number>(5);
+  const [geoBgColor, setGeoBgColor] = useState<string>('#fffffc');
+  const [geoPatternColor, setGeoPatternColor] = useState<string>('#161616');
+  const [showGeoPaletteFor, setShowGeoPaletteFor] = useState<'bg' | 'pattern' | null>(null);
   const [bgSizeMm, setBgSizeMm] = useState<number>(100);
 
-  const [obiLiningColor, setObiLiningColor] = useState<string>('#262626');
+  const [obiLiningColor, setObiLiningColor] = useState<string>('#dcdddd');
   const [kimonoHaneriColor, setKimonoHaneriColor] = useState<string>('#ffffff');
   const [kimonoObiageColor, setKimonoObiageColor] = useState<string>('#c82a36');
   const [kimonoObiColor, setKimonoObiColor] = useState<string>('#1a1a1a');
@@ -93,13 +96,11 @@ function HomeContent() {
       setRemainingOpenAI(Math.max(0, MAX_OPENAI_PER_DAY - parseInt(localStorage.getItem('komon_count_openai') || '0', 10)));
     }
 
-    // 初回のみモーダルを開く（既に閲覧記録があれば開かない）
     if (CURRENT_NOTICE.enabled && localStorage.getItem('last_dismissed_notice_id') !== CURRENT_NOTICE.id) {
       setIsNoticeOpen(true);
     }
   }, []);
 
-  // モーダルを閉じたらブラウザに記録し、次回以降は出さないようにする
   const handleCloseNotice = () => {
     setIsNoticeOpen(false);
     if (CURRENT_NOTICE?.id) {
@@ -107,6 +108,7 @@ function HomeContent() {
     }
   };
 
+  // ★ 格子・水玉の生成 ＆ 伝統色名による銘の自動連動
   const updateGeometricPattern = useCallback(async () => {
     if (creationMode !== 'geometric') return;
     let svg = '';
@@ -114,6 +116,7 @@ function HomeContent() {
     
     if (geoPatternType === 'plain') { 
       svg = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100" height="100" fill="${geoBgColor}"/></svg>`; 
+      size = 100;
     }
     else if (geoPatternType === 'stripe') { 
       svg = generateStripeSvg({ direction: stripeDir, lineWidth, gap: gapWidth, bgColor: geoBgColor, stripeColor: geoPatternColor }); 
@@ -140,6 +143,27 @@ function HomeContent() {
     setImageUrl(await svgToHighResPng(svg, size));
     setBlobUrl('');
     setRotatedPatternUrl('');
+
+    // ★ 伝統色名による銘の自動連動
+    const bgName = getColorNameFromHex(geoBgColor);
+    const patName = getColorNameFromHex(geoPatternColor);
+    let baseName = '無題';
+    if (geoPatternType === 'plain') baseName = '色無地';
+    if (geoPatternType === 'stripe') baseName = '万筋縞';
+    if (geoPatternType === 'dot') baseName = '千鳥水玉';
+    if (geoPatternType === 'grid') baseName = '格子柄';
+    if (geoPatternType === 'gingham') baseName = 'ギンガムチェック';
+    if (geoPatternType === 'checker') baseName = '市松模様';
+
+    let autoTitle = baseName;
+    if (geoPatternType === 'plain') {
+      autoTitle = bgName ? `${bgName}の色無地` : '色無地';
+    } else {
+      const mainColor = patName || bgName;
+      autoTitle = mainColor ? `${mainColor}の${baseName}` : baseName;
+    }
+    setPatternTitle(autoTitle);
+
   }, [creationMode, geoPatternType, lineWidth, gapWidth, geoPatternColor, geoBgColor, stripeDir, dotRadius, dotLayout]);
 
   useEffect(() => {
@@ -178,7 +202,7 @@ function HomeContent() {
     const stepTimer = setInterval(() => setLoadingStep(prev => prev < 4 ? prev + 1 : prev), 4000);
 
     try {
-      const colorNames = selectedColors.map(c => getColorLabel(c.hex)).join('、');
+      const colorNames = selectedColors.map(c => getColorNameFromHex(c.hex)).join('、');
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -192,7 +216,9 @@ function HomeContent() {
       setRotatedPatternUrl(data.rotatedPatternUrl || data.imageUrl);
       const newSerial = `KOMON-${Math.floor(1000 + Math.random() * 9000)}`;
       setSerialNumber(newSerial);
-      setPatternTitle(motif.trim() ? `${motif.trim()}小紋` : '無題の小紋');
+
+      const colorPrefix = selectedColors.length > 0 ? `${getColorNameFromHex(selectedColors[0].hex)}の` : '';
+      setPatternTitle(motif.trim() ? `${colorPrefix}${motif.trim()}小紋` : '無題の小紋');
 
       const storageKey = engine === 'flux' ? 'komon_count_flux' : 'komon_count_openai';
       const maxCount = engine === 'flux' ? MAX_FLUX_PER_DAY : MAX_OPENAI_PER_DAY;
@@ -276,7 +302,8 @@ function HomeContent() {
   return (
     <div className="min-h-screen bg-[#f4f4f5] text-zinc-900 flex flex-col items-center justify-start font-sans lg:p-8">
       <div className="w-full max-w-7xl flex flex-col lg:flex-row lg:gap-6 items-start justify-center">
-        {/* PreviewAreaに各種カラー変更setterを渡し、プレビュー上の着せ替え操作と連動 */}
+        
+        {/* スマホ全幅・大迫力のプレビューエリア */}
         <PreviewArea
           imageUrl={imageUrl} blobUrl={blobUrl} rotatedPatternUrl={rotatedPatternUrl}
           serialNumber={serialNumber} itemType={itemType} displayMode={displayMode}
@@ -296,6 +323,7 @@ function HomeContent() {
           handleDownloadMapping={handleDownloadMapping} UNIVERSAL_SCALE_FACTOR={UNIVERSAL_SCALE_FACTOR}
         />
 
+        {/* 格子・水玉の伝統色パレット連携済みコントロールパネル */}
         <ControlPanel
           creationMode={creationMode} setCreationMode={setCreationMode}
           aiStyle={aiStyle} setAiStyle={setAiStyle} motif={motif} setMotif={setMotif}
@@ -307,6 +335,7 @@ function HomeContent() {
           dotRadius={dotRadius} setDotRadius={setDotRadius} gapWidth={gapWidth} setGapWidth={setGapWidth}
           lineWidth={lineWidth} setLineWidth={setLineWidth} geoBgColor={geoBgColor} setGeoBgColor={setGeoBgColor}
           geoPatternColor={geoPatternColor} setGeoPatternColor={setGeoPatternColor}
+          showGeoPaletteFor={showGeoPaletteFor} setShowGeoPaletteFor={setShowGeoPaletteFor}
           obiLiningColor={obiLiningColor} setObiLiningColor={setObiLiningColor}
           kimonoHaneriColor={kimonoHaneriColor} setKimonoHaneriColor={setKimonoHaneriColor}
           kimonoObiageColor={kimonoObiageColor} setKimonoObiageColor={setKimonoObiageColor}
