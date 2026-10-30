@@ -8,13 +8,10 @@ export async function POST(req: Request) {
   try {
     const { motif, color, density, itemType, aiStyle, engine } = await req.json();
 
-    // 1. プロンプト生成（OpenAIキーがあれば翻訳、なければ自動テンプレートでフォールバック）
     const openAiKey = process.env.OPENAI_API_KEY;
-    let englishPrompt = `${motif}, traditional Japanese kimono pattern, color scheme: ${color}, density: ${density}, style: ${aiStyle}, perfectly seamless 2D textile pattern, flat overhead shot, high resolution, crisp details, NO humans, NO faces, NO clothing`;
 
-    if (openAiKey) {
-      try {
-        const systemPrompt = `You are a professional textile designer. Translate the user's Japanese design idea into a clear English prompt for an AI image generator.
+    // 1. gpt-4o-miniによる自動英訳（今まで通りの共通キーを使用）
+    const systemPrompt = `You are a professional textile designer. Translate the user's Japanese design idea into a clear English prompt for an AI image generator.
 The output must be a 2D textile pattern graphic design for digital silk printing.
 Rule: NO humans, NO faces, NO clothing.
 
@@ -25,6 +22,10 @@ Style: ${aiStyle}
 
 Output ONLY the English prompt.`;
 
+    let englishPrompt = `${motif}, perfectly seamless 2D textile pattern, flat overhead shot, high resolution, crisp details, NO humans, NO faces, NO clothing`;
+
+    if (openAiKey) {
+      try {
         const translateRes = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -43,14 +44,11 @@ Output ONLY the English prompt.`;
           englishPrompt = translateData.choices[0].message.content.trim() + ", perfectly seamless 2D textile pattern, flat overhead shot, high resolution, crisp details";
         }
       } catch (err) {
-        console.warn('Translation skipped or failed, using fallback prompt:', err);
+        console.warn('Translation fallback to direct motif:', err);
       }
     }
 
     let base64Image = '';
-
-    // 【絶対ルール】フロント側の完璧なタイリング計算（40cm基準）を活かすため、
-    // アイテム種別に関わらず画像は全て「正方形」で生成します。
     const falImageSize = 'square_hd';
     const openaiImageSize = '1024x1024';
 
@@ -58,10 +56,10 @@ Output ONLY the English prompt.`;
     if (engine === 'flux') {
       const falKey = process.env.FAL_KEY;
       if (!falKey) {
-        throw new Error('Vercelの環境変数に FAL_KEY が設定されていません。');
+        throw new Error('FAL_KEYが設定されていません。');
       }
 
-      // falの即時実行（同期）エンドポイントを使用
+      // queue.fal.run ではなく fal.run で即時画像を取得
       const falRes = await fetch('https://fal.run/fal-ai/flux/schnell', {
         method: 'POST',
         headers: {
@@ -77,9 +75,8 @@ Output ONLY the English prompt.`;
       });
 
       const falData = await falRes.json();
-
-      if (!falRes.ok || falData.detail || !falData.images?.[0]?.url) {
-        throw new Error(falData.detail || falData.error?.message || 'falでの画像生成に失敗しました。');
+      if (!falRes.ok || !falData.images?.[0]?.url) {
+        throw new Error(falData.detail || falData.message || 'falでの画像生成に失敗しました。');
       }
 
       const imgUrl = falData.images[0].url;
@@ -88,11 +85,7 @@ Output ONLY the English prompt.`;
       base64Image = Buffer.from(imgBuffer).toString('base64');
 
     } else {
-      // OpenAI
-      if (!openAiKey) {
-        throw new Error('Vercelの環境変数に OPENAI_API_KEY が設定されていません。');
-      }
-
+      // OpenAI（今まで通り動作）
       const openaiRes = await fetch('https://api.openai.com/v1/images/generations', {
         method: 'POST',
         headers: {
@@ -110,9 +103,8 @@ Output ONLY the English prompt.`;
       });
 
       const openaiData = await openaiRes.json();
-      if (!openaiRes.ok || openaiData.error || !openaiData.data?.[0]) {
-        throw new Error(openaiData.error?.message || 'OpenAIでの画像生成に失敗しました。');
-      }
+      if (openaiData.error) throw new Error(openaiData.error.message);
+      if (!openaiData.data?.[0]?.b64_json) throw new Error('OpenAIの画像データ取得に失敗しました。');
 
       base64Image = openaiData.data[0].b64_json;
     }
