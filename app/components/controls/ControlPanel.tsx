@@ -7,6 +7,8 @@ import { TRADITIONAL_COLORS, TAG_CATEGORIES, CategoryItem, LOADING_STEPS } from 
 interface ControlPanelProps {
   creationMode: 'ai' | 'geometric';
   setCreationMode: (mode: 'ai' | 'geometric') => void;
+  aiStyle: string;
+  setAiStyle: (val: string) => void;
   motif: string;
   setMotif: (val: string) => void;
   showTags: boolean;
@@ -67,14 +69,21 @@ interface ControlPanelProps {
   imageUrl: string;
   patternTitle: string;
   setPatternTitle: (val: string) => void;
-  setIsTitleManual?: (val: boolean) => void;
   handleDownloadOriginal: () => void;
   handleNativeShare: () => void;
   handleOrderClick: (e: MouseEvent<HTMLAnchorElement>) => void;
 }
 
+const AI_STYLES = [
+  { id: 'mingei', label: '民藝と手仕事', sub: '型染め・素朴' },
+  { id: 'retro', label: '喫茶と文学', sub: '大正ノスタルジー' },
+  { id: 'mode', label: 'モード＆アート', sub: 'モノトーン・幾何学' },
+  { id: 'sarasa', label: 'エキゾチック更紗', sub: 'バティック調' },
+  { id: 'classic', label: '騙し絵クラシック', sub: '金襴・織物風' },
+];
+
 export default function ControlPanel({
-  creationMode, setCreationMode, motif, setMotif, showTags, setShowTags, handleTagClick,
+  creationMode, setCreationMode, aiStyle, setAiStyle, motif, setMotif, showTags, setShowTags, handleTagClick,
   selectedColors, setSelectedColors, handleColorToggle, showColorPalette, setShowColorPalette,
   density, setDensity, geoPatternType, setGeoPatternType, stripeDir, setStripeDir,
   dotLayout, setDotLayout, dotRadius, setDotRadius, gapWidth, setGapWidth, lineWidth, setLineWidth,
@@ -84,7 +93,7 @@ export default function ControlPanel({
   kimonoHaneriColor, setKimonoHaneriColor, showHaneriColorPalette, setShowHaneriColorPalette,
   kimonoObiageColor, setKimonoObiageColor, showObiageColorPalette, setShowObiageColorPalette,
   handleCustomObiUpload, agreed, setAgreed, errorMsg, loading, remainingCount, loadingStep, handleGenerate,
-  imageUrl, patternTitle, setPatternTitle, setIsTitleManual, handleDownloadOriginal, handleOrderClick
+  imageUrl, patternTitle, setPatternTitle, handleDownloadOriginal, handleOrderClick
 }: ControlPanelProps) {
 
   const finalTitle = patternTitle.trim() || '（無題）';
@@ -122,6 +131,9 @@ export default function ControlPanel({
     window.open('https://www.instagram.com/', '_blank', 'noopener,noreferrer');
   };
 
+  const primaryMotif = patternTitle ? (motif.trim() ? motif.split(/[、\s ]+/)[0] : '') : '';
+  const makeshopSearchUrl = primaryMotif ? `https://store.gofukuyasan.com/view/search?search_keyword=${encodeURIComponent(primaryMotif)}` : '';
+
   return (
     <div className="w-full lg:w-1/2 bg-white border border-zinc-200 p-4 sm:p-8 lg:p-10 shrink-0 shadow-sm z-10 relative">
       <div className="flex bg-zinc-50 border border-zinc-200 p-1 mb-6 shadow-sm">
@@ -137,14 +149,27 @@ export default function ControlPanel({
         {creationMode === 'ai' ? (
           <>
             <div>
+              <label className="block text-xs font-bold text-zinc-900 tracking-wider mb-2">01. どんな世界観で？（スタイル）</label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 mb-6">
+                {AI_STYLES.map((s) => (
+                  <button key={s.id} type="button" onClick={() => setAiStyle(s.id)} className={`flex flex-col items-center justify-center p-2.5 border transition-all shadow-sm ${aiStyle === s.id ? 'bg-zinc-900 text-white border-zinc-900 scale-95 ring-2 ring-zinc-900' : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50 hover:scale-[1.02]'}`}>
+                    <span className="text-[11px] font-black">{s.label}</span>
+                    <span className="text-[9px] opacity-70 mt-0.5">{s.sub}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-zinc-100">
               <div className="flex justify-between items-baseline mb-2">
-                <label className="block text-xs font-bold text-zinc-900 tracking-wider">01. 図案のイメージ・プロンプト</label>
+                <label className="block text-xs font-bold text-zinc-900 tracking-wider">02. 何を描く？（モチーフ）</label>
                 {motif && <button onClick={() => setMotif('')} className="text-[10px] font-bold text-zinc-400 hover:text-zinc-800 tracking-widest uppercase transition-colors">Clear</button>}
               </div>
-              <textarea className="w-full border border-zinc-300 p-3 sm:p-4 bg-white text-xs sm:text-sm focus:outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 resize-none transition-all duration-200 leading-relaxed font-medium shadow-sm" rows={3} value={motif} onChange={(e) => setMotif(e.target.value)} disabled={loading} />
+              <textarea className="w-full border border-zinc-300 p-3 sm:p-4 bg-white text-xs sm:text-sm focus:outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 resize-none transition-all duration-200 leading-relaxed font-medium shadow-sm" placeholder="例：猫、金魚、珈琲、天体 など（単語を入れるだけでOK！）" rows={2} value={motif} onChange={(e) => setMotif(e.target.value)} disabled={loading} />
+              
               <div className="mt-2 text-right">
                 <button type="button" onClick={() => setShowTags(!showTags)} className="inline-flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-900 font-bold transition-colors py-1">
-                  <span>{showTags ? 'ヒントを閉じる' : '図案のヒント・キーワードを探す'}</span>
+                  <span>{showTags ? 'ヒントを閉じる' : '人気のモチーフから選ぶ'}</span>
                   <span className="text-[9px] transform transition-transform duration-200">{showTags ? '▲' : '▼'}</span>
                 </button>
               </div>
@@ -166,16 +191,16 @@ export default function ControlPanel({
               )}
             </div>
 
-            <div className="pt-2 border-t border-zinc-100 relative">
+            <div className="pt-4 border-t border-zinc-100 relative">
               <div className="flex justify-between items-baseline mb-2">
-                <label className="block text-xs font-bold text-zinc-900 tracking-wider">02. 配色・地色</label>
+                <label className="block text-xs font-bold text-zinc-900 tracking-wider">03. 配色・地色</label>
                 <button type="button" onClick={() => setShowColorPalette(!showColorPalette)} className="inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-900 font-bold transition-colors">
                   <span>{showColorPalette ? '閉じる' : '色見本から選ぶ (102色)'}</span>
                 </button>
               </div>
               <div className="flex flex-wrap items-center gap-1.5 min-h-[30px]">
                 {selectedColors.length === 0 ? ( 
-                  <span className="text-xs text-zinc-400 italic">指定なし（AIにおまかせ）</span> 
+                  <span className="text-xs text-zinc-400 italic">指定なし（ゴフクヤサンにおまかせ）</span> 
                 ) : (
                   <>
                     {selectedColors.map((col) => (
@@ -207,7 +232,7 @@ export default function ControlPanel({
             </div>
 
             <div className="pt-4 border-t border-zinc-200">
-              <label className="block text-xs font-bold text-zinc-800 tracking-wider mb-2">03. 柄の配置</label>
+              <label className="block text-xs font-bold text-zinc-800 tracking-wider mb-2">04. 柄の配置</label>
               <div className="flex flex-col gap-1.5">
                 {['四方柄（上下なし）', '飛び柄（余白あり）', 'お太鼓柄（ワンポイント/1枚絵）'].map((id) => (
                   <button key={id} type="button" onClick={() => setDensity(id)} className={`py-2 px-2.5 text-[11px] font-bold tracking-wider transition-all text-left border ${density === id ? 'bg-zinc-900 text-white border-zinc-900 shadow' : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50 shadow-sm'} relative z-10`}>
@@ -466,7 +491,7 @@ export default function ControlPanel({
             <div className="pt-6 border-t border-zinc-200">
               <label className="flex items-start gap-2.5 cursor-pointer select-none mb-4 group relative z-10">
                 <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-0.5 h-3.5 w-3.5 border-zinc-300 text-zinc-900 focus:ring-zinc-900 transition-colors cursor-pointer" />
-                <span className="text-[10px] text-zinc-500 leading-tight group-hover:text-zinc-800 transition-colors">生成図案はAIによるアイデアであり、実際の生地制作時は職人の手でデータ調整が行われることに同意します。</span>
+                <span className="text-[10px] text-zinc-500 leading-tight group-hover:text-zinc-800 transition-colors">生成図案はAIによるアイデアであり、実際の生地制作時はゴフクヤサンの手でデータ調整が行われることに同意します。</span>
               </label>
               {errorMsg && <div className="mb-4 p-3 bg-red-50 text-red-600 border border-red-200 text-xs font-bold shadow-sm">{errorMsg}</div>}
               <button type="button" onClick={handleGenerate} disabled={loading || remainingCount === 0} className={`w-full py-4 font-black text-sm tracking-widest uppercase transition-all duration-300 flex items-center justify-center gap-2 shadow-md relative z-10 ${remainingCount === 0 ? 'bg-zinc-100 text-zinc-400 border border-zinc-200 cursor-not-allowed' : 'bg-zinc-950 text-white hover:bg-zinc-800 hover:shadow-lg disabled:opacity-50'}`}>
@@ -492,28 +517,13 @@ export default function ControlPanel({
                 <label className="block text-xs font-bold text-zinc-700 tracking-wider">
                   作品名 <span className="font-normal text-[10px] text-zinc-400">（お好みの名前に変更できます）</span>
                 </label>
-                {patternTitle && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPatternTitle('');
-                      if (setIsTitleManual) setIsTitleManual(false);
-                    }}
-                    className="text-[10px] text-zinc-400 hover:text-zinc-700 underline"
-                  >
-                    リセット
-                  </button>
-                )}
               </div>
               <input
                 type="text"
                 className="w-full border-b-2 border-zinc-300 p-3 bg-transparent text-sm font-bold focus:outline-none focus:border-zinc-950 transition-colors"
                 placeholder="例：深緋の色無地"
                 value={patternTitle}
-                onChange={(e) => {
-                  setPatternTitle(e.target.value);
-                  if (setIsTitleManual) setIsTitleManual(true);
-                }}
+                onChange={(e) => setPatternTitle(e.target.value)}
                 disabled={loading}
               />
             </div>
@@ -538,7 +548,7 @@ export default function ControlPanel({
                   <button type="button" onClick={shareToThreads} className="flex flex-col items-center justify-center py-2.5 px-1 bg-white border border-zinc-300 rounded hover:bg-zinc-950 hover:text-white hover:border-zinc-950 transition-all shadow-sm group" title="Threadsでポスト">
                     <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" className="transition-transform group-hover:scale-110">
                       <path d="M12.186 24C5.467 24 0 18.533 0 11.814 0 5.094 5.467 0 12.186 0c6.72 0 12.186 5.094 12.186 11.814 0 2.253-.615 4.417-1.78 6.257l-1.92-1.22c.905-1.43 1.38-3.11 1.38-4.863 0-5.467-4.44-9.5-9.866-9.5-5.426 0-9.866 4.44-9.866 9.866 0 5.427 4.44 9.867 9.866 9.867 3.52 0 6.64-1.854 8.36-4.96l1.986 1.1c-2.226 4.013-6.24 6.406-10.74 6.406z"/>
-                      <path d="M12.186 17.5c-3.14 0-5.694-2.553-5.694-5.693 0-3.14 2.554-5.694 5.694-5.694 3.14 0 5.693 2.554 5.693 5.694 0 .693-.56 1.253-1.253 1.253-.694 0-1.254-.56-1.254-1.253 0-1.76-1.433-3.194-3.193-3.194-1.76 0-3.194 1.434-3.194 3.194 0 1.76 1.434 3.193 3.194 3.193 1.053 0 1.986-.52 2.56-1.306.493.533 1.2 1.306 2.066 1.306 1.96 0 3.547-1.587 3.547-3.547 0-4.32-3.507-7.827-7.827-7.827-4.32 0-7.827 3.507-7.827 7.827 0 4.32 3.507 7.827 7.827 7.827 2.373 0 4.547-1.067 6.013-2.773l1.84 1.333C20.693 20.307 17.973 21.667 15 21.667c-.933 0-1.88-.134-2.814-.414z"/>
+                      <path d="M12.186 17.5c-3.14 0-5.694-2.553-5.694-5.693 0-3.14 2.554-5.694 5.694-5.694 3.14 0 5.693 2.554 5.693 5.694 0 .693-.56 1.253-1.253 1.253-.694 0-1.254-.56-1.254-1.253 0-1.76-1.433-3.194-3.193-3.194-1.76 0-3.194 1.434-3.194 3.194 0 1.76 1.434 3.193 3.194 3.194 1.053 0 1.986-.52 2.56-1.306.493.533 1.2 1.306 2.066 1.306 1.96 0 3.547-1.587 3.547-3.547 0-4.32-3.507-7.827-7.827-7.827-4.32 0-7.827 3.507-7.827 7.827 0 4.32 3.507 7.827 7.827 7.827 2.373 0 4.547-1.067 6.013-2.773l1.84 1.333C20.693 20.307 17.973 21.667 15 21.667c-.933 0-1.88-.134-2.814-.414z"/>
                     </svg>
                     <span className="text-[9px] font-bold mt-1 tracking-tighter">Threads</span>
                   </button>
@@ -571,6 +581,23 @@ export default function ControlPanel({
               <a href="#" onClick={handleOrderClick} className="block w-full py-4 mt-2 text-center bg-zinc-950 text-white text-[15px] font-black tracking-widest transition-all shadow-xl hover:shadow-2xl hover:scale-[1.01] border-2 border-zinc-950 rounded-sm">
                 妄想を現実に<br/><span className="text-[10px] font-medium tracking-wider opacity-90 mt-1 block">（この作品を現実の着物・帯として仕立てる）</span>
               </a>
+
+              {/* MakeShop検索への寄り道リンク */}
+              {primaryMotif && (
+                <div className="mt-6 p-4 bg-zinc-100 border border-zinc-200 shadow-inner rounded-sm text-center animate-fade-in">
+                  <p className="text-[11px] font-bold text-zinc-700 mb-2 leading-relaxed">
+                    <span className="text-[9px] text-zinc-500 block mb-1">【 寄り道のご案内 】</span>
+                    お客様、もしかして『<span className="text-zinc-950 font-black text-sm">{primaryMotif}</span>』に<br/>目がありませんね？
+                  </p>
+                  <p className="text-[9px] text-zinc-500 mb-4 leading-relaxed px-2">
+                    妄想図案もいいですが……実はゴフクヤサンにも、<br/>自慢の『{primaryMotif}』アイテムがたくさんスタンバイしています。
+                  </p>
+                  <a href={makeshopSearchUrl} target="_blank" rel="noopener noreferrer" className="inline-block w-full py-3 bg-white border border-zinc-300 text-zinc-800 text-[10px] font-bold tracking-widest hover:bg-zinc-950 hover:text-white hover:border-zinc-950 transition-colors shadow-sm rounded-sm">
+                    ゴフクヤサンの「{primaryMotif}」コレクションを覗く →
+                  </a>
+                </div>
+              )}
+
             </div>
           </div>
         )}
