@@ -64,6 +64,7 @@ function HomeContent() {
   const [selectedArtist, setSelectedArtist] = useState<string>('none');
 
   const [motif, setMotif] = useState<string>('');
+  const [motif2, setMotif2] = useState<string>(''); // 前柄用の状態を追加
   const [selectedColors, setSelectedColors] = useState<typeof TRADITIONAL_COLORS>([]);
   const [showColorPalette, setShowColorPalette] = useState<boolean>(false);
   const [density, setDensity] = useState<string>('四方柄');
@@ -257,6 +258,7 @@ function HomeContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           motif: motif.trim(), 
+          motif2: motif2.trim(), // ★ 前柄用モチーフを送信
           color: colorNames || 'おまかせ', 
           density, 
           itemType, 
@@ -318,7 +320,6 @@ function HomeContent() {
     }
   };
 
-  // ★ グレー化を根絶：Canvas APIによる自前レイヤー合成（1200x1200px高解像度PNG）
   const handleDownloadMapping = async () => {
     if (!previewContainerRef.current) return;
     try {
@@ -421,7 +422,7 @@ function HomeContent() {
         ctx.globalCompositeOperation = 'source-over';
       }
 
-      // 2. 京袋帯の合成
+      // 2. 京袋帯の合成（★お太鼓柄の縦長分割＆お腹90度回転対応）
       if (itemType === 'kyobukuro') {
         const grandImg = await loadImage('/kyoubukurogrand.png?v=21');
         ctx.drawImage(grandImg, 0, 0, size, size);
@@ -437,10 +438,51 @@ function HomeContent() {
         uCtx.fillRect(0, 0, size, size);
         ctx.drawImage(urajiCanvas, 0, 0);
 
+        // 縦長画像（お太鼓柄生成）かどうかの判定
+        const isVerticalPattern = patternImg.height > patternImg.width * 1.5;
+        
+        let taikoPatternFill = patternFill;
+        let haraPatternFill = patternFill;
+        let haraRot = 0;
+
+        if (isVerticalPattern && creationMode === 'ai') {
+          const sqSize = patternImg.width; // 縦長画像なので横幅を基準に正方形をとる
+          
+          // お太鼓用 (上半分を切り出し)
+          const topCanvas = document.createElement('canvas');
+          topCanvas.width = sqSize;
+          topCanvas.height = sqSize;
+          topCanvas.getContext('2d')!.drawImage(patternImg, 0, 0, sqSize, sqSize, 0, 0, sqSize, sqSize);
+          
+          const pTopCanvas = document.createElement('canvas');
+          pTopCanvas.width = bgWidth;
+          pTopCanvas.height = bgWidth;
+          const pTopCtx = pTopCanvas.getContext('2d')!;
+          pTopCtx.drawImage(topCanvas, 0, 0, bgWidth, bgWidth);
+          taikoPatternFill = ctx.createPattern(pTopCanvas, 'repeat')!;
+
+          // 前柄・お腹用 (下半分を切り出し)
+          const btmCanvas = document.createElement('canvas');
+          btmCanvas.width = sqSize;
+          btmCanvas.height = sqSize;
+          // 下端から切り出し
+          btmCanvas.getContext('2d')!.drawImage(patternImg, 0, patternImg.height - sqSize, sqSize, sqSize, 0, 0, sqSize, sqSize);
+          
+          const pBtmCanvas = document.createElement('canvas');
+          pBtmCanvas.width = bgWidth;
+          pBtmCanvas.height = bgWidth;
+          const pBtmCtx = pBtmCanvas.getContext('2d')!;
+          pBtmCtx.drawImage(btmCanvas, 0, 0, bgWidth, bgWidth);
+          haraPatternFill = ctx.createPattern(pBtmCanvas, 'repeat')!;
+          
+          // 前柄は帯を巻く時に横になるため、Canvasで90度回転させてマッピングする
+          haraRot = 90;
+        }
+
         const layers = [
-          { id: 'hara', file: 'kyoubukurohara.png', rot: 271, bgX: 50, bgY: 50 },
-          { id: 'tare', file: 'kyoubukurotare.png', rot: -1, bgX: 50, bgY: 50 },
-          { id: 'taiko', file: 'kyoubukurotakio.png', rot: 2, bgX: 50, bgY: 50 },
+          { id: 'hara', file: 'kyoubukurohara.png', rot: 271, bgX: 50, bgY: 50, fill: haraPatternFill, extraRot: haraRot },
+          { id: 'tare', file: 'kyoubukurotare.png', rot: -1, bgX: 50, bgY: 50, fill: taikoPatternFill, extraRot: 0 },
+          { id: 'taiko', file: 'kyoubukurotakio.png', rot: 2, bgX: 50, bgY: 50, fill: taikoPatternFill, extraRot: 0 },
         ];
 
         for (const layer of layers) {
@@ -460,7 +502,13 @@ function HomeContent() {
           const rectSize = size * 1.5;
           const rectOffset = -size * 0.25;
           tCtx.translate(rectOffset + (rectSize * layer.bgX / 100), rectOffset + (rectSize * layer.bgY / 100));
-          tCtx.fillStyle = patternFill;
+          
+          // 前柄専用の追加回転処理
+          if (layer.extraRot) {
+            tCtx.rotate(layer.extraRot * Math.PI / 180);
+          }
+          
+          tCtx.fillStyle = layer.fill;
           tCtx.fillRect(-size * 2, -size * 2, size * 4, size * 4); 
           tCtx.restore();
 
@@ -579,6 +627,26 @@ function HomeContent() {
         ctx.globalCompositeOperation = 'source-over';
       }
 
+      // ★ 対策C：モックアップ画像の右下にIDを強制焼き込み
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.font = 'bold 24px sans-serif';
+      ctx.textBaseline = 'middle';
+      const watermarkText = `ID: ${serialNumber || 'KOMON-XXXX'}`;
+      const textWidth = ctx.measureText(watermarkText).width;
+      
+      const rectX = size - textWidth - 40;
+      const rectY = size - 60;
+      const rectW = textWidth + 30;
+      const rectH = 40;
+
+      // 半透明の白背景を敷く（どんな柄でも文字が読めるように）
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+      ctx.fillRect(rectX, rectY, rectW, rectH);
+
+      // 黒文字でIDを印字
+      ctx.fillStyle = '#111111';
+      ctx.fillText(watermarkText, rectX + 15, rectY + (rectH / 2));
+
       const finalUrl = canvas.toDataURL('image/png');
       const a = document.createElement('a');
       a.href = finalUrl;
@@ -651,9 +719,11 @@ function HomeContent() {
 
         <ControlPanel
           creationMode={creationMode} setCreationMode={setCreationMode}
+          itemType={itemType} setItemType={setItemType}
           aiStyle={aiStyle} setAiStyle={setAiStyle}
           selectedArtist={selectedArtist} setSelectedArtist={setSelectedArtist}
           motif={motif} setMotif={setMotif}
+          motif2={motif2} setMotif2={setMotif2}
           selectedColors={selectedColors} setSelectedColors={setSelectedColors} handleColorToggle={handleColorToggle}
           showColorPalette={showColorPalette} setShowColorPalette={setShowColorPalette}
           density={density} setDensity={setDensity}
@@ -673,6 +743,7 @@ function HomeContent() {
           loading={loading} loadingEngine={loadingEngine}
           remainingCount={remainingCount} loadingStep={loadingStep}
           handleGenerate={handleGenerate} imageUrl={imageUrl} patternTitle={patternTitle} setPatternTitle={setPatternTitle}
+          serialNumber={serialNumber}
           handleDownloadOriginal={handleDownloadOriginal} handleOrderClick={handleOrderClick}
         />
       </div>
