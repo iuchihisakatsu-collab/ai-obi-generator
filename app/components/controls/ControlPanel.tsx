@@ -208,10 +208,21 @@ export default function ControlPanel({
 
   const handleDensityChange = (id: string) => {
     setDensity(id);
-    // ★ お太鼓柄を選んだ瞬間、強制的に京袋帯に切り替える
     if (id === 'お太鼓柄') {
       setItemType('kyobukuro');
     }
+  };
+
+  // ★ 隠しコマンド「ぷっぴ」完全復活
+  const handleMotifChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const val = e.target.value;
+    if (val === 'ぷっぴ') {
+      localStorage.setItem('komon_count_total', '0');
+      alert('【裏技発動】図案制作の残り枠が20回に全回復しました！画面を更新します。');
+      window.location.reload();
+      return;
+    }
+    setMotif(val);
   };
 
   const shareToX = () => {
@@ -248,7 +259,7 @@ export default function ControlPanel({
     }
   };
 
-  // 検索タグ生成（お腹のモチーフの単語もリンク化）
+  // 検索タグ生成
   const searchTags: string[] = [];
   const currentStyle = AI_STYLES.find(s => s.id === aiStyle);
   if (currentStyle && currentStyle.searchKeyword) {
@@ -304,7 +315,6 @@ export default function ControlPanel({
                 ))}
               </div>
 
-              {/* 名画・巨匠の筆致プルダウン */}
               <div className="pt-2 border-t border-dashed border-zinc-200">
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] font-bold text-zinc-500 shrink-0">名画・巨匠の筆致 (任意):</span>
@@ -329,7 +339,7 @@ export default function ControlPanel({
             <div className="pt-4 border-t border-zinc-100 relative">
               <div className="flex justify-between items-baseline mb-1">
                 <div>
-                  <label className="block text-xs font-bold text-zinc-900 tracking-wider">02. 好きな色（着物のテーマカラー）</label>
+                  <label className="block text-xs font-bold text-zinc-900 tracking-wider">02. 好きな色（着物的テーマカラー）</label>
                 </div>
                 <button type="button" onClick={() => setShowColorPalette(!showColorPalette)} className="inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-900 font-bold transition-colors">
                   <span>{showColorPalette ? '閉じる' : '色見本から選ぶ (102色)'}</span>
@@ -384,10 +394,10 @@ export default function ControlPanel({
               
               <textarea 
                 className="w-full border border-zinc-300 p-3 sm:p-4 bg-white text-xs sm:text-sm focus:outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 resize-none transition-all duration-200 leading-relaxed font-medium shadow-sm" 
-                placeholder="例：黒猫、満月、星空、バイオリン" 
+                placeholder="例：黒猫、満月、星空、バイオリン（「ぷっぴ」で回復）" 
                 rows={2} 
                 value={motif} 
-                onChange={(e) => setMotif(e.target.value)} 
+                onChange={handleMotifChange} 
                 disabled={loading} 
               />
               
@@ -437,7 +447,6 @@ export default function ControlPanel({
               </div>
             </div>
 
-            {/* ★ お太鼓柄（京袋帯）選択時のみ出現する「お腹用」モチーフ入力欄 */}
             {density === 'お太鼓柄' && (
               <div className="pt-4 border-t border-zinc-100 animate-fade-in">
                 <div className="flex justify-between items-baseline mb-1">
@@ -662,7 +671,6 @@ export default function ControlPanel({
               />
             </div>
 
-            {/* ★ 対策A・B：ワンタップIDコピーと赤文字の警告 */}
             <div className="mt-4 p-3 bg-white border-2 border-zinc-200 rounded-sm shadow-sm">
               <div className="flex justify-between items-center mb-2">
                 <div>
@@ -734,7 +742,6 @@ export default function ControlPanel({
                 妄想を現実に<br/><span className="text-[10px] font-medium tracking-wider opacity-90 mt-1 block">（この作品を現実の着物・帯として仕立てる）</span>
               </a>
 
-              {/* ★ お好きな柄があるかも？ ゴフクヤサンで探す（個別タグリンク） */}
               <div className="mt-6 pt-5 border-t border-zinc-200">
                 <p className="text-xs font-bold text-zinc-900 mb-2.5 flex items-center gap-1.5">
                   <span className="text-amber-500">✦</span>
