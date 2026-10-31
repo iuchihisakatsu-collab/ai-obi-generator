@@ -7,12 +7,16 @@ import { TRADITIONAL_COLORS, CategoryItem } from '../../lib/constants';
 interface ControlPanelProps {
   creationMode?: 'ai' | 'geometric';
   setCreationMode?: (mode: 'ai' | 'geometric') => void;
+  itemType?: 'hanhaba' | 'kyobukuro' | 'kimono';
+  setItemType?: (val: 'hanhaba' | 'kyobukuro' | 'kimono') => void;
   aiStyle?: string;
   setAiStyle?: (val: string) => void;
   selectedArtist?: string;
   setSelectedArtist?: (val: string) => void;
   motif?: string;
   setMotif?: (val: string) => void;
+  motif2?: string;
+  setMotif2?: (val: string) => void;
   handleTagClick?: (item: CategoryItem) => void;
   selectedColors?: typeof TRADITIONAL_COLORS;
   setSelectedColors?: any;
@@ -136,12 +140,16 @@ const WAITING_MESSAGES = [
 export default function ControlPanel({
   creationMode = 'geometric',
   setCreationMode = () => {},
+  itemType = 'hanhaba',
+  setItemType = () => {},
   aiStyle = 'none',
   setAiStyle = () => {},
   selectedArtist = 'none',
   setSelectedArtist = () => {},
   motif = '',
   setMotif = () => {},
+  motif2 = '',
+  setMotif2 = () => {},
   selectedColors = [],
   setSelectedColors = () => {},
   handleColorToggle = () => {},
@@ -198,6 +206,14 @@ export default function ControlPanel({
     }
   };
 
+  const handleDensityChange = (id: string) => {
+    setDensity(id);
+    // ★ お太鼓柄を選んだ瞬間、強制的に京袋帯に切り替える
+    if (id === 'お太鼓柄') {
+      setItemType('kyobukuro');
+    }
+  };
+
   const shareToX = () => {
     const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(currentUrl)}`;
     window.open(url, '_blank', 'noopener,noreferrer,width=600,height=450');
@@ -232,22 +248,28 @@ export default function ControlPanel({
     }
   };
 
-  // 検索タグ生成
+  // 検索タグ生成（お腹のモチーフの単語もリンク化）
   const searchTags: string[] = [];
   const currentStyle = AI_STYLES.find(s => s.id === aiStyle);
   if (currentStyle && currentStyle.searchKeyword) {
     searchTags.push(currentStyle.searchKeyword);
   }
-
   const allArtists = MASTER_ARTISTS.flatMap(g => g.items);
   const currentArtist = allArtists.find(a => a.id === selectedArtist);
   if (currentArtist && currentArtist.searchKeyword && !searchTags.includes(currentArtist.searchKeyword)) {
     searchTags.push(currentArtist.searchKeyword);
   }
-
   if (motif.trim()) {
     const words = motif.split(/[、,，\s ]+/).map(w => w.trim()).filter(Boolean);
     for (const w of words) {
+      if (!searchTags.includes(w)) {
+        searchTags.push(w);
+      }
+    }
+  }
+  if (density === 'お太鼓柄' && motif2.trim()) {
+    const words2 = motif2.split(/[、,，\s ]+/).map(w => w.trim()).filter(Boolean);
+    for (const w of words2) {
       if (!searchTags.includes(w)) {
         searchTags.push(w);
       }
@@ -353,14 +375,16 @@ export default function ControlPanel({
 
             <div className="pt-4 border-t border-zinc-100">
               <div className="flex justify-between items-baseline mb-1">
-                <label className="block text-xs font-bold text-zinc-900 tracking-wider">03. 何を描く？（モチーフ）</label>
+                <label className="block text-xs font-bold text-zinc-900 tracking-wider">
+                  03. 何を描く？（{density === 'お太鼓柄' ? 'お太鼓・背中側のモチーフ' : 'モチーフ'}）
+                </label>
                 {motif && <button onClick={() => setMotif('')} className="text-[10px] font-bold text-zinc-400 hover:text-zinc-800 tracking-widest uppercase transition-colors">Clear</button>}
               </div>
               <p className="text-[10px] text-zinc-400 mb-2">言葉を細かく足していくほど、あなたの理想の図案に近づきます。</p>
               
               <textarea 
                 className="w-full border border-zinc-300 p-3 sm:p-4 bg-white text-xs sm:text-sm focus:outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 resize-none transition-all duration-200 leading-relaxed font-medium shadow-sm" 
-                placeholder="例：黒猫、満月、星空、バイオリン（言葉を細かく足していくほど、あなたの理想の図案に近づきます）" 
+                placeholder="例：黒猫、満月、星空、バイオリン" 
                 rows={2} 
                 value={motif} 
                 onChange={(e) => setMotif(e.target.value)} 
@@ -406,12 +430,36 @@ export default function ControlPanel({
               <label className="block text-xs font-bold text-zinc-800 tracking-wider mb-2">04. 柄の配置</label>
               <div className="flex flex-col gap-1.5">
                 {['四方柄', '飛び柄', 'お太鼓柄'].map((id) => (
-                  <button key={id} type="button" onClick={() => setDensity(id)} className={`py-2 px-2.5 text-[11px] font-bold tracking-wider transition-all text-left border ${density === id ? 'bg-zinc-900 text-white border-zinc-900 shadow' : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50 shadow-sm'} relative z-10`}>
+                  <button key={id} type="button" onClick={() => handleDensityChange(id)} className={`py-2 px-2.5 text-[11px] font-bold tracking-wider transition-all text-left border ${density === id ? 'bg-zinc-900 text-white border-zinc-900 shadow' : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50 shadow-sm'} relative z-10`}>
                     {id}
                   </button>
                 ))}
               </div>
             </div>
+
+            {/* ★ お太鼓柄（京袋帯）選択時のみ出現する「お腹用」モチーフ入力欄 */}
+            {density === 'お太鼓柄' && (
+              <div className="pt-4 border-t border-zinc-100 animate-fade-in">
+                <div className="flex justify-between items-baseline mb-1">
+                  <label className="block text-xs font-bold text-zinc-900 tracking-wider flex items-center gap-1.5">
+                    <span className="text-amber-500">✦</span>
+                    05. 前柄（お腹）のモチーフ
+                  </label>
+                  {motif2 && <button onClick={() => setMotif2('')} className="text-[10px] font-bold text-zinc-400 hover:text-zinc-800 tracking-widest uppercase transition-colors">Clear</button>}
+                </div>
+                <p className="text-[9.5px] text-zinc-500 mb-2 leading-relaxed bg-zinc-50 p-2 border border-zinc-200 rounded-sm">
+                  お太鼓柄（京袋帯）を選んだ場合のみ指定できます。空欄の場合はメインモチーフに合わせて自動的に調整されます。
+                </p>
+                <textarea 
+                  className="w-full border border-zinc-300 p-3 bg-white text-xs sm:text-sm focus:outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 resize-none transition-all duration-200 leading-relaxed font-medium shadow-sm" 
+                  placeholder="例：小さな星屑と足跡" 
+                  rows={2} 
+                  value={motif2} 
+                  onChange={(e) => setMotif2(e.target.value)} 
+                  disabled={loading} 
+                />
+              </div>
+            )}
           </>
         ) : (
           <div className="space-y-6 animate-fade-in">
@@ -686,6 +734,7 @@ export default function ControlPanel({
                 妄想を現実に<br/><span className="text-[10px] font-medium tracking-wider opacity-90 mt-1 block">（この作品を現実の着物・帯として仕立てる）</span>
               </a>
 
+              {/* ★ お好きな柄があるかも？ ゴフクヤサンで探す（個別タグリンク） */}
               <div className="mt-6 pt-5 border-t border-zinc-200">
                 <p className="text-xs font-bold text-zinc-900 mb-2.5 flex items-center gap-1.5">
                   <span className="text-amber-500">✦</span>
