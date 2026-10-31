@@ -51,7 +51,7 @@ const STYLE_PROMPTS: Record<string, string> = {
   nordic: 'Scandinavian modern textile style like Marimekko, bold minimalist graphic shapes, clean contemporary silhouette, playful modern flat colors.',
   kissaten: 'Showa retro Japanese kissaten coffee shop nostalgic wrapping paper design, 1970s charming vintage cafe aesthetic, warm muted tones.',
   psychedelic: '1970s groovy psychedelic pattern inspired by Peter Max, vibrant swirling fluid curves, retro pop flower power, energetic optical rhythms.',
-  anime: 'Modern Japanese pop anime graphic pattern, crisp cel-shaded clean line art, vibrant flat graphic colors, stylish Harajuku street fashion textile, NO humans.',
+  anime: 'Modern Japanese pop anime graphic pattern, crisp cel-shaded clean line art, vibrant flat graphic colors, stylish Harajuku street fashion textile.',
   lollipop: 'Lollipop kawaii fancy aesthetic, sweet pastel candy colors, playful 80s fancy pop toy motifs, cheerful dreamy repeating elements.',
   cyberpunk: 'Cyberpunk futuristic tech aesthetic, glowing neon accents against dark background, intricate geometric circuit lines, sleek high-tech sci-fi kimono pattern.',
   steampunk: 'Steampunk Victorian aesthetic, intricate brass, bronze and copper mechanical gears, antique clockwork cogs, Victorian industrial engraving, rich warm metallic sepia.',
@@ -97,40 +97,38 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'モチーフを指定してください。' }, { status: 400 });
     }
 
-    // 日本語のモチーフを英語に即時翻訳（FLUXが確実に理解できるようにする）
+    // 日本語のモチーフを英語に即時翻訳
     const englishMotif = await translateToEnglish(motif);
 
-    // 1. レイアウト・構図の指示（FLUX最優先・肯定文で多方向回転を強制）
-    let baseInstruction = "Flat overhead 2D surface pattern design for kimono textile printing. Crisp flat colors, zero drop shadows, zero photographic depth of field, zero wrinkles. ";
+    // ★ 1. 絶対的前提（FLUXが最も重視する冒頭に、平面・図案・版画の手法を徹底）
+    let baseInstruction = "Premium 2D flat surface pattern design for textile printing, crisp vector graphic illustration, screen print aesthetic. Pure solid unshaded colors, strictly two-dimensional flat art, zero depth of field, zero photographic realism. ";
     let layoutInstruction = "";
 
+    // ★ 2. 空間と配置（肯定形による余白・回転の強制）
     if (density.includes('ワンポイント') || density.includes('お太鼓柄')) {
-      baseInstruction = "Flat overhead 2D graphic illustration for textile print. ";
-      layoutInstruction = "Non-seamless single centered one-point illustration. One clear focal motif placed in the dead center with vast clean empty space surrounding it. ";
+      baseInstruction = "Premium 2D flat centered graphic illustration for textile print. Crisp vector art, screen print aesthetic. Pure solid colors. ";
+      layoutInstruction = "Non-seamless single centered one-point illustration. One clear focal motif placed exactly in the dead center with vast clean empty space surrounding it. ";
     } else if (density.includes('四方柄')) {
-      // ★ 「upright」を完全排除し、全方位ランダム回転を肯定文で徹底強制
-      layoutInstruction = "Seamless allover multi-directional toss pattern. Motifs are scattered and randomly rotated in all directions, with some motifs upside down, some tilted at 45 degrees, and some turned sideways at 90 degrees. Dynamic random orientation scatter with no single fixed direction. ";
+      layoutInstruction = "Seamless allover multi-directional toss pattern. Elements are widely spaced with generous clean negative space between every single motif. Completely isolated individual figures. Dynamic random rotation in all 360-degree directions (completely upside down, tilted at 45 degrees, turned sideways at 90 degrees). ";
     } else {
       // 飛び柄
-      layoutInstruction = "Seamless tobigara pattern. Elegantly spaced floating motifs scattered with generous clean negative space between each element. ";
+      layoutInstruction = "Seamless tobigara pattern. Elegantly spaced floating motifs scattered with generous clean negative space between each element. Completely isolated individual figures. ";
     }
 
-    // 2. 生き物の癒着・奇形防止（猫のひっつき、目が3つ、手足の崩れを根本排除）
-    const integrityInstruction = "Crisp stylized 2D graphic pattern motifs with clean vector-like outlines. Each creature and element is completely isolated and individually separated with clear breathing room, strictly no fused bodies, no conjoined shapes, no overlapping figures. All creatures have normal anatomy, clean charming stylized faces with strictly two eyes each, no extra eyes, no distorted facial features, no mutations. ";
+    // ★ 3. 被写体と完全な解剖学（肯定形による奇形・癒着防止）
+    const integrityInstruction = "Perfect normal anatomy, flawlessly separated individual elements with crisp clean outlines. Strictly two eyes per face, simplified charming decorative features, flawless geometry. ";
 
-    // 3. スタイルと巨匠のプロンプト
     const styleDetail = STYLE_PROMPTS[aiStyle] || '';
     const artistDetail = ARTIST_PROMPTS[artist] || '';
 
-    // 4. 配色指示
     const colorInstruction = (color && color !== 'おまかせ')
       ? `Main Color Theme: ${color}. Incorporate these colors naturally into the pattern.`
       : 'Natural and harmonious color palette chosen by the artist.';
 
-    // 5. ネガティブプロンプト
-    const negativePrompt = "NO humans, NO human faces, NO conjoined or fused bodies, NO extra eyes, NO three eyes, NO mutated faces, NO extra limbs, NO 3D rendering, NO photorealistic fur texture, NO realistic depth of field.";
+    // ★ 4. 厳格なルール（ネガティブワードを排除し、強い肯定文のみで制限）
+    const enforcement = "Strictly non-photorealistic, pure graphic art, zero gradients, zero shadows, flawless clear separation between objects.";
 
-    // ★ FLUX schnellが最重要視する先頭に、四方柄（回転）と個体分離・目の正常化を直結配置
+    // ★ すべての強力な縛りを先頭に集約
     const prompt = `${baseInstruction}${layoutInstruction}${integrityInstruction}
 
 【Subject Motifs】
@@ -139,8 +137,8 @@ ${englishMotif} (${motif})
 ${styleDetail ? `【Aesthetic Style】\n${styleDetail}\n` : ''}${artistDetail ? `【Artist Inspiration】\n${artistDetail}\n` : ''}【Color Palette】
 ${colorInstruction}
 
-【Strict Restrictions】
-${negativePrompt}`;
+【Enforcement】
+${enforcement}`;
 
     // 1. FAL (FLUX) エンジン生成（95%）
     if (engine === 'flux' && process.env.FAL_KEY) {
