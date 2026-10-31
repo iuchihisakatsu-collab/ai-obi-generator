@@ -422,7 +422,7 @@ function HomeContent() {
         ctx.globalCompositeOperation = 'source-over';
       }
 
-      // 2. 京袋帯の合成（★お太鼓柄の縦長分割＆お腹90度回転対応）
+      // 2. 京袋帯の合成（★マッピングの切り出し反転）
       if (itemType === 'kyobukuro') {
         const grandImg = await loadImage('/kyoubukurogrand.png?v=21');
         ctx.drawImage(grandImg, 0, 0, size, size);
@@ -438,7 +438,6 @@ function HomeContent() {
         uCtx.fillRect(0, 0, size, size);
         ctx.drawImage(urajiCanvas, 0, 0);
 
-        // 縦長画像（お太鼓柄生成）かどうかの判定
         const isVerticalPattern = patternImg.height > patternImg.width * 1.5;
         
         let taikoPatternFill = patternFill;
@@ -446,13 +445,13 @@ function HomeContent() {
         let haraRot = 0;
 
         if (isVerticalPattern && creationMode === 'ai') {
-          const sqSize = patternImg.width; // 縦長画像なので横幅を基準に正方形をとる
+          const sqSize = patternImg.width; 
           
-          // お太鼓用 (上半分を切り出し)
+          // ★修正：下半分（AIが柄を描きがちな部分）をお太鼓として使用
           const topCanvas = document.createElement('canvas');
           topCanvas.width = sqSize;
           topCanvas.height = sqSize;
-          topCanvas.getContext('2d')!.drawImage(patternImg, 0, 0, sqSize, sqSize, 0, 0, sqSize, sqSize);
+          topCanvas.getContext('2d')!.drawImage(patternImg, 0, patternImg.height - sqSize, sqSize, sqSize, 0, 0, sqSize, sqSize);
           
           const pTopCanvas = document.createElement('canvas');
           pTopCanvas.width = bgWidth;
@@ -461,12 +460,11 @@ function HomeContent() {
           pTopCtx.drawImage(topCanvas, 0, 0, bgWidth, bgWidth);
           taikoPatternFill = ctx.createPattern(pTopCanvas, 'repeat')!;
 
-          // 前柄・お腹用 (下半分を切り出し)
+          // ★修正：上半分（空白・サブモチーフになりがちな部分）を前柄として使用
           const btmCanvas = document.createElement('canvas');
           btmCanvas.width = sqSize;
           btmCanvas.height = sqSize;
-          // 下端から切り出し
-          btmCanvas.getContext('2d')!.drawImage(patternImg, 0, patternImg.height - sqSize, sqSize, sqSize, 0, 0, sqSize, sqSize);
+          btmCanvas.getContext('2d')!.drawImage(patternImg, 0, 0, sqSize, sqSize, 0, 0, sqSize, sqSize);
           
           const pBtmCanvas = document.createElement('canvas');
           pBtmCanvas.width = bgWidth;
@@ -475,7 +473,6 @@ function HomeContent() {
           pBtmCtx.drawImage(btmCanvas, 0, 0, bgWidth, bgWidth);
           haraPatternFill = ctx.createPattern(pBtmCanvas, 'repeat')!;
           
-          // 前柄は帯を巻く時に横になるため、Canvasで90度回転させてマッピングする
           haraRot = 90;
         }
 
@@ -503,7 +500,6 @@ function HomeContent() {
           const rectOffset = -size * 0.25;
           tCtx.translate(rectOffset + (rectSize * layer.bgX / 100), rectOffset + (rectSize * layer.bgY / 100));
           
-          // 前柄専用の追加回転処理
           if (layer.extraRot) {
             tCtx.rotate(layer.extraRot * Math.PI / 180);
           }
@@ -627,7 +623,7 @@ function HomeContent() {
         ctx.globalCompositeOperation = 'source-over';
       }
 
-      // ★ 対策C：モックアップ画像の右下にIDを強制焼き込み
+      // ID自動焼き込み
       ctx.globalCompositeOperation = 'source-over';
       ctx.font = 'bold 24px sans-serif';
       ctx.textBaseline = 'middle';
@@ -639,11 +635,9 @@ function HomeContent() {
       const rectW = textWidth + 30;
       const rectH = 40;
 
-      // 半透明の白背景を敷く（どんな柄でも文字が読めるように）
       ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
       ctx.fillRect(rectX, rectY, rectW, rectH);
 
-      // 黒文字でIDを印字
       ctx.fillStyle = '#111111';
       ctx.fillText(watermarkText, rectX + 15, rectY + (rectH / 2));
 
