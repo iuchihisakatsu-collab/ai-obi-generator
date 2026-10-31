@@ -1,73 +1,84 @@
-// components/controls/ControlPanel.tsx （生成ボタン周りのUI部分のみ抜粋）
+'use client';
 
-{/* ★ここから追加：3段構えの生成エンジン選択 ＆ プレミアムコード入力欄 */}
-<div className="pt-6 border-t border-zinc-200 space-y-4">
-  <label className="block text-xs font-bold text-zinc-900 tracking-wider">05. どのAIで描く？（生成エンジンの選択）</label>
-  
-  <div className="grid grid-cols-1 gap-2">
-    {/* 1. FLUX (無料・アイデア出し用) */}
-    <label className={`relative flex cursor-pointer rounded-sm border p-3 shadow-sm transition-all focus:outline-none ${selectedEngine === 'flux' ? 'border-zinc-900 bg-zinc-900 text-white ring-1 ring-zinc-900' : 'border-zinc-300 bg-white text-zinc-800 hover:bg-zinc-50'}`}>
-      <input type="radio" name="engine" value="flux" className="sr-only" checked={selectedEngine === 'flux'} onChange={() => setSelectedEngine('flux')} />
-      <div className="flex w-full items-center justify-between">
-        <div className="flex items-center">
-          <div className="text-sm font-black">【無料】アイデア出し用（FLUX）</div>
-        </div>
-        <div className="text-xs font-bold px-2 py-0.5 bg-zinc-100 text-zinc-600 rounded">本日残り: 15回</div>
-      </div>
-    </label>
+import { Dispatch, SetStateAction, MouseEvent } from 'react';
+import { TRADITIONAL_COLORS } from '../../lib/constants';
 
-    {/* 2. OpenAI (無料お試し・1日1回) */}
-    <label className={`relative flex cursor-pointer rounded-sm border p-3 shadow-sm transition-all focus:outline-none ${selectedEngine === 'openai_free' ? 'border-amber-500 bg-amber-50 text-amber-900 ring-1 ring-amber-500' : 'border-zinc-300 bg-white text-zinc-800 hover:bg-zinc-50'}`}>
-      <input type="radio" name="engine" value="openai_free" className="sr-only" checked={selectedEngine === 'openai_free'} onChange={() => setSelectedEngine('openai_free')} />
-      <div className="flex w-full items-center justify-between">
-        <div className="flex items-center">
-          <div className="text-sm font-black">【無料お試し】本気の1枚（最高品質）</div>
-        </div>
-        <div className="text-xs font-bold px-2 py-0.5 bg-amber-200 text-amber-900 rounded">本日残り: 1回</div>
-      </div>
-    </label>
+interface ControlPanelProps {
+  creationMode: 'ai' | 'geometric';
+  setCreationMode: Dispatch<SetStateAction<'ai' | 'geometric'>>;
+  itemType: 'hanhaba' | 'kyobukuro' | 'kimono';
+  setItemType: Dispatch<SetStateAction<'hanhaba' | 'kyobukuro' | 'kimono'>>;
+  aiStyle: string;
+  setAiStyle: Dispatch<SetStateAction<string>>;
+  selectedArtist: string;
+  setSelectedArtist: Dispatch<SetStateAction<string>>;
+  motif: string;
+  setMotif: Dispatch<SetStateAction<string>>;
+  motif2: string;
+  setMotif2: Dispatch<SetStateAction<string>>;
+  selectedColors: typeof TRADITIONAL_COLORS;
+  setSelectedColors: Dispatch<SetStateAction<typeof TRADITIONAL_COLORS>>;
+  handleColorToggle: (col: typeof TRADITIONAL_COLORS[0]) => void;
+  showColorPalette: boolean;
+  setShowColorPalette: Dispatch<SetStateAction<boolean>>;
+  density: string;
+  setDensity: Dispatch<SetStateAction<string>>;
+  geoPatternType: 'plain' | 'stripe' | 'dot' | 'grid' | 'gingham' | 'checker';
+  setGeoPatternType: Dispatch<SetStateAction<'plain' | 'stripe' | 'dot' | 'grid' | 'gingham' | 'checker'>>;
+  stripeDir: 'vertical' | 'horizontal' | 'diagonal';
+  setStripeDir: Dispatch<SetStateAction<'vertical' | 'horizontal' | 'diagonal'>>;
+  dotLayout: 'staggered' | 'grid';
+  setDotLayout: Dispatch<SetStateAction<'staggered' | 'grid'>>;
+  dotRadius: number;
+  setDotRadius: Dispatch<SetStateAction<number>>;
+  gapWidth: number;
+  setGapWidth: Dispatch<SetStateAction<number>>;
+  lineWidth: number;
+  setLineWidth: Dispatch<SetStateAction<number>>;
+  geoBgColor: string;
+  setGeoBgColor: Dispatch<SetStateAction<string>>;
+  geoPatternColor: string;
+  setGeoPatternColor: Dispatch<SetStateAction<string>>;
+  showGeoPaletteFor: 'bg' | 'pattern' | null;
+  setShowGeoPaletteFor: Dispatch<SetStateAction<'bg' | 'pattern' | null>>;
+  obiLiningColor: string;
+  setObiLiningColor: Dispatch<SetStateAction<string>>;
+  kimonoHaneriColor: string;
+  setKimonoHaneriColor: Dispatch<SetStateAction<string>>;
+  kimonoObiageColor: string;
+  setKimonoObiageColor: Dispatch<SetStateAction<string>>;
+  kimonoObiColor: string;
+  setKimonoObiColor: Dispatch<SetStateAction<string>>;
+  customObiUrl: string | null;
+  setCustomObiUrl: Dispatch<SetStateAction<string | null>>;
+  handleCustomObiUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  agreed: boolean;
+  setAgreed: Dispatch<SetStateAction<boolean>>;
+  errorMsg: string;
+  loading: boolean;
+  loadingEngine: 'flux' | 'openai' | null;
+  remainingCount: number | null;
+  loadingStep: number;
+  handleGenerate: () => void;
+  imageUrl: string;
+  patternTitle: string;
+  setPatternTitle: Dispatch<SetStateAction<string>>;
+  serialNumber: string;
+  handleDownloadOriginal: () => void;
+  handleOrderClick: (e: MouseEvent<HTMLAnchorElement>) => void;
+}
 
-    {/* 3. OpenAI (プレミアムチケット利用) */}
-    <label className={`relative flex flex-col cursor-pointer rounded-sm border p-3 shadow-sm transition-all focus:outline-none ${selectedEngine === 'openai_premium' ? 'border-indigo-600 bg-indigo-50 text-indigo-900 ring-1 ring-indigo-600' : 'border-zinc-300 bg-white text-zinc-800 hover:bg-zinc-50'}`}>
-      <div className="flex w-full items-center justify-between mb-2">
-        <input type="radio" name="engine" value="openai_premium" className="sr-only" checked={selectedEngine === 'openai_premium'} onChange={() => setSelectedEngine('openai_premium')} />
-        <div className="flex items-center">
-          <div className="text-sm font-black">【チケット利用】究極のこだわり（最高品質）</div>
-        </div>
-        <div className="text-xs font-bold">50回分 (実物購入で全額還元)</div>
-      </div>
-      
-      {/* コード入力欄（プレミアム選択時のみ展開） */}
-      {selectedEngine === 'openai_premium' && (
-        <div className="mt-2 animate-fade-in">
-          <p className="text-[10px] mb-1.5 opacity-80">MakeShopで購入したプレミアムコードを入力してください</p>
-          <div className="flex gap-2">
-            <input 
-              type="text" 
-              placeholder="例: GFK-XXXX-YYYY" 
-              value={premiumCode}
-              onChange={(e) => setPremiumCode(e.target.value)}
-              className="flex-1 px-3 py-1.5 border border-indigo-300 rounded-sm text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white text-indigo-900"
-            />
-            <button type="button" className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-sm hover:bg-indigo-700 transition-colors">
-              確認
-            </button>
-          </div>
-        </div>
-      )}
-    </label>
-  </div>
-</div>
-{/* ★ここまで追加 */}
-
-<div className="pt-6 border-t border-zinc-200 space-y-3">
-  {/* 同意チェックと生成ボタン（既存のまま） */}
-  <button 
-    type="button" 
-    onClick={handleGenerate} 
-    disabled={loading} 
-    className="..."
-  >
-    妄想した図案をつくる
-  </button>
-</div>
+export default function ControlPanel({
+  // propsは `app/page.tsx` 側で制御するため、このコンポーネントは現状空のプレースホルダーとして機能させます。
+  // （実際のUIは app/page.tsx 内に統合されています）
+}: ControlPanelProps) {
+  return (
+    <div className="hidden">
+      {/* 
+        ★旧分離ファイルからの移行用ダミーコンポーネント★
+        現在のUI制御はすべて app/page.tsx の中で完結しているため、
+        このファイルで古い変数を呼び出してビルドエラーになるのを防ぐための空ファイルです。
+      */}
+    </div>
+  );
+}
