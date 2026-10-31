@@ -82,7 +82,6 @@ export async function POST(req: Request) {
   try {
     const { 
       motif, 
-      motif2 = '',
       color = 'おまかせ', 
       density = '', 
       itemType = 'hanhaba', 
@@ -97,41 +96,18 @@ export async function POST(req: Request) {
 
     const englishMotif = await translateToEnglish(motif);
     const isOtaiko = density.includes('お太鼓柄');
-    
-    // ★ 前柄（motif2）が空欄でも、自動的にメインモチーフに紐づいたフォールバック指示を作成
-    let englishMotif2 = '';
-    if (isOtaiko && motif2.trim() !== '') {
-      englishMotif2 = await translateToEnglish(motif2);
-    } else if (isOtaiko) {
-      // 空欄の時のための強力なデフォルト指示
-      englishMotif2 = `Smaller and simplified version of ${englishMotif}`;
-    }
 
-    let baseInstruction = "Premium 2D flat surface pattern design for textile printing. Crisp vector graphic illustration, screen print aesthetic. Pure solid unshaded colors, zero depth of field. ";
+    let baseInstruction = "Premium 2D flat surface pattern design for textile printing. Crisp vector graphic illustration, screen print aesthetic. Pure solid unshaded colors, zero depth of field, zero photographic realism. ";
     let layoutInstruction = "";
-    let integrityInstruction = "";
-    let subjectInstruction = "";
+    let integrityInstruction = "Flawlessly separated individual elements with crisp clean cut-out outlines. Strictly two eyes per face, perfect normal anatomy. NO physical dividing lines. Strictly non-photorealistic graphic art. ";
 
     if (isOtaiko) {
-      baseInstruction = "Premium 2D flat surface pattern design for textile printing, vertical portrait canvas. Crisp vector graphic illustration, screen print aesthetic. Pure solid colors. ";
-      layoutInstruction = "The canvas is vertically divided into top and bottom halves, separated by a wide empty blank space in the exact center. The background color is perfectly seamless across the entire canvas. ";
-      integrityInstruction = "Strictly non-photorealistic graphic art. Flawlessly separated individual elements. NO physical dividing lines. Strictly two eyes per face, perfect normal anatomy. ";
-      
-      const subMotifText = englishMotif2 ? `${englishMotif2}` : `A scaled-down, simplified complementary version of the main motif.`;
-      
-      subjectInstruction = `
-- Top half of the canvas: ${englishMotif} (${motif}). Large and prominent.
-- Exact center of the canvas: Pure empty background color ONLY. Completely blank.
-- Bottom half of the canvas: ${subMotifText}. Smaller size.
-`;
+      // ★ お太鼓柄：シームレスを廃止し、ド真ん中にドンと描かせる超安定仕様
+      layoutInstruction = "Non-seamless layout. A single, large, elegant, and prominent focal motif placed exactly in the dead center of the canvas. Surrounded by vast, pure, seamless background color. DO NOT repeat the pattern. DO NOT tile. ";
     } else if (density.includes('四方柄')) {
       layoutInstruction = "Zero gravity floating layout. Seamless abstract allover toss pattern. Each individual element is placed like a separate sticker with massive empty space between them. Absolutely NO physical touching between motifs. Motifs are randomly rotated in every possible mathematical angle (upside down, sideways). NO definite top or bottom orientation. True rotation. ";
-      integrityInstruction = "Perfect normal anatomy, flawlessly separated individual elements with crisp clean cut-out outlines. Strictly two eyes per face, simplified charming decorative features, flawless geometry. ";
-      subjectInstruction = `${englishMotif} (${motif})`;
     } else {
       layoutInstruction = "Seamless tobigara pattern. Zero gravity floating layout. Elegantly spaced floating motifs placed like separate stickers with massive clean negative space between each element. Absolutely NO physical touching between motifs. ";
-      integrityInstruction = "Perfect normal anatomy, flawlessly separated individual elements with crisp clean cut-out outlines. Strictly two eyes per face, simplified charming decorative features, flawless geometry. ";
-      subjectInstruction = `${englishMotif} (${motif})`;
     }
 
     const styleDetail = STYLE_PROMPTS[aiStyle] || '';
@@ -141,12 +117,18 @@ export async function POST(req: Request) {
       ? `Main Color Theme: ${color}. Incorporate these colors naturally into the pattern.`
       : 'Natural and harmonious color palette chosen by the artist.';
 
-    const enforcement = "Strictly non-photorealistic, pure graphic art, zero gradients, zero shadows, flawless clear massive separation between objects. NO fused elements.";
+    // ★ ファンシー絶対殺すマン（大人のデザイン強制）の復活
+    const enforcement = `
+Strictly MATURE, SOPHISTICATED, and ELEGANT high-end aesthetic. 
+ABSOLUTELY NO childish styles, NO kawaii, NO chibi proportions, NO cute cartoon eyes, NO cheap fancy pop elements. 
+Must look like a refined graphic art masterpiece for adults.
+Zero gradients, zero shadows, flawless clear massive separation between objects. NO fused elements.
+`;
 
     const prompt = `${baseInstruction}${layoutInstruction}${integrityInstruction}
 
 【Subject Motifs】
-${subjectInstruction}
+${englishMotif} (${motif})
 
 ${styleDetail ? `【Aesthetic Style】\n${styleDetail}\n` : ''}${artistDetail ? `【Artist Inspiration】\n${artistDetail}\n` : ''}【Color Palette】
 ${colorInstruction}
@@ -154,7 +136,7 @@ ${colorInstruction}
 【Enforcement】
 ${enforcement}`;
 
-    // 1. FAL (FLUX) エンジン生成
+    // FAL (FLUX) エンジン生成（キャンバスサイズは正方形に戻す）
     if (engine === 'flux' && process.env.FAL_KEY) {
       try {
         const falResponse = await fetch('https://queue.fal.run/fal-ai/flux/schnell', {
@@ -165,7 +147,7 @@ ${enforcement}`;
           },
           body: JSON.stringify({
             prompt: prompt,
-            image_size: isOtaiko ? 'portrait_16_9' : 'square_hd',
+            image_size: 'square_hd',
             num_images: 1,
             enable_safety_checker: true
           })
@@ -219,12 +201,12 @@ ${enforcement}`;
       }
     }
 
-    // 2. OpenAI エンジン生成（フォールバック）
+    // OpenAI フォールバック
     const response = await openai.images.generate({
       model: "gpt-image-2.5-sunburst",
       prompt: prompt,
       n: 1,
-      size: isOtaiko ? "1024x1792" : "1024x1024",
+      size: "1024x1024",
       quality: "high",
       output_format: "png",
     });
