@@ -107,23 +107,28 @@ export async function POST(req: Request) {
     let integrityInstruction = "";
     let subjectInstruction = "";
 
-    // ★ お太鼓柄（京袋帯）の場合は「16:9縦長生成＆上下分割・中央無地化」を強制
     if (isOtaiko) {
+      // ★ FLUXの解釈をへし折る「Diptych（2枚続きの絵）」の強制メタファー
       baseInstruction = "Premium 2D flat surface pattern design for textile printing, strictly vertical portrait canvas. Crisp vector graphic illustration, screen print aesthetic. Pure solid unshaded colors, zero depth of field. ";
       layoutInstruction = `
-【Strict Spatial Layout: 3 Zones】
-The canvas is strictly divided into three vertical sections without any physical border lines. The background color must be perfectly seamless across all zones.
-Zone 1 (Top 40%): Contains the Main Focal Motif. Large, elegant, and prominent.
-Zone 2 (Center 20%): ABSOLUTELY BLANK. Strictly pure empty negative space. Zero motifs, zero details, only the pure background color. This is an unbreakable safety margin.
-Zone 3 (Bottom 40%): Contains the Secondary Sub Motif. Smaller, simplified, sparsely placed.
+【CRITICAL CANVAS DIVISION COMMAND】
+This image MUST be treated as a DIPTYCH (two completely separate panels) on a single vertical canvas. The background color must be perfectly seamless across the entire image.
+[AREA 1: UPPER HALF] Contains ONLY the MAIN MOTIF. Must be drawn strictly in the top half. Large, elegant, and prominent.
+[AREA 2: EXACT CENTER] ABSOLUTELY BLANK NEGATIVE SPACE. Strictly pure empty background color. NO motifs here. Unbreakable safety margin.
+[AREA 3: LOWER HALF] Contains ONLY the SUB MOTIF. Must be drawn strictly in the bottom half. Smaller size.
+DO NOT MIX THEM. DO NOT CREATE A SINGLE SCENE.
 `;
-      integrityInstruction = "Flawlessly separated individual elements with crisp clean cut-out outlines. Strictly two eyes per face, perfect normal anatomy. NO physical dividing lines. NO overlapping between zones. Strictly non-photorealistic graphic art, zero shadows. ";
+      integrityInstruction = "Strict separation. NO physical dividing lines. NO overlapping between upper and lower halves. Flawlessly separated individual elements with crisp clean cut-out outlines. Strictly two eyes per face, perfect normal anatomy. Strictly non-photorealistic graphic art, zero shadows. ";
       
-      if (englishMotif2) {
-        subjectInstruction = `Top Main Motif: ${englishMotif} (${motif})\nBottom Sub Motif: ${englishMotif2} (${motif2})`;
-      } else {
-        subjectInstruction = `Top Main Motif: ${englishMotif} (${motif})\nBottom Sub Motif: A scaled-down, simplified complementary version of the main theme.`;
-      }
+      const subMotifText = englishMotif2 ? `${englishMotif2} (${motif2})` : `A scaled-down, simplified complementary version of the main motif.`;
+      
+      subjectInstruction = `
+[AREA 1: UPPER HALF OF CANVAS (Top)]
+MAIN MOTIF: ${englishMotif} (${motif})
+
+[AREA 3: LOWER HALF OF CANVAS (Bottom)]
+SUB MOTIF: ${subMotifText}
+`;
     } else if (density.includes('四方柄')) {
       layoutInstruction = "Zero gravity floating layout. Seamless abstract allover toss pattern. Each individual element is placed like a separate sticker with massive empty space between them. Absolutely NO physical touching between motifs. Motifs are violently rotated in every possible mathematical angle (180 degrees fully upside down, 90 degrees sideways, 270 degrees). NO definite top or bottom orientation. True chaos rotation. ";
       integrityInstruction = "Perfect normal anatomy, flawlessly separated individual elements with crisp clean cut-out outlines. Strictly two eyes per face, simplified charming decorative features, flawless geometry. ";
@@ -154,7 +159,7 @@ ${colorInstruction}
 【Enforcement】
 ${enforcement}`;
 
-    // 1. FAL (FLUX) エンジン生成（お太鼓柄の場合は portrait_16_9 を指定）
+    // 1. FAL (FLUX) エンジン生成
     if (engine === 'flux' && process.env.FAL_KEY) {
       try {
         const falResponse = await fetch('https://queue.fal.run/fal-ai/flux/schnell', {
