@@ -82,6 +82,7 @@ export async function POST(req: Request) {
   try {
     const { 
       motif, 
+      motif2 = '',
       color = 'おまかせ', 
       density = '', 
       itemType = 'hanhaba', 
@@ -95,22 +96,43 @@ export async function POST(req: Request) {
     }
 
     const englishMotif = await translateToEnglish(motif);
-
-    let baseInstruction = "Premium 2D flat surface pattern design for textile printing, crisp vector graphic illustration, screen print aesthetic. Pure solid unshaded colors, strictly two-dimensional flat art, zero depth of field, zero photographic realism. ";
-    let layoutInstruction = "";
-
-    // ★ FLUXの「重力補正（逆さまを嫌う性質）」を破壊し、「くっつく現象」を強制遮断する新しい構文
-    if (density.includes('ワンポイント') || density.includes('お太鼓柄')) {
-      baseInstruction = "Premium 2D flat centered graphic illustration for textile print. Crisp vector art, screen print aesthetic. Pure solid colors. ";
-      layoutInstruction = "Non-seamless single centered one-point illustration. One clear focal motif placed exactly in the dead center with vast clean empty space surrounding it. ";
-    } else if (density.includes('四方柄')) {
-      layoutInstruction = "Zero gravity floating layout. Seamless abstract allover toss pattern. Each individual element is placed like a separate sticker with massive empty space between them. Absolutely NO physical touching between motifs. Motifs are violently rotated in every possible mathematical angle (180 degrees fully upside down, 90 degrees sideways, 270 degrees). NO definite top or bottom orientation. True chaos rotation. ";
-    } else {
-      layoutInstruction = "Seamless tobigara pattern. Zero gravity floating layout. Elegantly spaced floating motifs placed like separate stickers with massive clean negative space between each element. Absolutely NO physical touching between motifs. ";
+    const isOtaiko = density.includes('お太鼓柄');
+    let englishMotif2 = '';
+    if (isOtaiko && motif2) {
+      englishMotif2 = await translateToEnglish(motif2);
     }
 
-    // ★ 生き物の形を幾何学的に固定
-    const integrityInstruction = "Perfect normal anatomy, flawlessly separated individual elements with crisp clean cut-out outlines. Strictly two eyes per face, simplified charming decorative features, flawless geometry. ";
+    let baseInstruction = "Premium 2D flat surface pattern design for textile printing. Crisp vector graphic illustration, screen print aesthetic. Pure solid unshaded colors, zero depth of field, zero photographic realism. ";
+    let layoutInstruction = "";
+    let integrityInstruction = "";
+    let subjectInstruction = "";
+
+    // ★ お太鼓柄（京袋帯）の場合は「16:9縦長生成＆上下分割・中央無地化」を強制
+    if (isOtaiko) {
+      baseInstruction = "Premium 2D flat surface pattern design for textile printing, strictly vertical portrait canvas. Crisp vector graphic illustration, screen print aesthetic. Pure solid unshaded colors, zero depth of field. ";
+      layoutInstruction = `
+【Strict Spatial Layout: 3 Zones】
+The canvas is strictly divided into three vertical sections without any physical border lines. The background color must be perfectly seamless across all zones.
+Zone 1 (Top 40%): Contains the Main Focal Motif. Large, elegant, and prominent.
+Zone 2 (Center 20%): ABSOLUTELY BLANK. Strictly pure empty negative space. Zero motifs, zero details, only the pure background color. This is an unbreakable safety margin.
+Zone 3 (Bottom 40%): Contains the Secondary Sub Motif. Smaller, simplified, sparsely placed.
+`;
+      integrityInstruction = "Flawlessly separated individual elements with crisp clean cut-out outlines. Strictly two eyes per face, perfect normal anatomy. NO physical dividing lines. NO overlapping between zones. Strictly non-photorealistic graphic art, zero shadows. ";
+      
+      if (englishMotif2) {
+        subjectInstruction = `Top Main Motif: ${englishMotif} (${motif})\nBottom Sub Motif: ${englishMotif2} (${motif2})`;
+      } else {
+        subjectInstruction = `Top Main Motif: ${englishMotif} (${motif})\nBottom Sub Motif: A scaled-down, simplified complementary version of the main theme.`;
+      }
+    } else if (density.includes('四方柄')) {
+      layoutInstruction = "Zero gravity floating layout. Seamless abstract allover toss pattern. Each individual element is placed like a separate sticker with massive empty space between them. Absolutely NO physical touching between motifs. Motifs are violently rotated in every possible mathematical angle (180 degrees fully upside down, 90 degrees sideways, 270 degrees). NO definite top or bottom orientation. True chaos rotation. ";
+      integrityInstruction = "Perfect normal anatomy, flawlessly separated individual elements with crisp clean cut-out outlines. Strictly two eyes per face, simplified charming decorative features, flawless geometry. ";
+      subjectInstruction = `${englishMotif} (${motif})`;
+    } else {
+      layoutInstruction = "Seamless tobigara pattern. Zero gravity floating layout. Elegantly spaced floating motifs placed like separate stickers with massive clean negative space between each element. Absolutely NO physical touching between motifs. ";
+      integrityInstruction = "Perfect normal anatomy, flawlessly separated individual elements with crisp clean cut-out outlines. Strictly two eyes per face, simplified charming decorative features, flawless geometry. ";
+      subjectInstruction = `${englishMotif} (${motif})`;
+    }
 
     const styleDetail = STYLE_PROMPTS[aiStyle] || '';
     const artistDetail = ARTIST_PROMPTS[artist] || '';
@@ -124,7 +146,7 @@ export async function POST(req: Request) {
     const prompt = `${baseInstruction}${layoutInstruction}${integrityInstruction}
 
 【Subject Motifs】
-${englishMotif} (${motif})
+${subjectInstruction}
 
 ${styleDetail ? `【Aesthetic Style】\n${styleDetail}\n` : ''}${artistDetail ? `【Artist Inspiration】\n${artistDetail}\n` : ''}【Color Palette】
 ${colorInstruction}
@@ -132,7 +154,7 @@ ${colorInstruction}
 【Enforcement】
 ${enforcement}`;
 
-    // 1. FAL (FLUX) エンジン生成（95%）
+    // 1. FAL (FLUX) エンジン生成（お太鼓柄の場合は portrait_16_9 を指定）
     if (engine === 'flux' && process.env.FAL_KEY) {
       try {
         const falResponse = await fetch('https://queue.fal.run/fal-ai/flux/schnell', {
@@ -143,7 +165,7 @@ ${enforcement}`;
           },
           body: JSON.stringify({
             prompt: prompt,
-            image_size: 'square_hd',
+            image_size: isOtaiko ? 'portrait_16_9' : 'square_hd',
             num_images: 1,
             enable_safety_checker: true
           })
@@ -197,12 +219,12 @@ ${enforcement}`;
       }
     }
 
-    // 2. OpenAI エンジン生成（5%の大当たり、またはFLUXフォールバック）
+    // 2. OpenAI エンジン生成（フォールバック）
     const response = await openai.images.generate({
       model: "gpt-image-2.5-sunburst",
       prompt: prompt,
       n: 1,
-      size: "1024x1024",
+      size: isOtaiko ? "1024x1792" : "1024x1024",
       quality: "high",
       output_format: "png",
     });
