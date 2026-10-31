@@ -97,40 +97,35 @@ export async function POST(req: Request) {
 
     const englishMotif = await translateToEnglish(motif);
     const isOtaiko = density.includes('お太鼓柄');
+    
+    // ★ 前柄（motif2）が空欄でも、自動的にメインモチーフに紐づいたフォールバック指示を作成
     let englishMotif2 = '';
-    if (isOtaiko && motif2) {
+    if (isOtaiko && motif2.trim() !== '') {
       englishMotif2 = await translateToEnglish(motif2);
+    } else if (isOtaiko) {
+      // 空欄の時のための強力なデフォルト指示
+      englishMotif2 = `Smaller and simplified version of ${englishMotif}`;
     }
 
-    let baseInstruction = "Premium 2D flat surface pattern design for textile printing. Crisp vector graphic illustration, screen print aesthetic. Pure solid unshaded colors, zero depth of field, zero photographic realism. ";
+    let baseInstruction = "Premium 2D flat surface pattern design for textile printing. Crisp vector graphic illustration, screen print aesthetic. Pure solid unshaded colors, zero depth of field. ";
     let layoutInstruction = "";
     let integrityInstruction = "";
     let subjectInstruction = "";
 
     if (isOtaiko) {
-      // ★ FLUXの解釈をへし折る「Diptych（2枚続きの絵）」の強制メタファー
-      baseInstruction = "Premium 2D flat surface pattern design for textile printing, strictly vertical portrait canvas. Crisp vector graphic illustration, screen print aesthetic. Pure solid unshaded colors, zero depth of field. ";
-      layoutInstruction = `
-【CRITICAL CANVAS DIVISION COMMAND】
-This image MUST be treated as a DIPTYCH (two completely separate panels) on a single vertical canvas. The background color must be perfectly seamless across the entire image.
-[AREA 1: UPPER HALF] Contains ONLY the MAIN MOTIF. Must be drawn strictly in the top half. Large, elegant, and prominent.
-[AREA 2: EXACT CENTER] ABSOLUTELY BLANK NEGATIVE SPACE. Strictly pure empty background color. NO motifs here. Unbreakable safety margin.
-[AREA 3: LOWER HALF] Contains ONLY the SUB MOTIF. Must be drawn strictly in the bottom half. Smaller size.
-DO NOT MIX THEM. DO NOT CREATE A SINGLE SCENE.
-`;
-      integrityInstruction = "Strict separation. NO physical dividing lines. NO overlapping between upper and lower halves. Flawlessly separated individual elements with crisp clean cut-out outlines. Strictly two eyes per face, perfect normal anatomy. Strictly non-photorealistic graphic art, zero shadows. ";
+      baseInstruction = "Premium 2D flat surface pattern design for textile printing, vertical portrait canvas. Crisp vector graphic illustration, screen print aesthetic. Pure solid colors. ";
+      layoutInstruction = "The canvas is vertically divided into top and bottom halves, separated by a wide empty blank space in the exact center. The background color is perfectly seamless across the entire canvas. ";
+      integrityInstruction = "Strictly non-photorealistic graphic art. Flawlessly separated individual elements. NO physical dividing lines. Strictly two eyes per face, perfect normal anatomy. ";
       
-      const subMotifText = englishMotif2 ? `${englishMotif2} (${motif2})` : `A scaled-down, simplified complementary version of the main motif.`;
+      const subMotifText = englishMotif2 ? `${englishMotif2}` : `A scaled-down, simplified complementary version of the main motif.`;
       
       subjectInstruction = `
-[AREA 1: UPPER HALF OF CANVAS (Top)]
-MAIN MOTIF: ${englishMotif} (${motif})
-
-[AREA 3: LOWER HALF OF CANVAS (Bottom)]
-SUB MOTIF: ${subMotifText}
+- Top half of the canvas: ${englishMotif} (${motif}). Large and prominent.
+- Exact center of the canvas: Pure empty background color ONLY. Completely blank.
+- Bottom half of the canvas: ${subMotifText}. Smaller size.
 `;
     } else if (density.includes('四方柄')) {
-      layoutInstruction = "Zero gravity floating layout. Seamless abstract allover toss pattern. Each individual element is placed like a separate sticker with massive empty space between them. Absolutely NO physical touching between motifs. Motifs are violently rotated in every possible mathematical angle (180 degrees fully upside down, 90 degrees sideways, 270 degrees). NO definite top or bottom orientation. True chaos rotation. ";
+      layoutInstruction = "Zero gravity floating layout. Seamless abstract allover toss pattern. Each individual element is placed like a separate sticker with massive empty space between them. Absolutely NO physical touching between motifs. Motifs are randomly rotated in every possible mathematical angle (upside down, sideways). NO definite top or bottom orientation. True rotation. ";
       integrityInstruction = "Perfect normal anatomy, flawlessly separated individual elements with crisp clean cut-out outlines. Strictly two eyes per face, simplified charming decorative features, flawless geometry. ";
       subjectInstruction = `${englishMotif} (${motif})`;
     } else {
