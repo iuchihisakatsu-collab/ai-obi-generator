@@ -56,51 +56,51 @@ interface ControlPanelProps {
 }
 
 const AI_STYLES = [
-  { id: 'none', label: '指定なし（完全自由）', sub: 'すべて自分で考える' },
-  { id: 'yuzen', label: 'はんなり友禅', sub: '京友禅・水彩ぼかし' },
-  { id: 'mingei', label: '民藝と型染め', sub: '芹沢銈介風' },
-  { id: 'retro', label: '大正ロマン', sub: '竹久夢二・銘仙' },
-  { id: 'sarasa', label: 'エキゾチック更紗', sub: 'バティック・唐草' },
-  { id: 'morris', label: '英国ボタニカル', sub: 'ウィリアム・モリス調' },
-  { id: 'botanical', label: 'ボタニカル', sub: '植物図譜・水彩花' },
-  { id: 'artnouveau', label: 'アール・ヌーヴォー', sub: 'ミュシャ調・優美な曲線' },
-  { id: 'nordic', label: '北欧モダン', sub: 'マリメッコ調・大柄' },
-  { id: 'kissaten', label: '純喫茶レトロ', sub: '昭和ノスタルジー' },
-  { id: 'psychedelic', label: '70sサイケ', sub: 'うねり・レトロポップ' },
-  { id: 'anime', label: 'アニメ調', sub: '明快なセル画線画' },
-  { id: 'lollipop', label: 'ロリポップ', sub: 'ファンシー・ゆめかわ' },
-  { id: 'cyberpunk', label: 'サイバーパンク', sub: 'ネオン・電子回路' },
-  { id: 'steampunk', label: 'スチームパンク', sub: '歯車・真鍮時計' },
-  { id: 'retrofuturism', label: 'レトロフューチャー', sub: 'スペースエイジ・宇宙SF' },
+  { id: 'none', label: '指定なし（完全自由）', sub: 'すべて自分で考える', searchKeyword: '' },
+  { id: 'yuzen', label: 'はんなり友禅', sub: '京友禅・水彩ぼかし', searchKeyword: '友禅' },
+  { id: 'mingei', label: '民藝と型染め', sub: '芹沢銈介風', searchKeyword: '民藝' },
+  { id: 'retro', label: '大正ロマン', sub: '竹久夢二・銘仙', searchKeyword: '大正ロマン' },
+  { id: 'sarasa', label: 'エキゾチック更紗', sub: 'バティック・唐草', searchKeyword: '更紗' },
+  { id: 'morris', label: '英国ボタニカル', sub: 'ウィリアム・モリス調', searchKeyword: 'モリス' },
+  { id: 'botanical', label: 'ボタニカル', sub: '植物図譜・水彩花', searchKeyword: 'ボタニカル' },
+  { id: 'artnouveau', label: 'アール・ヌーヴォー', sub: 'ミュシャ調・優美な曲線', searchKeyword: 'アールヌーヴォー' },
+  { id: 'nordic', label: '北欧モダン', sub: 'マリメッコ調・大柄', searchKeyword: '北欧' },
+  { id: 'kissaten', label: '純喫茶レトロ', sub: '昭和ノスタルジー', searchKeyword: 'レトロ' },
+  { id: 'psychedelic', label: '70sサイケ', sub: 'うねり・レトロポップ', searchKeyword: 'サイケ' },
+  { id: 'anime', label: 'アニメ調', sub: '明快なセル画線画', searchKeyword: 'アニメ' },
+  { id: 'lollipop', label: 'ロリポップ', sub: 'ファンシー・ゆめかわ', searchKeyword: 'ポップ' },
+  { id: 'cyberpunk', label: 'サイバーパンク', sub: 'ネオン・電子回路', searchKeyword: 'サイバーパンク' },
+  { id: 'steampunk', label: 'スチームパンク', sub: '歯車・真鍮時計', searchKeyword: 'スチームパンク' },
+  { id: 'retrofuturism', label: 'レトロフューチャー', sub: 'スペースエイジ・宇宙SF', searchKeyword: 'レトロフューチャー' },
 ];
 
 const MASTER_ARTISTS = [
   {
     group: '和の巨匠（浮世絵・琳派・奇想）',
     items: [
-      { id: 'hokusai', label: '葛飾北斎（冨嶽三十六景・藍の濃淡）' },
-      { id: 'jakuchu', label: '伊藤若冲（超細密花鳥・極彩色）' },
-      { id: 'kuniyoshi', label: '歌川国芳（奇想天外・武者絵・猫）' },
-      { id: 'korin', label: '尾形光琳（琳派・金地流水）' },
-      { id: 'hoitsu', label: '酒井抱一（江戸琳派・洗練四季草花）' },
-      { id: 'kyosai', label: '河鍋暁斎（躍動感・洒脱な墨絵妖怪）' },
-      { id: 'utamaro', label: '喜多川歌麿（美人画・繊細な極細線）' },
-      { id: 'koson', label: '小原古邨（新版画・花鳥木版画）' },
-      { id: 'sharaku', label: '東洲斎写楽（強烈な役者絵デフォルメ）' },
+      { id: 'hokusai', label: '葛飾北斎（冨嶽三十六景・藍の濃淡）', searchKeyword: '北斎' },
+      { id: 'jakuchu', label: '伊藤若冲（超細密花鳥・極彩色）', searchKeyword: '若冲' },
+      { id: 'kuniyoshi', label: '歌川国芳（奇想天外・武者絵・猫）', searchKeyword: '国芳' },
+      { id: 'korin', label: '尾形光琳（琳派・金地流水）', searchKeyword: '光琳' },
+      { id: 'hoitsu', label: '酒井抱一（江戸琳派・洗練四季草花）', searchKeyword: '抱一' },
+      { id: 'kyosai', label: '河鍋暁斎（躍動感・洒脱な墨絵妖怪）', searchKeyword: '暁斎' },
+      { id: 'utamaro', label: '喜多川歌麿（美人画・繊細な極細線）', searchKeyword: '歌麿' },
+      { id: 'koson', label: '小原古邨（新版画・花鳥木版画）', searchKeyword: '古邨' },
+      { id: 'sharaku', label: '東洲斎写楽（強烈な役者絵デフォルメ）', searchKeyword: '写楽' },
     ]
   },
   {
     group: '洋の巨匠（装飾・印象派・色彩）',
     items: [
-      { id: 'klimt', label: 'グスタフ・クリムト（黄金様式・幾何学装飾）' },
-      { id: 'mucha', label: 'アルフォンス・ミュシャ（流麗な植物枠装飾）' },
-      { id: 'vangogh', label: 'フィンセント・ファン・ゴッホ（うねる筆致・星月夜）' },
-      { id: 'monet', label: 'クロード・モネ（睡蓮・光と印象派）' },
-      { id: 'rousseau', label: 'アンリ・ルソー（幻想の密林ジャングル）' },
-      { id: 'matisse', label: 'アンリ・マティス（色彩の魔術師・切り絵）' },
-      { id: 'redon', label: 'オディロン・ルドン（夢幻のパステル神秘花）' },
-      { id: 'gauguin', label: 'ポール・ゴーギャン（鮮烈で平面的色彩）' },
-      { id: 'bonnard', label: 'ピエール・ボナール（光と色彩のモザイク）' },
+      { id: 'klimt', label: 'グスタフ・クリムト（黄金様式・幾何学装飾）', searchKeyword: 'クリムト' },
+      { id: 'mucha', label: 'アルフォンス・ミュシャ（流麗な植物枠装飾）', searchKeyword: 'ミュシャ' },
+      { id: 'vangogh', label: 'フィンセント・ファン・ゴッホ（うねる筆致・星月夜）', searchKeyword: 'ゴッホ' },
+      { id: 'monet', label: 'クロード・モネ（睡蓮・光と印象派）', searchKeyword: 'モネ' },
+      { id: 'rousseau', label: 'アンリ・ルソー（幻想の密林ジャングル）', searchKeyword: 'ルソー' },
+      { id: 'matisse', label: 'アンリ・マティス（色彩の魔術師・切り絵）', searchKeyword: 'マティス' },
+      { id: 'redon', label: 'オディロン・ルドン（夢幻のパステル神秘花）', searchKeyword: 'ルドン' },
+      { id: 'gauguin', label: 'ポール・ゴーギャン（鮮烈で平面的色彩）', searchKeyword: 'ゴーギャン' },
+      { id: 'bonnard', label: 'ピエール・ボナール（光と色彩のモザイク）', searchKeyword: 'ボナール' },
     ]
   }
 ];
@@ -220,6 +220,28 @@ export default function ControlPanel({
       setMotif(motif ? `${motif}、${word}` : word);
     }
   };
+
+  // 「お好きな柄があるかも？ ゴフクヤサンで探す」用の個別検索タグ生成
+  const searchTags: string[] = [];
+  const currentStyle = AI_STYLES.find(s => s.id === aiStyle);
+  if (currentStyle && currentStyle.searchKeyword) {
+    searchTags.push(currentStyle.searchKeyword);
+  }
+
+  const allArtists = MASTER_ARTISTS.flatMap(g => g.items);
+  const currentArtist = allArtists.find(a => a.id === selectedArtist);
+  if (currentArtist && currentArtist.searchKeyword && !searchTags.includes(currentArtist.searchKeyword)) {
+    searchTags.push(currentArtist.searchKeyword);
+  }
+
+  if (motif.trim()) {
+    const words = motif.split(/[、,，\s ]+/).map(w => w.trim()).filter(Boolean);
+    for (const w of words) {
+      if (!searchTags.includes(w)) {
+        searchTags.push(w);
+      }
+    }
+  }
 
   return (
     <div className="w-full lg:w-1/2 bg-white border border-zinc-200 p-4 sm:p-8 lg:p-10 shrink-0 shadow-sm z-10 relative">
@@ -560,7 +582,7 @@ export default function ControlPanel({
           )}
         </div>
 
-        {/* 生成完了後の作品表示エリア（★「手元に残す」ボタンを完全復活） */}
+        {/* 生成完了後の作品表示エリア */}
         {imageUrl && (
           <div className="pt-8 mt-8 border-t-2 border-zinc-950 space-y-6 relative z-10 animate-fade-in bg-zinc-50 -mx-4 sm:-mx-8 lg:-mx-10 px-4 sm:px-8 lg:px-10 pb-8">
             <h3 className="text-center font-bold text-sm tracking-widest text-zinc-800 pt-6">あなただけの作品が完成しました</h3>
@@ -582,7 +604,6 @@ export default function ControlPanel({
             </div>
 
             <div className="space-y-3 pt-2">
-              {/* ★ 復活した「手元に残す」保存ボタン */}
               <button 
                 type="button" 
                 onClick={handleDownloadOriginal} 
@@ -632,6 +653,37 @@ export default function ControlPanel({
               <a href="#" onClick={handleOrderClick} className="block w-full py-4 mt-2 text-center bg-zinc-950 text-white text-[15px] font-black tracking-widest transition-all shadow-xl hover:shadow-2xl hover:scale-[1.01] border-2 border-zinc-950 rounded-sm">
                 妄想を現実に<br/><span className="text-[10px] font-medium tracking-wider opacity-90 mt-1 block">（この作品を現実の着物・帯として仕立てる）</span>
               </a>
+
+              {/* ★ お好きな柄があるかも？ ゴフクヤサンで探す（個別タグリンク） */}
+              <div className="mt-6 pt-5 border-t border-zinc-200">
+                <p className="text-xs font-bold text-zinc-900 mb-2.5 flex items-center gap-1.5">
+                  <span className="text-amber-500">✦</span>
+                  <span>お好きな柄があるかも？ ゴフクヤサンで探す</span>
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {searchTags.map((tag) => (
+                    <a
+                      key={tag}
+                      href={`https://store.gofukuyasan.com/view/search?search_keyword=${encodeURIComponent(tag)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-white border border-zinc-300 hover:border-zinc-950 hover:bg-zinc-950 hover:text-white text-zinc-800 text-[11px] font-bold rounded-full transition-all shadow-2xs group"
+                    >
+                      <span>{tag}</span>
+                      <span className="text-[9px] opacity-60 group-hover:translate-x-0.5 transition-transform">→</span>
+                    </a>
+                  ))}
+                  <a
+                    href="https://store.gofukuyasan.com/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-600 text-[11px] font-bold rounded-full transition-colors"
+                  >
+                    <span>全商品一覧</span>
+                    <span className="text-[9px]">→</span>
+                  </a>
+                </div>
+              </div>
 
             </div>
           </div>
