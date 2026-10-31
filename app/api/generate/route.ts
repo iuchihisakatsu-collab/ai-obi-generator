@@ -20,7 +20,7 @@ async function translateToEnglish(text: string): Promise<string> {
       messages: [
         {
           role: "system",
-          content: "You are a professional textile prompt translator. Translate the given Japanese motifs into clear, specific English keywords suitable for pattern generation. Output ONLY English comma-separated keywords, no markdown, no quotes."
+          content: "You are a professional textile prompt translator for a high-end luxury kimono brand. Translate the given Japanese motifs into clear, specific English keywords. Ensure the translation implies a mature, sophisticated, and elegant aesthetic. Output ONLY English comma-separated keywords, no markdown, no quotes."
         },
         {
           role: "user",
@@ -97,13 +97,17 @@ export async function POST(req: Request) {
     const englishMotif = await translateToEnglish(motif);
     const isOtaiko = density.includes('お太鼓柄');
 
-    let baseInstruction = "Premium 2D flat surface pattern design for textile printing. Crisp vector graphic illustration, screen print aesthetic. Pure solid unshaded colors, zero depth of field, zero photographic realism. ";
+    // ★ ハイエンド・大人の美意識を強制するベースプロンプト
+    let baseInstruction = "Premium haute couture textile pattern design for high-end silk kimono. A true masterpiece of sophisticated artistry. Strictly 2D flat surface, screen print aesthetic. Pure solid unshaded colors, zero depth of field, zero photographic realism. ";
+    
     let layoutInstruction = "";
-    let integrityInstruction = "Flawlessly separated individual elements with crisp clean cut-out outlines. Strictly two eyes per face, perfect normal anatomy. NO physical dividing lines. Strictly non-photorealistic graphic art. ";
+    
+    // ★ 形の崩れやチープさを防ぐ品質保証
+    let integrityInstruction = "Flawlessly separated individual elements with exquisite, refined, and graceful outlines. Strictly two eyes per face, perfect normal anatomy. NO physical dividing lines. Strictly non-photorealistic artistic illustration. ";
 
     if (isOtaiko) {
-      // ★ お太鼓柄：シームレスを廃止し、ド真ん中にドンと描かせる超安定仕様
-      layoutInstruction = "Non-seamless layout. A single, large, elegant, and prominent focal motif placed exactly in the dead center of the canvas. Surrounded by vast, pure, seamless background color. DO NOT repeat the pattern. DO NOT tile. ";
+      // お太鼓柄：シームレスを廃止し、ド真ん中にドンと描かせる超安定仕様
+      layoutInstruction = "Non-seamless layout. A single, magnificent, elegant, and highly detailed focal motif placed exactly in the dead center of the canvas. Surrounded by vast, pure, seamless background color (negative space). DO NOT repeat the pattern. DO NOT tile. ";
     } else if (density.includes('四方柄')) {
       layoutInstruction = "Zero gravity floating layout. Seamless abstract allover toss pattern. Each individual element is placed like a separate sticker with massive empty space between them. Absolutely NO physical touching between motifs. Motifs are randomly rotated in every possible mathematical angle (upside down, sideways). NO definite top or bottom orientation. True rotation. ";
     } else {
@@ -114,14 +118,16 @@ export async function POST(req: Request) {
     const artistDetail = ARTIST_PROMPTS[artist] || '';
 
     const colorInstruction = (color && color !== 'おまかせ')
-      ? `Main Color Theme: ${color}. Incorporate these colors naturally into the pattern.`
-      : 'Natural and harmonious color palette chosen by the artist.';
+      ? `Main Color Theme: ${color}. Incorporate these colors elegantly into the masterpiece.`
+      : 'Sophisticated, mature, and harmonious color palette chosen by the master artist.';
 
-    // ★ ファンシー絶対殺すマン（大人のデザイン強制）の復活
+    // ★ ファンシー絶対殺すマン ＆ 安物ベクター絶対殺すマン
     const enforcement = `
+【STRICT QUALITY ENFORCEMENT】
+Must look like a premium luxury masterpiece worth thousands of dollars.
 Strictly MATURE, SOPHISTICATED, and ELEGANT high-end aesthetic. 
-ABSOLUTELY NO childish styles, NO kawaii, NO chibi proportions, NO cute cartoon eyes, NO cheap fancy pop elements. 
-Must look like a refined graphic art masterpiece for adults.
+ABSOLUTELY NO childish styles, NO cheap vector stock art, NO kawaii, NO chibi proportions, NO cute cartoon eyes, NO cheap fancy pop elements. 
+Emphasize wabi-sabi, subtle grace, and refined artistic quality.
 Zero gradients, zero shadows, flawless clear massive separation between objects. NO fused elements.
 `;
 
@@ -133,10 +139,8 @@ ${englishMotif} (${motif})
 ${styleDetail ? `【Aesthetic Style】\n${styleDetail}\n` : ''}${artistDetail ? `【Artist Inspiration】\n${artistDetail}\n` : ''}【Color Palette】
 ${colorInstruction}
 
-【Enforcement】
 ${enforcement}`;
 
-    // FAL (FLUX) エンジン生成（キャンバスサイズは正方形に戻す）
     if (engine === 'flux' && process.env.FAL_KEY) {
       try {
         const falResponse = await fetch('https://queue.fal.run/fal-ai/flux/schnell', {
@@ -201,7 +205,6 @@ ${enforcement}`;
       }
     }
 
-    // OpenAI フォールバック
     const response = await openai.images.generate({
       model: "gpt-image-2.5-sunburst",
       prompt: prompt,
