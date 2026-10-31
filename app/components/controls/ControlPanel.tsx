@@ -50,6 +50,7 @@ interface ControlPanelProps {
   imageUrl?: string;
   patternTitle?: string;
   setPatternTitle?: (val: string) => void;
+  serialNumber?: string;
   handleDownloadOriginal?: () => void;
   handleOrderClick?: (e: MouseEvent<HTMLAnchorElement>) => void;
   [key: string]: any;
@@ -177,6 +178,7 @@ export default function ControlPanel({
   imageUrl = '',
   patternTitle = '',
   setPatternTitle = () => {},
+  serialNumber = '',
   handleDownloadOriginal = () => {},
   handleOrderClick = () => {}
 }: ControlPanelProps) {
@@ -186,6 +188,15 @@ export default function ControlPanel({
   const shareText = `「妄想小紋図案帖」で柄のアイデアを試してみました。\n作品名：『${finalTitle}』\n配色：${colorSummary}\n#妄想きもの図案帳 #ゴフクヤサン`;
   const currentUrl = typeof window !== 'undefined' ? window.location.href : 'https://store.gofukuyasan.com/';
   const mediaUrl = imageUrl || '';
+
+  const copyId = async () => {
+    try {
+      await navigator.clipboard.writeText(serialNumber || '');
+      alert(`作品ID「${serialNumber}」をコピーしました！\n後でご注文される際に貼り付けてお使いください。`);
+    } catch (err) {
+      alert('コピーに失敗しました。');
+    }
+  };
 
   const shareToX = () => {
     const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(currentUrl)}`;
@@ -221,7 +232,7 @@ export default function ControlPanel({
     }
   };
 
-  // 「お好きな柄があるかも？ ゴフクヤサンで探す」用の個別検索タグ生成
+  // 検索タグ生成
   const searchTags: string[] = [];
   const currentStyle = AI_STYLES.find(s => s.id === aiStyle);
   if (currentStyle && currentStyle.searchKeyword) {
@@ -603,6 +614,27 @@ export default function ControlPanel({
               />
             </div>
 
+            {/* ★ 対策A・B：ワンタップIDコピーと赤文字の警告 */}
+            <div className="mt-4 p-3 bg-white border-2 border-zinc-200 rounded-sm shadow-sm">
+              <div className="flex justify-between items-center mb-2">
+                <div>
+                  <span className="text-[10px] text-zinc-500 font-bold block mb-0.5">作品ID（ご注文時に必須）</span>
+                  <span className="text-sm font-black text-zinc-900 tracking-widest">{serialNumber}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={copyId}
+                  className="px-3 py-1.5 bg-zinc-900 hover:bg-black text-white text-[10px] font-bold rounded-sm transition-all shadow-sm flex items-center gap-1"
+                >
+                  <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                  IDをコピー
+                </button>
+              </div>
+              <p className="text-[9.5px] text-red-600 font-bold leading-relaxed bg-red-50 p-2 rounded-xs">
+                ※スマホで画像を長押し保存するとファイル名（ID）が消えてしまいます。後で注文する場合は必ず【IDをコピー】するか、この画面をスクショ保存してください。
+              </p>
+            </div>
+
             <div className="space-y-3 pt-2">
               <button 
                 type="button" 
@@ -654,7 +686,6 @@ export default function ControlPanel({
                 妄想を現実に<br/><span className="text-[10px] font-medium tracking-wider opacity-90 mt-1 block">（この作品を現実の着物・帯として仕立てる）</span>
               </a>
 
-              {/* ★ お好きな柄があるかも？ ゴフクヤサンで探す（個別タグリンク） */}
               <div className="mt-6 pt-5 border-t border-zinc-200">
                 <p className="text-xs font-bold text-zinc-900 mb-2.5 flex items-center gap-1.5">
                   <span className="text-amber-500">✦</span>
