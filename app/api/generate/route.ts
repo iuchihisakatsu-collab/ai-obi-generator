@@ -9,7 +9,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// 日本語のモチーフをFLUXが理解できる英語キーワードに即時変換（0.2秒）
+// 日本語モチーフをFLUXが理解しやすい英語キーワードに即時翻訳（0.2秒）
 async function translateToEnglish(text: string): Promise<string> {
   if (!text || !text.trim()) return '';
   const hasJapanese = /[^\x00-\x7F]/.test(text);
@@ -97,42 +97,46 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'モチーフを指定してください。' }, { status: 400 });
     }
 
-    // ★ 日本語のモチーフを英語に即時翻訳（FLUXが確実に理解できるようにする）
+    // 日本語のモチーフを英語に即時翻訳（FLUXが確実に理解できるようにする）
     const englishMotif = await translateToEnglish(motif);
 
-    let baseInstruction = "Flat overhead shot, 2D seamless repeating textile graphic design. High-end digital textile printing. High resolution, crisp details, vivid color separation, no halftone dots. ";
-    
+    // 1. レイアウト・構図の指示（FLUX最優先・肯定文で多方向回転を強制）
+    let baseInstruction = "Flat overhead 2D surface pattern design for kimono textile printing. Crisp flat colors, zero drop shadows, zero photographic depth of field, zero wrinkles. ";
     let layoutInstruction = "";
+
     if (density.includes('ワンポイント') || density.includes('お太鼓柄')) {
-      baseInstruction = "Flat overhead shot, 2D non-seamless graphic illustration. ";
-      layoutInstruction = "NON-SEAMLESS. A single central one-point motif illustration placed exactly in the middle. Abundant negative space around the central element.";
+      baseInstruction = "Flat overhead 2D graphic illustration for textile print. ";
+      layoutInstruction = "Non-seamless single centered one-point illustration. One clear focal motif placed in the dead center with vast clean empty space surrounding it. ";
     } else if (density.includes('四方柄')) {
-      layoutInstruction = "True omnidirectional / non-directional toss pattern (shihō-gara). Motifs are randomly and dynamically rotated at various angles (some upright, some inverted 180°, tilted 45°, 90°). ABSOLUTELY NO uniform upright orientation.";
+      // ★ 「upright」を完全排除し、全方位ランダム回転を肯定文で徹底強制
+      layoutInstruction = "Seamless allover multi-directional toss pattern. Motifs are scattered and randomly rotated in all directions, with some motifs upside down, some tilted at 45 degrees, and some turned sideways at 90 degrees. Dynamic random orientation scatter with no single fixed direction. ";
     } else {
-      layoutInstruction = "Scattered motifs with elegant negative space, refined balanced layout, well-spaced floating elements (Tobigara).";
+      // 飛び柄
+      layoutInstruction = "Seamless tobigara pattern. Elegantly spaced floating motifs scattered with generous clean negative space between each element. ";
     }
 
+    // 2. 生き物の癒着・奇形防止（猫のひっつき、目が3つ、手足の崩れを根本排除）
+    const integrityInstruction = "Crisp stylized 2D graphic pattern motifs with clean vector-like outlines. Each creature and element is completely isolated and individually separated with clear breathing room, strictly no fused bodies, no conjoined shapes, no overlapping figures. All creatures have normal anatomy, clean charming stylized faces with strictly two eyes each, no extra eyes, no distorted facial features, no mutations. ";
+
+    // 3. スタイルと巨匠のプロンプト
     const styleDetail = STYLE_PROMPTS[aiStyle] || '';
     const artistDetail = ARTIST_PROMPTS[artist] || '';
 
+    // 4. 配色指示
     const colorInstruction = (color && color !== 'おまかせ')
-      ? `Main Color Theme: ${color}. Incorporate these colors naturally into the palette.`
+      ? `Main Color Theme: ${color}. Incorporate these colors naturally into the pattern.`
       : 'Natural and harmonious color palette chosen by the artist.';
 
-    const negativePrompt = "NO humans, NO faces, NO body parts, NO clothing items being worn. NO 3D perspective, NO drop shadows, NO photographic blur, NO realistic fabric wrinkles, NO backgrounds.";
+    // 5. ネガティブプロンプト
+    const negativePrompt = "NO humans, NO human faces, NO conjoined or fused bodies, NO extra eyes, NO three eyes, NO mutated faces, NO extra limbs, NO 3D rendering, NO photorealistic fur texture, NO realistic depth of field.";
 
-    // 英語化されたモチーフをプロンプトの最優先位置に配置
-    const prompt = `${baseInstruction}
-${layoutInstruction}
+    // ★ FLUX schnellが最重要視する先頭に、四方柄（回転）と個体分離・目の正常化を直結配置
+    const prompt = `${baseInstruction}${layoutInstruction}${integrityInstruction}
 
 【Subject Motifs】
 ${englishMotif} (${motif})
 
-【Style & Aesthetic】
-${styleDetail}
-${artistDetail}
-
-【Color Palette】
+${styleDetail ? `【Aesthetic Style】\n${styleDetail}\n` : ''}${artistDetail ? `【Artist Inspiration】\n${artistDetail}\n` : ''}【Color Palette】
 ${colorInstruction}
 
 【Strict Restrictions】
