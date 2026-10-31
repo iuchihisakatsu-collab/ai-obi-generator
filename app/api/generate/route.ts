@@ -37,45 +37,46 @@ async function translateToEnglish(text: string): Promise<string> {
   }
 }
 
+// 根っこのフィルターが強力になったため、スタイル選択は「味付け」程度に機能します
 const STYLE_PROMPTS: Record<string, string> = {
   none: '',
-  yuzen: 'Traditional Kyoto Yuzen kimono dyeing style, delicate watercolor wash, elegant Japanese aesthetic, soft gradient shading, subtle gold dust accents.',
-  mingei: 'Mingei folk art and Katasome stencil dyeing style by Keisuke Serizawa, bold handmade stencil cuts, rustic Japanese graphic, rich organic indigo and earth tones.',
-  retro: 'Taisho Roman and Meisen silk kimono style by Yumeji Takehisa, nostalgic early 20th century Japanese retro, slightly melancholic romantic aesthetic.',
-  sarasa: 'Exotic Sarasa chintz and Indonesian batik textile, intricate floral arabesque vines, detailed geometric exotic border patterns, rich block print texture.',
-  morris: 'William Morris Arts and Crafts textile design, dense symmetrical botanical foliage, interlocking acanthus leaves and florals, vintage block print texture.',
-  botanical: 'Vintage botanical illustration by Pierre-Joseph Redouté, delicate watercolor floral study, crisp naturalistic details, airy elegant negative space.',
-  artnouveau: 'Alphonse Mucha Art Nouveau decorative textile, fluid organic whiplash curves, elegant sinuous vines and ornate floral frame motifs.',
-  nordic: 'Scandinavian modern textile style like Marimekko, bold minimalist graphic shapes, clean contemporary silhouette, playful modern flat colors.',
-  kissaten: 'Showa retro Japanese kissaten coffee shop nostalgic wrapping paper design, 1970s charming vintage cafe aesthetic, warm muted tones.',
-  psychedelic: '1970s groovy psychedelic pattern inspired by Peter Max, vibrant swirling fluid curves, retro pop flower power, energetic optical rhythms.',
-  anime: 'Modern Japanese pop anime graphic pattern, crisp cel-shaded clean line art, vibrant flat graphic colors, stylish Harajuku street fashion textile.',
-  lollipop: 'Lollipop kawaii fancy aesthetic, sweet pastel candy colors, playful 80s fancy pop toy motifs, cheerful dreamy repeating elements.',
-  cyberpunk: 'Cyberpunk futuristic tech aesthetic, glowing neon accents against dark background, intricate geometric circuit lines, sleek high-tech sci-fi kimono pattern.',
-  steampunk: 'Steampunk Victorian aesthetic, intricate brass, bronze and copper mechanical gears, antique clockwork cogs, Victorian industrial engraving, rich warm metallic sepia.',
-  retrofuturism: '1960s space age retro-futurism, mid-century atomic starbursts, vintage sci-fi geometric shapes, nostalgic cosmic graphic layout.'
+  yuzen: 'Add subtle Kyoto Yuzen traditional elegance, soft delicate transitions.',
+  mingei: 'Emphasize strong Katasome stencil dyeing aesthetic, rich earth tones.',
+  retro: 'Add Taisho Roman nostalgic early 20th century Japanese romantic mood.',
+  sarasa: 'Incorporate exotic Sarasa chintz and intricate floral arabesque vines.',
+  morris: 'Infuse dense symmetrical botanical foliage like British Arts and Crafts.',
+  botanical: 'Add delicate vintage botanical illustration study details.',
+  artnouveau: 'Incorporate fluid organic whiplash curves and ornate floral frames.',
+  nordic: 'Emphasize bold minimalist Scandinavian graphic shapes.',
+  kissaten: 'Add Showa retro nostalgic 1970s charming warm muted tones.',
+  psychedelic: 'Add 1970s groovy swirling fluid curves and energetic rhythms.',
+  anime: 'Strictly crisp cel-shaded clean line art, vibrant flat graphic colors.',
+  lollipop: 'Infuse sweet pastel colors and playful dreamy repeating elements.',
+  cyberpunk: 'Add futuristic tech aesthetic, geometric circuit lines.',
+  steampunk: 'Incorporate intricate mechanical gears, Victorian industrial engraving.',
+  retrofuturism: 'Add mid-century atomic starbursts, vintage cosmic graphic layout.'
 };
 
 const ARTIST_PROMPTS: Record<string, string> = {
   none: '',
-  hokusai: 'In the distinct artistic style of Katsushika Hokusai, iconic woodblock print line art, dramatic waves and clouds, indigo and Prussian blue tones.',
-  jakuchu: 'In the distinct artistic style of Ito Jakuchu, hyper-detailed naturalism, dynamic decorative composition, vibrant mineral pigments and gold leaf.',
-  kuniyoshi: 'In the distinct artistic style of Utagawa Kuniyoshi, dynamic eccentric ukiyo-e composition, bold whimsical line art, spirited Japanese folklore energy.',
-  korin: 'In the distinct artistic style of Ogata Korin (Rinpa school), tarashikomi ink-pooling technique, stylized bold organic forms against rich gold leaf background.',
-  hoitsu: 'In the distinct artistic style of Sakai Hoitsu (Edo Rinpa), refined poetic seasonal flowers, delicate graceful brushwork, elegant balanced negative space.',
-  kyosai: 'In the distinct artistic style of Kawanabe Kyosai, spirited and humorous ink brushwork, expressive dynamic lines, witty Japanese fantasy spirit.',
-  utamaro: 'In the distinct artistic style of Kitagawa Utamaro, supreme delicate micro-fine line art, graceful sensual color palettes, elegant classical Japanese refinement.',
-  koson: 'In the distinct artistic style of Ohara Koson (Shin-hanga), exquisite woodblock color gradation (bokashi), lifelike tranquil flora and fauna.',
-  sharaku: 'In the distinct artistic style of Toshusai Sharaku, striking graphic caricature, dramatic bold contrasts, expressive stylized woodblock aesthetic.',
-  klimt: 'In the distinct artistic style of Gustav Klimt (Golden Phase), shimmering ornamental gold leaf mosaics, rich symbolic spiral and geometric patterns.',
-  mucha: 'In the distinct artistic style of Alphonse Mucha, flowing pastel curves, circular halo motifs, lush decorative botanical filigree.',
-  vangogh: 'In the distinct artistic style of Vincent van Gogh, passionate swirling impasto brushstrokes, vibrant cobalt blue and radiant sunflower yellow, intense emotional texture.',
-  monet: 'In the distinct artistic style of Claude Monet, Impressionist dappled light, broken color brushwork, soft shimmering water reflection nuances.',
-  rousseau: 'In the distinct artistic style of Henri Rousseau, lush exotic jungle dreamscape, primeval oversized foliage, mysterious layered flat flora.',
-  matisse: 'In the distinct artistic style of Henri Matisse (Late Cut-outs), vibrant joyful gouache decoupage, bold organic silhouette cutouts, pure flat color fields.',
-  redon: 'In the distinct artistic style of Odilon Redon, mystical dreamlike symbolism, ethereal pastel aura, floating visionary botanical blossoms.',
-  gauguin: 'In the distinct artistic style of Paul Gauguin, bold cloisonnist contours, exotic saturated decorative flat colors, warm tropical palette.',
-  bonnard: 'In the distinct artistic style of Pierre Bonnard (Les Nabis), intimate sensory color vibrations, soft fractured light, tapestry-like warmth and pattern layering.'
+  hokusai: 'Inspired by Katsushika Hokusai: iconic woodblock print line art.',
+  jakuchu: 'Inspired by Ito Jakuchu: hyper-detailed decorative naturalism.',
+  kuniyoshi: 'Inspired by Utagawa Kuniyoshi: dynamic eccentric ukiyo-e whimsical lines.',
+  korin: 'Inspired by Ogata Korin: stylized bold organic forms, tarashikomi technique.',
+  hoitsu: 'Inspired by Sakai Hoitsu: refined poetic seasonal graceful brushwork.',
+  kyosai: 'Inspired by Kawanabe Kyosai: spirited and humorous expressive lines.',
+  utamaro: 'Inspired by Kitagawa Utamaro: supreme delicate micro-fine line art.',
+  koson: 'Inspired by Ohara Koson: exquisite woodblock color gradation (bokashi).',
+  sharaku: 'Inspired by Toshusai Sharaku: striking graphic stylized dramatic contrasts.',
+  klimt: 'Inspired by Gustav Klimt: shimmering ornamental mosaic geometric patterns.',
+  mucha: 'Inspired by Alphonse Mucha: flowing pastel curves, lush botanical filigree.',
+  vangogh: 'Inspired by Vincent van Gogh: passionate swirling thick brushstrokes.',
+  monet: 'Inspired by Claude Monet: Impressionist broken color brushwork.',
+  rousseau: 'Inspired by Henri Rousseau: lush exotic primeval dreamscape layers.',
+  matisse: 'Inspired by Henri Matisse: bold organic silhouette gouache cut-outs.',
+  redon: 'Inspired by Odilon Redon: mystical ethereal floating visionary aura.',
+  gauguin: 'Inspired by Paul Gauguin: bold cloisonnist contours, exotic flat colors.',
+  bonnard: 'Inspired by Pierre Bonnard: intimate sensory warm tapestry-like vibrations.'
 };
 
 export async function POST(req: Request) {
@@ -97,16 +98,19 @@ export async function POST(req: Request) {
     const englishMotif = await translateToEnglish(motif);
     const isOtaiko = density.includes('お太鼓柄');
 
-    // ★ ハイエンド・大人の美意識を強制するベースプロンプト
-    let baseInstruction = "Premium haute couture textile pattern design for high-end silk kimono. A true masterpiece of sophisticated artistry. Strictly 2D flat surface, screen print aesthetic. Pure solid unshaded colors, zero depth of field, zero photographic realism. ";
+    // ★ ここが「根っこの絶対的フィルター」です（高級シルク×オーガニック手仕事）
+    let baseInstruction = `
+Premium high-end luxury textile pattern design. A sophisticated masterpiece blending the highly intricate, elegant decorative narrative composition of European luxury silk scarves with the poetic, organic, handcrafted block-print texture of contemporary Scandinavian-Japanese artisan crafts. 
+Subtle tactile fabric feel, gentle wabi-sabi imperfections in the print, crisp fine outlines. 
+Strictly 2D flat surface, screen print or woodblock aesthetic. Pure solid colors, zero depth of field, zero photographic realism.
+`;
     
     let layoutInstruction = "";
     
-    // ★ 形の崩れやチープさを防ぐ品質保証
+    // ★ 形状の維持とクオリティコントロール
     let integrityInstruction = "Flawlessly separated individual elements with exquisite, refined, and graceful outlines. Strictly two eyes per face, perfect normal anatomy. NO physical dividing lines. Strictly non-photorealistic artistic illustration. ";
 
     if (isOtaiko) {
-      // お太鼓柄：シームレスを廃止し、ド真ん中にドンと描かせる超安定仕様
       layoutInstruction = "Non-seamless layout. A single, magnificent, elegant, and highly detailed focal motif placed exactly in the dead center of the canvas. Surrounded by vast, pure, seamless background color (negative space). DO NOT repeat the pattern. DO NOT tile. ";
     } else if (density.includes('四方柄')) {
       layoutInstruction = "Zero gravity floating layout. Seamless abstract allover toss pattern. Each individual element is placed like a separate sticker with massive empty space between them. Absolutely NO physical touching between motifs. Motifs are randomly rotated in every possible mathematical angle (upside down, sideways). NO definite top or bottom orientation. True rotation. ";
@@ -121,7 +125,7 @@ export async function POST(req: Request) {
       ? `Main Color Theme: ${color}. Incorporate these colors elegantly into the masterpiece.`
       : 'Sophisticated, mature, and harmonious color palette chosen by the master artist.';
 
-    // ★ ファンシー絶対殺すマン ＆ 安物ベクター絶対殺すマン
+    // ★ ファンシー＆安物ベクター絶対殺すマン
     const enforcement = `
 【STRICT QUALITY ENFORCEMENT】
 Must look like a premium luxury masterpiece worth thousands of dollars.
@@ -136,7 +140,7 @@ Zero gradients, zero shadows, flawless clear massive separation between objects.
 【Subject Motifs】
 ${englishMotif} (${motif})
 
-${styleDetail ? `【Aesthetic Style】\n${styleDetail}\n` : ''}${artistDetail ? `【Artist Inspiration】\n${artistDetail}\n` : ''}【Color Palette】
+${styleDetail ? `【Additional Flavor】\n${styleDetail}\n` : ''}${artistDetail ? `【Artist Inspiration】\n${artistDetail}\n` : ''}【Color Palette】
 ${colorInstruction}
 
 ${enforcement}`;
