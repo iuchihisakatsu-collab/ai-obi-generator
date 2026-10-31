@@ -9,7 +9,6 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// 日本語モチーフをFLUXが理解しやすい英語キーワードに即時翻訳（0.2秒）
 async function translateToEnglish(text: string): Promise<string> {
   if (!text || !text.trim()) return '';
   const hasJapanese = /[^\x00-\x7F]/.test(text);
@@ -38,7 +37,6 @@ async function translateToEnglish(text: string): Promise<string> {
   }
 }
 
-// 15スタイル専用の英語プロンプト辞書
 const STYLE_PROMPTS: Record<string, string> = {
   none: '',
   yuzen: 'Traditional Kyoto Yuzen kimono dyeing style, delicate watercolor wash, elegant Japanese aesthetic, soft gradient shading, subtle gold dust accents.',
@@ -58,7 +56,6 @@ const STYLE_PROMPTS: Record<string, string> = {
   retrofuturism: '1960s space age retro-futurism, mid-century atomic starbursts, vintage sci-fi geometric shapes, nostalgic cosmic graphic layout.'
 };
 
-// 名画・巨匠18人の専用プロンプト辞書
 const ARTIST_PROMPTS: Record<string, string> = {
   none: '',
   hokusai: 'In the distinct artistic style of Katsushika Hokusai, iconic woodblock print line art, dramatic waves and clouds, indigo and Prussian blue tones.',
@@ -97,26 +94,23 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'モチーフを指定してください。' }, { status: 400 });
     }
 
-    // 日本語のモチーフを英語に即時翻訳
     const englishMotif = await translateToEnglish(motif);
 
-    // ★ 1. 絶対的前提（FLUXが最も重視する冒頭に、平面・図案・版画の手法を徹底）
     let baseInstruction = "Premium 2D flat surface pattern design for textile printing, crisp vector graphic illustration, screen print aesthetic. Pure solid unshaded colors, strictly two-dimensional flat art, zero depth of field, zero photographic realism. ";
     let layoutInstruction = "";
 
-    // ★ 2. 空間と配置（肯定形による余白・回転の強制）
+    // ★ FLUXの「重力補正（逆さまを嫌う性質）」を破壊し、「くっつく現象」を強制遮断する新しい構文
     if (density.includes('ワンポイント') || density.includes('お太鼓柄')) {
       baseInstruction = "Premium 2D flat centered graphic illustration for textile print. Crisp vector art, screen print aesthetic. Pure solid colors. ";
       layoutInstruction = "Non-seamless single centered one-point illustration. One clear focal motif placed exactly in the dead center with vast clean empty space surrounding it. ";
     } else if (density.includes('四方柄')) {
-      layoutInstruction = "Seamless allover multi-directional toss pattern. Elements are widely spaced with generous clean negative space between every single motif. Completely isolated individual figures. Dynamic random rotation in all 360-degree directions (completely upside down, tilted at 45 degrees, turned sideways at 90 degrees). ";
+      layoutInstruction = "Zero gravity floating layout. Seamless abstract allover toss pattern. Each individual element is placed like a separate sticker with massive empty space between them. Absolutely NO physical touching between motifs. Motifs are violently rotated in every possible mathematical angle (180 degrees fully upside down, 90 degrees sideways, 270 degrees). NO definite top or bottom orientation. True chaos rotation. ";
     } else {
-      // 飛び柄
-      layoutInstruction = "Seamless tobigara pattern. Elegantly spaced floating motifs scattered with generous clean negative space between each element. Completely isolated individual figures. ";
+      layoutInstruction = "Seamless tobigara pattern. Zero gravity floating layout. Elegantly spaced floating motifs placed like separate stickers with massive clean negative space between each element. Absolutely NO physical touching between motifs. ";
     }
 
-    // ★ 3. 被写体と完全な解剖学（肯定形による奇形・癒着防止）
-    const integrityInstruction = "Perfect normal anatomy, flawlessly separated individual elements with crisp clean outlines. Strictly two eyes per face, simplified charming decorative features, flawless geometry. ";
+    // ★ 生き物の形を幾何学的に固定
+    const integrityInstruction = "Perfect normal anatomy, flawlessly separated individual elements with crisp clean cut-out outlines. Strictly two eyes per face, simplified charming decorative features, flawless geometry. ";
 
     const styleDetail = STYLE_PROMPTS[aiStyle] || '';
     const artistDetail = ARTIST_PROMPTS[artist] || '';
@@ -125,10 +119,8 @@ export async function POST(req: Request) {
       ? `Main Color Theme: ${color}. Incorporate these colors naturally into the pattern.`
       : 'Natural and harmonious color palette chosen by the artist.';
 
-    // ★ 4. 厳格なルール（ネガティブワードを排除し、強い肯定文のみで制限）
-    const enforcement = "Strictly non-photorealistic, pure graphic art, zero gradients, zero shadows, flawless clear separation between objects.";
+    const enforcement = "Strictly non-photorealistic, pure graphic art, zero gradients, zero shadows, flawless clear massive separation between objects. NO fused elements.";
 
-    // ★ すべての強力な縛りを先頭に集約
     const prompt = `${baseInstruction}${layoutInstruction}${integrityInstruction}
 
 【Subject Motifs】
