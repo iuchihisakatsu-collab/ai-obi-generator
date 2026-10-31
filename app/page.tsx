@@ -93,7 +93,6 @@ function HomeContent() {
   const [remainingCount, setRemainingCount] = useState<number>(MAX_GENERATE_PER_DAY);
   const [loadingStep, setLoadingStep] = useState<number>(0);
 
-  // プレミアムチケット＆3段構えエンジン
   const [selectedEngine, setSelectedEngine] = useState<'flux' | 'openai_free' | 'openai_premium'>('flux');
   const [premiumCode, setPremiumCode] = useState<string>('');
   const [premiumStatusMsg, setPremiumStatusMsg] = useState<string>('');
