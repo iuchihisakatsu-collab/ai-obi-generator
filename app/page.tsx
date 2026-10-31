@@ -1,31 +1,146 @@
-// app/page.tsx
 'use client';
+
+/* eslint-disable @next/next/no-img-element */
 
 import { useState, useEffect, type MouseEvent, useCallback, Suspense, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { 
-  generateStripeSvg, generateDotSvg, generateGridSvg, 
-  generateGinghamSvg, generateCheckerSvg, svgToHighResPng, 
-  type StripeDirection, type DotLayout 
+  generateStripeSvg, 
+  generateDotSvg, 
+  generateGridSvg, 
+  generateGinghamSvg,
+  generateCheckerSvg, 
+  svgToHighResPng, 
+  type StripeDirection, 
+  type DotLayout 
 } from './utils/geometricPatterns';
-import { TRADITIONAL_COLORS, FORBIDDEN_WORDS, UNIVERSAL_SCALE_FACTOR } from './lib/constants';
-import { CURRENT_NOTICE } from './lib/noticeConfig';
-import NoticeModal from './components/NoticeModal';
-import PreviewArea from './components/preview/PreviewArea';
-import ControlPanel from './components/controls/ControlPanel';
-import { PlatformType, submitOrder } from './lib/orders';
-import { renderTiledGeometricPng, render18cmPrintDataPng } from './lib/production/canvasRenderer';
 
-const MAX_GENERATE_PER_DAY = 20;
-
+// 日本時間（JST）深夜0時リセット用日付
 function getTodayJST(): string {
-  const parts = new Intl.DateTimeFormat('ja-JP', { timeZone: 'Asia/Tokyo', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date());
-  return `${parts.find(p => p.type === 'year')?.value}-${parts.find(p => p.type === 'month')?.value}-${parts.find(p => p.type === 'day')?.value}`;
+  const now = new Date();
+  const jstFormatter = new Intl.DateTimeFormat('ja-JP', {
+    timeZone: 'Asia/Tokyo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  const parts = jstFormatter.formatToParts(now);
+  const year = parts.find((p) => p.type === 'year')?.value;
+  const month = parts.find((p) => p.type === 'month')?.value;
+  const day = parts.find((p) => p.type === 'day')?.value;
+  return `${year}-${month}-${day}`;
 }
 
-function getColorNameFromHex(hex: string): string {
-  const found = TRADITIONAL_COLORS.find(c => c.hex.toLowerCase() === hex.toLowerCase());
-  return found ? found.name.split(' ')[0] : '';
+// 幾何学SVGを400mm反物幅に実寸タイリングして2400px高解像度PNGに焼き込む関数
+async function renderTiledGeometricPng(
+  svgDataUrl: string, 
+  bgSizeMm: number, 
+  bgColor: string,
+  targetWidthMm: number = 400,
+  resolutionPx: number = 2400
+): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = resolutionPx;
+        canvas.height = resolutionPx;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(svgDataUrl);
+          return;
+        }
+
+        ctx.fillStyle = bgColor;
+        ctx.fillRect(0, 0, resolutionPx, resolutionPx);
+
+        const pxPerMm = resolutionPx / targetWidthMm;
+        const tileSizePx = Math.max(1, bgSizeMm * pxPerMm);
+
+        const tileCanvas = document.createElement('canvas');
+        tileCanvas.width = tileSizePx;
+        tileCanvas.height = tileSizePx;
+        const tCtx = tileCanvas.getContext('2d');
+        if (tCtx) {
+          tCtx.fillStyle = bgColor;
+          tCtx.fillRect(0, 0, tileSizePx, tileSizePx);
+          tCtx.drawImage(img, 0, 0, tileSizePx, tileSizePx);
+          const pattern = ctx.createPattern(tileCanvas, 'repeat');
+          if (pattern) {
+            ctx.fillStyle = pattern;
+            ctx.fillRect(0, 0, resolutionPx, resolutionPx);
+          }
+        }
+        resolve(canvas.toDataURL('image/png'));
+      } catch (err) {
+        console.error('Tiled PNG rendering failed:', err);
+        resolve(svgDataUrl);
+      }
+    };
+    img.onerror = () => resolve(svgDataUrl);
+    img.src = svgDataUrl;
+  });
+}
+
+// 半幅帯用：幅18cm（1080x2400px）の縦長プリントデータPNGを自動生成する関数
+async function render18cmPrintDataPng(
+  patternUrl: string,
+  creationMode: 'ai' | 'geometric',
+  bgSizeMm: number,
+  bgColor: string
+): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = 1080;
+        canvas.height = 2400;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(patternUrl);
+          return;
+        }
+
+        ctx.fillStyle = bgColor || '#ffffff';
+        ctx.fillRect(0, 0, 1080, 2400);
+
+        if (creationMode === 'geometric') {
+          const pxPerMm = 6;
+          const tileSizePx = Math.max(1, bgSizeMm * pxPerMm);
+          const tileCanvas = document.createElement('canvas');
+          tileCanvas.width = tileSizePx;
+          tileCanvas.height = tileSizePx;
+          const tCtx = tileCanvas.getContext('2d');
+          if (tCtx) {
+            tCtx.fillStyle = bgColor || '#ffffff';
+            tCtx.fillRect(0, 0, tileSizePx, tileSizePx);
+            tCtx.drawImage(img, 0, 0, tileSizePx, tileSizePx);
+            const pattern = ctx.createPattern(tileCanvas, 'repeat');
+            if (pattern) {
+              ctx.fillStyle = pattern;
+              ctx.fillRect(0, 0, 1080, 2400);
+            }
+          }
+        } else {
+          const scale = 1080 / img.naturalWidth;
+          const scaledHeight = img.naturalHeight * scale;
+          for (let y = 0; y < 2400; y += scaledHeight) {
+            ctx.drawImage(img, 0, y, 1080, scaledHeight);
+          }
+        }
+        resolve(canvas.toDataURL('image/png'));
+      } catch (err) {
+        console.error('18cm PNG rendering failed:', err);
+        resolve(patternUrl);
+      }
+    };
+    img.onerror = () => resolve(patternUrl);
+    img.src = patternUrl;
+  });
 }
 
 async function rotateImage90Degrees(imageUrl: string): Promise<string> {
@@ -51,81 +166,347 @@ async function rotateImage90Degrees(imageUrl: string): Promise<string> {
   });
 }
 
+const MAX_GENERATIONS_PER_DAY = 3;
+
+const FORBIDDEN_WORDS = [
+  'ディズニー', 'disney', 'ミッキー', 'mickey', 'ピカチュウ', 'ポケモン', 'pokemon',
+  'マリオ', 'mario', 'サンリオ', 'キティ', 'kitty', 'ちいかわ', '鬼滅', '呪術',
+  'ワンピース', 'one piece', 'ジブリ', 'トトロ', 'アンパンマン', 'スヌーピー',
+  'シャネル', 'chanel', 'ヴィトン', 'vuitton', 'エルメス', 'hermes', 'グッチ', 'gucci',
+  'ナイキ', 'nike', 'アディダス', 'adidas'
+];
+
+const TRADITIONAL_COLORS = [
+  { name: '胡粉 (ごふん)', hex: '#fffffc', text: '純白地', isDark: false },
+  { name: '白磁 (はくじ)', hex: '#f8fbf8', text: '澄んだ白地', isDark: false },
+  { name: '生成 (きなり)', hex: '#f6f5ec', text: '淡いアイボリー地', isDark: false },
+  { name: '白鼠 (しろねず)', hex: '#dcdddd', text: '淡いライトグレー地', isDark: false },
+  { name: '灰桜 (はいざくら)', hex: '#e8d3d1', text: '淡いグレーピンク地', isDark: false },
+  { name: '銀鼠 (ぎんねず)', hex: '#afafb0', text: '明るいシルバーグレー地', isDark: false },
+  { name: '鉛色 (なまり)', hex: '#7b7c7d', text: 'シックなミディアムグレー地', isDark: true },
+  { name: '利休鼠 (りきゅうねず)', hex: '#888e7e', text: '落ち着いたグリーングレー地', isDark: true },
+  { name: '墨色 (すみ)', hex: '#595857', text: 'ダークチャコール地', isDark: true },
+  { name: '消炭 (けしずみ)', hex: '#524e4d', text: '濃いチャコールグレー地', isDark: true },
+  { name: '漆黒 (しっこく)', hex: '#161616', text: '真っ黒な地', isDark: true },
+  { name: '濡羽 (ぬれば)', hex: '#0b0b0b', text: '深みのある艶やかな黒地', isDark: true },
+  { name: '甚三紅 (じんざもみ)', hex: '#ee827c', text: '柔らかなサーモンレッド地', isDark: false },
+  { name: '緋色 (ひいろ)', hex: '#d3381c', text: '鮮烈なスカーレットレッド地', isDark: true },
+  { name: '朱色 (しゅ)', hex: '#ea5532', text: '鮮やかな朱赤地', isDark: true },
+  { name: '紅赤 (べにあか)', hex: '#e54256', text: '鮮やかなルビーレッド地', isDark: true },
+  { name: '真紅 (しんく)', hex: '#a22041', text: '深みのあるピュアレッド地', isDark: true },
+  { name: '茜色 (あかね)', hex: '#b7282e', text: '温かみのある茜色地', isDark: true },
+  { name: '深緋 (こきひ)', hex: '#8b1e2a', text: '深みのあるボルドー地', isDark: true },
+  { name: '臙脂 (えんじ)', hex: '#9e2a2b', text: '気品あるクラシックワイン地', isDark: true },
+  { name: '蘇芳 (すおう)', hex: '#8e354a', text: '渋いベリーレッド地', isDark: true },
+  { name: '紅樺 (べにかば)', hex: '#bb5548', text: '落ち着いたテラコッタレッド地', isDark: true },
+  { name: '弁柄 (べんがら)', hex: '#8f2e14', text: '重厚な弁柄赤地', isDark: true },
+  { name: '暗紅 (あんこう)', hex: '#5b191f', text: '極めて深いダークボルドー地', isDark: true },
+  { name: '桜色 (さくら)', hex: '#fef4f4', text: '淡い桜ピンク地', isDark: false },
+  { name: '薄桜 (うすざくら)', hex: '#fdeff2', text: '澄んだミルキーピンク地', isDark: false },
+  { name: '一斤染 (いっこん)', hex: '#f4d5cb', text: 'ごく淡いペールピンク地', isDark: false },
+  { name: '撫子 (なでしこ)', hex: '#eebbcb', text: '可憐な撫子ピンク地', isDark: false },
+  { name: '珊瑚 (さんご)', hex: '#f5b1aa', text: '柔らかなコーラルピンク地', isDark: false },
+  { name: '桃色 (もも)', hex: '#f58f98', text: '明るいピーチピンク地', isDark: false },
+  { name: '薔薇 (ばら)', hex: '#e9546b', text: '鮮やかなローズピンク地', isDark: true },
+  { name: '牡丹 (ぼたん)', hex: '#e7609e', text: '華やかなマゼンタピンク地', isDark: true },
+  { name: '躑躅 (つつじ)', hex: '#e95295', text: '鮮烈なショッキングピンク地', isDark: true },
+  { name: '韓紅 (からくれない)', hex: '#d9333f', text: '艶やかなクリムゾンピンク地', isDark: true },
+  { name: '梅紫 (うめむらさき)', hex: '#a8497a', text: '大人びたダスティベリー地', isDark: true },
+  { name: '灰梅 (はいうめ)', hex: '#e8d3ca', text: 'くすみスモーキーピンク地', isDark: false },
+  { name: '洗柿 (あらいがき)', hex: '#f2a0a1', text: '淡いサーモンオレンジ地', isDark: false },
+  { name: '杏色 (あんず)', hex: '#f7b977', text: '明るいアプリコット地', isDark: false },
+  { name: '萱草 (かんぞう)', hex: '#fda14c', text: '温かいマンダリンオレンジ地', isDark: false },
+  { name: '蜜柑 (みかん)', hex: '#f08300', text: '鮮やかなビビッドオレンジ地', isDark: true },
+  { name: '橙色 (だいだい)', hex: '#ee7800', text: '純粋なオレンジ地', isDark: true },
+  { name: '柿色 (かき)', hex: '#ed6d3d', text: '落ち着いた柿色地', isDark: true },
+  { name: '黄丹 (おうに)', hex: '#f05a28', text: '気品ある朱橙地', isDark: true },
+  { name: '赤橙 (あかだいだい)', hex: '#ea5506', text: '情熱的なブラッドオレンジ地', isDark: true },
+  { name: '琥珀 (こhoはく)', hex: '#bf783a', text: '上品なアンバーキャメル地', isDark: true },
+  { name: '煉瓦 (れんが)', hex: '#b55239', text: 'クラシックなテラコッタ地', isDark: true },
+  { name: '黄櫨染 (こうろぜん)', hex: '#7d532c', text: '重厚なノーブルアンバー地', isDark: true },
+  { name: '枯野 (かれの)', hex: '#d3a243', text: 'くすんだマスタードオレンジ地', isDark: false },
+  { name: '蒸栗 (むしくり)', hex: '#ede1a9', text: '淡いミルキーイエロー地', isDark: false },
+  { name: '刈安 (かりやす)', hex: '#f5e56b', text: '爽やかなペールレモン地', isDark: false },
+  { name: '菜の花 (なのはな)', hex: '#ffec47', text: '明るいカナリアイエロー地', isDark: false },
+  { name: '蒲公英 (たんぽぽ)', hex: '#ffd900', text: '鮮やかなビビッドイエロー地', isDark: false },
+  { name: '山吹 (やまぶき)', hex: '#f8b500', text: '華やかな黄金・マスタード地', isDark: true },
+  { name: '鬱金 (うこん)', hex: '#fabf14', text: '温かみのあるサフランイエロー地', isDark: false },
+  { name: '芥子 (からし)', hex: '#d0af4c', text: '渋い辛子色地', isDark: false },
+  { name: '金茶 (きんちゃ)', hex: '#c7802d', text: '深みのあるゴールデンブラウン地', isDark: true },
+  { name: '黄土 (おうど)', hex: '#c39143', text: '落ち着きのあるオーカー地', isDark: true },
+  { name: '桑染 (くわぞめ)', hex: '#b79b5b', text: 'シックなオリーブゴールド地', isDark: false },
+  { name: '朽葉 (くちば)', hex: '#917347', text: 'アンティークなゴールドブラウン地', isDark: true },
+  { name: '利休白茶 (しらちゃ)', hex: '#b4a992', text: '上品なくすみサンドベージュ地', isDark: false },
+  { name: '白緑 (びゃくろく)', hex: '#d6e9ca', text: 'ごく淡いペールミント地', isDark: false },
+  { name: '浅緑 (あさみどり)', hex: '#88cb7f', text: '爽やかなライトグリーン地', isDark: false },
+  { name: '鶸色 (ひわ)', hex: '#d7cf3a', text: '明るいイエローグリーン地', isDark: false },
+  { name: '若草 (わかくさ)', hex: '#abc900', text: 'みずみずしい黄緑地', isDark: false },
+  { name: '青磁 (せいじ)', hex: '#7ebea5', text: 'くすんだブルーグリーン地', isDark: false },
+  { name: '薄浅葱 (うすあさぎ)', hex: '#93b9b4', text: '淡いスモーキーミント地', isDark: false },
+  { name: '柳葉 (やなぎば)', hex: '#a1a46d', text: '穏やかなセージグリーン地', isDark: false },
+  { name: '若竹 (わかたけ)', hex: '#68be8d', text: '鮮やかなエメラルドグリーン地', isDark: true },
+  { name: '翡翠 (ひすい)', hex: '#38b48b', text: '澄んだジェイドグリーン地', isDark: true },
+  { name: '常磐 (ときわ)', hex: '#1b4d3e', text: '深いフォレストグリーン地', isDark: true },
+  { name: '萌葱 (もえぎ)', hex: '#006e54', text: '深みのあるモエギグリーン地', isDark: true },
+  { name: '千歳緑 (ちとせ)', hex: '#314f40', text: '重厚なダークフォレスト地', isDark: true },
+  { name: '松葉 (まつば)', hex: '#455845', text: 'クラシックなパイングリーン地', isDark: true },
+  { name: '木賊 (とくさ)', hex: '#3b7960', text: '品格あるディープグリーン地', isDark: true },
+  { name: '緑青 (ろくしょう)', hex: '#47885e', text: 'アンティークな青緑地', isDark: true },
+  { name: '海松 (みる)', hex: '#726d40', text: '渋いオリーブグリーン地', isDark: true },
+  { name: '鶯色 (うぐいす)', hex: '#928c36', text: '落ち着いたモスグリーン地', isDark: true },
+  { name: '苔色 (こけ)', hex: '#69821b', text: '味わい深いディープオリーブ地', isDark: true },
+  { name: '甕覗 (かめのぞき)', text: 'ごく淡いアイスブルー地', hex: '#a2d7dd', isDark: false },
+  { name: '白群 (びゃくぐん)', text: '淡いペールブルー地', hex: '#83ccd2', isDark: false },
+  { name: '水色 (みず)', text: '澄んだライトブルー地', hex: '#bce2e8', isDark: false },
+  { name: '勿忘草 (わすれな)', text: '可憐なパウダーブルー地', hex: '#89c3eb', isDark: false },
+  { name: '空色 (そら)', text: '爽やかなスカイブルー地', hex: '#a0d8ef', isDark: false },
+  { name: '露草 (つゆくさ)', text: '鮮やかなシアンブルー地', hex: '#2ea9df', isDark: true },
+  { name: '浅葱 (あさぎ)', text: '鮮やかな青緑・ターコイズ地', hex: '#00a3af', isDark: true },
+  { name: '錆浅葱 (さびあさぎ)', text: 'くすんだブルーグレー地', hex: '#5c9291', isDark: true },
+  { name: '縹色 (はなだ)', text: '力強いコバルトブルー地', hex: '#2792c3', isDark: true },
+  { name: '瑠璃 (るり)', text: '鮮やかなロイヤルブルー地', hex: '#1e50a2', isDark: true },
+  { name: '群青 (ぐんじょう)', text: '鮮やかなウルトラマリン地', hex: '#4c6cb3', isDark: true },
+  { name: '藍色 (あい)', text: '深いネイビー・藍地', hex: '#163b5c', isDark: true },
+  { name: '紺青 (こんじょう)', text: '深みのあるダークネイビー地', hex: '#192f60', isDark: true },
+  { name: '鉄紺 (てっこん)', text: '極めて暗い紫みの紺地', hex: '#17184b', isDark: true },
+  { name: '納戸 (なんど)', text: '深みのあるティールブルー地', hex: '#004055', isDark: true },
+  { name: '碧色 (へきしょく)', text: '神秘的なピーコックブルー地', hex: '#007380', isDark: true },
+  { name: '藍鉄 (あいてつ)', text: 'スモーキーなアイアンブルー地', hex: '#393f4c', isDark: true },
+  { name: '留紺 (とまりこん)', text: '漆黒に近い極深紺地', hex: '#1c1c39', isDark: true },
+  { name: '白藤 (しらふじ)', hex: '#dbd0e6', text: 'ごく淡いペールライラック地', isDark: false },
+  { name: '藤色 (ふじ)', hex: '#bbbcde', text: '淡いラベンダー地', isDark: false },
+  { name: '紫苑 (しおん)', hex: '#8f77b5', text: '澄んだライトバイオレット地', isDark: true },
+  { name: '菖蒲 (あやめ)', hex: '#cc7eb1', text: '明るいオーキッドパープル地', isDark: true },
+  { name: '竜胆 (りんどう)', hex: '#9079ad', text: '上品なアメジストパープル地', isDark: true },
+  { name: '桔梗 (ききょう)', hex: '#5654a2', text: '鮮やかな青紫・バイオレット地', isDark: true },
+  { name: '江戸紫 (えど)', hex: '#745399', text: '濃い赤紫地', isDark: true },
+  { name: '古代紫 (こだい)', hex: '#895b8a', text: 'くすんだアンティークパープル地', isDark: true },
+  { name: '京紫 (きょう)', hex: '#9d5b8b', text: '華麗な赤みの紫地', isDark: true },
+  { name: '葡萄色 (えびいろ)', hex: '#640125', text: '深いワイングレープ地', isDark: true },
+  { name: '滅紫 (けしむらさき)', hex: '#594255', text: '非常に暗いグレイッシュパープル地', isDark: true },
+  { name: '濃紫 (こむらさき)', hex: '#3a243b', text: '極めて深いディープバイオレット地', isDark: true },
+  { name: '丁子 (ちょうじ)', hex: '#efcd9a', text: '温かいキャメルベージュ地', isDark: false },
+  { name: '鳥の子 (とりのこ)', hex: '#dac9a6', text: '温かみのある生成りベージュ地', isDark: false },
+  { name: '灰茶 (はいちゃ)', hex: '#98623c', text: 'まろやかなミルクティーブラウン地', isDark: true },
+  { name: '胡桃 (くるみ)', hex: '#a86f4c', text: '穏やかなウォルナットブラウン地', isDark: true },
+  { name: '栗色 (くりいろ)', hex: '#762f07', text: '深みのあるマロンブラウン地', isDark: true },
+  { name: '焦茶 (こげちゃ)', hex: '#693b32', text: '深いダークブラウン・チョコレート地', isDark: true },
+];
+
+interface CategoryItem {
+  label: string;
+  id: string; 
+}
+
+const TAG_CATEGORIES: { title: string; items: CategoryItem[] }[] = [
+  {
+    title: '【1】生き物・モチーフ',
+    items: [
+      { label: 'ねこ', id: 'ct300' },
+      { label: '犬', id: 'ct301' },
+      { label: 'うさぎ', id: 'ct303' },    
+      { label: '虎', id: 'ct303' },    
+      { label: '蛇', id: 'ct303' },
+      { label: '鳥', id: 'ct269' },
+      { label: '魚', id: 'ct265' },
+      { label: '昆虫', id: 'ct188' },
+      { label: '動物', id: 'ct47' },
+      { label: '植物', id: 'ct46' },
+      { label: '恐竜', id: 'ct267' },
+      { label: 'リボン・レース', id: 'ct312' },
+    ]
+  },
+  {
+    title: '【2】世界観・テーマ',
+    items: [
+      { label: '宇宙', id: 'ct51' },
+      { label: 'お菓子', id: 'ct48' },
+      { label: 'ロリポップ・キャンディ', id: 'ct48' },
+      { label: '音楽', id: 'ct315' },
+      { label: '乗り物', id: 'ct320' },
+      { label: '建造物', id: 'ct268' },
+      { label: '鉱物・宝石', id: 'ct170' },
+      { label: '玩具', id: 'ct319' },
+      { label: '妖怪・おばけ・ドクロ', id: 'ct175' },
+    ]
+  },
+  {
+    title: '【3】柄・地紋',
+    items: [
+      { label: '水玉・ドット', id: 'ct310' },
+      { label: '縞・ストライプ', id: 'ct309' },
+      { label: '格子・チェック', id: 'ct311' },
+      { label: '市松', id: 'ct53' },
+      { label: '七宝', id: 'ct53' },     
+      { label: '疋田絞', id: 'ct53' },
+      { label: '青海波', id: 'ct53' },
+      { label: '麻の葉', id: 'ct53' },
+      { label: '矢絣', id: 'ct53' },
+      { label: '亀甲', id: 'ct53' },
+      { label: '唐草', id: 'ct53' },
+      { label: '紗綾形', id: 'ct53' },
+      { label: '千鳥格子', id: 'ct311' },
+      { label: '幾何学模様', id: 'ct53' },
+      { label: '墨流', id: 'ct171' },
+    ]
+  },
+  {
+    title: '【4】和の技法・様式',
+    items: [
+      { label: '友禅染め風', id: 'ct49' },
+      { label: '紅型', id: 'ct49' },
+      { label: '浮世絵', id: 'ct49' },
+      { label: '水墨画', id: 'ct49' },
+      { label: '琳派', id: 'ct49' },
+      { label: '絞り染め風', id: 'ct53' },
+      { label: '江戸小紋', id: 'ct53' },
+      { label: '金彩・蒔絵風', id: 'ct49' },
+    ]
+  },
+  {
+    title: '【5】画材・タッチ',
+    items: [
+      { label: '水彩画', id: 'ct50' },
+      { label: '油絵・厚塗り', id: 'ct50' },
+      { label: 'ペン画・線画', id: 'ct50' },
+      { label: '色鉛筆・パステル', id: 'ct50' },
+      { label: '版画・切り絵風', id: 'ct49' },
+      { label: 'リアルタッチ・写実的', id: 'ct50' },
+      { label: 'アニメ塗り・ポップ', id: 'ct312' },
+    ]
+  },
+  {
+    title: '【6】テイスト・雰囲気',
+    items: [
+      { label: 'ファンシー・ゆめかわ', id: 'ct312' },
+      { label: 'ゴスロリ・ロリータ', id: 'ct354' },
+      { label: 'レトロ・大正ロマン', id: 'ct49' },
+      { label: '西洋名画風', id: 'ct50' },
+      { label: 'アールヌーヴォー・デコ', id: 'ct312' },
+      { label: 'ゴシック・ダーク', id: 'ct354' },
+      { label: 'オリエンタル', id: 'ct295' },
+      { label: 'ミッドセンチュリー', id: 'ct352' },
+    ]
+  }
+];
+
+const ALL_CATEGORIES = TAG_CATEGORIES.flatMap((cat) => cat.items);
+
+const LOADING_STEPS = [
+  '思い描いた意匠から、図案のアイデアを練り上げています...',
+  '色や柄の調和を組み合わせ、反物のイメージを整えています...',
+  '思い描いたイメージを図案帳に描き出しています...',
+  '今回の図案イメージを準備しています...',
+  'もう少しで、図案帳に仕上がります...',
+  '仕上がりを表示する準備をしています...',
+];
+
 function HomeContent() {
   const searchParams = useSearchParams();
-  const [platform, setPlatform] = useState<PlatformType>((searchParams.get('platform') as PlatformType) || 'makeshop');
-  const [designFee, setDesignFee] = useState<number>(1000);
+  const isShopify = searchParams.get('platform') === 'shopify';
 
-  const [creationMode, setCreationMode] = useState<'ai' | 'geometric'>('geometric');
-  const [itemType, setItemType] = useState<'hanhaba' | 'kyobukuro' | 'kimono'>('hanhaba');
+  const [motif, setMotif] = useState('');
+  const [selectedColors, setSelectedColors] = useState<typeof TRADITIONAL_COLORS>([]);
+  
+  const [density, setDensity] = useState('四方柄（上下なし）');
+  const [itemType, setItemType] = useState<'hanhaba' | 'kyobukuro' | 'kimono'>('hanhaba'); 
+  const [patternTitle, setPatternTitle] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [loadingStep, setLoadingStep] = useState(0);
+  const [imageUrl, setImageUrl] = useState(''); 
+  const [blobUrl, setBlobUrl] = useState('');    
+  const [agreed, setAgreed] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+  
   const [displayMode, setDisplayMode] = useState<'mockup' | 'trim' | 'data'>('mockup');
   
-  const [aiStyle, setAiStyle] = useState<string>('none');
-  const [selectedArtist, setSelectedArtist] = useState<string>('none');
+  const [mockupSubmitting, setMockupSubmitting] = useState(false);
+  const [serialNumber, setSerialNumber] = useState('');
 
-  const [motif, setMotif] = useState<string>('');
-  const [motif2, setMotif2] = useState<string>(''); // 前柄用の状態を追加
-  const [selectedColors, setSelectedColors] = useState<typeof TRADITIONAL_COLORS>([]);
-  const [showColorPalette, setShowColorPalette] = useState<boolean>(false);
-  const [density, setDensity] = useState<string>('四方柄');
+  const [showTags, setShowTags] = useState(false);
+  const [showColorPalette, setShowColorPalette] = useState(false);
+  
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('ct334'); 
 
-  const [geoPatternType, setGeoPatternType] = useState<'plain' | 'stripe' | 'dot' | 'grid' | 'gingham' | 'checker'>('plain');
+  const [creationMode, setCreationMode] = useState<'ai' | 'geometric'>('geometric');
+  const [geoPatternType, setGeoPatternType] = useState<'stripe' | 'dot' | 'grid' | 'gingham' | 'checker'>('stripe');
   const [stripeDir, setStripeDir] = useState<StripeDirection>('vertical');
+  const [lineWidth, setLineWidth] = useState(5);
+  const [gapWidth, setGapWidth] = useState(10);
+  const [dotRadius, setDotRadius] = useState(5);
   const [dotLayout, setDotLayout] = useState<DotLayout>('staggered');
-  const [dotRadius, setDotRadius] = useState<number>(5);
-  const [gapWidth, setGapWidth] = useState<number>(10);
-  const [lineWidth, setLineWidth] = useState<number>(5);
-  const [geoBgColor, setGeoBgColor] = useState<string>('#fffffc');
-  const [geoPatternColor, setGeoPatternColor] = useState<string>('#161616');
+  
+  const [geoBgColor, setGeoBgColor] = useState('#fffffc');
+  const [geoPatternColor, setGeoPatternColor] = useState('#161616');
   const [showGeoPaletteFor, setShowGeoPaletteFor] = useState<'bg' | 'pattern' | null>(null);
-  const [bgSizeMm, setBgSizeMm] = useState<number>(100);
+  
+  const [bgSizeMm, setBgSizeMm] = useState(100);
+  const [obiLiningColor, setObiLiningColor] = useState('#dcdddd'); 
+  const [showLiningPalette, setShowLiningPalette] = useState(false);
 
-  const [obiLiningColor, setObiLiningColor] = useState<string>('#dcdddd');
-  const [kimonoHaneriColor, setKimonoHaneriColor] = useState<string>('#ffffff');
-  const [kimonoObiageColor, setKimonoObiageColor] = useState<string>('#c82a36');
-  const [kimonoObiColor, setKimonoObiColor] = useState<string>('#1a1a1a');
-  const [customObiUrl, setCustomObiUrl] = useState<string | null>(null);
-
-  const [agreed, setAgreed] = useState<boolean>(false);
-  const [errorMsg, setErrorMsg] = useState<string>('');
-  const [loading, setLoading] = useState<boolean>(false);
-  const [loadingEngine, setLoadingEngine] = useState<'flux' | 'openai' | null>(null);
-  const [remainingCount, setRemainingCount] = useState<number>(MAX_GENERATE_PER_DAY);
-  const [loadingStep, setLoadingStep] = useState<number>(0);
-
-  const [imageUrl, setImageUrl] = useState<string>('');
-  const [blobUrl, setBlobUrl] = useState<string>('');
   const [rotatedPatternUrl, setRotatedPatternUrl] = useState<string>('');
-  const [serialNumber, setSerialNumber] = useState<string>('GEO-INIT');
-  const [patternTitle, setPatternTitle] = useState<string>('色無地');
-  const [mockupSubmitting, setMockupSubmitting] = useState<boolean>(false);
-  const [isNoticeOpen, setIsNoticeOpen] = useState<boolean>(false);
-
+  
   const previewRef = useRef<HTMLDivElement>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const today = getTodayJST();
-    const storedDate = localStorage.getItem('komon_usage_date');
-    if (storedDate !== today) {
-      localStorage.setItem('komon_usage_date', today);
-      localStorage.setItem('komon_count_total', '0');
-      setRemainingCount(MAX_GENERATE_PER_DAY);
-    } else {
-      setRemainingCount(Math.max(0, MAX_GENERATE_PER_DAY - parseInt(localStorage.getItem('komon_count_total') || '0', 10)));
-    }
+  // プレミアム関連状態
+  const [aiPaymentMode, setAiPaymentMode] = useState<'free' | 'premium'>('free');
+  const [premiumCode, setPremiumCode] = useState('');
+  const [remainingCount, setRemainingCount] = useState<number | null>(null);
+  const [premiumStatusMsg, setPremiumStatusMsg] = useState('');
 
-    if (CURRENT_NOTICE.enabled && localStorage.getItem('last_dismissed_notice_id') !== CURRENT_NOTICE.id) {
-      setIsNoticeOpen(true);
-    }
-  }, []);
+  // ★ 全アイテム共通・実寸ロック黄金比率（3 / 22 %）
+  const UNIVERSAL_SCALE_FACTOR = 3 / 22;
 
-  const handleCloseNotice = () => {
-    setIsNoticeOpen(false);
-    if (CURRENT_NOTICE?.id) {
-      localStorage.setItem('last_dismissed_notice_id', CURRENT_NOTICE.id);
+  const handleItemTypeChange = (type: 'hanhaba' | 'kyobukuro' | 'kimono') => {
+    setItemType(type);
+    setDisplayMode('mockup');
+    if (type === 'kyobukuro') {
+      setObiLiningColor('#161616');
+    } else if (type === 'hanhaba') {
+      setObiLiningColor('#dcdddd');
     }
   };
+
+  useEffect(() => {
+    const todayJst = getTodayJST();
+    const storedData = localStorage.getItem('komon_generations');
+    let count = 0;
+    if (storedData) {
+      try {
+        const parsed = JSON.parse(storedData);
+        if (parsed.date === todayJst) {
+          count = parsed.count;
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    setRemainingCount(Math.max(0, MAX_GENERATIONS_PER_DAY - count));
+  }, []);
+
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval> | undefined;
+    if (loading) {
+      setLoadingStep(0);
+      interval = setInterval(() => {
+        setLoadingStep((prev) => {
+          if (prev < LOADING_STEPS.length - 1) return prev + 1;
+          return prev;
+        });
+      }, 4000); 
+    }
+    return () => { if (interval) clearInterval(interval); };
+  }, [loading]);
+
+  useEffect(() => {
+    if (motif.trim() === 'ベホイミ') {
+      localStorage.removeItem('komon_generations');
+      setRemainingCount(MAX_GENERATIONS_PER_DAY);
+      setMotif('');
+      alert('【管理者モード】本日の生成回数を全回復しました。');
+    }
+  }, [motif]);
 
   useEffect(() => {
     const src = blobUrl || imageUrl;
@@ -151,13 +532,11 @@ function HomeContent() {
 
     let svgString = '';
     let tileSize = 0;
+
     const period = lineWidth + gapWidth;
     const dotPitch = (dotRadius * 2) + gapWidth;
 
-    if (geoPatternType === 'plain') {
-      svgString = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100" height="100" fill="${geoBgColor}"/></svg>`;
-      tileSize = 100;
-    } else if (geoPatternType === 'stripe') {
+    if (geoPatternType === 'stripe') {
       svgString = generateStripeSvg({ direction: stripeDir, lineWidth, gap: gapWidth, bgColor: geoBgColor, stripeColor: geoPatternColor });
       tileSize = stripeDir === 'diagonal' ? period * 2 : period;
     } else if (geoPatternType === 'dot') {
@@ -177,156 +556,188 @@ function HomeContent() {
     setBgSizeMm(tileSize);
     const svgDataUrl = `data:image/svg+xml;utf8,${encodeURIComponent(svgString)}`;
     setImageUrl(svgDataUrl);
-    setRotatedPatternUrl('');
-
+    
     try {
       const tiledPng = await renderTiledGeometricPng(svgDataUrl, tileSize, geoBgColor, 400, 2400);
       setBlobUrl(tiledPng);
     } catch {
-      try {
-        const fallbackPng = await svgToHighResPng(svgString, 2400);
-        setBlobUrl(fallbackPng);
-      } catch {
-        setBlobUrl(svgDataUrl);
+      const fallbackPng = await svgToHighResPng(svgString, 2400);
+      setBlobUrl(fallbackPng);
+    }
+
+    setSerialNumber((prev) => (prev && prev.startsWith('GEO-')) ? prev : `GEO-${Math.floor(1000 + Math.random() * 9000)}`);
+    
+    let newTitle = '無題';
+    if (geoPatternType === 'stripe') newTitle = '万筋縞';
+    if (geoPatternType === 'dot') newTitle = '千鳥水玉';
+    if (geoPatternType === 'grid') newTitle = '格子柄';
+    if (geoPatternType === 'gingham') newTitle = 'ギンガムチェック';
+    if (geoPatternType === 'checker') newTitle = '市松模様';
+
+    setPatternTitle((prev) => {
+      if (!prev || ['万筋縞', '千鳥水玉', '格子柄', 'ギンガムチェック', '市松模様'].includes(prev)) {
+        return newTitle;
       }
-    }
-
-    const bgName = getColorNameFromHex(geoBgColor);
-    const patName = getColorNameFromHex(geoPatternColor);
-    let baseName = '無題';
-    if (geoPatternType === 'plain') baseName = '色無地';
-    if (geoPatternType === 'stripe') baseName = '万筋縞';
-    if (geoPatternType === 'dot') baseName = '千鳥水玉';
-    if (geoPatternType === 'grid') baseName = '格子柄';
-    if (geoPatternType === 'gingham') baseName = '吟風';
-    if (geoPatternType === 'checker') baseName = '市松模様';
-
-    let autoTitle = baseName;
-    if (geoPatternType === 'plain') {
-      autoTitle = bgName ? `${bgName}の色無地` : '色無地';
-    } else {
-      const mainColor = patName || bgName;
-      autoTitle = mainColor ? `${mainColor}の${baseName}` : baseName;
-    }
-    setPatternTitle(autoTitle);
-
-  }, [creationMode, geoPatternType, lineWidth, gapWidth, geoPatternColor, geoBgColor, stripeDir, dotRadius, dotLayout]);
+      return prev;
+    });
+  }, [creationMode, geoPatternType, stripeDir, lineWidth, gapWidth, dotLayout, dotRadius, geoBgColor, geoPatternColor]);
 
   useEffect(() => {
-    if (creationMode === 'geometric') updateGeometricPattern();
-  }, [creationMode, updateGeometricPattern]);
+    updateGeometricPattern();
+  }, [updateGeometricPattern]);
 
-  const handleColorToggle = (colorObj: typeof TRADITIONAL_COLORS[0]) => {
-    if (selectedColors.some(c => c.hex === colorObj.hex)) {
-      setSelectedColors(selectedColors.filter(c => c.hex !== colorObj.hex));
-    } else {
-      if (selectedColors.length >= 3) { setErrorMsg('選択できる色は最大3色までです'); return; }
-      setSelectedColors([...selectedColors, colorObj]);
-      setErrorMsg('');
+  const handleTagClick = (item: CategoryItem) => {
+    if (!motif.includes(item.label)) {
+      const newMotif = motif ? `${motif}、${item.label}` : item.label;
+      setMotif(newMotif);
     }
+    setSelectedCategoryId(item.id);
   };
 
-  const handleCustomObiUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setCustomObiUrl(url);
-    }
+  const handleColorToggle = (col: typeof TRADITIONAL_COLORS[0]) => {
+    setSelectedColors((prev) => {
+      const exists = prev.some((c) => c.name === col.name);
+      if (exists) {
+        return prev.filter((c) => c.name !== col.name);
+      } else {
+        if (prev.length >= 3) {
+          alert('配色は最大3色まで選択できます。');
+          return prev;
+        }
+        return [...prev, col];
+      }
+    });
   };
 
   const handleGenerate = async () => {
-    if (loading || remainingCount <= 0) return;
     setErrorMsg('');
-    if (creationMode === 'ai' && !motif.trim()) { setErrorMsg('描きたいモチーフを入力してください。'); return; }
-    for (const forbidden of FORBIDDEN_WORDS) {
-      if (motif.includes(forbidden)) { setErrorMsg(`禁止ワード「${forbidden}」が含まれています。`); return; }
+    setPremiumStatusMsg('');
+
+    if (!motif.trim()) { setErrorMsg('図案のイメージや好きな言葉を入力してください。'); return; }
+    if (!agreed) { setErrorMsg('図案の利用に関する確認事項への同意が必要です。'); return; }
+    
+    const hitWord = FORBIDDEN_WORDS.find((word) => motif.toLowerCase().includes(word));
+    if (hitWord) { setErrorMsg(`入力内容に使用できない作品名・ブランド名等「${hitWord}」が含まれています。一般的なモチーフや特徴を表す言葉に変更してください。`); return; }
+
+    if (aiPaymentMode === 'free') {
+      const todayJst = getTodayJST();
+      const storedData = localStorage.getItem('komon_generations');
+      let currentCount = 0;
+      if (storedData) {
+        try {
+          const parsedData = JSON.parse(storedData);
+          if (parsedData.date === todayJst) {
+            currentCount = parsedData.count;
+          }
+        } catch (e) {
+          console.error('Local storage parse error:', e);
+        }
+      }
+
+      if (currentCount >= MAX_GENERATIONS_PER_DAY) {
+        setRemainingCount(0);
+        alert('[本日の無料上限に達しました]\n\nお試しいただきありがとうございます。\nAIのサーバー利用料（課金）が高額になってしまうため、無料での作成は「お一人様1日3回まで」とさせていただいております。\n\nまた明日（深夜0時以降）、新しい図案を作りに来てください。');
+        return;
+      }
+    } else {
+      if (!premiumCode.trim()) {
+        setErrorMsg('プレミアムチケットのコードを入力してください。');
+        return;
+      }
     }
 
-    const selectedEngine: 'flux' | 'openai' = Math.random() < 0.05 ? 'openai' : 'flux';
+    const matched = ALL_CATEGORIES.find((c) => motif.includes(c.label));
+    if (matched) {
+      setSelectedCategoryId(matched.id);
+    }
+
+    const colorPayload = selectedColors.length > 0 
+      ? selectedColors.map((c) => c.text).join('と') 
+      : 'モチーフ入力内容に準拠した配色';
 
     setLoading(true);
-    setLoadingEngine(selectedEngine);
-    setLoadingStep(0);
-
-    const startTime = Date.now();
-    const stepTimer = setInterval(() => setLoadingStep(prev => (prev + 1) % 5), 4000);
-
     try {
-      const colorNames = selectedColors.map(c => getColorNameFromHex(c.hex)).join('、');
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          motif: motif.trim(), 
-          motif2: motif2.trim(), // ★ 前柄用モチーフを送信
-          color: colorNames || 'おまかせ', 
+          motif, 
+          color: colorPayload, 
           density, 
-          itemType, 
-          aiStyle, 
-          artist: selectedArtist,
-          engine: selectedEngine 
-        })
+          itemType,
+          paymentMode: aiPaymentMode,
+          premiumCode: aiPaymentMode === 'premium' ? premiumCode : undefined
+        }),
       });
       const data = await res.json();
-      if (!res.ok || data.error) throw new Error(data.error || '画像生成に失敗しました');
 
-      const elapsedTime = Date.now() - startTime;
-      const MIN_WAIT_MS = 20000;
-      if (elapsedTime < MIN_WAIT_MS) {
-        await new Promise((resolve) => setTimeout(resolve, MIN_WAIT_MS - elapsedTime));
+      if (data.imageUrl && data.blobUrl) {
+        setImageUrl(data.imageUrl); 
+        setBlobUrl(data.blobUrl);   
+        setSerialNumber(`KOMON-${Math.floor(1000 + Math.random() * 9000)}`);
+        
+        if (!patternTitle || ['万筋縞', '千鳥水玉', '格子柄', 'ギンガムチェック', '市松模様'].includes(patternTitle)) {
+          setPatternTitle('');
+        }
+
+        setDisplayMode('mockup');
+
+        if (aiPaymentMode === 'free') {
+          const todayJst = getTodayJST();
+          const currentCount = localStorage.getItem('komon_generations') 
+            ? JSON.parse(localStorage.getItem('komon_generations')!).count 
+            : 0;
+          const newCount = currentCount + 1;
+          localStorage.setItem('komon_generations', JSON.stringify({
+            date: todayJst,
+            count: newCount
+          }));
+          setRemainingCount(Math.max(0, MAX_GENERATIONS_PER_DAY - newCount));
+        } else {
+          setPremiumStatusMsg('プレミアムチケットを1回分消費して生成しました。');
+          setPremiumCode(''); // コードを消費したので空にする
+        }
+        
+        setTimeout(() => {
+          previewRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 300);
+      } else {
+        setErrorMsg(data.error || '図案の生成に失敗しました。');
       }
-
-      setImageUrl(data.imageUrl);
-      setBlobUrl(data.blobUrl);
-      
-      const newSerial = `KOMON-${Math.floor(1000 + Math.random() * 9000)}`;
-      setSerialNumber(newSerial);
-
-      const colorPrefix = selectedColors.length > 0 ? `${getColorNameFromHex(selectedColors[0].hex)}の` : '';
-      setPatternTitle(motif.trim() ? `${colorPrefix}${motif.trim()}小紋` : '無題の小紋');
-
-      const used = parseInt(localStorage.getItem('komon_count_total') || '0', 10) + 1;
-      localStorage.setItem('komon_count_total', used.toString());
-      setRemainingCount(Math.max(0, MAX_GENERATE_PER_DAY - used));
-
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    } catch (err: any) {
-      setErrorMsg(err.message || '通信エラーが発生しました');
-    } finally {
-      clearInterval(stepTimer);
-      setLoading(false);
-      setLoadingEngine(null);
+    } catch (error) {
+      console.error(error);
+      setErrorMsg('通信エラーが発生しました。時間を置いてお試しください。');
     }
+    setLoading(false);
   };
 
   const handleDownloadOriginal = async () => {
+    const targetUrl = blobUrl || imageUrl;
+    if (!targetUrl) return;
+
     try {
-      let downloadUrl = blobUrl || imageUrl;
-      if (creationMode === 'geometric' && imageUrl) {
-        downloadUrl = await renderTiledGeometricPng(imageUrl, bgSizeMm, geoBgColor, 400, 2400);
-      }
-      const response = await fetch(downloadUrl);
+      const response = await fetch(targetUrl);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${serialNumber || 'komon'}_original.png`;
+      a.download = `${serialNumber || 'pattern'}.png`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
-    } catch { 
-      window.open(blobUrl || imageUrl, '_blank', 'noopener,noreferrer');
+    } catch {
+      window.open(targetUrl, '_blank', 'noopener,noreferrer');
     }
   };
 
   const handleDownloadMapping = async () => {
-    if (!previewContainerRef.current) return;
+    if (!previewContainerRef.current || (itemType !== 'hanhaba' && itemType !== 'kyobukuro')) return;
     try {
       setMockupSubmitting(true);
 
       const canvas = document.createElement('canvas');
-      const size = 1200;
+      const size = 1200; 
       canvas.width = size;
       canvas.height = size;
       const ctx = canvas.getContext('2d');
@@ -345,35 +756,36 @@ function HomeContent() {
 
       const effectivePatternUrl = creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl);
       if (!effectivePatternUrl) throw new Error('No pattern image');
-
+      
       const patternImg = await loadImage(effectivePatternUrl);
 
       const pxPerMm = 27 / 11;
       const bgWidth = creationMode === 'geometric' ? (bgSizeMm * pxPerMm) : (180 * pxPerMm);
+
       const bgScale = bgWidth / Math.max(1, patternImg.width);
       const bgHeight = patternImg.height * bgScale;
 
       const pCanvas = document.createElement('canvas');
-      pCanvas.width = Math.max(1, bgWidth);
-      pCanvas.height = Math.max(1, bgHeight);
-      const pCtx = pCanvas.getContext('2d')!;
+      pCanvas.width = bgWidth;
+      pCanvas.height = bgHeight;
+      const pCtx = pCanvas.getContext('2d');
       if (creationMode === 'geometric' && geoBgColor) {
-        pCtx.fillStyle = geoBgColor;
-        pCtx.fillRect(0, 0, bgWidth, bgHeight);
+        pCtx!.fillStyle = geoBgColor;
+        pCtx!.fillRect(0, 0, bgWidth, bgHeight);
       }
-      pCtx.drawImage(patternImg, 0, 0, bgWidth, bgHeight);
+      pCtx!.drawImage(patternImg, 0, 0, bgWidth, bgHeight);
 
       const patternFill = ctx.createPattern(pCanvas, 'repeat')!;
 
-      // 1. 半幅帯の合成
+      // ===== 半幅帯の合成 =====
       if (itemType === 'hanhaba') {
         const layers = [
-          { id: '01', file: 'hanhaba_Layer01.png', rot: 2,   bgX: 12, bgY: 34 },
-          { id: '02', file: 'hanhaba_Layer02.png', rot: 1,   bgX: 45, bgY: 67 },
-          { id: '03', file: 'hanhaba_Layer03.png', rot: 8,   bgX: 78, bgY: 12 }, 
-          { id: '04', file: 'hanhaba_Layer04.png', rot: -1,  bgX: 23, bgY: 89 },
-          { id: '05', file: 'hanhaba_Layer05.png', rot: -10, bgX: 56, bgY: 45 },
-          { id: '06', file: 'hanhaba_Layer06.png', rot: -93, bgX: 89, bgY: 23 }, 
+          { id: '01', file: '/hanhaba_Layer01.png', z: 10, rot: 2,   bgX: 12, bgY: 34 },
+          { id: '02', file: '/hanhaba_Layer02.png', z: 20, rot: 1,   bgX: 45, bgY: 67 },
+          { id: '03', file: '/hanhaba_Layer03.png', z: 30, rot: 8,   bgX: 78, bgY: 12 }, 
+          { id: '04', file: '/hanhaba_Layer04.png', z: 40, rot: -1,  bgX: 23, bgY: 89 },
+          { id: '05', file: '/hanhaba_Layer05.png', z: 50, rot: -12, bgX: 56, bgY: 45 },
+          { id: '06', file: '/hanhaba_Layer06.png', z: 60, rot: -3,  bgX: 89, bgY: 23 }, 
         ];
 
         for (const layer of layers) {
@@ -382,7 +794,7 @@ function HomeContent() {
           tempCanvas.height = size;
           const tCtx = tempCanvas.getContext('2d')!;
 
-          const maskImg = await loadImage(`/${layer.file}?v=21`);
+          const maskImg = await loadImage(`${layer.file}?v=21`);
           tCtx.drawImage(maskImg, 0, 0, size, size);
 
           tCtx.globalCompositeOperation = 'source-in';
@@ -416,13 +828,13 @@ function HomeContent() {
 
         const kage = await loadImage('/hanhaba_Layer_kage.png?v=21');
         ctx.globalCompositeOperation = 'multiply';
-        ctx.globalAlpha = 0.5; 
+        ctx.globalAlpha = 0.7; 
         ctx.drawImage(kage, 0, 0, size, size);
         ctx.globalAlpha = 1.0;
         ctx.globalCompositeOperation = 'source-over';
       }
 
-      // 2. 京袋帯の合成（★マッピングの切り出し反転）
+      // ===== 京袋帯の合成 =====
       if (itemType === 'kyobukuro') {
         const grandImg = await loadImage('/kyoubukurogrand.png?v=21');
         ctx.drawImage(grandImg, 0, 0, size, size);
@@ -438,48 +850,10 @@ function HomeContent() {
         uCtx.fillRect(0, 0, size, size);
         ctx.drawImage(urajiCanvas, 0, 0);
 
-        const isVerticalPattern = patternImg.height > patternImg.width * 1.5;
-        
-        let taikoPatternFill = patternFill;
-        let haraPatternFill = patternFill;
-        let haraRot = 0;
-
-        if (isVerticalPattern && creationMode === 'ai') {
-          const sqSize = patternImg.width; 
-          
-          // ★修正：下半分（AIが柄を描きがちな部分）をお太鼓として使用
-          const topCanvas = document.createElement('canvas');
-          topCanvas.width = sqSize;
-          topCanvas.height = sqSize;
-          topCanvas.getContext('2d')!.drawImage(patternImg, 0, patternImg.height - sqSize, sqSize, sqSize, 0, 0, sqSize, sqSize);
-          
-          const pTopCanvas = document.createElement('canvas');
-          pTopCanvas.width = bgWidth;
-          pTopCanvas.height = bgWidth;
-          const pTopCtx = pTopCanvas.getContext('2d')!;
-          pTopCtx.drawImage(topCanvas, 0, 0, bgWidth, bgWidth);
-          taikoPatternFill = ctx.createPattern(pTopCanvas, 'repeat')!;
-
-          // ★修正：上半分（空白・サブモチーフになりがちな部分）を前柄として使用
-          const btmCanvas = document.createElement('canvas');
-          btmCanvas.width = sqSize;
-          btmCanvas.height = sqSize;
-          btmCanvas.getContext('2d')!.drawImage(patternImg, 0, 0, sqSize, sqSize, 0, 0, sqSize, sqSize);
-          
-          const pBtmCanvas = document.createElement('canvas');
-          pBtmCanvas.width = bgWidth;
-          pBtmCanvas.height = bgWidth;
-          const pBtmCtx = pBtmCanvas.getContext('2d')!;
-          pBtmCtx.drawImage(btmCanvas, 0, 0, bgWidth, bgWidth);
-          haraPatternFill = ctx.createPattern(pBtmCanvas, 'repeat')!;
-          
-          haraRot = 90;
-        }
-
         const layers = [
-          { id: 'hara', file: 'kyoubukurohara.png', rot: 271, bgX: 50, bgY: 50, fill: haraPatternFill, extraRot: haraRot },
-          { id: 'tare', file: 'kyoubukurotare.png', rot: -1, bgX: 50, bgY: 50, fill: taikoPatternFill, extraRot: 0 },
-          { id: 'taiko', file: 'kyoubukurotakio.png', rot: 2, bgX: 50, bgY: 50, fill: taikoPatternFill, extraRot: 0 },
+          { id: 'hara', file: '/kyoubukurohara.png', rot: 271, bgX: 50, bgY: 50 },
+          { id: 'tare', file: '/kyoubukurotare.png', rot: -1, bgX: 50, bgY: 50 },
+          { id: 'taiko', file: '/kyoubukurotakio.png', rot: 2, bgX: 50, bgY: 50 },
         ];
 
         for (const layer of layers) {
@@ -487,7 +861,7 @@ function HomeContent() {
           tempCanvas.width = size;
           tempCanvas.height = size;
           const tCtx = tempCanvas.getContext('2d')!;
-          const maskImg = await loadImage(`/${layer.file}?v=21`);
+          const maskImg = await loadImage(`${layer.file}?v=21`);
           tCtx.drawImage(maskImg, 0, 0, size, size);
           tCtx.globalCompositeOperation = 'source-in';
 
@@ -499,12 +873,7 @@ function HomeContent() {
           const rectSize = size * 1.5;
           const rectOffset = -size * 0.25;
           tCtx.translate(rectOffset + (rectSize * layer.bgX / 100), rectOffset + (rectSize * layer.bgY / 100));
-          
-          if (layer.extraRot) {
-            tCtx.rotate(layer.extraRot * Math.PI / 180);
-          }
-          
-          tCtx.fillStyle = layer.fill;
+          tCtx.fillStyle = patternFill;
           tCtx.fillRect(-size * 2, -size * 2, size * 4, size * 4); 
           tCtx.restore();
 
@@ -513,138 +882,16 @@ function HomeContent() {
 
         const kage = await loadImage('/kyoubukuromask.png?v=21');
         ctx.globalCompositeOperation = 'multiply';
-        ctx.globalAlpha = 0.5; 
+        ctx.globalAlpha = 0.8; 
         ctx.drawImage(kage, 0, 0, size, size);
         ctx.globalAlpha = 1.0;
         ctx.globalCompositeOperation = 'source-over';
       }
 
-      // 3. 着物の合成
-      if (itemType === 'kimono') {
-        const haikei = await loadImage('/haikei.png?v=30');
-        ctx.drawImage(haikei, 0, 0, size, size);
-
-        const kimonoBgWidth = bgWidth / 2;
-        const kimonoBgHeight = bgHeight / 2;
-        const kpCanvas = document.createElement('canvas');
-        kpCanvas.width = Math.max(1, kimonoBgWidth);
-        kpCanvas.height = Math.max(1, kimonoBgHeight);
-        const kpCtx = kpCanvas.getContext('2d')!;
-        if (creationMode === 'geometric' && geoBgColor) {
-          kpCtx.fillStyle = geoBgColor;
-          kpCtx.fillRect(0, 0, kimonoBgWidth, kimonoBgHeight);
-        }
-        kpCtx.drawImage(patternImg, 0, 0, kimonoBgWidth, kimonoBgHeight);
-        const kimonoPatternFill = ctx.createPattern(kpCanvas, 'repeat')!;
-
-        const kimonoLayers = [
-          { id: 'usiromigoro', file: 'usiromigoro_75.png', angle: 75, bgX: 50, bgY: 50 },
-          { id: 'migisode', file: 'migisode_165.png', angle: 165, bgX: 20, bgY: 30 },
-          { id: 'hidarisode', file: 'hidarisode_150.png', angle: 150, bgX: 80, bgY: 40 },
-          { id: 'hidarisode2', file: 'hidarisode2_175.png', angle: 175, bgX: 80, bgY: 70 },
-          { id: 'maemigoro', file: 'maemigoro_105.png', angle: 105, bgX: 45, bgY: 60 },
-          { id: 'maemigoro2', file: 'maemigoro2_140.png', angle: 140, bgX: 45, bgY: 20 },
-          { id: 'maeokumi', file: 'maeokumi_110.png', angle: 110, bgX: 55, bgY: 50 },
-          { id: 'migieri', file: 'migieri_65.png', angle: 65, bgX: 30, bgY: 10 },
-          { id: 'hidarieri', file: 'hidarieri_117.png', angle: 117, bgX: 70, bgY: 10 },
-        ];
-
-        for (const layer of kimonoLayers) {
-          const tempCanvas = document.createElement('canvas');
-          tempCanvas.width = size;
-          tempCanvas.height = size;
-          const tCtx = tempCanvas.getContext('2d')!;
-          const maskImg = await loadImage(`/${layer.file}?v=30`);
-          tCtx.drawImage(maskImg, 0, 0, size, size);
-          tCtx.globalCompositeOperation = 'source-in';
-
-          tCtx.save();
-          tCtx.translate(size / 2, size / 2);
-          tCtx.rotate((layer.angle - 90) * Math.PI / 180);
-          tCtx.translate(-size / 2, -size / 2);
-
-          const rectSize = size * 2;
-          const rectOffset = -size * 0.5;
-          tCtx.translate(rectOffset + (rectSize * layer.bgX / 100), rectOffset + (rectSize * layer.bgY / 100));
-          tCtx.fillStyle = kimonoPatternFill;
-          tCtx.fillRect(-size * 2, -size * 2, size * 5, size * 5);
-          tCtx.restore();
-
-          ctx.drawImage(tempCanvas, 0, 0);
-        }
-
-        // 半衿
-        const haneriCanvas = document.createElement('canvas');
-        haneriCanvas.width = size;
-        haneriCanvas.height = size;
-        const hCtx = haneriCanvas.getContext('2d')!;
-        const haneriMask = await loadImage('/haneri.png?v=30');
-        hCtx.drawImage(haneriMask, 0, 0, size, size);
-        hCtx.globalCompositeOperation = 'source-in';
-        hCtx.fillStyle = kimonoHaneriColor || '#ffffff';
-        hCtx.fillRect(0, 0, size, size);
-        ctx.drawImage(haneriCanvas, 0, 0);
-
-        // 帯揚げ
-        const obiageCanvas = document.createElement('canvas');
-        obiageCanvas.width = size;
-        obiageCanvas.height = size;
-        const oCtx = obiageCanvas.getContext('2d')!;
-        const obiageMask = await loadImage('/obiage.png?v=30');
-        oCtx.drawImage(obiageMask, 0, 0, size, size);
-        oCtx.globalCompositeOperation = 'source-in';
-        oCtx.fillStyle = kimonoObiageColor || '#c82a36';
-        oCtx.fillRect(0, 0, size, size);
-        ctx.drawImage(obiageCanvas, 0, 0);
-
-        // 帯
-        const obiCanvas = document.createElement('canvas');
-        obiCanvas.width = size;
-        obiCanvas.height = size;
-        const obCtx = obiCanvas.getContext('2d')!;
-        const obiMask = await loadImage('/obi_2.png?v=30');
-        obCtx.drawImage(obiMask, 0, 0, size, size);
-        obCtx.globalCompositeOperation = 'source-in';
-        if (customObiUrl) {
-          const customObiImg = await loadImage(customObiUrl);
-          obCtx.drawImage(customObiImg, 0, 0, size, size);
-        } else {
-          obCtx.fillStyle = kimonoObiColor || '#1a1a1a';
-          obCtx.fillRect(0, 0, size, size);
-        }
-        ctx.drawImage(obiCanvas, 0, 0);
-
-        // 乗算シャドウ
-        const jyouzan = await loadImage('/jyouzan.png?v=30');
-        ctx.globalCompositeOperation = 'multiply';
-        ctx.globalAlpha = 0.5;
-        ctx.drawImage(jyouzan, 0, 0, size, size);
-        ctx.globalAlpha = 1.0;
-        ctx.globalCompositeOperation = 'source-over';
-      }
-
-      // ID自動焼き込み
-      ctx.globalCompositeOperation = 'source-over';
-      ctx.font = 'bold 24px sans-serif';
-      ctx.textBaseline = 'middle';
-      const watermarkText = `ID: ${serialNumber || 'KOMON-XXXX'}`;
-      const textWidth = ctx.measureText(watermarkText).width;
-      
-      const rectX = size - textWidth - 40;
-      const rectY = size - 60;
-      const rectW = textWidth + 30;
-      const rectH = 40;
-
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
-      ctx.fillRect(rectX, rectY, rectW, rectH);
-
-      ctx.fillStyle = '#111111';
-      ctx.fillText(watermarkText, rectX + 15, rectY + (rectH / 2));
-
       const finalUrl = canvas.toDataURL('image/png');
       const a = document.createElement('a');
       a.href = finalUrl;
-      a.download = `${serialNumber || 'mapping'}_${itemType}_mockup.png`;
+      a.download = `${serialNumber || 'mapping'}_preview.png`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -657,114 +904,1152 @@ function HomeContent() {
     }
   };
 
+  const finalTitle = patternTitle.trim() || '（無題）';
+  const colorSummary = selectedColors.length > 0 ? selectedColors.map((c) => c.name.split(' ')[0]).join('・') : '自由配色';
+  const shareText = encodeURIComponent(`「妄想きもの図案帳」で、柄のアイデアを試してみました。\n\n銘：『${finalTitle}』\n配色：${colorSummary}\n\n※AIによるアイデア図案です。実際の生地制作時はスタッフが人の目で調整します。\n\n#妄想きもの図案帳`);
+  const shareUrl = typeof window !== 'undefined' ? encodeURIComponent(window.location.href) : '';
+  const xShareLink = `https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`;
+  
   const handleOrderClick = async (e: MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault();
+    e.preventDefault(); 
     try {
-      let finalImg = blobUrl || imageUrl;
-      const validSerial = serialNumber || (creationMode === 'geometric' ? `GEO-${Math.floor(1000 + Math.random() * 9000)}` : `KOMON-${Math.floor(1000 + Math.random() * 9000)}`);
-      if (!serialNumber) setSerialNumber(validSerial);
+      let finalImageUrl = blobUrl || imageUrl;
 
-      if (itemType === 'hanhaba') {
-        finalImg = await render18cmPrintDataPng(
-          creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl),
-          creationMode, bgSizeMm, geoBgColor
-        );
+      const validSerial = serialNumber || (creationMode === 'geometric' 
+        ? `GEO-${Math.floor(1000 + Math.random() * 9000)}` 
+        : `KOMON-${Math.floor(1000 + Math.random() * 9000)}`);
+      
+      if (!serialNumber) {
+        setSerialNumber(validSerial);
       }
 
-      const result = await submitOrder(platform, {
-        title: patternTitle.trim() || '（無題）',
-        serialNumber: validSerial,
-        imageUrl: finalImg,
-        itemType,
-        creationMode,
-        vendor: 'Printag Creator',
-        designFee,
+      if (itemType === 'hanhaba') {
+        const sourceFor18cm = creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl);
+        const png18cm = await render18cmPrintDataPng(sourceFor18cm, creationMode, bgSizeMm, geoBgColor);
+        finalImageUrl = png18cm;
+      }
+
+      if (finalImageUrl && finalImageUrl.startsWith('data:')) {
+        const uploadRes = await fetch('/api/upload-blob', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            base64Data: finalImageUrl,
+            filename: `${validSerial}.png`,
+          }),
+        });
+        const uploadData = await uploadRes.json();
+        if (uploadData.url) {
+          finalImageUrl = uploadData.url;
+          setBlobUrl(uploadData.url); 
+        } else {
+          throw new Error(uploadData.error || '画像のアップロードに失敗しました');
+        }
+      }
+
+      const response = await fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageUrl: finalImageUrl, komonId: validSerial, title: finalTitle }),
       });
 
-      if (result.message) alert(result.message);
-      if (result.redirectUrl) window.location.href = result.redirectUrl;
-    } catch (err: any) {
-      setErrorMsg(err.message || '通信エラーが発生しました');
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        setErrorMsg(`メール送信エラー: ${result.error || '不明なエラー'}`);
+        return;
+      }
+
+      const copyText = `図案ID: ${validSerial}\n銘: ${finalTitle}`;
+      try {
+        await navigator.clipboard.writeText(copyText);
+        alert(`[工場へのデータ送信完了]\n図案「${finalTitle}」の${itemType === 'hanhaba' ? '18cmプリントデータ' : '高解像度データ'}を職人へ送信しました。\n\n画面切り替え後、MakeShopのシリアル番号欄に「${validSerial}」が自動入力されているかご確認ください。`);
+      } catch (err) {
+        console.warn('クリップボードのコピーに失敗しました', err);
+      }
+
+      const cleanOrderUrl = `https://store.gofukuyasan.com/view/item/000000007300?komon_id=${encodeURIComponent(validSerial)}&title=${encodeURIComponent(finalTitle)}&image_url=${encodeURIComponent(finalImageUrl)}`;
+      window.location.href = cleanOrderUrl;
+      
+    } catch (err: unknown) {
+      console.error(err);
+      setErrorMsg('通信エラーが発生しました');
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#f4f4f5] text-zinc-900 flex flex-col items-center justify-start font-sans lg:p-8">
-      <div className="w-full max-w-7xl flex flex-col lg:flex-row lg:gap-6 items-start justify-center">
+    <div className="min-h-screen bg-[#f4f4f5] text-zinc-900 p-2 sm:p-6 lg:p-8 flex flex-col items-center justify-start font-sans selection:bg-zinc-200">
+      <div className="w-full max-w-7xl flex flex-col lg:flex-row gap-4 sm:gap-6 items-start justify-center">
         
-        <PreviewArea
-          imageUrl={imageUrl} blobUrl={blobUrl} rotatedPatternUrl={rotatedPatternUrl}
-          serialNumber={serialNumber} itemType={itemType} displayMode={displayMode}
-          creationMode={creationMode} bgSizeMm={bgSizeMm}
-          geoBgColor={geoBgColor}
-          obiLiningColor={obiLiningColor}
-          setObiLiningColor={setObiLiningColor}
-          kimonoHaneriColor={kimonoHaneriColor}
-          setKimonoHaneriColor={setKimonoHaneriColor}
-          kimonoObiageColor={kimonoObiageColor}
-          setKimonoObiageColor={setKimonoObiageColor}
-          kimonoObiColor={kimonoObiColor}
-          setKimonoObiColor={setKimonoObiColor}
-          customObiUrl={customObiUrl}
-          mockupSubmitting={mockupSubmitting} previewRef={previewRef} previewContainerRef={previewContainerRef}
-          handleItemTypeChange={setItemType} setDisplayMode={setDisplayMode}
-          handleDownloadMapping={handleDownloadMapping} UNIVERSAL_SCALE_FACTOR={UNIVERSAL_SCALE_FACTOR}
-        />
+        {/* ▼▼ プレビュー領域 ▼▼ */}
+        <div 
+          ref={previewRef}
+          className="w-full lg:w-1/2 shrink-0 sticky top-2 z-30 lg:top-8 flex flex-col gap-3"
+        >
+          {imageUrl && (
+            <div className="bg-white border border-zinc-300 shadow-xl overflow-hidden animate-fade-in">
+              
+              <div className="px-3 py-2 sm:px-4 sm:py-3 border-b border-zinc-200 bg-zinc-50 flex justify-between items-center">
+                <div>
+                  <span className="text-[8px] sm:text-[9px] font-mono font-bold tracking-widest text-zinc-400 block">
+                    ID: {serialNumber}
+                  </span>
+                  <h2 className="text-xs sm:text-base font-black text-zinc-900 tracking-wider truncate max-w-[200px] sm:max-w-none">
+                    銘：『{finalTitle}』
+                  </h2>
+                </div>
+              </div>
 
-        <ControlPanel
-          creationMode={creationMode} setCreationMode={setCreationMode}
-          itemType={itemType} setItemType={setItemType}
-          aiStyle={aiStyle} setAiStyle={setAiStyle}
-          selectedArtist={selectedArtist} setSelectedArtist={setSelectedArtist}
-          motif={motif} setMotif={setMotif}
-          motif2={motif2} setMotif2={setMotif2}
-          selectedColors={selectedColors} setSelectedColors={setSelectedColors} handleColorToggle={handleColorToggle}
-          showColorPalette={showColorPalette} setShowColorPalette={setShowColorPalette}
-          density={density} setDensity={setDensity}
-          geoPatternType={geoPatternType} setGeoPatternType={setGeoPatternType}
-          stripeDir={stripeDir} setStripeDir={setStripeDir} dotLayout={dotLayout} setDotLayout={setDotLayout}
-          dotRadius={dotRadius} setDotRadius={setDotRadius} gapWidth={gapWidth} setGapWidth={setGapWidth}
-          lineWidth={lineWidth} setLineWidth={setLineWidth} geoBgColor={geoBgColor} setGeoBgColor={setGeoBgColor}
-          geoPatternColor={geoPatternColor} setGeoPatternColor={setGeoPatternColor}
-          showGeoPaletteFor={showGeoPaletteFor} setShowGeoPaletteFor={setShowGeoPaletteFor}
-          obiLiningColor={obiLiningColor} setObiLiningColor={setObiLiningColor}
-          kimonoHaneriColor={kimonoHaneriColor} setKimonoHaneriColor={setKimonoHaneriColor}
-          kimonoObiageColor={kimonoObiageColor} setKimonoObiageColor={setKimonoObiageColor}
-          kimonoObiColor={kimonoObiColor} setKimonoObiColor={setKimonoObiColor}
-          customObiUrl={customObiUrl} setCustomObiUrl={setCustomObiUrl}
-          handleCustomObiUpload={handleCustomObiUpload}
-          agreed={agreed} setAgreed={setAgreed} errorMsg={errorMsg}
-          loading={loading} loadingEngine={loadingEngine}
-          remainingCount={remainingCount} loadingStep={loadingStep}
-          handleGenerate={handleGenerate} imageUrl={imageUrl} patternTitle={patternTitle} setPatternTitle={setPatternTitle}
-          serialNumber={serialNumber}
-          handleDownloadOriginal={handleDownloadOriginal} handleOrderClick={handleOrderClick}
-        />
-      </div>
+              {/* アイテム直感切替バー（半幅帯 / 京袋帯 / 着物） */}
+              <div className="px-3 py-2 bg-zinc-900 text-white flex items-center justify-between">
+                <span className="text-[10px] font-bold text-zinc-400 tracking-wider">仕立てアイテム：</span>
+                <div className="flex gap-1">
+                  <button
+                    type="button"
+                    onClick={() => handleItemTypeChange('hanhaba')}
+                    className={`px-3 py-1 text-[11px] font-black rounded transition-all ${
+                      itemType === 'hanhaba' ? 'bg-white text-zinc-950 shadow' : 'bg-zinc-800 text-zinc-400 hover:text-white'
+                    }`}
+                  >
+                    半幅帯
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleItemTypeChange('kyobukuro')}
+                    className={`px-3 py-1 text-[11px] font-black rounded transition-all ${
+                      itemType === 'kyobukuro' ? 'bg-white text-zinc-950 shadow' : 'bg-zinc-800 text-zinc-400 hover:text-white'
+                    }`}
+                  >
+                    京袋帯
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleItemTypeChange('kimono')}
+                    className={`px-3 py-1 text-[11px] font-black rounded transition-all ${
+                      itemType === 'kimono' ? 'bg-white text-zinc-950 shadow' : 'bg-zinc-800 text-zinc-400 hover:text-white'
+                    }`}
+                  >
+                    着物
+                  </button>
+                </div>
+              </div>
 
-      {CURRENT_NOTICE.enabled && (
-        <div className="w-full max-w-7xl px-4 py-8 mt-12 flex justify-center border-t border-zinc-200">
-          <button
-            type="button"
-            onClick={() => setIsNoticeOpen(true)}
-            className="text-xs font-bold text-zinc-500 hover:text-zinc-950 underline transition-colors"
-          >
-            {CURRENT_NOTICE.category}を確認する
-          </button>
+              {/* 動的タブUI */}
+              <div className="px-3 py-2.5 border-b border-zinc-200 bg-zinc-100 flex flex-col gap-2">
+                <div className="flex gap-1.5 overflow-x-auto pb-0.5 scrollbar-hide">
+                  <button
+                    type="button"
+                    onClick={() => setDisplayMode('mockup')}
+                    className={`flex-1 px-3 py-2 text-[10px] sm:text-xs font-bold tracking-wider transition-all border rounded-sm ${
+                      displayMode === 'mockup'
+                        ? 'bg-zinc-900 text-white border-zinc-900 shadow'
+                        : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50'
+                    }`}
+                  >
+                    {itemType === 'hanhaba' && '半幅帯マッピング'}
+                    {itemType === 'kyobukuro' && '京袋帯マッピング'}
+                    {itemType === 'kimono' && '着物マッピング'}
+                  </button>
+
+                  {itemType === 'kyobukuro' && (
+                    <button
+                      type="button"
+                      onClick={() => setDisplayMode('trim')}
+                      className={`flex-1 px-3 py-2 text-[10px] sm:text-xs font-bold tracking-wider transition-all border rounded-sm ${
+                        displayMode === 'trim'
+                          ? 'bg-zinc-900 text-white border-zinc-900 shadow'
+                          : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50'
+                      }`}
+                    >
+                      34cm 裁断イメージ
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => setDisplayMode('data')}
+                    className={`flex-1 px-3 py-2 text-[10px] sm:text-xs font-bold tracking-wider transition-all border rounded-sm ${
+                      displayMode === 'data'
+                        ? 'bg-zinc-900 text-white border-zinc-900 shadow'
+                        : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50'
+                    }`}
+                  >
+                    {itemType === 'hanhaba' ? '18cm プリントデータ' : '40cm 反物データ'}
+                  </button>
+                </div>
+              </div>
+
+              <div className="bg-[#e4e4e7] flex flex-col items-center justify-center p-3 sm:p-6 relative shadow-inner overflow-hidden min-h-[300px]">
+                
+                {/* 1. モックアップ表示 */}
+                {displayMode === 'mockup' && (
+                  <div className="w-full flex flex-col items-center animate-fade-in">
+                    
+                    {/* 半幅帯マッピング（統一実寸ロック：180mm基準） */}
+                    {itemType === 'hanhaba' && (
+                      <>
+                        <div ref={previewContainerRef} className="relative w-[210px] sm:w-[340px] aspect-square mx-auto drop-shadow-xl">
+                          {(() => {
+                            const patternSize = creationMode === 'geometric' 
+                              ? `${bgSizeMm * UNIVERSAL_SCALE_FACTOR}% auto` 
+                              : `${180 * UNIVERSAL_SCALE_FACTOR}% auto`;
+                            
+                            const effectivePatternUrl = creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl);
+                            const v = '21'; 
+
+                            return (
+                              <div className="relative w-full h-full overflow-hidden">
+                                {[
+                                  { id: '01', file: 'hanhaba_Layer01.png', z: 10, rot: 2,   bgX: '12%', bgY: '34%' },
+                                  { id: '02', file: 'hanhaba_Layer02.png', z: 20, rot: 1,   bgX: '45%', bgY: '67%' },
+                                  { id: '03', file: 'hanhaba_Layer03.png', z: 30, rot: 8,   bgX: '78%', bgY: '12%' },
+                                  { id: '04', file: 'hanhaba_Layer04.png', z: 40, rot: -1,  bgX: '23%', bgY: '89%' },
+                                  { id: '05', file: 'hanhaba_Layer05.png', z: 50, rot: -12, bgX: '56%', bgY: '45%' },
+                                  { id: '06', file: 'hanhaba_Layer06.png', z: 60, rot: -3,  bgX: '89%', bgY: '23%' },
+                                ].map((layer) => (
+                                  <div 
+                                    key={layer.id}
+                                    className="absolute inset-0 pointer-events-none" 
+                                    style={{ 
+                                      zIndex: layer.z,
+                                      maskImage: `url('/${layer.file}?v=${v}')`,
+                                      WebkitMaskImage: `url('/${layer.file}?v=${v}')`,
+                                      maskSize: 'contain',
+                                      WebkitMaskSize: 'contain',
+                                      maskRepeat: 'no-repeat',
+                                      WebkitMaskRepeat: 'no-repeat',
+                                      maskPosition: 'center',
+                                      WebkitMaskPosition: 'center',
+                                    }}
+                                  >
+                                    <div 
+                                      style={{
+                                        position: 'absolute',
+                                        top: '-25%',
+                                        left: '-25%',
+                                        width: '150%',
+                                        height: '150%',
+                                        backgroundImage: `url(${effectivePatternUrl})`, 
+                                        backgroundSize: patternSize,
+                                        backgroundRepeat: 'repeat',
+                                        backgroundPosition: `${layer.bgX} ${layer.bgY}`, 
+                                        transform: `rotate(${layer.rot}deg)`,
+                                        transformOrigin: 'center center',
+                                        backgroundColor: creationMode === 'geometric' ? geoBgColor : 'transparent'
+                                      }}
+                                    />
+                                  </div>
+                                ))}
+
+                                <div 
+                                  className="absolute inset-0 pointer-events-none" 
+                                  style={{ 
+                                    zIndex: 65,
+                                    maskImage: `url('/hanhaba_Layer07.png?v=${v}')`,
+                                    WebkitMaskImage: `url('/hanhaba_Layer07.png?v=${v}')`,
+                                    maskSize: 'contain',
+                                    WebkitMaskSize: 'contain',
+                                    maskRepeat: 'no-repeat',
+                                    WebkitMaskRepeat: 'no-repeat',
+                                    maskPosition: 'center',
+                                    WebkitMaskPosition: 'center',
+                                  }}
+                                >
+                                  <div 
+                                    style={{
+                                      position: 'absolute',
+                                      top: '-25%',
+                                      left: '-25%',
+                                      width: '150%',
+                                      height: '150%',
+                                      backgroundColor: '#d4d4d8', 
+                                    }}
+                                  />
+                                  <div 
+                                    style={{
+                                      position: 'absolute',
+                                      top: '-25%',
+                                      left: '-25%',
+                                      width: '150%',
+                                      height: '150%',
+                                      backgroundColor: obiLiningColor,
+                                    }}
+                                  />
+                                </div>
+
+                                <div 
+                                  className="absolute inset-0 pointer-events-none" 
+                                  style={{ 
+                                    zIndex: 70,
+                                    backgroundImage: `url('/hanhaba_Layer_kage.png?v=${v}')`,
+                                    backgroundSize: 'contain',
+                                    backgroundPosition: 'center',
+                                    backgroundRepeat: 'no-repeat',
+                                    mixBlendMode: 'multiply',
+                                    opacity: 0.7 
+                                  }}
+                                />
+                              </div>
+                            );
+                          })()}
+                        </div>
+                        <div className="mt-3">
+                          <button
+                            type="button"
+                            onClick={handleDownloadMapping}
+                            disabled={mockupSubmitting}
+                            className={`px-3 py-1.5 text-[10px] sm:text-xs font-bold tracking-wider rounded-sm shadow-sm transition-colors ${
+                              mockupSubmitting ? 'bg-zinc-400 text-zinc-100 cursor-not-allowed' : 'bg-zinc-900 text-white hover:bg-zinc-800'
+                            }`}
+                          >
+                            {mockupSubmitting ? '画像を作成中...' : '↓ マッピング画像を保存'}
+                          </button>
+                        </div>
+                        <p className="text-[9px] sm:text-[10px] text-zinc-500 mt-4 font-medium bg-white/80 px-2 py-1 rounded text-center">
+                          ※ 帯を結んだ際の柄の出方を想定したシミュレーション<br />
+                          ※ 生地制作時は職人が柄のつなぎ目（送り）を微調整します。
+                        </p>
+                      </>
+                    )}
+
+                    {/* ★ 京袋帯マッピング（統一実寸ロック：半幅帯と等倍完全同期） */}
+                    {itemType === 'kyobukuro' && (
+                      <>
+                        <div ref={previewContainerRef} className="relative w-[210px] sm:w-[340px] aspect-square mx-auto drop-shadow-xl">
+                          {(() => {
+                            // ★ 半幅帯と全く同一の180mm原寸基準を適用（お太鼓31cmの中にうさぎが4〜5匹収まる）
+                            const patternSize = creationMode === 'geometric' 
+                              ? `${bgSizeMm * UNIVERSAL_SCALE_FACTOR}% auto` 
+                              : `${180 * UNIVERSAL_SCALE_FACTOR}% auto`;
+                            
+                            const effectivePatternUrl = creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl);
+                            const v = '21'; 
+
+                            return (
+                              <div className="relative w-full h-full overflow-hidden">
+                                <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 10 }}>
+                                  <img src={`/kyoubukurogrand.png?v=${v}`} alt="" className="w-full h-full object-contain" />
+                                </div>
+
+                                <div 
+                                  className="absolute inset-0 pointer-events-none" 
+                                  style={{ 
+                                    zIndex: 20,
+                                    maskImage: `url('/kyoubukurouraji.png?v=${v}')`,
+                                    WebkitMaskImage: `url('/kyoubukurouraji.png?v=${v}')`,
+                                    maskSize: 'contain',
+                                    WebkitMaskSize: 'contain',
+                                    maskRepeat: 'no-repeat',
+                                    WebkitMaskRepeat: 'no-repeat',
+                                    maskPosition: 'center',
+                                    WebkitMaskPosition: 'center',
+                                  }}
+                                >
+                                  <div className="w-full h-full" style={{ backgroundColor: obiLiningColor }} />
+                                </div>
+
+                                {[
+                                  { id: 'hara', file: 'kyoubukurohara.png', z: 30, rot: 271, bgX: '50%', bgY: '50%' },
+                                  { id: 'tare', file: 'kyoubukurotare.png', z: 40, rot: -1, bgX: '50%', bgY: '50%' },
+                                  { id: 'taiko', file: 'kyoubukurotakio.png', z: 50, rot: 2, bgX: '50%', bgY: '50%' },
+                                ].map((layer) => (
+                                  <div 
+                                    key={layer.id}
+                                    className="absolute inset-0 pointer-events-none" 
+                                    style={{ 
+                                      zIndex: layer.z,
+                                      maskImage: `url('/${layer.file}?v=${v}')`,
+                                      WebkitMaskImage: `url('/${layer.file}?v=${v}')`,
+                                      maskSize: 'contain',
+                                      WebkitMaskSize: 'contain',
+                                      maskRepeat: 'no-repeat',
+                                      WebkitMaskRepeat: 'no-repeat',
+                                      maskPosition: 'center',
+                                      WebkitMaskPosition: 'center',
+                                    }}
+                                  >
+                                    <div 
+                                      style={{
+                                        position: 'absolute',
+                                        top: '-25%',
+                                        left: '-25%',
+                                        width: '150%',
+                                        height: '150%',
+                                        backgroundImage: `url(${effectivePatternUrl})`, 
+                                        backgroundSize: patternSize,
+                                        backgroundRepeat: 'repeat',
+                                        backgroundPosition: `${layer.bgX} ${layer.bgY}`, 
+                                        transform: `rotate(${layer.rot}deg)`,
+                                        transformOrigin: 'center center',
+                                        backgroundColor: creationMode === 'geometric' ? geoBgColor : 'transparent'
+                                      }}
+                                    />
+                                  </div>
+                                ))}
+
+                                <div 
+                                  className="absolute inset-0 pointer-events-none" 
+                                  style={{ 
+                                    zIndex: 60,
+                                    backgroundImage: `url('/kyoubukuromask.png?v=${v}')`,
+                                    backgroundSize: 'contain',
+                                    backgroundPosition: 'center',
+                                    backgroundRepeat: 'no-repeat',
+                                    mixBlendMode: 'multiply',
+                                    opacity: 0.8 
+                                  }}
+                                />
+                              </div>
+                            );
+                          })()}
+                        </div>
+                        <div className="mt-3">
+                          <button
+                            type="button"
+                            onClick={handleDownloadMapping}
+                            disabled={mockupSubmitting}
+                            className={`px-3 py-1.5 text-[10px] sm:text-xs font-bold tracking-wider rounded-sm shadow-sm transition-colors ${
+                              mockupSubmitting ? 'bg-zinc-400 text-zinc-100 cursor-not-allowed' : 'bg-zinc-900 text-white hover:bg-zinc-800'
+                            }`}
+                          >
+                            {mockupSubmitting ? '画像を作成中...' : '↓ マッピング画像を保存'}
+                          </button>
+                        </div>
+                        <p className="text-[9px] sm:text-[10px] text-zinc-500 mt-4 font-medium bg-white/80 px-2 py-1 rounded text-center">
+                          ※ 帯を結んだ際の柄の出方を想定したシミュレーション<br />
+                          ※ 生地制作時は職人が柄のつなぎ目（送り）を微調整します。
+                        </p>
+                      </>
+                    )}
+
+                    {/* 着物マッピング（将来用） */}
+                    {itemType === 'kimono' && (
+                      <div className="w-full max-w-[300px] aspect-square bg-zinc-200 border-2 border-dashed border-zinc-400 flex items-center justify-center">
+                        <span className="text-zinc-500 font-bold text-sm tracking-widest">着物マッピング準備中</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* 2. トリム表示 (京袋帯のみ：実寸等倍スケールに同期) */}
+                {displayMode === 'trim' && itemType === 'kyobukuro' && (
+                  <div className="w-full flex flex-col items-center animate-fade-in">
+                    <div 
+                      className="relative w-[280px] sm:w-[400px] mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden"
+                      style={{ aspectRatio: '40 / 34' }}
+                    >
+                      <div 
+                        className="absolute inset-0"
+                        style={{
+                          backgroundImage: `url(${creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl)})`, 
+                          // ★ 180mm原寸基準に合わせて等倍敷き詰め (180 / 400 = 45%)
+                          backgroundSize: creationMode === 'geometric' 
+                            ? `${(bgSizeMm / 400) * 100}% auto` 
+                            : `${(180 / 400) * 100}% auto`,
+                          backgroundPosition: 'center center',
+                          backgroundRepeat: 'repeat',
+                          backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff'
+                        }}
+                      />
+                    </div>
+                    <p className="text-[9px] sm:text-[10px] text-zinc-500 mt-4 font-medium bg-white/80 px-2 py-1 rounded text-center leading-relaxed">
+                      ※ 幅40cmの反物データから、帯幅(プリント34cm)に裁断した場合のトリミング・イメージです。
+                    </p>
+                  </div>
+                )}
+
+                {/* 3. データ表示 (半幅帯18cm / 着物・京袋40cm) */}
+                {displayMode === 'data' && (
+                  <div className="flex flex-col items-center w-full animate-fade-in">
+                    {itemType === 'hanhaba' ? (
+                      <div 
+                        className="relative mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden"
+                        style={{ width: '216px', height: '480px' }}
+                      >
+                        <div 
+                          className="absolute inset-0"
+                          style={{
+                            backgroundImage: `url(${creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl)})`, 
+                            backgroundSize: creationMode === 'geometric' ? `${(bgSizeMm / 180) * 100}% auto` : '100% auto',
+                            backgroundPosition: 'top left',
+                            backgroundRepeat: 'repeat',
+                            backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff'
+                          }}
+                        />
+                      </div>
+                    ) : (
+                      <div className="relative w-[260px] sm:w-[400px] aspect-square mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden">
+                        <div 
+                          className="absolute inset-0"
+                          style={{
+                            backgroundImage: `url(${creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl)})`, 
+                            backgroundSize: creationMode === 'geometric' ? `${(bgSizeMm / 400) * 100}% auto` : '100% auto',
+                            backgroundPosition: 'center',
+                            backgroundRepeat: 'repeat',
+                            backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff'
+                          }}
+                        />
+                      </div>
+                    )}
+                    
+                    <p className="text-[9px] sm:text-[10px] text-zinc-500 mt-4 font-medium bg-white/80 px-3 py-2 rounded text-center leading-relaxed">
+                      ※ 工場・職人へ送信されるプリント用のデータです。<br />
+                      {itemType === 'hanhaba' ? '（半幅帯用に最適化された幅18cm（仕上がり16cm）のデータがRIPソフトへ送られます）' : '（幅40cmの反物原寸サイズ）'}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
-      )}
-      <NoticeModal
-        isOpen={isNoticeOpen}
-        onClose={handleCloseNotice}
-        onGoToGeometric={() => { handleCloseNotice(); setCreationMode('geometric'); }}
-      />
+
+        {/* ▼▼ 操作パネル ▼▼ */}
+        <div className="w-full lg:w-1/2 bg-white border border-zinc-200 p-4 sm:p-8 lg:p-10 shrink-0 shadow-sm z-10">
+          
+          <div className="text-center mb-6 sm:mb-8 p-5 sm:p-8 bg-zinc-950 text-white shadow-inner">
+            <h1 className="text-xl sm:text-2xl font-black tracking-widest text-center leading-tight">
+              {isShopify ? 'プリンタグ見本帳' : '妄想きもの図案帳'}
+            </h1>
+            <p className="text-[11px] sm:text-xs text-zinc-400 mt-3 leading-relaxed font-medium tracking-wider">
+              {isShopify ? (
+                <>
+                  新潟デジタル捺染工場（モナリザ）直結のテキスタイル制作スタジオ。<br className="hidden sm:inline" />
+                  AIや幾何学文様から図案をデザインし、デザインフィーを設定してShopifyへ即時展開できます。
+                </>
+              ) : (
+                <>
+                  新潟・十日町は着物の産地 着物の配色や柄づくりの知識を生かして、<br className="hidden sm:inline" />
+                  思いついた柄のアイデアを試せるAI図案ツールです。
+                </>
+              )}
+            </p>
+          </div>
+
+          <div className="flex bg-zinc-50 border border-zinc-200 p-1 mb-6 shadow-sm">
+            <button
+              type="button"
+              onClick={() => setCreationMode('geometric')}
+              className={`flex-1 py-2.5 sm:py-3 text-xs font-black tracking-wider transition-all ${
+                creationMode === 'geometric' ? 'bg-zinc-900 text-white shadow' : 'text-zinc-500 hover:text-zinc-800'
+              }`}
+            >
+              格子・水玉製作所
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setCreationMode('ai');
+                if (['万筋縞', '千鳥水玉', '格子柄', 'ギンガムチェック', '市松模様'].includes(patternTitle)) {
+                  setPatternTitle('');
+                }
+              }}
+              className={`flex-1 py-2.5 sm:py-3 text-xs font-black tracking-wider transition-all ${
+                creationMode === 'ai' ? 'bg-zinc-900 text-white shadow' : 'text-zinc-500 hover:text-zinc-800'
+              }`}
+            >
+              AI妄想モード
+            </button>
+          </div>
+
+          {/* ▼ モード別設定パネル ▼ */}
+          <div className="space-y-6">
+            {creationMode === 'ai' ? (
+              <>
+                <div>
+                  <div className="flex justify-between items-baseline mb-2">
+                    <label className="block text-xs font-bold text-zinc-900 tracking-wider">
+                      01. 図案のイメージ・プロンプト
+                    </label>
+                    {motif && (
+                      <button 
+                        onClick={() => setMotif('')} 
+                        className="text-[10px] font-bold text-zinc-400 hover:text-zinc-800 tracking-widest uppercase transition-colors"
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                  
+                  <div className="relative">
+                    <textarea
+                      className="w-full border border-zinc-300 p-3 sm:p-4 bg-white text-xs sm:text-sm focus:outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 resize-none transition-all duration-200 leading-relaxed font-medium shadow-sm"
+                      rows={3}
+                      value={motif}
+                      onChange={(e) => setMotif(e.target.value)}
+                      placeholder="例：上から見た金魚。赤い金魚と黒出目金。水草。地色は白、ターコイズの流水柄。版画・切り絵風、ミッドセンチュリー"
+                      disabled={loading}
+                    />
+                  </div>
+
+                  <div className="mt-2 text-right">
+                    <button
+                      type="button"
+                      onClick={() => setShowTags(!showTags)}
+                      className="inline-flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-900 font-bold transition-colors py-1"
+                    >
+                      <span>{showTags ? 'ヒントを閉じる' : '図案のヒント・キーワードを探す'}</span>
+                      <span className="text-[9px] transform transition-transform duration-200">{showTags ? '▲' : '▼'}</span>
+                    </button>
+                  </div>
+
+                  {showTags && (
+                    <div className="mt-2 p-3 bg-zinc-50 border border-zinc-200 space-y-3 max-h-[220px] overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-200 animate-fade-in shadow-inner">
+                      <p className="text-[10px] text-zinc-500 font-medium">クリックするとキーワードが追加されます：</p>
+                      {TAG_CATEGORIES.map((cat) => (
+                        <div key={cat.title}>
+                          <p className="text-[10px] font-bold text-zinc-400 tracking-wider mb-1">{cat.title}</p>
+                          <div className="flex flex-wrap gap-1">
+                            {cat.items.map((item) => (
+                              <button
+                                key={item.label}
+                                type="button"
+                                onClick={() => handleTagClick(item)}
+                                className="px-2 py-1 bg-white border border-zinc-200 text-[10px] font-medium text-zinc-600 hover:bg-zinc-900 hover:text-white transition-all shadow-sm"
+                              >
+                                {item.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="pt-2 border-t border-zinc-100">
+                  <div className="flex justify-between items-baseline mb-2">
+                    <div>
+                      <label className="block text-xs font-bold text-zinc-900 tracking-wider">
+                        02. 配色・地色
+                      </label>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowColorPalette(!showColorPalette)}
+                      className="inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-900 font-bold transition-colors"
+                    >
+                      <span>{showColorPalette ? '閉じる' : '色見本から選ぶ (102色)'}</span>
+                    </button>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-1.5 min-h-[30px]">
+                    {selectedColors.length === 0 ? (
+                      <span className="text-xs text-zinc-400 italic">指定なし（AIにおまかせ）</span>
+                    ) : (
+                      <>
+                        {selectedColors.map((col) => (
+                          <span
+                            key={col.name}
+                            onClick={() => handleColorToggle(col)}
+                            className="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-bold border cursor-pointer shadow-sm"
+                            style={{
+                              backgroundColor: col.hex,
+                              color: col.isDark ? '#fff' : '#000',
+                            }}
+                          >
+                            {col.name.split(' ')[0]}
+                            <span className="text-[9px] opacity-70">✕</span>
+                          </span>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() => setSelectedColors([])}
+                          className="text-[10px] text-zinc-400 hover:text-zinc-700 underline ml-1"
+                        >
+                          リセット
+                        </button>
+                      </>
+                    )}
+                  </div>
+
+                  {showColorPalette && (
+                    <div className="mt-2 p-3 bg-zinc-50 border border-zinc-200 animate-fade-in shadow-inner">
+                      <div className="max-h-[180px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-200">
+                        <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
+                          {TRADITIONAL_COLORS.map((col) => {
+                            const isSelected = selectedColors.some((c) => c.name === col.name);
+                            return (
+                              <button
+                                key={col.name}
+                                type="button"
+                                onClick={() => handleColorToggle(col)}
+                                className={`relative h-10 p-1 flex flex-col justify-end text-left transition-all ${
+                                  isSelected
+                                    ? 'ring-2 ring-zinc-950 scale-95 font-black'
+                                    : 'border border-zinc-200/50 shadow-sm'
+                                }`}
+                                style={{ backgroundColor: col.hex }}
+                              >
+                                <span className={`text-[8px] font-bold truncate leading-tight flex items-center justify-between ${col.isDark ? 'text-white' : 'text-zinc-900'}`}>
+                                  {col.name.split(' ')[0]}
+                                  {isSelected && <span>✓</span>}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="space-y-5 animate-fade-in">
+                <div className="bg-zinc-50 border border-zinc-200 text-zinc-800 p-3 text-xs shadow-sm">
+                  <p className="font-bold text-[11px] mb-0.5">使い放題モード</p>
+                  <p className="text-[10px] opacity-90">上のプレビューを見ながら、サイズや色を自由にいじって遊んでみてください。</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-zinc-900 mb-1">柄の種類</label>
+                    <select 
+                      value={geoPatternType} 
+                      onChange={(e) => setGeoPatternType(e.target.value as any)}
+                      className="w-full border border-zinc-300 p-2 bg-white text-xs focus:border-zinc-900 focus:outline-none shadow-sm"
+                    >
+                      <option value="stripe">縞（ストライプ）</option>
+                      <option value="dot">水玉（ドット）</option>
+                      <option value="grid">格子（ラインチェック）</option>
+                      <option value="gingham">ギンガムチェック</option>
+                      <option value="checker">市松（チェッカー）</option>
+                    </select>
+                  </div>
+                  {geoPatternType === 'stripe' && (
+                    <div>
+                      <label className="block text-[11px] font-bold text-zinc-900 mb-1">縞の向き</label>
+                      <select 
+                        value={stripeDir} 
+                        onChange={(e) => setStripeDir(e.target.value as StripeDirection)}
+                        className="w-full border border-zinc-300 p-2 bg-white text-xs focus:border-zinc-900 focus:outline-none shadow-sm"
+                      >
+                        <option value="vertical">縦縞（滝縞）</option>
+                        <option value="horizontal">横縞（ボーダー）</option>
+                        <option value="diagonal">斜め（右上がり）</option>
+                      </select>
+                    </div>
+                  )}
+                  {geoPatternType === 'dot' && (
+                    <div>
+                      <label className="block text-[11px] font-bold text-zinc-900 mb-1">配置</label>
+                      <select 
+                        value={dotLayout} 
+                        onChange={(e) => setDotLayout(e.target.value as DotLayout)}
+                        className="w-full border border-zinc-300 p-2 bg-white text-xs focus:border-zinc-900 focus:outline-none shadow-sm"
+                      >
+                        <option value="staggered">千鳥（互い違い）</option>
+                        <option value="grid">正方格子</option>
+                      </select>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-3.5 pt-3 border-t border-zinc-100">
+                  <label className="block text-xs font-bold text-zinc-900 mb-2">サイズ調整（mm実寸連動）</label>
+                  
+                  {geoPatternType === 'dot' && (
+                    <>
+                      <div>
+                        <div className="flex justify-between items-end mb-1">
+                          <span className="text-[10px] font-bold text-zinc-500">水玉の大きさ（直径）</span>
+                          <span className="text-xs font-black text-zinc-900">{dotRadius * 2}<span className="text-[9px] font-normal text-zinc-400 ml-0.5">mm</span></span>
+                        </div>
+                        <input type="range" min="1" max="50" value={dotRadius} onChange={(e) => setDotRadius(Number(e.target.value))} className="w-full cursor-pointer accent-zinc-900" />
+                      </div>
+                      <div>
+                        <div className="flex justify-between items-end mb-1">
+                          <span className="text-[10px] font-bold text-zinc-500">間隔（余白）</span>
+                          <span className="text-xs font-black text-zinc-900">{gapWidth}<span className="text-[9px] font-normal text-zinc-400 ml-0.5">mm</span></span>
+                        </div>
+                        <input type="range" min="0" max="100" value={gapWidth} onChange={(e) => setGapWidth(Number(e.target.value))} className="w-full cursor-pointer accent-zinc-900" />
+                      </div>
+                    </>
+                  )}
+
+                  {geoPatternType === 'checker' && (
+                    <div>
+                      <div className="flex justify-between items-end mb-1">
+                        <span className="text-[10px] font-bold text-zinc-500">市松の大きさ（1マス）</span>
+                        <span className="text-xs font-black text-zinc-900">{lineWidth}<span className="text-[9px] font-normal text-zinc-400 ml-0.5">mm</span></span>
+                      </div>
+                      <input type="range" min="1" max="200" value={lineWidth} onChange={(e) => setLineWidth(Number(e.target.value))} className="w-full cursor-pointer accent-zinc-900" />
+                    </div>
+                  )}
+
+                  {(geoPatternType === 'stripe' || geoPatternType === 'grid' || geoPatternType === 'gingham') && (
+                    <>
+                      <div>
+                        <div className="flex justify-between items-end mb-1">
+                          <span className="text-[10px] font-bold text-zinc-500">線の太さ</span>
+                          <span className="text-xs font-black text-zinc-900">{lineWidth}<span className="text-[9px] font-normal text-zinc-400 ml-0.5">mm</span></span>
+                        </div>
+                        <input type="range" min="1" max="100" value={lineWidth} onChange={(e) => setLineWidth(Number(e.target.value))} className="w-full cursor-pointer accent-zinc-900" />
+                      </div>
+                      <div>
+                        <div className="flex justify-between items-end mb-1">
+                          <span className="text-[10px] font-bold text-zinc-500">間隔（余白）</span>
+                          <span className="text-xs font-black text-zinc-900">{gapWidth}<span className="text-[9px] font-normal text-zinc-400 ml-0.5">mm</span></span>
+                        </div>
+                        <input type="range" min="0" max="200" value={gapWidth} onChange={(e) => setGapWidth(Number(e.target.value))} className="w-full cursor-pointer accent-zinc-900" />
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <div className="pt-3 border-t border-zinc-100 space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-bold text-zinc-900 mb-1">地色</label>
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-7 h-7 shrink-0 border border-zinc-300 shadow-inner" style={{ backgroundColor: geoBgColor }} />
+                        <button
+                          type="button"
+                          onClick={() => setShowGeoPaletteFor(showGeoPaletteFor === 'bg' ? null : 'bg')}
+                          className={`flex-1 text-[10px] h-7 font-bold transition-all border shadow-sm ${showGeoPaletteFor === 'bg' ? 'bg-zinc-900 text-white' : 'bg-white text-zinc-600 border-zinc-300'}`}
+                        >
+                          伝統色
+                        </button>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-zinc-900 mb-1">柄色</label>
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-7 h-7 shrink-0 border border-zinc-300 shadow-inner" style={{ backgroundColor: geoPatternColor }} />
+                        <button
+                          type="button"
+                          onClick={() => setShowGeoPaletteFor(showGeoPaletteFor === 'pattern' ? null : 'pattern')}
+                          className={`flex-1 text-[10px] h-7 font-bold transition-all border shadow-sm ${showGeoPaletteFor === 'pattern' ? 'bg-zinc-900 text-white' : 'bg-white text-zinc-600 border-zinc-300'}`}
+                        >
+                          伝統色
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {showGeoPaletteFor && (
+                    <div className="p-3 bg-zinc-50 border border-zinc-200 animate-fade-in shadow-inner">
+                      <div className="flex justify-between items-center mb-2">
+                        <p className="text-[10px] text-zinc-500 font-bold">{showGeoPaletteFor === 'bg' ? '地色' : '柄色'}を選択：</p>
+                        <button type="button" onClick={() => setShowGeoPaletteFor(null)} className="text-[10px] text-zinc-400 font-bold">✕</button>
+                      </div>
+                      <div className="max-h-[160px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-200">
+                        <div className="grid grid-cols-4 sm:grid-cols-6 gap-1.5">
+                          {TRADITIONAL_COLORS.map((col) => (
+                            <button
+                              key={col.name}
+                              type="button"
+                              onClick={() => {
+                                if (showGeoPaletteFor === 'bg') setGeoBgColor(col.hex);
+                                if (showGeoPaletteFor === 'pattern') setGeoPatternColor(col.hex);
+                                setShowGeoPaletteFor(null);
+                              }}
+                              className="relative h-9 p-1 flex flex-col justify-end text-left border border-zinc-300 shadow-sm"
+                              style={{ backgroundColor: col.hex }}
+                            >
+                              <span className={`text-[8px] font-bold truncate leading-tight ${col.isDark ? 'text-white' : 'text-zinc-900'}`}>
+                                {col.name.split(' ')[0]}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* ▼ 共通設定パネル（柄の配置・作成アイテム・図案銘） ▼ */}
+            <div className="space-y-6 mt-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-6 border-t border-zinc-200">
+                {/* 03. 柄の配置 */}
+                <div>
+                  <label className="block text-xs font-bold text-zinc-800 tracking-wider mb-2">
+                    03. 柄の配置
+                  </label>
+                  <div className="flex flex-col gap-1.5">
+                    {[
+                      { id: '四方柄（上下なし）', label: '小紋・四方柄（上下なし）' },
+                      { id: '飛び柄（余白あり）', label: '飛び柄（余白スッキリ）' },
+                      { id: 'お太鼓柄（ワンポイント/1枚絵）', label: 'お太鼓柄（ワンポイント）' }
+                    ].map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => setDensity(item.id)}
+                        className={`py-2 px-2.5 text-[11px] font-bold tracking-wider transition-all text-left border ${
+                          density === item.id
+                            ? 'bg-zinc-900 text-white border-zinc-900 shadow'
+                            : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50 shadow-sm'
+                        }`}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 04. 作成するアイテム */}
+                <div>
+                  <label className="block text-xs font-bold text-zinc-800 tracking-wider mb-2">
+                    04. 作成するアイテム
+                  </label>
+                  <div className="flex flex-col gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => handleItemTypeChange('hanhaba')}
+                      className={`py-2 px-2.5 text-[11px] font-bold tracking-wider transition-all text-left border ${
+                        itemType === 'hanhaba'
+                          ? 'bg-zinc-900 text-white border-zinc-900 shadow'
+                          : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50 shadow-sm'
+                      }`}
+                    >
+                      半幅帯 (プリント18cm / 仕上がり16cm)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleItemTypeChange('kyobukuro')}
+                      className={`py-2 px-2.5 text-[11px] font-bold tracking-wider transition-all text-left border ${
+                        itemType === 'kyobukuro'
+                          ? 'bg-zinc-900 text-white border-zinc-900 shadow'
+                          : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50 shadow-sm'
+                      }`}
+                    >
+                      京袋帯 (プリント34cm / 仕上がり31cm)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleItemTypeChange('kimono')}
+                      className={`py-2 px-2.5 text-[11px] font-bold tracking-wider transition-all text-left border ${
+                        itemType === 'kimono'
+                          ? 'bg-zinc-900 text-white border-zinc-900 shadow'
+                          : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-50 shadow-sm'
+                      }`}
+                    >
+                      着物 (反物幅40cm)
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* 共通の裏地色設定パネル */}
+              <div className="pt-3 border-t border-zinc-100">
+                <div className="flex items-center gap-2">
+                  <label className="text-[10px] font-bold text-zinc-700 whitespace-nowrap">裏地の色：</label>
+                  <div className="flex items-center gap-1.5 flex-1">
+                    <div 
+                      className="w-7 h-7 shrink-0 border border-zinc-300 p-0.5 shadow-inner" 
+                      style={{ backgroundColor: obiLiningColor }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowLiningPalette(!showLiningPalette)}
+                      className={`flex-1 text-[10px] h-7 font-bold transition-all border shadow-sm ${showLiningPalette ? 'bg-zinc-900 text-white' : 'bg-white text-zinc-600 border-zinc-300'}`}
+                    >
+                      伝統色
+                    </button>
+                  </div>
+                </div>
+
+                {showLiningPalette && (
+                  <div className="mt-2 p-3 bg-zinc-50 border border-zinc-200 animate-fade-in shadow-inner">
+                    <div className="flex justify-between items-center mb-2">
+                      <p className="text-[10px] text-zinc-500 font-bold">裏地の色を選択：</p>
+                      <button type="button" onClick={() => setShowLiningPalette(false)} className="text-[10px] text-zinc-400 font-bold">✕</button>
+                    </div>
+                    <div className="max-h-[140px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-200">
+                      <div className="grid grid-cols-4 sm:grid-cols-5 gap-1.5">
+                        {TRADITIONAL_COLORS.map((col) => (
+                          <button
+                            key={col.name}
+                            type="button"
+                            onClick={() => {
+                              setObiLiningColor(col.hex);
+                              setShowLiningPalette(false);
+                            }}
+                            className="relative h-8 p-1 flex flex-col justify-end text-left border border-zinc-300 shadow-sm"
+                            style={{ backgroundColor: col.hex }}
+                          >
+                            <span className={`text-[8px] font-bold truncate leading-tight ${col.isDark ? 'text-white' : 'text-zinc-900'}`}>
+                              {col.name.split(' ')[0]}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* 05. プレミアム / 無料モード切替 */}
+              {creationMode === 'ai' && (
+                <div className="pt-4 border-t border-zinc-200">
+                  <label className="block text-xs font-bold text-zinc-800 tracking-wider mb-2">
+                    05. どのAIで描く？
+                  </label>
+                  <div className="flex gap-2 bg-zinc-100 p-1.5 rounded-lg border border-zinc-200 mb-3">
+                    <button
+                      type="button"
+                      onClick={() => setAiPaymentMode('free')}
+                      className={`flex-1 py-2 text-[11px] font-bold tracking-wider transition-all rounded ${
+                        aiPaymentMode === 'free'
+                          ? 'bg-white text-zinc-900 shadow-sm'
+                          : 'text-zinc-500 hover:text-zinc-700'
+                      }`}
+                    >
+                      無料版 (1日3回まで)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAiPaymentMode('premium')}
+                      className={`flex-1 py-2 text-[11px] font-bold tracking-wider transition-all rounded flex items-center justify-center gap-1 ${
+                        aiPaymentMode === 'premium'
+                          ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-sm'
+                          : 'text-zinc-500 hover:text-zinc-700'
+                      }`}
+                    >
+                      プレミアムチケットで描く
+                    </button>
+                  </div>
+
+                  {aiPaymentMode === 'premium' && (
+                    <div className="bg-amber-50 p-4 border border-amber-200 rounded-lg animate-fade-in">
+                      <label className="block text-xs font-bold text-amber-900 mb-2">
+                        チケットのシリアルコードを入力：
+                      </label>
+                      <input
+                        type="text"
+                        value={premiumCode}
+                        onChange={(e) => setPremiumCode(e.target.value)}
+                        placeholder="例: GFK-ABCD-1234"
+                        className="w-full border border-amber-300 p-2 text-sm focus:outline-none focus:border-amber-500 bg-white"
+                        disabled={loading}
+                      />
+                      <p className="text-[10px] text-amber-700 mt-2 font-medium">
+                        ※高品質なDALL-E 3モデルを使用して、より繊細で美しい図案を描き出します（1回使い切り）。
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* 06. 図案銘 */}
+              <div className="pt-2 border-t border-zinc-100">
+                <label className="block text-xs font-bold text-zinc-800 tracking-wider mb-1">
+                  {creationMode === 'ai' ? '06' : '05'}. 図案銘 <span className="text-[10px] text-zinc-400 font-normal">（作品タイトル）</span>
+                </label>
+                <input
+                  type="text"
+                  className="w-full border border-zinc-300 p-2.5 bg-zinc-50 text-xs sm:text-sm focus:outline-none focus:border-zinc-900 focus:bg-white shadow-sm"
+                  placeholder="例：遊泳金魚図"
+                  value={patternTitle}
+                  onChange={(e) => setPatternTitle(e.target.value)}
+                  disabled={loading}
+                />
+              </div>
+
+              {/* AI生成ボタン (AIモード時のみ表示) */}
+              {creationMode === 'ai' && (
+                <div className="pt-4 border-t border-zinc-200">
+                  <label className="flex items-start gap-2.5 cursor-pointer select-none mb-4 group">
+                    <input
+                      type="checkbox"
+                      checked={agreed}
+                      onChange={(e) => setAgreed(e.target.checked)}
+                      className="mt-0.5 h-3.5 w-3.5 border-zinc-300 text-zinc-900 focus:ring-zinc-900 transition-colors cursor-pointer"
+                    />
+                    <span className="text-[10px] text-zinc-500 leading-tight group-hover:text-zinc-800 transition-colors">
+                      生成図案はAIによるアイデアであり、実際の生地制作時は職人の手でデータ調整が行われることに同意します。
+                    </span>
+                  </label>
+
+                  {errorMsg && (
+                    <div className="mb-4 p-3 bg-red-50 text-red-600 border border-red-200 text-xs font-bold shadow-sm">
+                      {errorMsg}
+                    </div>
+                  )}
+
+                  {premiumStatusMsg && (
+                    <div className="mb-4 p-3 bg-green-50 text-green-700 border border-green-200 text-xs font-bold shadow-sm">
+                      {premiumStatusMsg}
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={handleGenerate}
+                    disabled={loading || (aiPaymentMode === 'free' && remainingCount === 0)}
+                    className={`w-full py-3.5 sm:py-4 font-black text-xs sm:text-sm tracking-widest uppercase transition-all duration-300 flex items-center justify-center gap-2 shadow-md ${
+                      aiPaymentMode === 'free' && remainingCount === 0
+                        ? 'bg-zinc-100 text-zinc-400 border border-zinc-200 cursor-not-allowed'
+                        : aiPaymentMode === 'premium'
+                        ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:from-amber-400 hover:to-amber-500 shadow-lg'
+                        : 'bg-zinc-950 text-white hover:bg-zinc-800 hover:shadow-lg'
+                    } disabled:opacity-50`}
+                  >
+                    {loading ? (
+                      <div className="flex flex-col items-center gap-1">
+                        <span>{LOADING_STEPS[loadingStep]}</span>
+                        <span className="text-[8px] text-zinc-300">PROCESSING...</span>
+                      </div>
+                    ) : (
+                      <span>
+                        {aiPaymentMode === 'free' 
+                          ? (remainingCount === 0 ? '本日の無料上限に達しました (3/3)' : `図案を描き出す (残り ${remainingCount ?? 3} 回)`)
+                          : 'プレミアムチケットを消費して描く'
+                        }
+                      </span>
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* 保存・注文アクションボタン */}
+            {imageUrl && (
+              <div className="pt-4 border-t border-zinc-200 space-y-3">
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={handleDownloadOriginal}
+                    className="py-3 text-center border border-zinc-900 bg-white hover:bg-zinc-50 text-zinc-900 text-xs font-bold tracking-widest transition-all flex items-center justify-center gap-1.5 shadow-sm"
+                  >
+                    平面データ(原寸)を保存
+                  </button>
+
+                  <a
+                    href={xShareLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="py-3 text-center bg-[#1DA1F2] hover:bg-[#1a8cd8] text-white text-xs font-bold tracking-widest transition-colors flex items-center justify-center gap-1.5 shadow-sm"
+                  >
+                    Xでシェア
+                  </a>
+                </div>
+
+                <a
+                  href="#"
+                  onClick={handleOrderClick}
+                  className="block w-full py-4 text-center bg-zinc-900 hover:bg-zinc-800 text-white text-xs sm:text-sm font-bold tracking-widest uppercase transition-all shadow-md hover:shadow-lg"
+                >
+                  この図案でお誂えを申し込む
+                </a>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
 
 export default function Home() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[#f4f4f5]"><p className="text-zinc-400 text-sm font-bold tracking-widest">LOADING...</p></div>}>
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-[#f4f4f5]">
+        <p className="text-zinc-400 text-sm font-bold tracking-widest">LOADING...</p>
+      </div>
+    }>
       <HomeContent />
     </Suspense>
   );
