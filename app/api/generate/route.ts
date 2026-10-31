@@ -54,21 +54,7 @@ const ARTIST_PROMPTS: Record<string, string> = {
   hokusai: 'Inspired by Katsushika Hokusai: iconic woodblock print line art.',
   jakuchu: 'Inspired by Ito Jakuchu: hyper-detailed decorative naturalism.',
   kuniyoshi: 'Inspired by Utagawa Kuniyoshi: dynamic eccentric ukiyo-e whimsical lines.',
-  korin: 'Inspired by Ogata Korin: stylized bold organic forms, tarashikomi technique.',
-  hoitsu: 'Inspired by Sakai Hoitsu: refined poetic seasonal graceful brushwork.',
-  kyosai: 'Inspired by Kawanabe Kyosai: spirited and humorous expressive lines.',
-  utamaro: 'Inspired by Kitagawa Utamaro: supreme delicate micro-fine line art.',
-  koson: 'Inspired by Ohara Koson: exquisite woodblock color gradation (bokashi).',
-  sharaku: 'Inspired by Toshusai Sharaku: striking graphic stylized dramatic contrasts.',
-  klimt: 'Inspired by Gustav Klimt: shimmering ornamental mosaic geometric patterns.',
-  mucha: 'Inspired by Alphonse Mucha: flowing pastel curves, lush botanical filigree.',
-  vangogh: 'Inspired by Vincent van Gogh: passionate swirling thick brushstrokes.',
-  monet: 'Inspired by Claude Monet: Impressionist broken color brushwork.',
-  rousseau: 'Inspired by Henri Rousseau: lush exotic primeval dreamscape layers.',
-  matisse: 'Inspired by Henri Matisse: bold organic silhouette gouache cut-outs.',
-  redon: 'Inspired by Odilon Redon: mystical ethereal floating visionary aura.',
-  gauguin: 'Inspired by Paul Gauguin: bold cloisonnist contours, exotic flat colors.',
-  bonnard: 'Inspired by Pierre Bonnard: intimate sensory warm tapestry-like vibrations.'
+  korin: 'Inspired by Ogata Korin: stylized bold organic forms, tarashikomi technique.'
 };
 
 export async function POST(req: Request) {
@@ -77,10 +63,10 @@ export async function POST(req: Request) {
       motif, 
       color = 'おまかせ', 
       density = '', 
-      itemType = 'hanhaba', 
       aiStyle = 'none', 
       artist = 'none', 
-      engine = 'flux' 
+      engine = 'flux', // 'flux', 'openai_free', 'openai_premium'
+      premiumCode = ''
     } = await req.json();
 
     if (!motif) {
@@ -88,151 +74,83 @@ export async function POST(req: Request) {
     }
 
     const englishMotif = await translateToEnglish(motif);
-    
-    // ★「スカーフ」という文字が入っていたら強制的にスカーフモード発動
     const isScarfMode = motif.includes('スカーフ') || motif.toLowerCase().includes('scarf');
     const isOtaiko = density.includes('お太鼓柄');
 
-    let baseInstruction = `
-Premium high-end luxury textile pattern design. A sophisticated masterpiece blending elegant decorative European luxury textiles with the poetic, organic handcrafted block-print texture of artisan crafts. 
-Subtle tactile fabric feel, gentle wabi-sabi imperfections in the print, crisp fine outlines. 
-Strictly 2D flat surface, screen print or woodblock aesthetic. Pure solid colors, zero depth of field, zero photographic realism.
-`;
+    let baseInstruction = `Premium high-end luxury textile pattern design. A sophisticated masterpiece blending elegant decorative European luxury textiles with the poetic, organic handcrafted block-print texture of artisan crafts. Strictly 2D flat surface. Pure solid colors, zero photographic realism.`;
     
     let layoutInstruction = "";
-    let integrityInstruction = "Flawlessly separated individual elements with exquisite, refined, and graceful outlines. Strictly two eyes per face, perfect normal anatomy. NO physical dividing lines. Strictly non-photorealistic artistic illustration. ";
-
     if (isScarfMode) {
-      // ★ 縫い代マージン ＋ 額縁 ＋ 中央メダリオンの最強カレ構図
       layoutInstruction = "CRITICAL LAYOUT: Perfectly balanced square framed composition for a luxury silk scarf (Carré). You MUST leave a clean, solid, unpatterned margin around the absolute outer edge of the canvas for a sewing allowance. Inside this blank sewing margin, draw a highly ornate decorative square border (frame). Include intricate corner ornaments and a majestic central focal medallion in the dead center. DO NOT tile. ";
     } else if (isOtaiko) {
-      layoutInstruction = "Non-seamless layout. A single, magnificent, elegant, and highly detailed focal motif placed exactly in the dead center of the canvas. Surrounded by vast, pure, seamless background color (negative space). DO NOT repeat the pattern. DO NOT tile. ";
-    } else if (density.includes('四方柄')) {
-      layoutInstruction = "Zero gravity floating layout. Seamless abstract allover toss pattern. Each individual element is placed like a separate sticker with massive empty space between them. Absolutely NO physical touching between motifs. Motifs are randomly rotated in every possible mathematical angle. NO definite top or bottom orientation. True rotation. ";
+      layoutInstruction = "Non-seamless layout. A single magnificent focal motif exactly in the dead center. Vast seamless background. DO NOT tile. ";
     } else {
-      layoutInstruction = "Seamless tobigara pattern. Zero gravity floating layout. Elegantly spaced floating motifs placed like separate stickers with massive clean negative space between each element. Absolutely NO physical touching between motifs. ";
+      layoutInstruction = "Seamless abstract floating layout. Elegantly spaced motifs with massive clean negative space. NO physical touching between motifs. ";
     }
 
     const styleDetail = STYLE_PROMPTS[aiStyle] || '';
     const artistDetail = ARTIST_PROMPTS[artist] || '';
+    const colorInstruction = (color && color !== 'おまかせ') ? `Main Color Theme: ${color}.` : 'Harmonious color palette.';
 
-    const colorInstruction = (color && color !== 'おまかせ')
-      ? `Main Color Theme: ${color}. Incorporate these colors elegantly into the masterpiece.`
-      : 'Sophisticated, mature, and harmonious color palette chosen by the master artist.';
+    const enforcement = `【STRICT QUALITY ENFORCEMENT】 Strictly MATURE, SOPHISTICATED, and ELEGANT high-end aesthetic. ABSOLUTELY NO childish styles, NO cheap vector stock art, NO kawaii, NO chibi. Zero gradients, zero shadows.`;
 
-    const enforcement = `
-【STRICT QUALITY ENFORCEMENT】
-Must look like a premium luxury masterpiece worth thousands of dollars.
-Strictly MATURE, SOPHISTICATED, and ELEGANT high-end aesthetic. 
-ABSOLUTELY NO childish styles, NO cheap vector stock art, NO kawaii, NO chibi proportions, NO cute cartoon eyes, NO cheap fancy pop elements. 
-Emphasize wabi-sabi, subtle grace, and refined artistic quality.
-Zero gradients, zero shadows, flawless clear massive separation between objects. NO fused elements.
-`;
+    const prompt = `${baseInstruction}${layoutInstruction}\n【Motifs】\n${englishMotif} (${motif})\n${styleDetail ? `【Style】\n${styleDetail}\n` : ''}${artistDetail ? `【Artist】\n${artistDetail}\n` : ''}【Color】\n${colorInstruction}\n${enforcement}`;
 
-    const prompt = `${baseInstruction}${layoutInstruction}${integrityInstruction}
-
-【Subject Motifs】
-${englishMotif} (${motif})
-
-${styleDetail ? `【Additional Flavor】\n${styleDetail}\n` : ''}${artistDetail ? `【Artist Inspiration】\n${artistDetail}\n` : ''}【Color Palette】
-${colorInstruction}
-
-${enforcement}`;
-
+    // FLUXエンジンの処理
     if (engine === 'flux' && process.env.FAL_KEY) {
       try {
         const falResponse = await fetch('https://queue.fal.run/fal-ai/flux/schnell', {
           method: 'POST',
-          headers: {
-            'Authorization': `Key ${process.env.FAL_KEY}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            prompt: prompt,
-            image_size: 'square_hd',
-            num_images: 1,
-            enable_safety_checker: true
-          })
+          headers: { 'Authorization': `Key ${process.env.FAL_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: prompt, image_size: 'square_hd', num_images: 1, enable_safety_checker: true })
         });
-
         if (falResponse.ok) {
           const falData = await falResponse.json();
           let resultData = falData;
-
           if (falData.status_url) {
             for (let i = 0; i < 30; i++) {
               await new Promise(r => setTimeout(r, 1000));
-              const pollRes = await fetch(falData.status_url, {
-                headers: { 'Authorization': `Key ${process.env.FAL_KEY}` }
-              });
+              const pollRes = await fetch(falData.status_url, { headers: { 'Authorization': `Key ${process.env.FAL_KEY}` } });
               const pollData = await pollRes.json();
               if (pollData.status === 'COMPLETED') {
-                const resResponse = await fetch(falData.response_url, {
-                  headers: { 'Authorization': `Key ${process.env.FAL_KEY}` }
-                });
+                const resResponse = await fetch(falData.response_url, { headers: { 'Authorization': `Key ${process.env.FAL_KEY}` } });
                 resultData = await resResponse.json();
                 break;
               }
               if (pollData.status === 'FAILED') break;
             }
           }
-
           const generatedUrl = resultData.images?.[0]?.url;
           if (generatedUrl) {
             const imgRes = await fetch(generatedUrl);
-            const arrayBuffer = await imgRes.arrayBuffer();
-            const buffer = Buffer.from(arrayBuffer);
-            const filename = `textile-flux-${Date.now()}.png`;
-
-            const blob = await put(filename, buffer, {
-              access: 'public',
-              contentType: 'image/png'
-            });
-
-            return NextResponse.json({
-              imageUrl: blob.url,
-              blobUrl: blob.url,
-              engine: 'flux'
-            }, {
-              headers: { 'Cache-Control': 'no-store, max-age=0' }
-            });
+            const buffer = Buffer.from(await imgRes.arrayBuffer());
+            const blob = await put(`textile-flux-${Date.now()}.png`, buffer, { access: 'public', contentType: 'image/png' });
+            return NextResponse.json({ imageUrl: blob.url, engine: 'flux' });
           }
         }
       } catch (falErr) {
-        console.error('FAL generation failed, fallback to OpenAI:', falErr);
+        console.error('FAL failed:', falErr);
       }
     }
 
+    // ★ OpenAIエンジンの処理（quality: "high" を削除して原価を半額に！）
     const response = await openai.images.generate({
-      model: "gpt-image-2.5-sunburst",
+      model: "dall-e-3",
       prompt: prompt,
       n: 1,
       size: "1024x1024",
-      quality: "high",
-      output_format: "png",
+      response_format: "b64_json",
+      // quality: "high" ← 削除しました（これで1枚6〜7円になります）
     });
 
     const base64Image = response.data?.[0]?.b64_json;
-    if (!base64Image) throw new Error('画像データの取得に失敗しました。');
-
+    if (!base64Image) throw new Error('画像生成失敗');
     const buffer = Buffer.from(base64Image, 'base64');
-    const filename = `textile-openai-${Date.now()}.png`;
+    const blob = await put(`textile-openai-${Date.now()}.png`, buffer, { access: 'public', contentType: 'image/png' });
 
-    const blob = await put(filename, buffer, {
-      access: 'public',
-      contentType: 'image/png'
-    });
-
-    return NextResponse.json({
-      imageUrl: blob.url,
-      blobUrl: blob.url,
-      engine: 'openai'
-    }, {
-      headers: { 'Cache-Control': 'no-store, max-age=0' }
-    });
+    return NextResponse.json({ imageUrl: blob.url, engine: 'openai' });
 
   } catch (error: any) {
-    console.error('API Error:', error);
-    return NextResponse.json({ error: error?.message || '通信エラーが発生しました。' }, { status: 500 });
+    return NextResponse.json({ error: error?.message || '通信エラー' }, { status: 500 });
   }
 }
