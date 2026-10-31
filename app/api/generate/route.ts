@@ -37,24 +37,16 @@ async function translateToEnglish(text: string): Promise<string> {
   }
 }
 
-// 根っこのフィルターが強力になったため、スタイル選択は「味付け」程度に機能します
 const STYLE_PROMPTS: Record<string, string> = {
   none: '',
-  yuzen: 'Add subtle Kyoto Yuzen traditional elegance, soft delicate transitions.',
-  mingei: 'Emphasize strong Katasome stencil dyeing aesthetic, rich earth tones.',
-  retro: 'Add Taisho Roman nostalgic early 20th century Japanese romantic mood.',
-  sarasa: 'Incorporate exotic Sarasa chintz and intricate floral arabesque vines.',
-  morris: 'Infuse dense symmetrical botanical foliage like British Arts and Crafts.',
-  botanical: 'Add delicate vintage botanical illustration study details.',
-  artnouveau: 'Incorporate fluid organic whiplash curves and ornate floral frames.',
-  nordic: 'Emphasize bold minimalist Scandinavian graphic shapes.',
-  kissaten: 'Add Showa retro nostalgic 1970s charming warm muted tones.',
-  psychedelic: 'Add 1970s groovy swirling fluid curves and energetic rhythms.',
-  anime: 'Strictly crisp cel-shaded clean line art, vibrant flat graphic colors.',
-  lollipop: 'Infuse sweet pastel colors and playful dreamy repeating elements.',
-  cyberpunk: 'Add futuristic tech aesthetic, geometric circuit lines.',
-  steampunk: 'Incorporate intricate mechanical gears, Victorian industrial engraving.',
-  retrofuturism: 'Add mid-century atomic starbursts, vintage cosmic graphic layout.'
+  scarf: 'Premium luxury European silk scarf aesthetic. Vivid harmonious colors, extremely intricate decorative details.',
+  galle: 'Inspired by Émile Gallé Art Nouveau cameo glass: poetic botanical naturalism, layered translucent textures resembling etched glass, subtle melancholic and mysterious atmosphere, deep jewel tones.',
+  organic: 'Poetic organic textile design, handcrafted block print texture, gentle warm wabi-sabi imperfections, simplified elegant nature motifs.',
+  toile: 'Traditional French Toile de Jouy textile, delicate monochromatic line-drawn pastoral or botanical scenes, classic elegant porcelain aesthetic.',
+  risograph: 'Modern risograph print textile, elegant ink layering, beautiful subtle misregistration, nostalgic yet sophisticated contemporary art vibe.',
+  woodblock: 'Antique Japanese woodblock print aesthetic, subtle washi paper texture, traditional handcrafted block-printing ink interactions, refined Edo-period grace.',
+  morris: 'William Morris Arts and Crafts textile design, dense symmetrical botanical foliage, interlocking acanthus leaves and florals.',
+  yuzen: 'Add subtle Kyoto Yuzen traditional elegance, soft delicate watercolor transitions, elegant flowing lines.'
 };
 
 const ARTIST_PROMPTS: Record<string, string> = {
@@ -96,24 +88,27 @@ export async function POST(req: Request) {
     }
 
     const englishMotif = await translateToEnglish(motif);
+    
+    // ★「スカーフ」という文字が入っていたら強制的にスカーフモード発動
+    const isScarfMode = motif.includes('スカーフ') || motif.toLowerCase().includes('scarf');
     const isOtaiko = density.includes('お太鼓柄');
 
-    // ★ ここが「根っこの絶対的フィルター」です（高級シルク×オーガニック手仕事）
     let baseInstruction = `
-Premium high-end luxury textile pattern design. A sophisticated masterpiece blending the highly intricate, elegant decorative narrative composition of European luxury silk scarves with the poetic, organic, handcrafted block-print texture of contemporary Scandinavian-Japanese artisan crafts. 
+Premium high-end luxury textile pattern design. A sophisticated masterpiece blending elegant decorative European luxury textiles with the poetic, organic handcrafted block-print texture of artisan crafts. 
 Subtle tactile fabric feel, gentle wabi-sabi imperfections in the print, crisp fine outlines. 
 Strictly 2D flat surface, screen print or woodblock aesthetic. Pure solid colors, zero depth of field, zero photographic realism.
 `;
     
     let layoutInstruction = "";
-    
-    // ★ 形状の維持とクオリティコントロール
     let integrityInstruction = "Flawlessly separated individual elements with exquisite, refined, and graceful outlines. Strictly two eyes per face, perfect normal anatomy. NO physical dividing lines. Strictly non-photorealistic artistic illustration. ";
 
-    if (isOtaiko) {
+    if (isScarfMode) {
+      // ★ 縫い代マージン ＋ 額縁 ＋ 中央メダリオンの最強カレ構図
+      layoutInstruction = "CRITICAL LAYOUT: Perfectly balanced square framed composition for a luxury silk scarf (Carré). You MUST leave a clean, solid, unpatterned margin around the absolute outer edge of the canvas for a sewing allowance. Inside this blank sewing margin, draw a highly ornate decorative square border (frame). Include intricate corner ornaments and a majestic central focal medallion in the dead center. DO NOT tile. ";
+    } else if (isOtaiko) {
       layoutInstruction = "Non-seamless layout. A single, magnificent, elegant, and highly detailed focal motif placed exactly in the dead center of the canvas. Surrounded by vast, pure, seamless background color (negative space). DO NOT repeat the pattern. DO NOT tile. ";
     } else if (density.includes('四方柄')) {
-      layoutInstruction = "Zero gravity floating layout. Seamless abstract allover toss pattern. Each individual element is placed like a separate sticker with massive empty space between them. Absolutely NO physical touching between motifs. Motifs are randomly rotated in every possible mathematical angle (upside down, sideways). NO definite top or bottom orientation. True rotation. ";
+      layoutInstruction = "Zero gravity floating layout. Seamless abstract allover toss pattern. Each individual element is placed like a separate sticker with massive empty space between them. Absolutely NO physical touching between motifs. Motifs are randomly rotated in every possible mathematical angle. NO definite top or bottom orientation. True rotation. ";
     } else {
       layoutInstruction = "Seamless tobigara pattern. Zero gravity floating layout. Elegantly spaced floating motifs placed like separate stickers with massive clean negative space between each element. Absolutely NO physical touching between motifs. ";
     }
@@ -125,7 +120,6 @@ Strictly 2D flat surface, screen print or woodblock aesthetic. Pure solid colors
       ? `Main Color Theme: ${color}. Incorporate these colors elegantly into the masterpiece.`
       : 'Sophisticated, mature, and harmonious color palette chosen by the master artist.';
 
-    // ★ ファンシー＆安物ベクター絶対殺すマン
     const enforcement = `
 【STRICT QUALITY ENFORCEMENT】
 Must look like a premium luxury masterpiece worth thousands of dollars.
