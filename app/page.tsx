@@ -2,8 +2,7 @@
 'use client';
 
 import { Dispatch, SetStateAction, MouseEvent } from 'react';
-import { TRADITIONAL_COLORS } from '../../lib/constants';
-
+import { TRADITIONAL_COLORS, FORBIDDEN_WORDS, UNIVERSAL_SCALE_FACTOR } from './lib/constants';
 interface ControlPanelProps {
   creationMode: 'ai' | 'geometric';
   setCreationMode: Dispatch<SetStateAction<'ai' | 'geometric'>>;
