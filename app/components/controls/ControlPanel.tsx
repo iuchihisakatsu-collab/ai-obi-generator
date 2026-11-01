@@ -1,62 +1,64 @@
 // app/components/controls/ControlPanel.tsx
 'use client';
 
-import { useState, useEffect, MouseEvent, ChangeEvent } from 'react';
+import { MouseEvent, ChangeEvent } from 'react';
 import { TRADITIONAL_COLORS, CategoryItem, LOADING_STEPS } from '../../lib/constants';
 
 interface ControlPanelProps {
-  creationMode?: 'ai' | 'geometric';
-  setCreationMode?: (mode: 'ai' | 'geometric') => void;
-  aiStyle?: string;
-  setAiStyle?: (val: string) => void;
-  motif?: string;
-  setMotif?: (val: string) => void;
-  handleTagClick?: (item: CategoryItem) => void;
-  selectedColors?: typeof TRADITIONAL_COLORS;
-  setSelectedColors?: any;
-  handleColorToggle?: (col: typeof TRADITIONAL_COLORS[0]) => void;
-  showColorPalette?: boolean;
-  setShowColorPalette?: (val: boolean) => void;
-  density?: string;
-  setDensity?: (val: string) => void;
-  geoPatternType?: 'plain' | 'stripe' | 'dot' | 'grid' | 'gingham' | 'checker';
-  setGeoPatternType?: (val: 'plain' | 'stripe' | 'dot' | 'grid' | 'gingham' | 'checker') => void;
-  stripeDir?: 'vertical' | 'horizontal' | 'diagonal';
-  setStripeDir?: (val: 'vertical' | 'horizontal' | 'diagonal') => void;
-  dotLayout?: 'staggered' | 'grid';
-  setDotLayout?: (val: 'staggered' | 'grid') => void;
-  dotRadius?: number;
-  setDotRadius?: (val: number) => void;
-  gapWidth?: number;
-  setGapWidth?: (val: number) => void;
-  lineWidth?: number;
-  setLineWidth?: (val: number) => void;
-  geoBgColor?: string;
-  setGeoBgColor?: (val: string) => void;
-  geoPatternColor?: string;
-  setGeoPatternColor?: (val: string) => void;
-  showGeoPaletteFor?: 'bg' | 'pattern' | null;
-  setShowGeoPaletteFor?: (val: 'bg' | 'pattern' | null) => void;
-  agreed?: boolean;
-  setAgreed?: (val: boolean) => void;
-  errorMsg?: string;
-  loading?: boolean;
-  loadingEngine?: 'flux' | 'openai' | null;
-  remainingCount?: number | null;
-  remainingFlux?: number;
-  remainingOpenAI?: number;
-  loadingStep?: number;
-  handleGenerate?: (engine: 'flux' | 'openai') => void;
-  imageUrl?: string;
-  patternTitle?: string;
-  setPatternTitle?: (val: string) => void;
-  handleDownloadOriginal?: () => void;
-  handleOrderClick?: (e: MouseEvent<HTMLAnchorElement>) => void;
-  useTicket?: boolean;
-  setUseTicket?: (val: boolean) => void;
-  ticketCode?: string;
-  setTicketCode?: (val: string) => void;
-  [key: string]: any;
+  creationMode: 'ai' | 'geometric';
+  setCreationMode: (mode: 'ai' | 'geometric') => void;
+  itemType: 'hanhaba' | 'kyobukuro' | 'kimono';
+  setItemType: (type: 'hanhaba' | 'kyobukuro' | 'kimono') => void;
+  aiStyle: string;
+  setAiStyle: (val: string) => void;
+  selectedArtist: string;
+  setSelectedArtist: (artist: string) => void;
+  motif: string;
+  setMotif: (val: string) => void;
+  motif2: string;
+  setMotif2: (val: string) => void;
+  selectedColors: typeof TRADITIONAL_COLORS;
+  setSelectedColors: (colors: typeof TRADITIONAL_COLORS) => void;
+  handleColorToggle: (col: typeof TRADITIONAL_COLORS[0]) => void;
+  showColorPalette: boolean;
+  setShowColorPalette: (val: boolean) => void;
+  density: string;
+  setDensity: (val: string) => void;
+  geoPatternType: 'plain' | 'stripe' | 'dot' | 'grid' | 'gingham' | 'checker';
+  setGeoPatternType: (val: 'plain' | 'stripe' | 'dot' | 'grid' | 'gingham' | 'checker') => void;
+  stripeDir: 'vertical' | 'horizontal' | 'diagonal';
+  setStripeDir: (val: 'vertical' | 'horizontal' | 'diagonal') => void;
+  dotLayout: 'staggered' | 'grid';
+  setDotLayout: (val: 'staggered' | 'grid') => void;
+  dotRadius: number;
+  setDotRadius: (val: number) => void;
+  gapWidth: number;
+  setGapWidth: (val: number) => void;
+  lineWidth: number;
+  setLineWidth: (val: number) => void;
+  geoBgColor: string;
+  setGeoBgColor: (val: string) => void;
+  geoPatternColor: string;
+  setGeoPatternColor: (val: string) => void;
+  showGeoPaletteFor: 'bg' | 'pattern' | null;
+  setShowGeoPaletteFor: (val: 'bg' | 'pattern' | null) => void;
+  agreed: boolean;
+  setAgreed: (val: boolean) => void;
+  errorMsg: string;
+  loading: boolean;
+  loadingEngine: 'flux' | 'openai' | null;
+  remainingCount: number;
+  loadingStep: number;
+  handleGenerate: (engineType: 'flux' | 'openai_free' | 'openai_premium') => void;
+  imageUrl: string;
+  patternTitle: string;
+  setPatternTitle: (val: string) => void;
+  serialNumber: string;
+  handleDownloadOriginal: () => void;
+  handleOrderClick: (e: MouseEvent<HTMLAnchorElement>) => void;
+  premiumCode: string;
+  setPremiumCode: (val: string) => void;
+  premiumStatusMsg: string;
 }
 
 const AI_STYLES = [
@@ -94,91 +96,61 @@ const PULLDOWN_MOTIFS = [
 ];
 
 export default function ControlPanel({
-  creationMode = 'geometric',
-  setCreationMode = () => {},
-  aiStyle = 'mingei',
-  setAiStyle = () => {},
-  motif = '',
-  setMotif = () => {},
-  selectedColors = [],
-  setSelectedColors = () => {},
-  handleColorToggle = () => {},
-  showColorPalette = false,
-  setShowColorPalette = () => {},
-  density = '四方柄（上下なし）',
-  setDensity = () => {},
-  geoPatternType = 'plain',
-  setGeoPatternType = () => {},
-  stripeDir = 'vertical',
-  setStripeDir = () => {},
-  dotLayout = 'staggered',
-  setDotLayout = () => {},
-  dotRadius = 5,
-  setDotRadius = () => {},
-  gapWidth = 10,
-  setGapWidth = () => {},
-  lineWidth = 5,
-  setLineWidth = () => {},
-  geoBgColor = '#fffffc',
-  setGeoBgColor = () => {},
-  geoPatternColor = '#161616',
-  setGeoPatternColor = () => {},
-  showGeoPaletteFor = null,
-  setShowGeoPaletteFor = () => {},
-  agreed = false,
-  setAgreed = () => {},
-  errorMsg = '',
-  loading = false,
-  loadingEngine = null,
-  remainingCount = 1,
-  remainingFlux = 15,
-  remainingOpenAI = 1,
-  loadingStep = 0,
-  handleGenerate = () => {},
-  imageUrl = '',
-  patternTitle = '',
-  setPatternTitle = () => {},
-  handleDownloadOriginal = () => {},
-  handleOrderClick = () => {},
-  useTicket = false,
-  setUseTicket = () => {},
-  ticketCode = '',
-  setTicketCode = () => {}
+  creationMode,
+  setCreationMode,
+  itemType,
+  setItemType,
+  aiStyle,
+  setAiStyle,
+  selectedArtist,
+  setSelectedArtist,
+  motif,
+  setMotif,
+  motif2,
+  setMotif2,
+  selectedColors,
+  setSelectedColors,
+  handleColorToggle,
+  showColorPalette,
+  setShowColorPalette,
+  density,
+  setDensity,
+  geoPatternType,
+  setGeoPatternType,
+  stripeDir,
+  setStripeDir,
+  dotLayout,
+  setDotLayout,
+  dotRadius,
+  setDotRadius,
+  gapWidth,
+  setGapWidth,
+  lineWidth,
+  setLineWidth,
+  geoBgColor,
+  setGeoBgColor,
+  geoPatternColor,
+  setGeoPatternColor,
+  showGeoPaletteFor,
+  setShowGeoPaletteFor,
+  agreed,
+  setAgreed,
+  errorMsg,
+  loading,
+  loadingEngine,
+  remainingCount,
+  loadingStep,
+  handleGenerate,
+  imageUrl,
+  patternTitle,
+  setPatternTitle,
+  serialNumber,
+  handleDownloadOriginal,
+  handleOrderClick,
+  premiumCode,
+  setPremiumCode,
+  premiumStatusMsg,
 }: ControlPanelProps) {
-
-  const [localTicketCode, setLocalTicketCode] = useState<string>(ticketCode || '');
-
-  useEffect(() => {
-    if (ticketCode !== undefined && ticketCode !== localTicketCode) {
-      setLocalTicketCode(ticketCode);
-    }
-  }, [ticketCode]);
-
-  // ★文字を入力した時点で、親画面へチケットモードONを即時通知
-  const handleTicketChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setLocalTicketCode(val);
-    if (setTicketCode) {
-      setTicketCode(val);
-    }
-    if (setUseTicket) {
-      setUseTicket(val.trim().length > 0);
-    }
-  };
-
-  const activeTicketCode = (localTicketCode || ticketCode || '').trim();
-
-  // ★チケット実行処理：親画面のstate更新を待ってから確実に実行する安全関数
-  const executeTicketGeneration = () => {
-    if (!activeTicketCode || loading) return;
-    if (setUseTicket) setUseTicket(true);
-    if (setTicketCode) setTicketCode(activeTicketCode);
-
-    // 親画面がチケットモードとして認識を完了するのを50ミリ秒だけ待ってから発火
-    setTimeout(() => {
-      handleGenerate?.('openai');
-    }, 50);
-  };
 
   const finalTitle = patternTitle.trim() || '（無題）';
   const colorSummary = selectedColors.length > 0 ? selectedColors.map((c) => c.name.split(' ')[0]).join('・') : '自由配色';
@@ -584,12 +556,12 @@ export default function ControlPanel({
             className="w-full border border-zinc-300 p-2.5 bg-zinc-50 text-xs sm:text-sm focus:outline-none focus:border-zinc-900 focus:bg-white shadow-sm font-bold"
             placeholder="作品名"
             value={patternTitle}
-            onChange={(e) => setPatternTitle?.(e.target.value)}
+            onChange={(e) => setPatternTitle(e.target.value)}
             disabled={loading}
           />
         </div>
 
-        {/* ★★★ 3つの生成ボタン（常時縦並び配置・安全装置付き） ★★★ */}
+        {/* ★★★ 3つの生成ボタン（親のpage.tsxと100%直結） ★★★ */}
         <div className="space-y-4 mt-6">
           {creationMode === 'ai' && (
             <div className="pt-6 border-t border-zinc-200 space-y-3">
@@ -615,16 +587,9 @@ export default function ControlPanel({
               <div>
                 <button 
                   type="button" 
-                  onClick={() => {
-                    setUseTicket?.(false);
-                    handleGenerate?.('flux');
-                  }} 
-                  disabled={loading || remainingFlux === 0} 
-                  className={`w-full py-3.5 px-4 font-bold text-xs sm:text-sm tracking-wider transition-all duration-200 flex items-center justify-center gap-2 shadow-sm rounded-sm relative z-10 ${
-                    remainingFlux === 0 
-                      ? 'bg-zinc-100 text-zinc-400 border border-zinc-200 cursor-not-allowed' 
-                      : 'bg-zinc-800 hover:bg-zinc-700 text-white disabled:opacity-50'
-                  }`}
+                  onClick={() => handleGenerate('flux')} 
+                  disabled={loading} 
+                  className="w-full py-3.5 px-4 font-bold text-xs sm:text-sm tracking-wider transition-all duration-200 flex items-center justify-center gap-2 shadow-sm rounded-sm relative z-10 bg-zinc-800 hover:bg-zinc-700 text-white disabled:opacity-50"
                 >
                   {loading && loadingEngine === 'flux' ? (
                     <span className="text-xs">{LOADING_STEPS[loadingStep % LOADING_STEPS.length]}</span>
@@ -638,24 +603,21 @@ export default function ControlPanel({
               <div>
                 <button 
                   type="button" 
-                  onClick={() => {
-                    setUseTicket?.(false);
-                    handleGenerate?.('openai');
-                  }} 
-                  disabled={loading || remainingOpenAI === 0} 
+                  onClick={() => handleGenerate('openai_free')} 
+                  disabled={loading || remainingCount <= 0} 
                   className={`w-full py-3.5 px-4 font-bold text-xs sm:text-sm tracking-wider transition-all duration-200 flex items-center justify-center gap-2 shadow-sm rounded-sm relative z-10 ${
-                    remainingOpenAI === 0 
+                    remainingCount <= 0 
                       ? 'bg-zinc-100 text-zinc-400 border border-zinc-200 cursor-not-allowed' 
                       : 'bg-zinc-950 text-white hover:bg-zinc-800 disabled:opacity-50'
                   }`}
                 >
-                  {loading && loadingEngine === 'openai' && !useTicket ? (
+                  {loading && loadingEngine === 'openai' && !premiumCode ? (
                     <div className="flex flex-col items-center gap-1">
                       <span className="text-xs">{LOADING_STEPS[loadingStep % LOADING_STEPS.length]}</span>
                     </div>
                   ) : (
                     <span>
-                      {remainingOpenAI === 0 
+                      {remainingCount <= 0 
                         ? '本日の無料枠は終了しました' 
                         : '丁寧に作るモードで試す (本日無料 1回)'}
                     </span>
@@ -663,7 +625,7 @@ export default function ControlPanel({
                 </button>
               </div>
 
-              {/* ===== ボタン③：チケットコードで丁寧に作る（安全実行装置付き） ===== */}
+              {/* ===== ボタン③：チケットコードで丁寧に作る（page.tsxと完全直結） ===== */}
               <div className="p-3.5 bg-zinc-50 border border-zinc-200 rounded-sm space-y-2 relative z-10">
                 <div className="flex justify-between items-center">
                   <span className="text-[11px] font-bold text-zinc-800">
@@ -682,12 +644,14 @@ export default function ControlPanel({
                 <div className="flex gap-2">
                   <input
                     type="text"
-                    value={localTicketCode}
-                    onChange={handleTicketChange}
+                    value={premiumCode}
+                    onChange={(e) => setPremiumCode(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
                         e.preventDefault();
-                        executeTicketGeneration();
+                        if (!loading && premiumCode.trim()) {
+                          handleGenerate('openai_premium');
+                        }
                       }
                     }}
                     placeholder="例：GFK-XXXX-XXXX"
@@ -696,13 +660,14 @@ export default function ControlPanel({
                   />
                   <button
                     type="button"
-                    onClick={executeTicketGeneration}
-                    disabled={loading || !activeTicketCode}
+                    onClick={() => handleGenerate('openai_premium')}
+                    disabled={loading || !premiumCode.trim()}
                     className="px-3 py-2 bg-zinc-900 hover:bg-zinc-800 disabled:bg-zinc-200 disabled:text-zinc-400 text-white text-xs font-bold rounded-sm shadow transition-colors whitespace-nowrap"
                   >
-                    {loading && loadingEngine === 'openai' && useTicket ? '生成中...' : 'チケットコードで丁寧に作る'}
+                    {loading && loadingEngine === 'openai' && premiumCode ? '生成中...' : 'チケットコードで丁寧に作る'}
                   </button>
                 </div>
+                {premiumStatusMsg && <p className="text-[10px] text-green-700 font-bold">{premiumStatusMsg}</p>}
               </div>
             </div>
           )}
