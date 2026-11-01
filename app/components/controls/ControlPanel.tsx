@@ -148,7 +148,10 @@ export default function ControlPanel({
 
   // 改良中お知らせモーダルの開閉ステート
   const [showNoticeModal, setShowNoticeModal] = useState<boolean>(true);
-  
+
+  // ★ 解決策①：親に依存しない自前の入力保持ステート（これで文字が確実に打てるようになります）
+  const [localTicketCode, setLocalTicketCode] = useState<string>(ticketCode || '');
+
   // エンジン選択ステート: 'flux' | 'openai' | 'ticket'
   const [selectedEngine, setSelectedEngine] = useState<'flux' | 'openai' | 'ticket'>(
     useTicket ? 'ticket' : (remainingFlux > 0 ? 'flux' : 'openai')
@@ -207,11 +210,13 @@ export default function ControlPanel({
 
   // 生成実行ハンドラー
   const onTriggerGenerate = () => {
+    const code = localTicketCode.trim() || ticketCode.trim();
     if (selectedEngine === 'ticket') {
-      if (!ticketCode) {
+      if (!code) {
         alert('シリアルコードを入力してください。');
         return;
       }
+      setTicketCode?.(code);
       handleGenerate?.('openai');
     } else if (selectedEngine === 'flux') {
       handleGenerate?.('flux');
@@ -365,7 +370,7 @@ export default function ControlPanel({
               </div>
             </div>
 
-            {/* ▼ 05. 図案の描き分け（エンジン選択：3択） ▼ */}
+            {/* ▼ 05. 図案の描き分け（3大エンジン選択） ▼ */}
             <div className="pt-4 border-t border-zinc-200">
               <label className="block text-xs font-bold text-zinc-900 tracking-wider mb-2">
                 05. 図案の描き分け（生成エンジン）
@@ -466,8 +471,12 @@ export default function ControlPanel({
 
                   <input
                     type="text"
-                    value={ticketCode}
-                    onChange={(e) => setTicketCode?.(e.target.value.trim())}
+                    value={localTicketCode}
+                    onChange={(e) => {
+                      const val = e.target.value.trim();
+                      setLocalTicketCode(val);
+                      setTicketCode?.(val);
+                    }}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
                         e.preventDefault();
@@ -643,12 +652,12 @@ export default function ControlPanel({
                   loading || 
                   (selectedEngine === 'flux' && remainingFlux === 0) ||
                   (selectedEngine === 'openai' && remainingOpenAI === 0) ||
-                  (selectedEngine === 'ticket' && !ticketCode)
+                  (selectedEngine === 'ticket' && !localTicketCode.trim())
                 } 
                 className={`w-full py-4 px-4 font-black text-xs sm:text-sm tracking-widest transition-all duration-200 flex flex-col items-center justify-center gap-0.5 shadow-md relative z-10 ${
                   (selectedEngine === 'flux' && remainingFlux === 0) ||
                   (selectedEngine === 'openai' && remainingOpenAI === 0) ||
-                  (selectedEngine === 'ticket' && !ticketCode)
+                  (selectedEngine === 'ticket' && !localTicketCode.trim())
                     ? 'bg-zinc-100 text-zinc-400 border border-zinc-200 cursor-not-allowed' 
                     : 'bg-zinc-950 text-white hover:bg-zinc-800 hover:shadow-lg disabled:opacity-50'
                 }`}
