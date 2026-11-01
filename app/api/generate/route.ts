@@ -10,6 +10,8 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+const GAS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbzhOwP3nHglg5z23lFTULbHNLfOGh0R0VxKsF1IhVYYL-bEAENbyzoGW0ikaz187lvn/exec';
+
 async function translateToEnglish(text: string): Promise<string> {
   if (!text || !text.trim()) return '';
   const hasJapanese = /[^\x00-\x7F]/.test(text);
@@ -48,57 +50,85 @@ const STYLE_PROMPTS: Record<string, string> = {
 
 export async function POST(req: Request) {
   try {
+    const body = await req.json();
     const { 
       motif, 
       color = 'おまかせ', 
       density = '', 
       aiStyle = 'none', 
       engine = 'flux',
+      paymentMode = 'free',
       premiumCode = ''
-    } = await req.json();
+    } = body;
 
     if (!motif) return NextResponse.json({ error: 'モチーフを指定してください。' }, { status: 400 });
 
-    // ★ 1. ユーザーのIPアドレスと今日の日付を取得（無料枠のカウント用）
-    const ip = req.headers.get('x-forwarded-for') || 'anonymous_ip';
-    const today = new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' }).split(' ')[0].replace(/\//g, '-');
+    // エンジン種別の判定（page.tsxと直接指定の両方に対応）
+    const isPremium = paymentMode === 'premium' || engine === 'openai_premium' || (engine === 'openai' && Boolean(premiumCode));
+    const isFlux = !isPremium && engine === 'flux';
+    const isOpenAiFree = !isPremium && (engine === 'openai_free' || engine === 'openai');
 
-    // ★ 2. エンジンごとの回数制限チェックとカウント消費（Vercel KV）
-    if (engine === 'flux') {
-      const fluxKey = `usage:flux:${ip}:${today}`;
-      const fluxCount = await kv.get<number>(fluxKey) || 0;
-      if (fluxCount >= 15) {
-        return NextResponse.json({ error: '本日の無料アイデア出し（FLUX）の枠（15回）を使い切りました。明日またお試しください。' }, { status: 429 });
-      }
-      await kv.incr(fluxKey);
-      await kv.expire(fluxKey, 86400); // 24時間で履歴クリア
+    let remainingTickets: number | null = null;
 
-    } else if (engine === 'openai_free') {
-      const freeKey = `usage:openaifree:${ip}:${today}`;
-      const freeCount = await kv.get<number>(freeKey) || 0;
-      if (freeCount >= 1) {
-        return NextResponse.json({ error: '本日の「本気の1枚（無料お試し）」はすでに利用済みです。続きはプレミアムコードをご利用ください。' }, { status: 429 });
+    // ★ 1. チケット利用（極みの意匠）：Googleスプレッドシート（GAS）で残数チェック＆消費
+    if (isPremium) {
+      const code = (premiumCode || '').trim().toUpperCase();
+      if (!code) {
+        return NextResponse.json({ error: 'プレミアムチケットのシリアルコードを入力してください。' }, { status: 400 });
       }
-      await kv.incr(freeKey);
-      await kv.expire(freeKey, 86400);
 
-    } else if (engine === 'openai_premium') {
-      if (!premiumCode) {
-        return NextResponse.json({ error: 'プレミアムコードが入力されていません。' }, { status: 400 });
+      try {
+        const gasRes = await fetch(GAS_WEBAPP_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code }),
+        });
+
+        const gasData = await gasRes.json();
+
+        // コードが存在しない、または上限（50回）に達している場合はここで遮断
+        if (!gasData.success) {
+          return NextResponse.json(
+            { error: gasData.error || 'チケットの認証に失敗しました。' },
+            { status: 400 }
+          );
+        }
+
+        remainingTickets = gasData.remaining;
+      } catch (gasErr: any) {
+        console.error('GASチケット認証通信エラー:', gasErr);
+        return NextResponse.json(
+          { error: 'チケット認証サーバーとの通信に失敗しました。時間をおいて再試行してください。' },
+          { status: 500 }
+        );
       }
-      const codeKey = `premium:${premiumCode}`;
-      const remaining = await kv.get<number>(codeKey);
-      
-      if (remaining === null) {
-        return NextResponse.json({ error: '無効なコードです。入力内容をご確認ください。' }, { status: 400 });
-      }
-      if (remaining <= 0) {
-        return NextResponse.json({ error: 'このプレミアムコードは上限（50回）に達しました。' }, { status: 403 });
-      }
-      // 残り回数を1減らす
-      await kv.decr(codeKey);
+
+    // ★ 2. 無料枠（FLUX / OpenAI無料お試し）：Vercel KVによるIP/日付制限
     } else {
-      return NextResponse.json({ error: '不正なエンジン指定です。' }, { status: 400 });
+      const ip = req.headers.get('x-forwarded-for') || 'anonymous_ip';
+      const today = new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' }).split(' ')[0].replace(/\//g, '-');
+
+      if (isFlux) {
+        const fluxKey = `usage:flux:${ip}:${today}`;
+        const fluxCount = (await kv.get<number>(fluxKey)) || 0;
+        if (fluxCount >= 15) {
+          return NextResponse.json({ error: '本日の無料アイデア出し（FLUX）の枠（15回）を使い切りました。明日またお試しください。' }, { status: 429 });
+        }
+        await kv.incr(fluxKey);
+        await kv.expire(fluxKey, 86400);
+
+      } else if (isOpenAiFree) {
+        const freeKey = `usage:openaifree:${ip}:${today}`;
+        const freeCount = (await kv.get<number>(freeKey)) || 0;
+        if (freeCount >= 1) {
+          return NextResponse.json({ error: '本日の「本気の1枚（無料お試し）」はすでに利用済みです。続きはプレミアムコードをご利用ください。' }, { status: 429 });
+        }
+        await kv.incr(freeKey);
+        await kv.expire(freeKey, 86400);
+
+      } else {
+        return NextResponse.json({ error: '不正なエンジン指定です。' }, { status: 400 });
+      }
     }
 
     // --- プロンプト構築 ---
@@ -117,8 +147,8 @@ export async function POST(req: Request) {
 
     const prompt = `${baseInstruction} ${layoutInstruction}\n【Motifs】\n${englishMotif} (${motif})\n${styleDetail ? `【Style】\n${styleDetail}\n` : ''}【Color】\n${colorInstruction}\n${enforcement}`;
 
-    // --- 画像生成処理 ---
-    if (engine === 'flux' && process.env.FAL_KEY) {
+    // --- 画像生成処理（FLUX または OpenAI） ---
+    if (isFlux && process.env.FAL_KEY) {
       const falResponse = await fetch('https://queue.fal.run/fal-ai/flux/schnell', {
         method: 'POST',
         headers: { 'Authorization': `Key ${process.env.FAL_KEY}`, 'Content-Type': 'application/json' },
@@ -144,11 +174,16 @@ export async function POST(req: Request) {
           const imgRes = await fetch(generatedUrl);
           const buffer = Buffer.from(await imgRes.arrayBuffer());
           const blob = await put(`textile-flux-${Date.now()}.png`, buffer, { access: 'public', contentType: 'image/png' });
-          return NextResponse.json({ imageUrl: blob.url, engine: 'flux' });
+          return NextResponse.json({ 
+            imageUrl: blob.url, 
+            blobUrl: blob.url, 
+            engine: 'flux' 
+          });
         }
       }
     }
 
+    // チケット利用 または 本番清書（OpenAI DALL-E 3）
     const response = await openai.images.generate({
       model: "dall-e-3",
       prompt: prompt,
@@ -162,9 +197,15 @@ export async function POST(req: Request) {
     const buffer = Buffer.from(base64Image, 'base64');
     const blob = await put(`textile-openai-${Date.now()}.png`, buffer, { access: 'public', contentType: 'image/png' });
 
-    return NextResponse.json({ imageUrl: blob.url, engine: 'openai' });
+    return NextResponse.json({ 
+      imageUrl: blob.url, 
+      blobUrl: blob.url, 
+      engine: 'openai',
+      remainingTickets 
+    });
 
   } catch (error: any) {
+    console.error('Generate Route Error:', error);
     return NextResponse.json({ error: error?.message || '通信エラー' }, { status: 500 });
   }
 }
