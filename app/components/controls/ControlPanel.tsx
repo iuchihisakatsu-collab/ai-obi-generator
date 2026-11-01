@@ -1,7 +1,8 @@
+// app/components/controls/ControlPanel.tsx
 'use client';
 
-import React, { useState } from 'react';
-import { TRADITIONAL_COLORS, FORBIDDEN_WORDS } from '../../lib/constants';
+import React from 'react';
+import { TRADITIONAL_COLORS } from '../../lib/constants';
 import { StripeDirection, DotLayout } from '../../utils/geometricPatterns';
 
 export interface ControlPanelProps {
@@ -57,18 +58,17 @@ export interface ControlPanelProps {
   setAgreed: (agreed: boolean) => void;
   errorMsg: string;
   loading: boolean;
-  loadingEngine: 'flux' | 'openai' | null;
   remainingCount: number;
   loadingStep: number;
-  handleGenerate: () => void;
+  handleGenerate: (isPremium?: boolean) => void;
   imageUrl: string;
   patternTitle: string;
   setPatternTitle: (title: string) => void;
   serialNumber: string;
   handleDownloadOriginal: () => void;
   handleOrderClick: (e: React.MouseEvent<HTMLAnchorElement>) => void;
-  selectedEngine: 'flux' | 'openai_free' | 'openai_premium';
-  setSelectedEngine: (engine: 'flux' | 'openai_free' | 'openai_premium') => void;
+  selectedEngine: 'openai_free' | 'openai_premium';
+  setSelectedEngine: (engine: 'openai_free' | 'openai_premium') => void;
   premiumCode: string;
   setPremiumCode: (code: string) => void;
   premiumStatusMsg: string;
@@ -78,10 +78,7 @@ export default function ControlPanel(props: ControlPanelProps) {
   const {
     creationMode, setCreationMode,
     itemType, setItemType,
-    aiStyle, setAiStyle,
-    selectedArtist, setSelectedArtist,
     motif, setMotif,
-    motif2, setMotif2,
     selectedColors, setSelectedColors, handleColorToggle,
     showColorPalette, setShowColorPalette,
     density, setDensity,
@@ -94,31 +91,18 @@ export default function ControlPanel(props: ControlPanelProps) {
     geoBgColor, setGeoBgColor,
     geoPatternColor, setGeoPatternColor,
     showGeoPaletteFor, setShowGeoPaletteFor,
-    obiLiningColor, setObiLiningColor,
-    kimonoHaneriColor, setKimonoHaneriColor,
-    kimonoObiageColor, setKimonoObiageColor,
-    kimonoObiColor, setKimonoObiColor,
-    customObiUrl, setCustomObiUrl,
-    handleCustomObiUpload,
     agreed, setAgreed,
     errorMsg,
-    loading, loadingEngine,
+    loading,
     remainingCount, loadingStep,
     handleGenerate,
     imageUrl,
     patternTitle, setPatternTitle,
-    serialNumber,
     handleDownloadOriginal,
     handleOrderClick,
-    selectedEngine, setSelectedEngine,
     premiumCode, setPremiumCode,
     premiumStatusMsg,
   } = props;
-
-  const [showHaneriPalette, setShowHaneriPalette] = useState(false);
-  const [showObiagePalette, setShowObiagePalette] = useState(false);
-  const [showKimonoObiPalette, setShowKimonoObiPalette] = useState(false);
-  const [showLiningPalette, setShowLiningPalette] = useState(false);
 
   const LOADING_STEPS = [
     '意匠の着想を練り上げています...',
@@ -131,14 +115,14 @@ export default function ControlPanel(props: ControlPanelProps) {
   return (
     <div className="w-full lg:w-1/2 bg-white border border-zinc-200 p-4 sm:p-8 lg:p-10 shrink-0 shadow-sm z-10">
       
-      {/* ヘッダータイトル */}
+      {/* タイトルヘッダー */}
       <div className="text-center mb-6 sm:mb-8 p-5 sm:p-8 bg-zinc-950 text-white shadow-inner">
         <h1 className="text-xl sm:text-2xl font-black tracking-widest text-center leading-tight">
           妄想きもの図案帖
         </h1>
         <p className="text-[11px] sm:text-xs text-zinc-400 mt-3 leading-relaxed font-medium tracking-wider">
-          新潟・十日町の染織美学と最先端のデジタル技術を融合。<br className="hidden sm:inline" />
-          思い描いた着物・帯の図案をスマホで試作し、実物のお誂えへ繋げるアトリエツールです。
+          新潟・十日町デジタル捺染工場直結の図案ツール。<br className="hidden sm:inline" />
+          思い描いたモチーフや幾何学文様から、世界にひとつの帯や着物をお誂えできます。
         </p>
       </div>
 
@@ -165,49 +149,10 @@ export default function ControlPanel(props: ControlPanelProps) {
       </div>
 
       <div className="space-y-6">
-        {/* ================= AI妄想モードの設定 ================= */}
+        {/* ================= AI妄想モード ================= */}
         {creationMode === 'ai' ? (
           <div className="space-y-5 animate-fade-in">
-            {/* エンジン・チケット選択 */}
-            <div className="p-3 bg-zinc-50 border border-zinc-200 space-y-2">
-              <label className="block text-[11px] font-bold text-zinc-800 tracking-wider">生成エンジン仕様</label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setSelectedEngine('flux')}
-                  className={`py-2 px-2 text-[10px] font-bold border transition-all ${
-                    selectedEngine === 'flux' ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white text-zinc-600 border-zinc-300'
-                  }`}
-                >
-                  標準スケッチ（無料）
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectedEngine('openai_premium')}
-                  className={`py-2 px-2 text-[10px] font-bold border transition-all ${
-                    selectedEngine === 'openai_premium' ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white text-zinc-600 border-zinc-300'
-                  }`}
-                >
-                  高精度チケット（有料枠）
-                </button>
-              </div>
-
-              {selectedEngine === 'openai_premium' && (
-                <div className="pt-2 border-t border-zinc-200 space-y-1.5 animate-fade-in">
-                  <span className="text-[10px] text-zinc-600 block">ご購入時のチケットコードを入力してください：</span>
-                  <input
-                    type="text"
-                    value={premiumCode}
-                    onChange={(e) => setPremiumCode(e.target.value)}
-                    placeholder="例: TICKET-XXXX-XXXX"
-                    className="w-full border border-zinc-300 p-2 text-xs bg-white font-mono"
-                  />
-                  {premiumStatusMsg && <p className="text-[10px] text-green-700 font-bold">{premiumStatusMsg}</p>}
-                </div>
-              )}
-            </div>
-
-            {/* モチーフ入力 */}
+            {/* モチーフ */}
             <div>
               <label className="block text-xs font-bold text-zinc-900 tracking-wider mb-1">
                 01. 図案モチーフ・キーワード
@@ -222,7 +167,7 @@ export default function ControlPanel(props: ControlPanelProps) {
               />
             </div>
 
-            {/* 伝統色パレット */}
+            {/* 配色 */}
             <div className="pt-2 border-t border-zinc-100">
               <div className="flex justify-between items-baseline mb-2">
                 <label className="block text-xs font-bold text-zinc-900 tracking-wider">
@@ -292,7 +237,7 @@ export default function ControlPanel(props: ControlPanelProps) {
             </div>
           </div>
         ) : (
-          /* ================= 幾何学モードの設定 ================= */
+          /* ================= 幾何学モード ================= */
           <div className="space-y-5 animate-fade-in">
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -341,7 +286,7 @@ export default function ControlPanel(props: ControlPanelProps) {
               )}
             </div>
 
-            {/* スライダー群 */}
+            {/* スライダー */}
             <div className="space-y-3.5 pt-3 border-t border-zinc-100">
               {geoPatternType === 'dot' && (
                 <>
@@ -392,7 +337,7 @@ export default function ControlPanel(props: ControlPanelProps) {
               )}
             </div>
 
-            {/* 配色指定 */}
+            {/* 配色 */}
             <div className="pt-3 border-t border-zinc-100">
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -453,10 +398,9 @@ export default function ControlPanel(props: ControlPanelProps) {
           </div>
         )}
 
-        {/* ================= 共通設定（配置・仕立て・コーディネート） ================= */}
+        {/* ================= 共通設定 ================= */}
         <div className="space-y-6 pt-6 border-t border-zinc-200">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {/* 03. 柄の配置 */}
             <div>
               <label className="block text-xs font-bold text-zinc-800 tracking-wider mb-2">03. 柄の配置</label>
               <div className="flex flex-col gap-1.5">
@@ -479,7 +423,6 @@ export default function ControlPanel(props: ControlPanelProps) {
               </div>
             </div>
 
-            {/* 04. 仕立てアイテム */}
             <div>
               <label className="block text-xs font-bold text-zinc-800 tracking-wider mb-2">04. 仕立てアイテム</label>
               <div className="flex flex-col gap-1.5">
@@ -514,218 +457,9 @@ export default function ControlPanel(props: ControlPanelProps) {
             </div>
           </div>
 
-          {/* ★★★ 抜け落ちていた着物コーディネート選択ブロック ★★★ */}
-          {itemType === 'kimono' ? (
-            <div className="pt-4 border-t border-zinc-200 space-y-4 animate-fade-in bg-zinc-50 p-4 border border-zinc-200">
-              <p className="text-xs font-bold text-zinc-900 tracking-wider border-b border-zinc-200 pb-2">
-                着物コーディネート設定（プレビュー着せ替え）
-              </p>
+          {/* ※※※ 帯の裏地色項目はマッピング画像上の最前面フロートへ一本化したため、ここからは完全撤去 ※※※ */}
 
-              {/* 半衿の色選択 */}
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-[11px] font-bold text-zinc-700">半衿の色：</label>
-                  <button
-                    type="button"
-                    onClick={() => setShowHaneriPalette(!showHaneriPalette)}
-                    className="text-[10px] text-zinc-500 hover:text-zinc-900 font-bold"
-                  >
-                    {showHaneriPalette ? '閉じる' : '伝統色から選ぶ'}
-                  </button>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 border border-zinc-300 shadow-inner" style={{ backgroundColor: kimonoHaneriColor }} />
-                  <span className="text-xs font-mono text-zinc-600">
-                    {TRADITIONAL_COLORS.find((c) => c.hex.toLowerCase() === kimonoHaneriColor.toLowerCase())?.name || kimonoHaneriColor}
-                  </span>
-                </div>
-
-                {showHaneriPalette && (
-                  <div className="mt-2 p-2 bg-white border border-zinc-200 max-h-[140px] overflow-y-auto shadow-inner">
-                    <div className="grid grid-cols-4 sm:grid-cols-6 gap-1.5">
-                      {TRADITIONAL_COLORS.map((col) => (
-                        <button
-                          key={col.name}
-                          type="button"
-                          onClick={() => {
-                            setKimonoHaneriColor(col.hex);
-                            setShowHaneriPalette(false);
-                          }}
-                          className="relative h-8 p-1 flex flex-col justify-end text-left border border-zinc-200 shadow-sm"
-                          style={{ backgroundColor: col.hex }}
-                        >
-                          <span className={`text-[8px] font-bold truncate leading-tight ${col.isDark ? 'text-white' : 'text-zinc-900'}`}>
-                            {col.name.split(' ')[0]}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* 帯揚の色選択 */}
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-[11px] font-bold text-zinc-700">帯揚の色：</label>
-                  <button
-                    type="button"
-                    onClick={() => setShowObiagePalette(!showObiagePalette)}
-                    className="text-[10px] text-zinc-500 hover:text-zinc-900 font-bold"
-                  >
-                    {showObiagePalette ? '閉じる' : '伝統色から選ぶ'}
-                  </button>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 border border-zinc-300 shadow-inner" style={{ backgroundColor: kimonoObiageColor }} />
-                  <span className="text-xs font-mono text-zinc-600">
-                    {TRADITIONAL_COLORS.find((c) => c.hex.toLowerCase() === kimonoObiageColor.toLowerCase())?.name || kimonoObiageColor}
-                  </span>
-                </div>
-
-                {showObiagePalette && (
-                  <div className="mt-2 p-2 bg-white border border-zinc-200 max-h-[140px] overflow-y-auto shadow-inner">
-                    <div className="grid grid-cols-4 sm:grid-cols-6 gap-1.5">
-                      {TRADITIONAL_COLORS.map((col) => (
-                        <button
-                          key={col.name}
-                          type="button"
-                          onClick={() => {
-                            setKimonoObiageColor(col.hex);
-                            setShowObiagePalette(false);
-                          }}
-                          className="relative h-8 p-1 flex flex-col justify-end text-left border border-zinc-200 shadow-sm"
-                          style={{ backgroundColor: col.hex }}
-                        >
-                          <span className={`text-[8px] font-bold truncate leading-tight ${col.isDark ? 'text-white' : 'text-zinc-900'}`}>
-                            {col.name.split(' ')[0]}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* 帯の指定（伝統色 or 手持ち画像アップロード） */}
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-[11px] font-bold text-zinc-700">帯のコーディネート：</label>
-                  <div className="flex gap-1">
-                    <button
-                      type="button"
-                      onClick={() => setCustomObiUrl(null)}
-                      className={`px-2 py-0.5 text-[10px] font-bold border transition-all ${
-                        !customObiUrl ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white text-zinc-600 border-zinc-300'
-                      }`}
-                    >
-                      伝統色無地
-                    </button>
-                    <label className={`px-2 py-0.5 text-[10px] font-bold border cursor-pointer transition-all ${
-                      customObiUrl ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white text-zinc-600 border-zinc-300'
-                    }`}>
-                      画像アップロード
-                      <input type="file" accept="image/*" onChange={handleCustomObiUpload} className="hidden" />
-                    </label>
-                  </div>
-                </div>
-
-                {!customObiUrl ? (
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 border border-zinc-300 shadow-inner" style={{ backgroundColor: kimonoObiColor }} />
-                      <button
-                        type="button"
-                        onClick={() => setShowKimonoObiPalette(!showKimonoObiPalette)}
-                        className="px-2.5 py-1 text-[11px] font-bold border border-zinc-300 bg-white hover:bg-zinc-50"
-                      >
-                        {showKimonoObiPalette ? 'パレットを閉じる' : '帯の色を変更'}
-                      </button>
-                      <span className="text-xs font-mono text-zinc-600">
-                        {TRADITIONAL_COLORS.find((c) => c.hex.toLowerCase() === kimonoObiColor.toLowerCase())?.name || kimonoObiColor}
-                      </span>
-                    </div>
-
-                    {showKimonoObiPalette && (
-                      <div className="mt-2 p-2 bg-white border border-zinc-200 max-h-[140px] overflow-y-auto shadow-inner">
-                        <div className="grid grid-cols-4 sm:grid-cols-6 gap-1.5">
-                          {TRADITIONAL_COLORS.map((col) => (
-                            <button
-                              key={col.name}
-                              type="button"
-                              onClick={() => {
-                                setKimonoObiColor(col.hex);
-                                setShowKimonoObiPalette(false);
-                              }}
-                              className="relative h-8 p-1 flex flex-col justify-end text-left border border-zinc-200 shadow-sm"
-                              style={{ backgroundColor: col.hex }}
-                            >
-                              <span className={`text-[8px] font-bold truncate leading-tight ${col.isDark ? 'text-white' : 'text-zinc-900'}`}>
-                                {col.name.split(' ')[0]}
-                              </span>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-between p-2.5 bg-white border border-zinc-200">
-                    <span className="text-[11px] text-green-700 font-bold">✓ カスタム帯画像を適用中</span>
-                    <button
-                      type="button"
-                      onClick={() => setCustomObiUrl(null)}
-                      className="text-[10px] text-zinc-400 hover:text-zinc-700 underline"
-                    >
-                      解除
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          ) : (
-            /* 帯仕立て時の裏地色指定 */
-            <div className="pt-2 border-t border-zinc-100">
-              <div className="flex items-center gap-2">
-                <label className="text-[11px] font-bold text-zinc-700 whitespace-nowrap">帯の裏地色：</label>
-                <div className="flex items-center gap-1.5 flex-1">
-                  <div className="w-7 h-7 border border-zinc-300 shadow-inner" style={{ backgroundColor: obiLiningColor }} />
-                  <button
-                    type="button"
-                    onClick={() => setShowLiningPalette(!showLiningPalette)}
-                    className={`flex-1 text-[10px] h-7 font-bold border ${showLiningPalette ? 'bg-zinc-900 text-white' : 'bg-white text-zinc-600 border-zinc-300'}`}
-                  >
-                    伝統色から選ぶ
-                  </button>
-                </div>
-              </div>
-
-              {showLiningPalette && (
-                <div className="mt-2 p-2.5 bg-zinc-50 border border-zinc-200 max-h-[140px] overflow-y-auto shadow-inner">
-                  <div className="grid grid-cols-4 sm:grid-cols-6 gap-1.5">
-                    {TRADITIONAL_COLORS.map((col) => (
-                      <button
-                        key={col.name}
-                        type="button"
-                        onClick={() => {
-                          setObiLiningColor(col.hex);
-                          setShowLiningPalette(false);
-                        }}
-                        className="relative h-8 p-1 flex flex-col justify-end text-left border border-zinc-300 shadow-sm"
-                        style={{ backgroundColor: col.hex }}
-                      >
-                        <span className={`text-[8px] font-bold truncate leading-tight ${col.isDark ? 'text-white' : 'text-zinc-900'}`}>
-                          {col.name.split(' ')[0]}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* 05. 図案銘 */}
+          {/* 図案銘 */}
           <div className="pt-2 border-t border-zinc-100">
             <label className="block text-xs font-bold text-zinc-800 tracking-wider mb-1">
               05. 図案銘 <span className="text-[10px] text-zinc-400 font-normal">（作品タイトル）</span>
@@ -740,10 +474,10 @@ export default function ControlPanel(props: ControlPanelProps) {
             />
           </div>
 
-          {/* 生成実行ボタン */}
+          {/* ★★★ AI生成実行エリア（無料ボタン ＋ プレミアムチケット常時配置） ★★★ */}
           {creationMode === 'ai' && (
-            <div className="pt-2 border-t border-zinc-100">
-              <label className="flex items-start gap-2.5 cursor-pointer select-none mb-4 group">
+            <div className="pt-2 border-t border-zinc-100 space-y-3">
+              <label className="flex items-start gap-2.5 cursor-pointer select-none group">
                 <input
                   type="checkbox"
                   checked={agreed}
@@ -756,19 +490,20 @@ export default function ControlPanel(props: ControlPanelProps) {
               </label>
 
               {errorMsg && (
-                <div className="mb-4 p-3 bg-red-50 text-red-600 border border-red-200 text-xs font-bold shadow-sm">
+                <div className="p-3 bg-red-50 text-red-600 border border-red-200 text-xs font-bold shadow-sm">
                   {errorMsg}
                 </div>
               )}
 
+              {/* 1. 無料お試し生成ボタン */}
               <button
                 type="button"
-                onClick={handleGenerate}
-                disabled={loading || (selectedEngine !== 'openai_premium' && remainingCount <= 0)}
-                className={`w-full py-3.5 sm:py-4 font-black text-xs sm:text-sm tracking-widest uppercase transition-all flex items-center justify-center gap-2 shadow-md ${
-                  (selectedEngine !== 'openai_premium' && remainingCount <= 0)
+                onClick={() => handleGenerate(false)}
+                disabled={loading || remainingCount <= 0}
+                className={`w-full py-3.5 font-black text-xs sm:text-sm tracking-widest uppercase transition-all flex items-center justify-center gap-2 shadow-md ${
+                  remainingCount <= 0
                     ? 'bg-zinc-100 text-zinc-400 border border-zinc-200 cursor-not-allowed'
-                    : 'bg-zinc-950 text-white hover:bg-zinc-800 shadow-md disabled:opacity-50'
+                    : 'bg-zinc-950 text-white hover:bg-zinc-800'
                 }`}
               >
                 {loading ? (
@@ -778,14 +513,49 @@ export default function ControlPanel(props: ControlPanelProps) {
                   </div>
                 ) : (
                   <span>
-                    {selectedEngine === 'openai_premium'
-                      ? '高精度チケットで図案を生成'
-                      : remainingCount <= 0
-                      ? '本日の無料上限に達しました'
-                      : `図案を描き出す (残り ${remainingCount} 回)`}
+                    {remainingCount <= 0
+                      ? '本日の無料上限に達しました (1/1)'
+                      : `無料枠で図案を描き出す (本日残り 1 回)`}
                   </span>
                 )}
               </button>
+
+              {/* 2. プレミアムチケット枠（無料枠が0回になっても絶対に消えず常に使える） */}
+              <div className="p-3 bg-red-50/60 border border-red-200 rounded-sm space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-[11px] font-bold text-red-900 flex items-center gap-1">
+                    <span>🎫</span> プレミアムチケットで高精度生成
+                  </span>
+                  <a
+                    href="https://store.gofukuyasan.com/view/item/000000007311"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[10px] text-red-700 underline font-bold hover:text-red-900"
+                  >
+                    チケットを購入する
+                  </a>
+                </div>
+
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={premiumCode}
+                    onChange={(e) => setPremiumCode(e.target.value)}
+                    placeholder="チケットコードを入力"
+                    className="flex-1 border border-zinc-300 p-2 text-xs bg-white font-mono rounded-sm focus:border-red-600 focus:outline-none"
+                    disabled={loading}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleGenerate(true)}
+                    disabled={loading || !premiumCode.trim()}
+                    className="px-4 py-2 bg-red-700 hover:bg-red-800 disabled:bg-zinc-300 text-white text-xs font-bold rounded-sm shadow transition-colors whitespace-nowrap"
+                  >
+                    チケットで生成
+                  </button>
+                </div>
+                {premiumStatusMsg && <p className="text-[10px] text-green-700 font-bold">{premiumStatusMsg}</p>}
+              </div>
             </div>
           )}
         </div>
