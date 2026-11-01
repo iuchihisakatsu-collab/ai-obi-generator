@@ -183,12 +183,13 @@ export async function POST(req: Request) {
       }
     }
 
-    // チケット利用 または 本番清書（OpenAI DALL-E 3）
+    // ★ チケット利用 または 本番清書（最新 gpt-image-2.5-sunburst + quality: high）
     const response = await openai.images.generate({
-      model: "dall-e-3",
+      model: "gpt-image-2.5-sunburst",
       prompt: prompt,
       n: 1,
       size: "1024x1024",
+      quality: "high",
     });
 
     const item = response.data?.[0];
