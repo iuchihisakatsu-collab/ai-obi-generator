@@ -66,6 +66,167 @@ export default function PreviewArea(props: PreviewAreaProps) {
 
   const v = '30';
 
+  // 半幅帯パーツ定義
+  const hanhabaLayers = [
+    { id: '01', file: 'hanhaba_Layer01.png', z: 10, rot: 2, bgX: '12%', bgY: '34%' },
+    { id: '02', file: 'hanhaba_Layer02.png', z: 20, rot: 1, bgX: '45%', bgY: '67%' },
+    { id: '03', file: 'hanhaba_Layer03.png', z: 30, rot: 8, bgX: '78%', bgY: '12%' },
+    { id: '04', file: 'hanhaba_Layer04.png', z: 40, rot: -1, bgX: '23%', bgY: '89%' },
+    { id: '05', file: 'hanhaba_Layer05.png', z: 50, rot: -10, bgX: '56%', bgY: '45%' },
+    { id: '06', file: 'hanhaba_Layer06.png', z: 60, rot: -93, bgX: '89%', bgY: '23%' },
+  ];
+
+  // 半幅帯マッピングのレイヤー描画
+  const renderHanhabaLayers = () => (
+    <div className="relative w-full h-full overflow-hidden">
+      {hanhabaLayers.map((layer) => (
+        <div
+          key={layer.id}
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            zIndex: layer.z,
+            maskImage: `url('/${layer.file}?v=${v}')`,
+            WebkitMaskImage: `url('/${layer.file}?v=${v}')`,
+            maskSize: 'contain',
+            WebkitMaskSize: 'contain',
+            maskRepeat: 'no-repeat',
+            WebkitMaskRepeat: 'no-repeat',
+            maskPosition: 'center',
+            WebkitMaskPosition: 'center',
+          }}
+        >
+          <div
+            style={{
+              position: 'absolute',
+              top: '-25%',
+              left: '-25%',
+              width: '150%',
+              height: '150%',
+              backgroundImage: `url(${effectivePatternUrl})`,
+              backgroundSize: patternSize,
+              backgroundRepeat: 'repeat',
+              backgroundPosition: `${layer.bgX} ${layer.bgY}`,
+              transform: `rotate(${layer.rot}deg)`,
+              transformOrigin: 'center center',
+              backgroundColor: creationMode === 'geometric' ? geoBgColor : 'transparent',
+            }}
+          />
+        </div>
+      ))}
+
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          zIndex: 65,
+          maskImage: `url('/hanhaba_Layer07.png?v=${v}')`,
+          WebkitMaskImage: `url('/hanhaba_Layer07.png?v=${v}')`,
+          maskSize: 'contain',
+          WebkitMaskSize: 'contain',
+          maskRepeat: 'no-repeat',
+          WebkitMaskRepeat: 'no-repeat',
+          maskPosition: 'center',
+          WebkitMaskPosition: 'center',
+        }}
+      >
+        <div className="w-full h-full" style={{ backgroundColor: obiLiningColor }} />
+      </div>
+
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          zIndex: 70,
+          backgroundImage: `url('/hanhaba_Layer_kage.png?v=${v}')`,
+          backgroundSize: 'contain',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          mixBlendMode: 'multiply',
+          opacity: 0.5,
+        }}
+      />
+    </div>
+  );
+
+  // 京袋帯パーツ定義
+  const kyobukuroLayers = [
+    { id: 'hara', file: 'kyoubukurohara.png', z: 30, rot: 271, bgX: '50%', bgY: '50%' },
+    { id: 'tare', file: 'kyoubukurotare.png', z: 40, rot: -1, bgX: '50%', bgY: '50%' },
+    { id: 'taiko', file: 'kyoubukurotakio.png', z: 50, rot: 2, bgX: '50%', bgY: '50%' },
+  ];
+
+  // 京袋帯マッピングのレイヤー描画
+  const renderKyobukuroLayers = () => (
+    <div className="relative w-full h-full overflow-hidden">
+      <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 10 }}>
+        <img src={`/kyoubukurogrand.png?v=${v}`} alt="" className="w-full h-full object-contain" />
+      </div>
+
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          zIndex: 20,
+          maskImage: `url('/kyoubukurouraji.png?v=${v}')`,
+          WebkitMaskImage: `url('/kyoubukurouraji.png?v=${v}')`,
+          maskSize: 'contain',
+          WebkitMaskSize: 'contain',
+          maskRepeat: 'no-repeat',
+          WebkitMaskRepeat: 'no-repeat',
+          maskPosition: 'center',
+          WebkitMaskPosition: 'center',
+        }}
+      >
+        <div className="w-full h-full" style={{ backgroundColor: obiLiningColor }} />
+      </div>
+
+      {kyobukuroLayers.map((layer) => (
+        <div
+          key={layer.id}
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            zIndex: layer.z,
+            maskImage: `url('/${layer.file}?v=${v}')`,
+            WebkitMaskImage: `url('/${layer.file}?v=${v}')`,
+            maskSize: 'contain',
+            WebkitMaskSize: 'contain',
+            maskRepeat: 'no-repeat',
+            WebkitMaskRepeat: 'no-repeat',
+            maskPosition: 'center',
+            WebkitMaskPosition: 'center',
+          }}
+        >
+          <div
+            style={{
+              position: 'absolute',
+              top: '-25%',
+              left: '-25%',
+              width: '150%',
+              height: '150%',
+              backgroundImage: `url(${effectivePatternUrl})`,
+              backgroundSize: patternSize,
+              backgroundRepeat: 'repeat',
+              backgroundPosition: `${layer.bgX} ${layer.bgY}`,
+              transform: `rotate(${layer.rot}deg)`,
+              transformOrigin: 'center center',
+              backgroundColor: creationMode === 'geometric' ? geoBgColor : 'transparent',
+            }}
+          />
+        </div>
+      ))}
+
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          zIndex: 60,
+          backgroundImage: `url('/kyoubukuromask.png?v=${v}')`,
+          backgroundSize: 'contain',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          mixBlendMode: 'multiply',
+          opacity: 0.5,
+        }}
+      />
+    </div>
+  );
+
   // 着物パーツ定義（分度器実測角度ルール）
   const kimonoParts = [
     { id: 'usiromigoro', file: 'usiromigoro_75.png', angle: 75, z: 2 },
@@ -284,163 +445,8 @@ export default function PreviewArea(props: PreviewAreaProps) {
                 
                 {/* 1. マッピング画像（背面に描画） */}
                 <div ref={previewContainerRef} className="w-full h-full relative overflow-hidden">
-                  
-                  {/* 半幅帯 */}
-                  {itemType === 'hanhaba' && (
-                    <div className="relative w-full h-full overflow-hidden">
-                      {[
-                        { id: '01', file: 'hanhaba_Layer01.png', z: 10, rot: 2, bgX: '12%', bgY: '34%' },
-                        { id: '02', file: 'hanhaba_Layer02.png', z: 20, rot: 1, bgX: '45%', bgY: '67%' },
-                        { id: '03', file: 'hanhaba_Layer03.png', z: 30, rot: 8, bgX: '78%', bgY: '12%' },
-                        { id: '04', file: 'hanhaba_Layer04.png', z: 40, rot: -1, bgX: '23%', bgY: '89%' },
-                        { id: '05', file: 'hanhaba_Layer05.png', z: 50, rot: -10, bgX: '56%', bgY: '45%' },
-                        { id: '06', file: 'hanhaba_Layer06.png', z: 60, rot: -93, bgX: '89%', bgY: '23%' },
-                      ].map((layer) => (
-                        <div
-                          key={layer.id}
-                          className="absolute inset-0 pointer-events-none"
-                          style={{
-                            zIndex: layer.z,
-                            maskImage: `url('/${layer.file}?v=${v}')`,
-                            WebkitMaskImage: `url('/${layer.file}?v=${v}')`,
-                            maskSize: 'contain',
-                            WebkitMaskSize: 'contain',
-                            maskRepeat: 'no-repeat',
-                            WebkitMaskRepeat: 'no-repeat',
-                            maskPosition: 'center',
-                            WebkitMaskPosition: 'center',
-                          }}
-                        >
-                          <div
-                            style={{
-                              position: 'absolute',
-                              top: '-25%',
-                              left: '-25%',
-                              width: '150%',
-                              height: '150%',
-                              backgroundImage: `url(${effectivePatternUrl})`,
-                              backgroundSize: patternSize,
-                              backgroundRepeat: 'repeat',
-                              backgroundPosition: `${layer.bgX} ${layer.bgY}`,
-                              transform: `rotate(${layer.rot}deg)`,
-                              transformOrigin: 'center center',
-                              backgroundColor: creationMode === 'geometric' ? geoBgColor : 'transparent',
-                            }}
-                          />
-                        </div>
-                      ))}
-
-                      <div
-                        className="absolute inset-0 pointer-events-none"
-                        style={{
-                          zIndex: 65,
-                          maskImage: `url('/hanhaba_Layer07.png?v=${v}')`,
-                          WebkitMaskImage: `url('/hanhaba_Layer07.png?v=${v}')`,
-                          maskSize: 'contain',
-                          WebkitMaskSize: 'contain',
-                          maskRepeat: 'no-repeat',
-                          WebkitMaskRepeat: 'no-repeat',
-                          maskPosition: 'center',
-                          WebkitMaskPosition: 'center',
-                        }}
-                      >
-                        <div className="w-full h-full" style={{ backgroundColor: obiLiningColor }} />
-                      </div>
-
-                      <div
-                        className="absolute inset-0 pointer-events-none"
-                        style={{
-                          zIndex: 70,
-                          backgroundImage: `url('/hanhaba_Layer_kage.png?v=${v}')`,
-                          backgroundSize: 'contain',
-                          backgroundPosition: 'center',
-                          backgroundRepeat: 'no-repeat',
-                          mixBlendMode: 'multiply',
-                          opacity: 0.5,
-                        }}
-                      />
-                    </div>
-                  )}
-
-                  {/* 京袋帯 */}
-                  {itemType === 'kyobukuro' && (
-                    <div className="relative w-full h-full overflow-hidden">
-                      <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 10 }}>
-                        <img src={`/kyoubukurogrand.png?v=${v}`} alt="" className="w-full h-full object-contain" />
-                      </div>
-
-                      <div
-                        className="absolute inset-0 pointer-events-none"
-                        style={{
-                          zIndex: 20,
-                          maskImage: `url('/kyoubukurouraji.png?v=${v}')`,
-                          WebkitMaskImage: `url('/kyoubukurouraji.png?v=${v}')`,
-                          maskSize: 'contain',
-                          WebkitMaskSize: 'contain',
-                          maskRepeat: 'no-repeat',
-                          WebkitMaskRepeat: 'no-repeat',
-                          maskPosition: 'center',
-                          WebkitMaskPosition: 'center',
-                        }}
-                      >
-                        <div className="w-full h-full" style={{ backgroundColor: obiLiningColor }} />
-                      </div>
-
-                      {[
-                        { id: 'hara', file: 'kyoubukurohara.png', z: 30, rot: 271, bgX: '50%', bgY: '50%' },
-                        { id: 'tare', file: 'kyoubukurotare.png', z: 40, rot: -1, bgX: '50%', bgY: '50%' },
-                        { id: 'taiko', file: 'kyoubukurotakio.png', z: 50, rot: 2, bgX: '50%', bgY: '50%' },
-                      ].map((layer) => (
-                        <div
-                          key={layer.id}
-                          className="absolute inset-0 pointer-events-none"
-                          style={{
-                            zIndex: layer.z,
-                            maskImage: `url('/${layer.file}?v=${v}')`,
-                            WebkitMaskImage: `url('/${layer.file}?v=${v}')`,
-                            maskSize: 'contain',
-                            WebkitMaskSize: 'contain',
-                            maskRepeat: 'no-repeat',
-                            WebkitMaskRepeat: 'no-repeat',
-                            maskPosition: 'center',
-                            WebkitMaskPosition: 'center',
-                          }}
-                        >
-                          <div
-                            style={{
-                              position: 'absolute',
-                              top: '-25%',
-                              left: '-25%',
-                              width: '150%',
-                              height: '150%',
-                              backgroundImage: `url(${effectivePatternUrl})`,
-                              backgroundSize: patternSize,
-                              backgroundRepeat: 'repeat',
-                              backgroundPosition: `${layer.bgX} ${layer.bgY}`,
-                              transform: `rotate(${layer.rot}deg)`,
-                              transformOrigin: 'center center',
-                              backgroundColor: creationMode === 'geometric' ? geoBgColor : 'transparent',
-                            }}
-                          />
-                        </div>
-                      ))}
-
-                      <div
-                        className="absolute inset-0 pointer-events-none"
-                        style={{
-                          zIndex: 60,
-                          backgroundImage: `url('/kyoubukuromask.png?v=${v}')`,
-                          backgroundSize: 'contain',
-                          backgroundPosition: 'center',
-                          backgroundRepeat: 'no-repeat',
-                          mixBlendMode: 'multiply',
-                          opacity: 0.5,
-                        }}
-                      />
-                    </div>
-                  )}
-
-                  {/* 着物（半幅帯と完全に同じ土台 150% ＆ patternSize で描画） */}
+                  {itemType === 'hanhaba' && renderHanhabaLayers()}
+                  {itemType === 'kyobukuro' && renderKyobukuroLayers()}
                   {itemType === 'kimono' && renderKimonoLayers()}
                 </div>
 
@@ -665,13 +671,9 @@ export default function PreviewArea(props: PreviewAreaProps) {
               【原寸拡大プレビュー】{itemType === 'hanhaba' ? '半幅帯' : itemType === 'kyobukuro' ? '京袋帯' : '着物'}
             </h3>
             <div className="w-[300px] sm:w-[500px] lg:w-[600px] aspect-square bg-[#e4e4e7] relative overflow-hidden shadow-inner border border-zinc-300">
-              {itemType === 'kimono' ? (
-                renderKimonoLayers()
-              ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <p className="text-xs text-zinc-500 font-bold">帯プレビュー拡大</p>
-                </div>
-              )}
+              {itemType === 'hanhaba' && renderHanhabaLayers()}
+              {itemType === 'kyobukuro' && renderKyobukuroLayers()}
+              {itemType === 'kimono' && renderKimonoLayers()}
             </div>
           </div>
         </div>
