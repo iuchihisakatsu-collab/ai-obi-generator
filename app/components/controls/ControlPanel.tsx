@@ -95,8 +95,8 @@ export default function ControlPanel(props: ControlPanelProps) {
   const LOADING_STEPS = [
     '意匠の着想を練り上げています...',
     '色と柄の調和を整えています...',
-    '図案の筆致を描き出しています...',
-    '反物の割り付けを検証しています...',
+    '図案を描き出しています...',
+    '割り付けを検証しています...',
     '仕上げの調合を行っています...',
   ];
 
@@ -149,13 +149,13 @@ export default function ControlPanel(props: ControlPanelProps) {
                 rows={3}
                 value={motif}
                 onChange={(e) => setMotif(e.target.value)}
-                placeholder="例：上から見た金魚。赤い金魚と黒出目金。水草。地色は白、ターコイズの流水柄。版画・切り絵風"
+                placeholder="例：上から見た金魚。赤い金魚と黒出目金。水草。地色は白、ターコイズの流水柄。"
                 className="w-full border border-zinc-300 p-3 bg-white text-xs sm:text-sm focus:outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 resize-none font-medium shadow-sm"
                 disabled={loading}
               />
             </div>
 
-            {/* 配色 */}
+            {/* 配色指定 */}
             <div className="pt-2 border-t border-zinc-100">
               <div className="flex justify-between items-baseline mb-2">
                 <label className="block text-xs font-bold text-zinc-900 tracking-wider">
@@ -445,8 +445,6 @@ export default function ControlPanel(props: ControlPanelProps) {
             </div>
           </div>
 
-          {/* ※※※ 帯の裏地色項目は画像上のフロートへ完全移行したため、ここからは完全撤去 ※※※ */}
-
           {/* 図案銘 */}
           <div className="pt-2 border-t border-zinc-100">
             <label className="block text-xs font-bold text-zinc-800 tracking-wider mb-1">
@@ -456,13 +454,13 @@ export default function ControlPanel(props: ControlPanelProps) {
               type="text"
               value={patternTitle}
               onChange={(e) => setPatternTitle(e.target.value)}
-              placeholder="例：遊泳金魚図"
+              placeholder="作品タイトル"
               className="w-full border border-zinc-300 p-2.5 bg-zinc-50 text-xs sm:text-sm focus:outline-none focus:border-zinc-900 focus:bg-white shadow-sm"
               disabled={loading}
             />
           </div>
 
-          {/* ★★★ 生成ボタン3つ常時配置エリア ★★★ */}
+          {/* ★★★ 3つの生成ボタン（常時縦並び配置） ★★★ */}
           {creationMode === 'ai' && (
             <div className="pt-2 border-t border-zinc-100 space-y-4">
               <label className="flex items-start gap-2.5 cursor-pointer select-none group">
@@ -483,7 +481,7 @@ export default function ControlPanel(props: ControlPanelProps) {
                 </div>
               )}
 
-              {/* ===== ボタン1：FLUX生成（無料・お試し） ===== */}
+              {/* ===== ボタン①：スケッチモード（FLUX枠・常時利用可能） ===== */}
               <div>
                 <button
                   type="button"
@@ -494,19 +492,18 @@ export default function ControlPanel(props: ControlPanelProps) {
                   {loading && loadingEngine === 'flux' ? (
                     <span>{LOADING_STEPS[loadingStep]}</span>
                   ) : (
-                    <span>⚡ FLUXでスケッチ生成（無料枠）</span>
+                    <span>スケッチモードで試す</span>
                   )}
                 </button>
-                <p className="text-[9px] text-zinc-400 mt-1 text-center">※ 軽快に図案の構図や配色のアイデアを試せる無料モデルです</p>
               </div>
 
-              {/* ===== ボタン2：OpenAI 無料枠生成（1日1回限定） ===== */}
+              {/* ===== ボタン②：丁寧に作るモード（OpenAI無料枠・1日1回限定） ===== */}
               <div>
                 <button
                   type="button"
                   onClick={() => handleGenerate('openai_free')}
                   disabled={loading || remainingCount <= 0}
-                  className={`w-full py-3.5 font-black text-xs sm:text-sm tracking-widest uppercase transition-all flex items-center justify-center gap-2 shadow-md rounded-sm ${
+                  className={`w-full py-3.5 font-bold text-xs sm:text-sm tracking-wider transition-all flex items-center justify-center gap-2 shadow-sm rounded-sm ${
                     remainingCount <= 0
                       ? 'bg-zinc-100 text-zinc-400 border border-zinc-200 cursor-not-allowed'
                       : 'bg-zinc-950 text-white hover:bg-zinc-800 disabled:opacity-50'
@@ -515,32 +512,30 @@ export default function ControlPanel(props: ControlPanelProps) {
                   {loading && loadingEngine === 'openai' && !premiumCode ? (
                     <div className="flex flex-col items-center gap-0.5">
                       <span>{LOADING_STEPS[loadingStep]}</span>
-                      <span className="text-[8px] text-zinc-400">OPENAI PROCESSING...</span>
                     </div>
                   ) : (
                     <span>
                       {remainingCount <= 0
-                        ? '本日のOpenAI無料枠は終了しました (1/1)'
-                        : `✨ OpenAIで生成 (本日無料 残り1回)`}
+                        ? '本日の無料枠は終了しました'
+                        : '丁寧に作るモードで試す (本日無料 1回)'}
                     </span>
                   )}
                 </button>
-                <p className="text-[9px] text-zinc-400 mt-1 text-center">※ 高精細なOpenAI標準モデルによる本格図案生成（1日1回まで）</p>
               </div>
 
-              {/* ===== ボタン3：OpenAI プレミアムチケット生成（コード入力＋ボタン） ===== */}
-              <div className="p-3.5 bg-red-50/70 border-2 border-red-300 rounded-sm space-y-2.5">
+              {/* ===== ボタン③：チケットコードで丁寧に作る（チケット枠・常時配置） ===== */}
+              <div className="p-3 bg-zinc-50 border border-zinc-200 rounded-sm space-y-2">
                 <div className="flex justify-between items-center">
-                  <span className="text-xs font-bold text-red-950 flex items-center gap-1">
-                    <span>🎫</span> プレミアムチケットで高精度生成
+                  <span className="text-[11px] font-bold text-zinc-800">
+                    チケットコード利用
                   </span>
                   <a
                     href="https://store.gofukuyasan.com/view/item/000000007311"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-[11px] text-red-700 underline font-bold hover:text-red-950"
+                    className="text-[10px] text-zinc-600 underline hover:text-zinc-900"
                   >
-                    チケットを購入（実質0円）
+                    チケットを購入する
                   </a>
                 </div>
 
@@ -550,22 +545,19 @@ export default function ControlPanel(props: ControlPanelProps) {
                     value={premiumCode}
                     onChange={(e) => setPremiumCode(e.target.value)}
                     placeholder="チケットコードを入力"
-                    className="flex-1 border border-zinc-300 p-2 text-xs bg-white font-mono rounded-sm focus:border-red-600 focus:outline-none"
+                    className="flex-1 border border-zinc-300 p-2 text-xs bg-white font-mono rounded-sm focus:border-zinc-900 focus:outline-none"
                     disabled={loading}
                   />
                   <button
                     type="button"
                     onClick={() => handleGenerate('openai_premium')}
                     disabled={loading || !premiumCode.trim()}
-                    className="px-4 py-2 bg-red-700 hover:bg-red-800 disabled:bg-zinc-300 text-white text-xs font-black rounded-sm shadow transition-colors whitespace-nowrap"
+                    className="px-3 py-2 bg-zinc-900 hover:bg-zinc-800 disabled:bg-zinc-300 text-white text-xs font-bold rounded-sm shadow transition-colors whitespace-nowrap"
                   >
-                    {loading && loadingEngine === 'openai' && premiumCode ? '生成中...' : 'チケットで生成'}
+                    {loading && loadingEngine === 'openai' && premiumCode ? '生成中...' : 'チケットコードで丁寧に作る'}
                   </button>
                 </div>
                 {premiumStatusMsg && <p className="text-[10px] text-green-700 font-bold">{premiumStatusMsg}</p>}
-                <p className="text-[9px] text-red-800/80 leading-relaxed">
-                  ※ チケット代（1,100円）はお仕立て注文時に全額ポイント還元されます。
-                </p>
               </div>
             </div>
           )}
