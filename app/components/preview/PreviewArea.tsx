@@ -59,14 +59,19 @@ export default function PreviewArea(props: PreviewAreaProps) {
   // 出力画像は常にたった1つ（単一マスター画像）
   const effectivePatternUrl = creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl);
 
-  // 全アイテム共通・実寸ロック黄金比率（180mm基準完全固定）
+  // 1. 帯用スケール（半幅帯・京袋帯のアップ構図基準：180mm固定）
   const patternSize = creationMode === 'geometric'
     ? `${bgSizeMm * UNIVERSAL_SCALE_FACTOR}% auto`
     : `${180 * UNIVERSAL_SCALE_FACTOR}% auto`;
 
+  // 2. 着物用実寸スケール（帯パーツ高さ16cmに対して図案18cmが約1.125倍＝ほぼ同等サイズになる比率）
+  const kimonoPatternSize = creationMode === 'geometric'
+    ? `${(bgSizeMm * UNIVERSAL_SCALE_FACTOR) / 3}% auto`
+    : `${(180 * UNIVERSAL_SCALE_FACTOR) / 3}% auto`;
+
   const v = '30';
 
-  // 着物パーツ（分度器実測角度定義）
+  // 着物パーツ定義（分度器実測角度ルール）
   const kimonoParts = [
     { id: 'usiromigoro', file: 'usiromigoro_75.png', angle: 75, z: 2 },
     { id: 'hidarisode2', file: 'hidarisode2_175.png', angle: 175, z: 3 },
@@ -79,7 +84,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
     { id: 'hidarieri', file: 'hidarieri_117.png', angle: 117, z: 10 },
   ];
 
-  // 着物マッピングのレイヤー描画（縮小係数なし・等倍固定）
+  // 着物マッピングのレイヤー描画（帯パーツ高さ16cm基準の実寸スケールを適用）
   const renderKimonoLayers = () => (
     <div className="relative w-full h-full overflow-hidden">
       <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 1 }}>
@@ -110,7 +115,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
               width: '200%',
               height: '200%',
               backgroundImage: `url(${effectivePatternUrl})`,
-              backgroundSize: patternSize,
+              backgroundSize: kimonoPatternSize,
               backgroundRepeat: 'repeat',
               backgroundPosition: 'center center',
               transform: `rotate(${part.angle - 90}deg)`,
@@ -279,7 +284,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
           {displayMode === 'mockup' && (
             <div className="w-full flex flex-col items-center animate-fade-in relative">
               
-              {/* 全アイテム共通サイズ（w-[240px] sm:w-[360px]）で枠サイズを完全統一して等倍固定 */}
+              {/* 全アイテム共通枠サイズ（w-[240px] sm:w-[360px] aspect-square） */}
               <div className="relative mx-auto drop-shadow-xl w-[240px] sm:w-[360px] aspect-square">
                 
                 {/* 1. マッピング画像（背面に描画） */}
@@ -440,11 +445,11 @@ export default function PreviewArea(props: PreviewAreaProps) {
                     </div>
                   )}
 
-                  {/* 着物 */}
+                  {/* 着物（帯16cm基準の実寸スケールで描画） */}
                   {itemType === 'kimono' && renderKimonoLayers()}
                 </div>
 
-                {/* 2. 最前面オーバーレイ層（z-[9999]：影やマスクの奥に潜らない） */}
+                {/* 2. 最前面オーバーレイ層（z-[9999]：影やマスクの奥に絶対に潜らない） */}
                 <div className="absolute inset-0 pointer-events-none z-[9999]">
                   
                   {/* 拡大ボタン（右上） */}
