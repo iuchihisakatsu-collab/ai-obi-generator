@@ -234,7 +234,9 @@ export async function POST(req: Request) {
       imageUrl: blob.url, 
       blobUrl: blob.url, 
       engine: 'openai',
-      remainingTickets: finalRemaining 
+      remainingTickets: finalRemaining,
+      ticketRemaining: finalRemaining,
+      remaining: finalRemaining
     });
 
   } catch (error: any) {
