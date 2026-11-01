@@ -56,13 +56,17 @@ export default function PreviewArea(props: PreviewAreaProps) {
 
   if (!imageUrl) return null;
 
+  // 出力画像は常にたった1つ（単一マスター画像）
   const effectivePatternUrl = creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl);
+
+  // 全アイテム共通・実寸ロック黄金比率（180mm基準完全固定）
   const patternSize = creationMode === 'geometric'
     ? `${bgSizeMm * UNIVERSAL_SCALE_FACTOR}% auto`
     : `${180 * UNIVERSAL_SCALE_FACTOR}% auto`;
 
   const v = '30';
 
+  // 着物パーツ（分度器実測角度定義）
   const kimonoParts = [
     { id: 'usiromigoro', file: 'usiromigoro_75.png', angle: 75, z: 2 },
     { id: 'hidarisode2', file: 'hidarisode2_175.png', angle: 175, z: 3 },
@@ -75,6 +79,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
     { id: 'hidarieri', file: 'hidarieri_117.png', angle: 117, z: 10 },
   ];
 
+  // 着物マッピングのレイヤー描画（縮小係数なし・等倍固定）
   const renderKimonoLayers = () => (
     <div className="relative w-full h-full overflow-hidden">
       <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 1 }}>
@@ -232,7 +237,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
           </div>
         </div>
 
-        {/* タブ */}
+        {/* 表示タブ */}
         <div className="px-3 py-2 border-b border-zinc-200 bg-zinc-100 flex gap-1.5 overflow-x-auto">
           <button
             type="button"
@@ -274,11 +279,12 @@ export default function PreviewArea(props: PreviewAreaProps) {
           {displayMode === 'mockup' && (
             <div className="w-full flex flex-col items-center animate-fade-in relative">
               
-              {/* マッピング画像 ＆ 最前面フロートの包括ラッパー */}
-              <div className="relative mx-auto drop-shadow-xl w-[220px] sm:w-[340px] aspect-square">
+              {/* 全アイテム共通サイズ（w-[240px] sm:w-[360px]）で枠サイズを完全統一して等倍固定 */}
+              <div className="relative mx-auto drop-shadow-xl w-[240px] sm:w-[360px] aspect-square">
                 
                 {/* 1. マッピング画像（背面に描画） */}
                 <div ref={previewContainerRef} className="w-full h-full relative overflow-hidden">
+                  
                   {/* 半幅帯 */}
                   {itemType === 'hanhaba' && (
                     <div className="relative w-full h-full overflow-hidden">
@@ -438,7 +444,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
                   {itemType === 'kimono' && renderKimonoLayers()}
                 </div>
 
-                {/* 2. ★★★ 絶対に手前に出る最上位オーバーレイ層（DOMで画像の後 ＋ pointer-events） ★★★ */}
+                {/* 2. 最前面オーバーレイ層（z-[9999]：影やマスクの奥に潜らない） */}
                 <div className="absolute inset-0 pointer-events-none z-[9999]">
                   
                   {/* 拡大ボタン（右上） */}
@@ -568,7 +574,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
                 </div>
               </div>
 
-              {/* 保存ボタン */}
+              {/* マッピング画像保存ボタン */}
               <div className="mt-3">
                 <button
                   type="button"
@@ -637,7 +643,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
         </div>
       </div>
 
-      {/* ★★★ 全画面拡大モーダル ★★★ */}
+      {/* 全画面拡大モーダル */}
       {isZoomModalOpen && (
         <div 
           style={{ zIndex: 99999 }}
