@@ -351,25 +351,32 @@ export default function ControlPanel({
                 <label className="block text-xs font-bold text-zinc-900 tracking-wider">
                   05. 図案の描き分け（チケット利用）
                 </label>
-                <a
-                  href="https://store.gofukuyasan.com/view/item/000000007300"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[10px] text-zinc-500 hover:text-zinc-900 underline font-medium"
-                >
-                  チケット購入はこちら（実質0円）
-                </a>
               </div>
 
               <div className="p-3.5 bg-zinc-50 border border-zinc-200 space-y-2.5">
-                <label className="flex items-center gap-2 cursor-pointer select-none">
+                {/* MakeShop商品公開前はテキストのみの表示とする */}
+                <div className="text-[10px] text-zinc-500 font-medium text-right mb-1">
+                  チケット購入はこちら（実質0円 ※ポイント全額還元）
+                </div>
+                
+                <label className="flex items-center gap-2 cursor-pointer select-none relative z-10">
                   <input
                     type="checkbox"
                     checked={useTicket}
-                    onChange={(e) => setUseTicket?.(e.target.checked)}
-                    className="h-4 w-4 border-zinc-300 text-zinc-950 focus:ring-zinc-950"
+                    onChange={() => {}} // onClickでトグル処理するため空にする
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setUseTicket?.(!useTicket);
+                    }}
+                    className="h-4 w-4 border-zinc-300 text-zinc-950 focus:ring-zinc-950 cursor-pointer pointer-events-auto"
                   />
-                  <span className="text-xs font-black text-zinc-900">
+                  <span 
+                    className="text-xs font-black text-zinc-900 cursor-pointer"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setUseTicket?.(!useTicket);
+                    }}
+                  >
                     【チケット利用】極みの意匠（最高精細・優先生成）
                   </span>
                 </label>
@@ -485,5 +492,4 @@ export default function ControlPanel({
                         <span className="text-[10px] font-bold text-zinc-500">間隔（余白）</span>
                         <span className="text-xs font-black text-zinc-900">{gapWidth}<span className="text-[9px] font-normal text-zinc-400 ml-0.5">mm</span></span>
                       </div>
-                      <input type="range" min="0" max="200" value={gapWidth} onChange={(e) => setGapWidth(Number(e.target.value))} className="w-full cursor-pointer accent-zinc-900 h-2 bg-zinc-200 rounded-lg appearance-none" />
-                    </div>
+                      <input type="range" min="0" max="200" value={gapWidth} onChange={(e) => setGapWidth(Number(e.target.value
