@@ -1,8 +1,8 @@
 // app/components/controls/ControlPanel.tsx
 'use client';
 
-import { MouseEvent, ChangeEvent } from 'react';
-import { TRADITIONAL_COLORS, CategoryItem, LOADING_STEPS } from '../../lib/constants';
+import { MouseEvent } from 'react';
+import { TRADITIONAL_COLORS, CategoryItem } from '../../lib/constants';
 
 interface ControlPanelProps {
   creationMode: 'ai' | 'geometric';
@@ -46,8 +46,10 @@ interface ControlPanelProps {
   setAgreed: (val: boolean) => void;
   errorMsg: string;
   loading: boolean;
-  loadingEngine: 'flux' | 'openai' | null;
-  remainingCount: number;
+  generatingMode: 'flux' | 'openai_free' | 'openai_premium' | null;
+  remainingFlux: number;
+  remainingOpenAI: number;
+  ticketRemaining: number | null;
   loadingStep: number;
   handleGenerate: (engineType: 'flux' | 'openai_free' | 'openai_premium') => void;
   imageUrl: string;
@@ -60,6 +62,14 @@ interface ControlPanelProps {
   setPremiumCode: (val: string) => void;
   premiumStatusMsg: string;
 }
+
+const LOADING_STEPS = [
+  '意匠の着想を練り上げています...',
+  '色と柄の調和を整えています...',
+  '図案を描き出しています...',
+  '割り付けを検証しています...',
+  '仕上げの調合を行っています...',
+];
 
 const AI_STYLES = [
   { id: 'mingei', label: '民藝と型染め', sub: '芹沢銈介風・素朴' },
@@ -137,8 +147,10 @@ export default function ControlPanel({
   setAgreed,
   errorMsg,
   loading,
-  loadingEngine,
-  remainingCount,
+  generatingMode,
+  remainingFlux,
+  remainingOpenAI,
+  ticketRemaining,
   loadingStep,
   handleGenerate,
   imageUrl,
@@ -561,7 +573,7 @@ export default function ControlPanel({
           />
         </div>
 
-        {/* ★★★ 3つの生成ボタン（親のpage.tsxと100%直結） ★★★ */}
+        {/* ★★★ 3つの生成ボタン（根本治療版：残数と進行テキストの完全連動） ★★★ */}
         <div className="space-y-4 mt-6">
           {creationMode === 'ai' && (
             <div className="pt-6 border-t border-zinc-200 space-y-3">
@@ -583,41 +595,51 @@ export default function ControlPanel({
                 </div>
               )}
 
-              {/* ===== ボタン①：スケッチモード（FLUX枠・常時利用可能） ===== */}
+              {/* ===== ボタン①：スケッチモード（FLUX枠・残り15回カウント連動） ===== */}
               <div>
                 <button 
                   type="button" 
                   onClick={() => handleGenerate('flux')} 
-                  disabled={loading} 
-                  className="w-full py-3.5 px-4 font-bold text-xs sm:text-sm tracking-wider transition-all duration-200 flex items-center justify-center gap-2 shadow-sm rounded-sm relative z-10 bg-zinc-800 hover:bg-zinc-700 text-white disabled:opacity-50"
+                  disabled={loading || remainingFlux <= 0} 
+                  className={`w-full py-3.5 px-4 font-bold text-xs sm:text-sm tracking-wider transition-all duration-200 flex items-center justify-center gap-2 shadow-sm rounded-sm relative z-10 ${
+                    remainingFlux <= 0
+                      ? 'bg-zinc-100 text-zinc-400 border border-zinc-200 cursor-not-allowed'
+                      : 'bg-zinc-800 hover:bg-zinc-700 text-white disabled:opacity-50'
+                  }`}
                 >
-                  {loading && loadingEngine === 'flux' ? (
-                    <span className="text-xs">{LOADING_STEPS[loadingStep % LOADING_STEPS.length]}</span>
+                  {loading && generatingMode === 'flux' ? (
+                    <span className="text-xs text-amber-200 animate-pulse">
+                      {LOADING_STEPS[loadingStep % LOADING_STEPS.length]}
+                    </span>
                   ) : (
-                    <span>スケッチモードで試す</span>
+                    <span>
+                      {remainingFlux <= 0
+                        ? '本日のスケッチ枠は終了しました'
+                        : `スケッチモードで試す (本日残り ${remainingFlux}回)`}
+                    </span>
                   )}
                 </button>
               </div>
 
-              {/* ===== ボタン②：丁寧に作るモード（OpenAI無料枠・1日1回限定） ===== */}
+              {/* ===== ボタン②：丁寧に作るモード（OpenAI無料枠・残り1回カウント連動） ===== */}
               <div>
                 <button 
                   type="button" 
                   onClick={() => handleGenerate('openai_free')} 
-                  disabled={loading || remainingCount <= 0} 
+                  disabled={loading || remainingOpenAI <= 0} 
                   className={`w-full py-3.5 px-4 font-bold text-xs sm:text-sm tracking-wider transition-all duration-200 flex items-center justify-center gap-2 shadow-sm rounded-sm relative z-10 ${
-                    remainingCount <= 0 
+                    remainingOpenAI <= 0 
                       ? 'bg-zinc-100 text-zinc-400 border border-zinc-200 cursor-not-allowed' 
                       : 'bg-zinc-950 text-white hover:bg-zinc-800 disabled:opacity-50'
                   }`}
                 >
-                  {loading && loadingEngine === 'openai' && !premiumCode ? (
-                    <div className="flex flex-col items-center gap-1">
-                      <span className="text-xs">{LOADING_STEPS[loadingStep % LOADING_STEPS.length]}</span>
-                    </div>
+                  {loading && generatingMode === 'openai_free' ? (
+                    <span className="text-xs text-amber-200 animate-pulse">
+                      {LOADING_STEPS[loadingStep % LOADING_STEPS.length]}
+                    </span>
                   ) : (
                     <span>
-                      {remainingCount <= 0 
+                      {remainingOpenAI <= 0 
                         ? '本日の無料枠は終了しました' 
                         : '丁寧に作るモードで試す (本日無料 1回)'}
                     </span>
@@ -625,12 +647,19 @@ export default function ControlPanel({
                 </button>
               </div>
 
-              {/* ===== ボタン③：チケットコードで丁寧に作る（page.tsxと完全直結） ===== */}
+              {/* ===== ボタン③：チケットコードで丁寧に作る（残数表示・進行テキスト連動） ===== */}
               <div className="p-3.5 bg-zinc-50 border border-zinc-200 rounded-sm space-y-2 relative z-10">
                 <div className="flex justify-between items-center">
-                  <span className="text-[11px] font-bold text-zinc-800">
-                    チケットコード利用
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-bold text-zinc-800">
+                      チケットコード利用
+                    </span>
+                    {ticketRemaining !== null && (
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 bg-green-100 text-green-800 rounded">
+                        残数: {ticketRemaining}回
+                      </span>
+                    )}
+                  </div>
                   <a
                     href="https://store.gofukuyasan.com/view/item/000000007311"
                     target="_blank"
@@ -662,9 +691,15 @@ export default function ControlPanel({
                     type="button"
                     onClick={() => handleGenerate('openai_premium')}
                     disabled={loading || !premiumCode.trim()}
-                    className="px-3 py-2 bg-zinc-900 hover:bg-zinc-800 disabled:bg-zinc-200 disabled:text-zinc-400 text-white text-xs font-bold rounded-sm shadow transition-colors whitespace-nowrap"
+                    className="px-3 py-2 bg-zinc-900 hover:bg-zinc-800 disabled:bg-zinc-200 disabled:text-zinc-400 text-white text-xs font-bold rounded-sm shadow transition-colors whitespace-nowrap min-w-[170px] text-center"
                   >
-                    {loading && loadingEngine === 'openai' && premiumCode ? '生成中...' : 'チケットコードで丁寧に作る'}
+                    {loading && generatingMode === 'openai_premium' ? (
+                      <span className="text-[11px] text-amber-200 animate-pulse">
+                        {LOADING_STEPS[loadingStep % LOADING_STEPS.length]}
+                      </span>
+                    ) : (
+                      'チケットコードで丁寧に作る'
+                    )}
                   </button>
                 </div>
                 {premiumStatusMsg && <p className="text-[10px] text-green-700 font-bold">{premiumStatusMsg}</p>}
