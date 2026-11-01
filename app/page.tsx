@@ -16,7 +16,6 @@ import ControlPanel from './components/controls/ControlPanel';
 import { PlatformType, submitOrder } from './lib/orders';
 import { renderTiledGeometricPng, render18cmPrintDataPng } from './lib/production/canvasRenderer';
 
-// 1日の無料生成回数は「1回」
 const MAX_GENERATE_PER_DAY = 1;
 
 function getTodayJST(): string {
@@ -90,10 +89,10 @@ function HomeContent() {
   const [agreed, setAgreed] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
+  const [loadingEngine, setLoadingEngine] = useState<'flux' | 'openai' | null>(null);
   const [remainingCount, setRemainingCount] = useState<number>(MAX_GENERATE_PER_DAY);
   const [loadingStep, setLoadingStep] = useState<number>(0);
 
-  const [selectedEngine, setSelectedEngine] = useState<'openai_free' | 'openai_premium'>('openai_free');
   const [premiumCode, setPremiumCode] = useState<string>('');
   const [premiumStatusMsg, setPremiumStatusMsg] = useState<string>('');
 
@@ -238,9 +237,10 @@ function HomeContent() {
     }
   };
 
-  const handleGenerate = async (isPremium: boolean = false) => {
+  // 3つの生成ボタンから呼ばれるメイン処理
+  const handleGenerate = async (engineType: 'flux' | 'openai_free' | 'openai_premium') => {
     if (loading) return;
-    if (!isPremium && remainingCount <= 0) return;
+    if (engineType === 'openai_free' && remainingCount <= 0) return;
 
     setErrorMsg('');
     setPremiumStatusMsg('');
@@ -249,12 +249,14 @@ function HomeContent() {
       if (motif.includes(forbidden)) { setErrorMsg(`禁止ワード「${forbidden}」が含まれています。`); return; }
     }
 
-    if (isPremium && !premiumCode.trim()) {
+    if (engineType === 'openai_premium' && !premiumCode.trim()) {
       setErrorMsg('プレミアムチケットのコードを入力してください。');
       return;
     }
 
+    const actualEngine = engineType === 'flux' ? 'flux' : 'openai';
     setLoading(true);
+    setLoadingEngine(actualEngine);
     setLoadingStep(0);
 
     const startTime = Date.now();
@@ -273,15 +275,16 @@ function HomeContent() {
           itemType, 
           aiStyle, 
           artist: selectedArtist,
-          paymentMode: isPremium ? 'premium' : 'free',
-          premiumCode: isPremium ? premiumCode.trim() : undefined
+          engine: actualEngine,
+          paymentMode: engineType === 'openai_premium' ? 'premium' : 'free',
+          premiumCode: engineType === 'openai_premium' ? premiumCode.trim() : undefined
         })
       });
       const data = await res.json();
       if (!res.ok || data.error) throw new Error(data.error || '画像生成に失敗しました');
 
       const elapsedTime = Date.now() - startTime;
-      const MIN_WAIT_MS = 6000;
+      const MIN_WAIT_MS = actualEngine === 'openai' ? 6000 : 3000;
       if (elapsedTime < MIN_WAIT_MS) {
         await new Promise((resolve) => setTimeout(resolve, MIN_WAIT_MS - elapsedTime));
       }
@@ -295,10 +298,10 @@ function HomeContent() {
       const colorPrefix = selectedColors.length > 0 ? `${getColorNameFromHex(selectedColors[0].hex)}の` : '';
       setPatternTitle(motif.trim() ? `${colorPrefix}${motif.trim()}小紋` : '無題の小紋');
 
-      if (isPremium) {
+      if (engineType === 'openai_premium') {
         setPremiumStatusMsg('プレミアムチケットを消費して高精度生成しました！');
         setPremiumCode('');
-      } else {
+      } else if (engineType === 'openai_free') {
         const used = parseInt(localStorage.getItem('komon_count_total') || '0', 10) + 1;
         localStorage.setItem('komon_count_total', used.toString());
         setRemainingCount(Math.max(0, MAX_GENERATE_PER_DAY - used));
@@ -310,6 +313,7 @@ function HomeContent() {
     } finally {
       clearInterval(stepTimer);
       setLoading(false);
+      setLoadingEngine(null);
     }
   };
 
@@ -733,19 +737,12 @@ function HomeContent() {
           lineWidth={lineWidth} setLineWidth={setLineWidth} geoBgColor={geoBgColor} setGeoBgColor={setGeoBgColor}
           geoPatternColor={geoPatternColor} setGeoPatternColor={setGeoPatternColor}
           showGeoPaletteFor={showGeoPaletteFor} setShowGeoPaletteFor={setShowGeoPaletteFor}
-          obiLiningColor={obiLiningColor} setObiLiningColor={setObiLiningColor}
-          kimonoHaneriColor={kimonoHaneriColor} setKimonoHaneriColor={setKimonoHaneriColor}
-          kimonoObiageColor={kimonoObiageColor} setKimonoObiageColor={setKimonoObiageColor}
-          kimonoObiColor={kimonoObiColor} setKimonoObiColor={setKimonoObiColor}
-          customObiUrl={customObiUrl} setCustomObiUrl={setCustomObiUrl}
-          handleCustomObiUpload={handleCustomObiUpload}
           agreed={agreed} setAgreed={setAgreed} errorMsg={errorMsg}
-          loading={loading}
+          loading={loading} loadingEngine={loadingEngine}
           remainingCount={remainingCount} loadingStep={loadingStep}
           handleGenerate={handleGenerate} imageUrl={imageUrl} patternTitle={patternTitle} setPatternTitle={setPatternTitle}
           serialNumber={serialNumber}
           handleDownloadOriginal={handleDownloadOriginal} handleOrderClick={handleOrderClick}
-          selectedEngine={selectedEngine} setSelectedEngine={setSelectedEngine}
           premiumCode={premiumCode} setPremiumCode={setPremiumCode}
           premiumStatusMsg={premiumStatusMsg}
         />
