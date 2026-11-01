@@ -6,11 +6,11 @@ import { TRADITIONAL_COLORS, CategoryItem } from '../../lib/constants';
 
 // 実戦的ローディングメッセージ（絵文字なし・職人品質のトーン）
 const PRACTICAL_LOADING_STEPS = [
-  '気に入った柄は一期一会です。二度と同じ図案は出ませんので、気に入ったら必ず手元に保存してください。',
+  '出てきた柄は一期一会です。二度と同じ図案は出ませんので、気に入ったら必ず手元に保存してください。',
   '画面の中で眺めるだけでなく、実際にあなただけのオリジナル帯（半幅帯・京袋帯）にお仕立てしてみませんか？',
-  'AIの柄がしっくりこない、これ好きじゃないと感じたら、プロの職人が仕立てたゴフクヤサンの既製品もぜひご覧ください。',
-  '新潟・十日町のデジタル捺染機「モナリザ」で染め上げる、高精細プリントデータへ整えています。',
-  'もうすぐ仕上がります。世界にひとつ、あなただけの意匠がまもなく完成します。'
+  '数千種類あるゴフクヤサンの既製品もぜひご覧ください。',
+  'ゴフクヤサンの秘伝の呪文をかけて着物の柄を作っています',
+  'もうすぐ仕上がります。世界にひとつ、あなただけの帯や着物がまもなく完成します。'
 ];
 
 interface ControlPanelProps {
@@ -148,15 +148,12 @@ export default function ControlPanel({
   const [showNoticeModal, setShowNoticeModal] = useState<boolean>(true);
   const [localCode, setLocalCode] = useState<string>(premiumCode || '');
   
-  // チケット残数照会ステート
   const [ticketRemaining, setTicketRemaining] = useState<number | null>(null);
   const [isCheckingTicket, setIsCheckingTicket] = useState<boolean>(false);
   const [ticketCheckError, setTicketCheckError] = useState<string>('');
 
-  // 丁寧モード（無料お試し）の当日利用状態
   const [openAiFreeUsed, setOpenAiFreeUsed] = useState<boolean>(false);
 
-  // ローディング文言ステップ管理
   const [stepIndex, setStepIndex] = useState<number>(0);
 
   useEffect(() => {
@@ -176,7 +173,6 @@ export default function ControlPanel({
     }
   }, [premiumCode]);
 
-  // コード入力時の残数自動照会
   useEffect(() => {
     const trimmed = localCode.trim().toUpperCase();
     if (selectedEngine !== 'openai_premium' || !trimmed || trimmed.length < 5) {
@@ -362,7 +358,7 @@ export default function ControlPanel({
                 disabled={loading} 
               />
 
-              {/* 実戦的「これ好きじゃない」検索誘導バナー（絵文字なし） */}
+              {/* 実戦的「ゴフクヤサンに好きな柄あるかも」検索誘導バナー（MakeShop表記なし・絵文字なし） */}
               <div className="mt-2.5 p-3 bg-zinc-50 border border-zinc-200 rounded-xs">
                 <p className="text-[11px] font-bold text-zinc-800 mb-1.5">
                   AIの柄がしっくりこない、これ好きじゃないと感じたら
@@ -374,8 +370,8 @@ export default function ControlPanel({
                   className="block w-full py-2 px-3 bg-white hover:bg-zinc-900 hover:text-white border border-zinc-300 hover:border-zinc-900 text-zinc-800 text-[11px] font-bold tracking-wider text-center transition-all shadow-2xs"
                 >
                   {primaryMotif 
-                    ? `プロが仕立てた「${primaryMotif}」の既製品を見る（MakeShop） →` 
-                    : 'プロが仕立てたゴフクヤサンの既製品コレクションを見る →'
+                    ? `ゴフクヤサンに好きな柄あるかも（「${primaryMotif}」の既製品を探す） →` 
+                    : 'ゴフクヤサンに好きな柄あるかも（既製品を見る） →'
                   }
                 </a>
               </div>
@@ -426,7 +422,7 @@ export default function ControlPanel({
               </div>
             </div>
 
-            {/* 05. 図案の描き分け（スケッチモード / 丁寧モード） */}
+            {/* 05. 図案の描き分け（端正な職人目線のテキスト） */}
             <div className="pt-4 border-t border-zinc-200">
               <label className="block text-xs font-bold text-zinc-900 tracking-wider mb-2">
                 05. 図案の描き分け（生成モード）
@@ -471,7 +467,7 @@ export default function ControlPanel({
                       丁寧モード（お試し）
                     </div>
                     <p className={`text-[9px] mt-1 ${selectedEngine === 'openai_free' ? 'text-zinc-300' : 'text-zinc-500'}`}>
-                      高精度・高精細な描画
+                      細部の質感まで丹念に描き込む本番用
                     </p>
                   </div>
                   <span className={`text-[10px] font-bold mt-2 ${selectedEngine === 'openai_free' ? 'text-zinc-100' : 'text-zinc-800'}`}>
@@ -479,7 +475,7 @@ export default function ControlPanel({
                   </span>
                 </button>
 
-                {/* 丁寧モード（チケット利用） */}
+                {/* 丁寧モード（チケット） */}
                 <button
                   type="button"
                   onClick={() => setSelectedEngine?.('openai_premium')}
@@ -494,7 +490,7 @@ export default function ControlPanel({
                       丁寧モード（チケット）
                     </div>
                     <p className={`text-[9px] mt-1 ${selectedEngine === 'openai_premium' ? 'text-zinc-300' : 'text-zinc-500'}`}>
-                      チケット購入で50回作れます
+                      理想の帯・着物になるまで50回練り上げる
                     </p>
                   </div>
                   <span className={`text-[10px] font-bold mt-2 ${selectedEngine === 'openai_premium' ? 'text-amber-200' : 'text-zinc-900'}`}>
@@ -633,14 +629,14 @@ export default function ControlPanel({
                     <div>
                       <div className="flex justify-between items-end mb-1">
                         <span className="text-[10px] font-bold text-zinc-500">線の太さ</span>
-                        <span className="text-xs font-bold text-zinc-900">{lineWidth}<span className="text-[9px] font-normal text-zinc-400 ml-0.5">mm</span></span>
+                        <span className="text-xs font-black text-zinc-900">{lineWidth}<span className="text-[9px] font-normal text-zinc-400 ml-0.5">mm</span></span>
                       </div>
                       <input type="range" min="1" max="100" value={lineWidth} onChange={(e) => setLineWidth(Number(e.target.value))} className="w-full cursor-pointer accent-zinc-900 h-2 bg-zinc-200 rounded-lg appearance-none" />
                     </div>
                     <div>
                       <div className="flex justify-between items-end mb-1">
                         <span className="text-[10px] font-bold text-zinc-500">間隔（余白）</span>
-                        <span className="text-xs font-bold text-zinc-900">{gapWidth}<span className="text-[9px] font-normal text-zinc-400 ml-0.5">mm</span></span>
+                        <span className="text-xs font-black text-zinc-900">{gapWidth}<span className="text-[9px] font-normal text-zinc-400 ml-0.5">mm</span></span>
                       </div>
                       <input type="range" min="0" max="200" value={gapWidth} onChange={(e) => setGapWidth(Number(e.target.value))} className="w-full cursor-pointer accent-zinc-900 h-2 bg-zinc-200 rounded-lg appearance-none" />
                     </div>
@@ -759,8 +755,8 @@ export default function ControlPanel({
                     </div>
                     <span className="text-[9px] font-normal text-zinc-400 tracking-normal">
                       {selectedEngine === 'flux' && '気に入ればこの図案でも製品化可能'}
-                      {selectedEngine === 'openai_free' && '高精度・高精細な描画（モナリザ印刷対応）'}
-                      {selectedEngine === 'openai_premium' && 'チケット購入で50回作れます（Enterキーでも実行可）'}
+                      {selectedEngine === 'openai_free' && '細部の質感まで丹念に描き込む本番用（モナリザ印刷対応）'}
+                      {selectedEngine === 'openai_premium' && '理想の帯・着物になるまで50回練り上げる（Enterキーでも実行可）'}
                     </span>
                   </>
                 )}
@@ -870,7 +866,7 @@ export default function ControlPanel({
                     rel="noopener noreferrer" 
                     className="inline-block w-full py-3 bg-white border border-zinc-300 text-zinc-900 text-[11px] font-bold tracking-widest hover:bg-zinc-950 hover:text-white hover:border-zinc-950 transition-colors shadow-sm rounded-xs"
                   >
-                    プロの既製品「{primaryMotif}」を見る（MakeShop） →
+                    ゴフクヤサンに好きな柄あるかも（「{primaryMotif}」の既製品を探す） →
                   </a>
                 </div>
               )}
