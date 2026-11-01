@@ -90,18 +90,16 @@ function HomeContent() {
   const [agreed, setAgreed] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
-  
-  // ★ 根本治療：どの生成モードが実行中かを完全に明示
   const [generatingMode, setGeneratingMode] = useState<'flux' | 'openai_free' | 'openai_premium' | null>(null);
   const [loadingStep, setLoadingStep] = useState<number>(0);
 
-  // ★ 回数の独立管理
+  // 回数管理（スケッチ15回・無料1回・チケット残数）
   const [remainingFlux, setRemainingFlux] = useState<number>(MAX_FLUX_PER_DAY);
   const [remainingOpenAI, setRemainingOpenAI] = useState<number>(MAX_OPENAI_PER_DAY);
-  
+  const [ticketRemaining, setTicketRemaining] = useState<number | null>(null);
+
   const [premiumCode, setPremiumCode] = useState<string>('');
   const [premiumStatusMsg, setPremiumStatusMsg] = useState<string>('');
-  const [ticketRemaining, setTicketRemaining] = useState<number | null>(null);
 
   const [imageUrl, setImageUrl] = useState<string>('');
   const [blobUrl, setBlobUrl] = useState<string>('');
@@ -114,6 +112,7 @@ function HomeContent() {
   const previewRef = useRef<HTMLDivElement>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
 
+  // 日付チェック（日本時間0時をまたいだら自動リセット）
   useEffect(() => {
     const today = getTodayJST();
     const storedDate = localStorage.getItem('komon_usage_date');
@@ -249,7 +248,6 @@ function HomeContent() {
     }
   };
 
-  // ★ 根本治療：3つのボタンから呼ばれるメイン処理
   const handleGenerate = async (engineType: 'flux' | 'openai_free' | 'openai_premium') => {
     if (loading) return;
     if (engineType === 'flux' && remainingFlux <= 0) {
@@ -320,9 +318,9 @@ function HomeContent() {
       const colorPrefix = selectedColors.length > 0 ? `${getColorNameFromHex(selectedColors[0].hex)}の` : '';
       setPatternTitle(motif.trim() ? `${colorPrefix}${motif.trim()}小紋` : '無題の小紋');
 
-      // ★ 残数の正確な更新処理
+      // 残数の正確な受取と反映
       if (engineType === 'openai_premium') {
-        const remaining = data.ticketRemaining ?? data.remaining ?? null;
+        const remaining = data.ticketRemaining ?? data.remaining ?? data.remainingCount ?? null;
         if (typeof remaining === 'number') {
           setTicketRemaining(remaining);
           setPremiumStatusMsg(`チケットを消費して生成しました（残り ${remaining} 回）`);
@@ -772,6 +770,7 @@ function HomeContent() {
           agreed={agreed} setAgreed={setAgreed} errorMsg={errorMsg}
           loading={loading}
           generatingMode={generatingMode}
+          remainingCount={remainingOpenAI}
           remainingFlux={remainingFlux}
           remainingOpenAI={remainingOpenAI}
           ticketRemaining={ticketRemaining}
