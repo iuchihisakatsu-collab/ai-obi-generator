@@ -43,32 +43,20 @@ export interface ControlPanelProps {
   setGeoPatternColor: (c: string) => void;
   showGeoPaletteFor: 'bg' | 'pattern' | null;
   setShowGeoPaletteFor: (target: 'bg' | 'pattern' | null) => void;
-  obiLiningColor: string;
-  setObiLiningColor: (c: string) => void;
-  kimonoHaneriColor: string;
-  setKimonoHaneriColor: (c: string) => void;
-  kimonoObiageColor: string;
-  setKimonoObiageColor: (c: string) => void;
-  kimonoObiColor: string;
-  setKimonoObiColor: (c: string) => void;
-  customObiUrl: string | null;
-  setCustomObiUrl: (url: string | null) => void;
-  handleCustomObiUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   agreed: boolean;
   setAgreed: (agreed: boolean) => void;
   errorMsg: string;
   loading: boolean;
+  loadingEngine: 'flux' | 'openai' | null;
   remainingCount: number;
   loadingStep: number;
-  handleGenerate: (isPremium?: boolean) => void;
+  handleGenerate: (engine: 'flux' | 'openai_free' | 'openai_premium') => void;
   imageUrl: string;
   patternTitle: string;
   setPatternTitle: (title: string) => void;
   serialNumber: string;
   handleDownloadOriginal: () => void;
   handleOrderClick: (e: React.MouseEvent<HTMLAnchorElement>) => void;
-  selectedEngine: 'openai_free' | 'openai_premium';
-  setSelectedEngine: (engine: 'openai_free' | 'openai_premium') => void;
   premiumCode: string;
   setPremiumCode: (code: string) => void;
   premiumStatusMsg: string;
@@ -93,7 +81,7 @@ export default function ControlPanel(props: ControlPanelProps) {
     showGeoPaletteFor, setShowGeoPaletteFor,
     agreed, setAgreed,
     errorMsg,
-    loading,
+    loading, loadingEngine,
     remainingCount, loadingStep,
     handleGenerate,
     imageUrl,
@@ -152,7 +140,7 @@ export default function ControlPanel(props: ControlPanelProps) {
         {/* ================= AI妄想モード ================= */}
         {creationMode === 'ai' ? (
           <div className="space-y-5 animate-fade-in">
-            {/* モチーフ */}
+            {/* モチーフ入力 */}
             <div>
               <label className="block text-xs font-bold text-zinc-900 tracking-wider mb-1">
                 01. 図案モチーフ・キーワード
@@ -457,7 +445,7 @@ export default function ControlPanel(props: ControlPanelProps) {
             </div>
           </div>
 
-          {/* ※※※ 帯の裏地色項目はマッピング画像上の最前面フロートへ一本化したため、ここからは完全撤去 ※※※ */}
+          {/* ※※※ 帯の裏地色項目は画像上のフロートへ完全移行したため、ここからは完全撤去 ※※※ */}
 
           {/* 図案銘 */}
           <div className="pt-2 border-t border-zinc-100">
@@ -474,9 +462,9 @@ export default function ControlPanel(props: ControlPanelProps) {
             />
           </div>
 
-          {/* ★★★ AI生成実行エリア（無料ボタン ＋ プレミアムチケット常時配置） ★★★ */}
+          {/* ★★★ 生成ボタン3つ常時配置エリア ★★★ */}
           {creationMode === 'ai' && (
-            <div className="pt-2 border-t border-zinc-100 space-y-3">
+            <div className="pt-2 border-t border-zinc-100 space-y-4">
               <label className="flex items-start gap-2.5 cursor-pointer select-none group">
                 <input
                   type="checkbox"
@@ -495,44 +483,64 @@ export default function ControlPanel(props: ControlPanelProps) {
                 </div>
               )}
 
-              {/* 1. 無料お試し生成ボタン */}
-              <button
-                type="button"
-                onClick={() => handleGenerate(false)}
-                disabled={loading || remainingCount <= 0}
-                className={`w-full py-3.5 font-black text-xs sm:text-sm tracking-widest uppercase transition-all flex items-center justify-center gap-2 shadow-md ${
-                  remainingCount <= 0
-                    ? 'bg-zinc-100 text-zinc-400 border border-zinc-200 cursor-not-allowed'
-                    : 'bg-zinc-950 text-white hover:bg-zinc-800'
-                }`}
-              >
-                {loading ? (
-                  <div className="flex flex-col items-center gap-1">
+              {/* ===== ボタン1：FLUX生成（無料・お試し） ===== */}
+              <div>
+                <button
+                  type="button"
+                  onClick={() => handleGenerate('flux')}
+                  disabled={loading}
+                  className="w-full py-3 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 text-white font-bold text-xs tracking-wider rounded-sm shadow transition-colors flex items-center justify-center gap-2"
+                >
+                  {loading && loadingEngine === 'flux' ? (
                     <span>{LOADING_STEPS[loadingStep]}</span>
-                    <span className="text-[8px] text-zinc-400">PROCESSING...</span>
-                  </div>
-                ) : (
-                  <span>
-                    {remainingCount <= 0
-                      ? '本日の無料上限に達しました (1/1)'
-                      : `無料枠で図案を描き出す (本日残り 1 回)`}
-                  </span>
-                )}
-              </button>
+                  ) : (
+                    <span>⚡ FLUXでスケッチ生成（無料枠）</span>
+                  )}
+                </button>
+                <p className="text-[9px] text-zinc-400 mt-1 text-center">※ 軽快に図案の構図や配色のアイデアを試せる無料モデルです</p>
+              </div>
 
-              {/* 2. プレミアムチケット枠（無料枠が0回になっても絶対に消えず常に使える） */}
-              <div className="p-3 bg-red-50/60 border border-red-200 rounded-sm space-y-2">
+              {/* ===== ボタン2：OpenAI 無料枠生成（1日1回限定） ===== */}
+              <div>
+                <button
+                  type="button"
+                  onClick={() => handleGenerate('openai_free')}
+                  disabled={loading || remainingCount <= 0}
+                  className={`w-full py-3.5 font-black text-xs sm:text-sm tracking-widest uppercase transition-all flex items-center justify-center gap-2 shadow-md rounded-sm ${
+                    remainingCount <= 0
+                      ? 'bg-zinc-100 text-zinc-400 border border-zinc-200 cursor-not-allowed'
+                      : 'bg-zinc-950 text-white hover:bg-zinc-800 disabled:opacity-50'
+                  }`}
+                >
+                  {loading && loadingEngine === 'openai' && !premiumCode ? (
+                    <div className="flex flex-col items-center gap-0.5">
+                      <span>{LOADING_STEPS[loadingStep]}</span>
+                      <span className="text-[8px] text-zinc-400">OPENAI PROCESSING...</span>
+                    </div>
+                  ) : (
+                    <span>
+                      {remainingCount <= 0
+                        ? '本日のOpenAI無料枠は終了しました (1/1)'
+                        : `✨ OpenAIで生成 (本日無料 残り1回)`}
+                    </span>
+                  )}
+                </button>
+                <p className="text-[9px] text-zinc-400 mt-1 text-center">※ 高精細なOpenAI標準モデルによる本格図案生成（1日1回まで）</p>
+              </div>
+
+              {/* ===== ボタン3：OpenAI プレミアムチケット生成（コード入力＋ボタン） ===== */}
+              <div className="p-3.5 bg-red-50/70 border-2 border-red-300 rounded-sm space-y-2.5">
                 <div className="flex justify-between items-center">
-                  <span className="text-[11px] font-bold text-red-900 flex items-center gap-1">
+                  <span className="text-xs font-bold text-red-950 flex items-center gap-1">
                     <span>🎫</span> プレミアムチケットで高精度生成
                   </span>
                   <a
                     href="https://store.gofukuyasan.com/view/item/000000007311"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-[10px] text-red-700 underline font-bold hover:text-red-900"
+                    className="text-[11px] text-red-700 underline font-bold hover:text-red-950"
                   >
-                    チケットを購入する
+                    チケットを購入（実質0円）
                   </a>
                 </div>
 
@@ -547,14 +555,17 @@ export default function ControlPanel(props: ControlPanelProps) {
                   />
                   <button
                     type="button"
-                    onClick={() => handleGenerate(true)}
+                    onClick={() => handleGenerate('openai_premium')}
                     disabled={loading || !premiumCode.trim()}
-                    className="px-4 py-2 bg-red-700 hover:bg-red-800 disabled:bg-zinc-300 text-white text-xs font-bold rounded-sm shadow transition-colors whitespace-nowrap"
+                    className="px-4 py-2 bg-red-700 hover:bg-red-800 disabled:bg-zinc-300 text-white text-xs font-black rounded-sm shadow transition-colors whitespace-nowrap"
                   >
-                    チケットで生成
+                    {loading && loadingEngine === 'openai' && premiumCode ? '生成中...' : 'チケットで生成'}
                   </button>
                 </div>
                 {premiumStatusMsg && <p className="text-[10px] text-green-700 font-bold">{premiumStatusMsg}</p>}
+                <p className="text-[9px] text-red-800/80 leading-relaxed">
+                  ※ チケット代（1,100円）はお仕立て注文時に全額ポイント還元されます。
+                </p>
               </div>
             </div>
           )}
