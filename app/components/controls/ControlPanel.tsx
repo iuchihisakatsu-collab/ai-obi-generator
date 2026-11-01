@@ -4,13 +4,13 @@
 import { useState, useEffect, MouseEvent } from 'react';
 import { TRADITIONAL_COLORS, CategoryItem } from '../../lib/constants';
 
-// ★ 実戦的ローディングメッセージ（15〜20秒の待ち時間を営業チャンスに変える）
+// 実戦的ローディングメッセージ（絵文字なし・職人品質のトーン）
 const PRACTICAL_LOADING_STEPS = [
-  '気に入った柄は一期一会。二度と同じ図案は出ませんので、気に入ったら必ず手元に残してくださいね。',
+  '気に入った柄は一期一会です。二度と同じ図案は出ませんので、気に入ったら必ず手元に保存してください。',
   '画面の中で眺めるだけでなく、実際にあなただけのオリジナル帯（半幅帯・京袋帯）にお仕立てしてみませんか？',
-  'AIの出した柄、なんかコレじゃない…と思ったら、プロの職人が仕立てたゴフクヤサンの既製品もぜひ覗いてみてください。',
-  '新潟・十日町のデジタル捺染機「モナリザ」で染め上げる、高精細プリントデータへ整えています…',
-  'もうすぐ仕上がります。世界にひとつ、あなただけの意匠がまもなく完成します…'
+  'AIの柄がしっくりこない、これ好きじゃないと感じたら、プロの職人が仕立てたゴフクヤサンの既製品もぜひご覧ください。',
+  '新潟・十日町のデジタル捺染機「モナリザ」で染め上げる、高精細プリントデータへ整えています。',
+  'もうすぐ仕上がります。世界にひとつ、あなただけの意匠がまもなく完成します。'
 ];
 
 interface ControlPanelProps {
@@ -131,7 +131,7 @@ export default function ControlPanel({
   errorMsg = '',
   loading = false,
   loadingEngine = null,
-  remainingCount = 20,
+  remainingCount = 15,
   handleGenerate = () => {},
   imageUrl = '',
   patternTitle = '',
@@ -148,12 +148,15 @@ export default function ControlPanel({
   const [showNoticeModal, setShowNoticeModal] = useState<boolean>(true);
   const [localCode, setLocalCode] = useState<string>(premiumCode || '');
   
-  // ★ パターン2用：コード入力時の残数表示ステート
+  // チケット残数照会ステート
   const [ticketRemaining, setTicketRemaining] = useState<number | null>(null);
   const [isCheckingTicket, setIsCheckingTicket] = useState<boolean>(false);
   const [ticketCheckError, setTicketCheckError] = useState<string>('');
 
-  // ★ 実戦的ローディング文言のステップ管理
+  // 丁寧モード（無料お試し）の当日利用状態
+  const [openAiFreeUsed, setOpenAiFreeUsed] = useState<boolean>(false);
+
+  // ローディング文言ステップ管理
   const [stepIndex, setStepIndex] = useState<number>(0);
 
   useEffect(() => {
@@ -173,7 +176,7 @@ export default function ControlPanel({
     }
   }, [premiumCode]);
 
-  // ★ コード入力時に裏で残数を自動照会する
+  // コード入力時の残数自動照会
   useEffect(() => {
     const trimmed = localCode.trim().toUpperCase();
     if (selectedEngine !== 'openai_premium' || !trimmed || trimmed.length < 5) {
@@ -207,7 +210,7 @@ export default function ControlPanel({
 
   const finalTitle = patternTitle.trim() || '（無題）';
   const colorSummary = selectedColors.length > 0 ? selectedColors.map((c) => c.name.split(' ')[0]).join('・') : '自由配色';
-  const shareText = `「妄想小紋図案帖」で柄のアイデアを試してみました。\n作品名：『${finalTitle}』\n配色：${colorSummary}\n#妄想きもの図案帳 #ゴフクヤサン`;
+  const shareText = `「妄想きもの図案帳」で柄のアイデアを試してみました。\n作品名：『${finalTitle}』\n配色：${colorSummary}\n#妄想きもの図案帳 #ゴフクヤサン`;
   const currentUrl = typeof window !== 'undefined' ? window.location.href : 'https://store.gofukuyasan.com/';
   const mediaUrl = imageUrl || '';
 
@@ -277,10 +280,10 @@ export default function ControlPanel({
   return (
     <div className="w-full lg:w-1/2 bg-white border border-zinc-200 p-4 sm:p-8 lg:p-10 shrink-0 shadow-sm z-10 relative">
       <div className="flex bg-zinc-50 border border-zinc-200 p-1 mb-6 shadow-sm">
-        <button type="button" onClick={() => setCreationMode('geometric')} className={`flex-1 py-2.5 sm:py-3 text-xs font-black tracking-wider transition-all ${creationMode === 'geometric' ? 'bg-zinc-900 text-white shadow' : 'text-zinc-500 hover:text-zinc-800'}`}>
+        <button type="button" onClick={() => setCreationMode('geometric')} className={`flex-1 py-2.5 sm:py-3 text-xs font-bold tracking-wider transition-all ${creationMode === 'geometric' ? 'bg-zinc-900 text-white shadow' : 'text-zinc-500 hover:text-zinc-800'}`}>
           格子・水玉製作所
         </button>
-        <button type="button" onClick={() => setCreationMode('ai')} className={`flex-1 py-2.5 sm:py-3 text-xs font-black tracking-wider transition-all ${creationMode === 'ai' ? 'bg-zinc-900 text-white shadow' : 'text-zinc-500 hover:text-zinc-800'}`}>
+        <button type="button" onClick={() => setCreationMode('ai')} className={`flex-1 py-2.5 sm:py-3 text-xs font-bold tracking-wider transition-all ${creationMode === 'ai' ? 'bg-zinc-900 text-white shadow' : 'text-zinc-500 hover:text-zinc-800'}`}>
           妄想意匠モード
         </button>
       </div>
@@ -293,7 +296,7 @@ export default function ControlPanel({
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 mb-2">
                 {AI_STYLES.map((s) => (
                   <button key={s.id} type="button" onClick={() => setAiStyle(s.id)} className={`flex flex-col items-center justify-center p-2 sm:p-2.5 border transition-all shadow-sm ${aiStyle === s.id ? 'bg-zinc-900 text-white border-zinc-900 scale-95 ring-2 ring-zinc-900' : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50 hover:scale-[1.01]'}`}>
-                    <span className="text-[10px] sm:text-[11px] font-black leading-tight text-center">{s.label}</span>
+                    <span className="text-[10px] sm:text-[11px] font-bold leading-tight text-center">{s.label}</span>
                     <span className="text-[8px] sm:text-[9px] opacity-70 mt-0.5 leading-none text-center">{s.sub}</span>
                   </button>
                 ))}
@@ -330,7 +333,7 @@ export default function ControlPanel({
                     {TRADITIONAL_COLORS.map((col) => {
                       const isSelected = selectedColors.some((c) => c.name === col.name);
                       return (
-                        <button key={col.name} type="button" onClick={() => handleColorToggle(col)} className={`relative min-h-[44px] p-1.5 flex flex-col justify-end text-left transition-all ${isSelected ? 'ring-2 ring-zinc-950 scale-95 font-black' : 'border border-zinc-200/50 shadow-sm hover:scale-[1.02]'}`} style={{ backgroundColor: col.hex }}>
+                        <button key={col.name} type="button" onClick={() => handleColorToggle(col)} className={`relative min-h-[44px] p-1.5 flex flex-col justify-end text-left transition-all ${isSelected ? 'ring-2 ring-zinc-950 scale-95 font-bold' : 'border border-zinc-200/50 shadow-sm hover:scale-[1.02]'}`} style={{ backgroundColor: col.hex }}>
                           <span className={`text-[9px] font-bold truncate leading-tight flex items-center justify-between ${col.isDark ? 'text-white' : 'text-zinc-900'}`}>
                             {col.name.split(' ')[0]}
                             {isSelected && <span>選択中</span>}
@@ -359,28 +362,32 @@ export default function ControlPanel({
                 disabled={loading} 
               />
 
-              {/* ★ 復活：「これ好きじゃない？」リンク（入力欄直下） */}
-              {primaryMotif && (
-                <div className="mt-1.5 flex justify-end">
-                  <a 
-                    href={makeshopSearchUrl} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-[10px] font-bold text-zinc-600 hover:text-zinc-950 underline decoration-zinc-400 transition-colors"
-                  >
-                    <span>これ好きじゃない？ ゴフクヤサンの「{primaryMotif}」既製品を見る →</span>
-                  </a>
-                </div>
-              )}
+              {/* 実戦的「これ好きじゃない」検索誘導バナー（絵文字なし） */}
+              <div className="mt-2.5 p-3 bg-zinc-50 border border-zinc-200 rounded-xs">
+                <p className="text-[11px] font-bold text-zinc-800 mb-1.5">
+                  AIの柄がしっくりこない、これ好きじゃないと感じたら
+                </p>
+                <a 
+                  href={makeshopSearchUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="block w-full py-2 px-3 bg-white hover:bg-zinc-900 hover:text-white border border-zinc-300 hover:border-zinc-900 text-zinc-800 text-[11px] font-bold tracking-wider text-center transition-all shadow-2xs"
+                >
+                  {primaryMotif 
+                    ? `プロが仕立てた「${primaryMotif}」の既製品を見る（MakeShop） →` 
+                    : 'プロが仕立てたゴフクヤサンの既製品コレクションを見る →'
+                  }
+                </a>
+              </div>
               
-              <div className="mt-2.5 pt-2 border-t border-zinc-100 flex flex-wrap items-center gap-1.5">
-                <span className="text-[10px] font-black text-zinc-400 uppercase tracking-wider mr-1">入力アシスト:</span>
+              <div className="mt-3 pt-2 border-t border-zinc-100 flex flex-wrap items-center gap-1.5">
+                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mr-1">入力アシスト:</span>
                 {['ねこ', '珈琲', '薔薇', '月と星'].map((w) => (
                   <button
                     key={w}
                     type="button"
                     onClick={() => handleQuickAdd(w)}
-                    className="px-2.5 py-1 bg-zinc-100 hover:bg-zinc-900 hover:text-white border border-zinc-200 text-zinc-700 text-[10px] font-bold rounded-sm transition-all shadow-2xs"
+                    className="px-2.5 py-1 bg-zinc-100 hover:bg-zinc-900 hover:text-white border border-zinc-200 text-zinc-700 text-[10px] font-bold rounded-xs transition-all shadow-2xs"
                   >
                     + {w}
                   </button>
@@ -393,7 +400,7 @@ export default function ControlPanel({
                       e.target.value = '';
                     }
                   }}
-                  className="px-2 py-1 bg-white border border-zinc-300 text-zinc-600 text-[10px] font-bold rounded-sm focus:outline-none focus:border-zinc-900 cursor-pointer shadow-2xs"
+                  className="px-2 py-1 bg-white border border-zinc-300 text-zinc-600 text-[10px] font-bold rounded-xs focus:outline-none focus:border-zinc-900 cursor-pointer shadow-2xs"
                   defaultValue=""
                 >
                   <option value="" disabled>その他のモチーフから選ぶ</option>
@@ -419,13 +426,14 @@ export default function ControlPanel({
               </div>
             </div>
 
-            {/* 05. 図案の描き分け */}
+            {/* 05. 図案の描き分け（スケッチモード / 丁寧モード） */}
             <div className="pt-4 border-t border-zinc-200">
               <label className="block text-xs font-bold text-zinc-900 tracking-wider mb-2">
-                05. 図案の描き分け（生成エンジン）
+                05. 図案の描き分け（生成モード）
               </label>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                {/* スケッチモード */}
                 <button
                   type="button"
                   onClick={() => setSelectedEngine?.('flux')}
@@ -436,18 +444,19 @@ export default function ControlPanel({
                   }`}
                 >
                   <div>
-                    <div className="flex items-center gap-1 font-black text-xs">
-                      <span>⚡ 軽快スケッチ</span>
+                    <div className="font-bold text-xs">
+                      スケッチモード
                     </div>
                     <p className={`text-[9px] mt-1 ${selectedEngine === 'flux' ? 'text-zinc-300' : 'text-zinc-500'}`}>
-                      爆速スケッチ（約1〜2秒）
+                      気に入ればこの図案でも製品化可能
                     </p>
                   </div>
-                  <span className={`text-[10px] font-bold mt-2 ${selectedEngine === 'flux' ? 'text-amber-300' : 'text-zinc-800'}`}>
-                    無料枠残り {remainingCount} 回
+                  <span className={`text-[10px] font-bold mt-2 ${selectedEngine === 'flux' ? 'text-zinc-100' : 'text-zinc-800'}`}>
+                    無料枠 残り {remainingCount} 回
                   </span>
                 </button>
 
+                {/* 丁寧モード（お試し） */}
                 <button
                   type="button"
                   onClick={() => setSelectedEngine?.('openai_free')}
@@ -458,18 +467,19 @@ export default function ControlPanel({
                   }`}
                 >
                   <div>
-                    <div className="flex items-center gap-1 font-black text-xs">
-                      <span>✨ 本番清書</span>
+                    <div className="font-bold text-xs">
+                      丁寧モード（お試し）
                     </div>
                     <p className={`text-[9px] mt-1 ${selectedEngine === 'openai_free' ? 'text-zinc-300' : 'text-zinc-500'}`}>
-                      高精細仕上げ（OpenAI）
+                      高精度・高精細な描画
                     </p>
                   </div>
-                  <span className={`text-[10px] font-bold mt-2 ${selectedEngine === 'openai_free' ? 'text-amber-300' : 'text-zinc-800'}`}>
-                    無料枠残り {remainingCount} 回
+                  <span className={`text-[10px] font-bold mt-2 ${selectedEngine === 'openai_free' ? 'text-zinc-100' : 'text-zinc-800'}`}>
+                    {openAiFreeUsed ? '本日分終了' : '1日1回限定（本日利用可）'}
                   </span>
                 </button>
 
+                {/* 丁寧モード（チケット利用） */}
                 <button
                   type="button"
                   onClick={() => setSelectedEngine?.('openai_premium')}
@@ -480,21 +490,20 @@ export default function ControlPanel({
                   }`}
                 >
                   <div>
-                    <div className="flex items-center gap-1 font-black text-xs">
-                      <span className="text-amber-400">🎫</span>
-                      <span>極みの意匠</span>
+                    <div className="font-bold text-xs">
+                      丁寧モード（チケット）
                     </div>
                     <p className={`text-[9px] mt-1 ${selectedEngine === 'openai_premium' ? 'text-zinc-300' : 'text-zinc-500'}`}>
-                      モナリザ直結・最高解像度
+                      チケット購入で50回作れます
                     </p>
                   </div>
-                  <span className={`text-[10px] font-bold mt-2 ${selectedEngine === 'openai_premium' ? 'text-amber-300' : 'text-amber-600'}`}>
+                  <span className={`text-[10px] font-bold mt-2 ${selectedEngine === 'openai_premium' ? 'text-amber-200' : 'text-zinc-900'}`}>
                     {ticketRemaining !== null ? `残り ${ticketRemaining} 回` : 'チケット利用'}
                   </span>
                 </button>
               </div>
 
-              {/* 極みの意匠（チケット）選択時のコード入力枠 ＆ リアルタイム残数表示 */}
+              {/* 丁寧モード（チケット）選択時のコード入力枠 ＆ 残数表示 */}
               {selectedEngine === 'openai_premium' && (
                 <div className="mt-3 p-3.5 bg-zinc-50 border border-zinc-300 space-y-2 animate-fade-in">
                   <div className="flex justify-between items-center">
@@ -505,7 +514,7 @@ export default function ControlPanel({
                       href="https://store.gofukuyasan.com/"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-[10px] text-amber-700 hover:text-amber-900 underline font-bold"
+                      className="text-[10px] text-zinc-700 hover:text-zinc-950 underline font-bold"
                     >
                       チケット購入はこちら（実質0円 ※ポイント全額還元）
                     </a>
@@ -528,24 +537,22 @@ export default function ControlPanel({
                     disabled={loading}
                   />
 
-                  {/* ★ パターン2：コード入力時の即時残数バッジ */}
                   <div className="flex items-center justify-between min-h-[20px] pt-0.5">
                     {isCheckingTicket ? (
                       <span className="text-[10px] text-zinc-500 animate-pulse">
                         残数を確認中...
                       </span>
                     ) : ticketRemaining !== null ? (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 border border-emerald-300 rounded-xs">
-                        <span>🎫</span>
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-zinc-900 bg-zinc-100 px-2.5 py-0.5 border border-zinc-300 rounded-xs">
                         <span>このチケットの残り回数：<strong>{ticketRemaining}</strong> 回</span>
                       </span>
                     ) : ticketCheckError ? (
                       <span className="text-[10px] font-bold text-red-600">
-                        ⚠️ {ticketCheckError}
+                        {ticketCheckError}
                       </span>
                     ) : (
                       <span className="text-[9px] text-zinc-400">
-                        ※注文確認メールに記載のコードを貼り付けてください。Enterキーでも描き出せます。
+                        注文確認メールに記載のコードを入力してください。Enterキーでも実行できます。
                       </span>
                     )}
                   </div>
@@ -597,14 +604,14 @@ export default function ControlPanel({
                     <div>
                       <div className="flex justify-between items-end mb-1">
                         <span className="text-[10px] font-bold text-zinc-500">水玉の大きさ（直径）</span>
-                        <span className="text-xs font-black text-zinc-900">{dotRadius * 2}<span className="text-[9px] font-normal text-zinc-400 ml-0.5">mm</span></span>
+                        <span className="text-xs font-bold text-zinc-900">{dotRadius * 2}<span className="text-[9px] font-normal text-zinc-400 ml-0.5">mm</span></span>
                       </div>
                       <input type="range" min="1" max="50" value={dotRadius} onChange={(e) => setDotRadius(Number(e.target.value))} className="w-full cursor-pointer accent-zinc-900 h-2 bg-zinc-200 rounded-lg appearance-none" />
                     </div>
                     <div>
                       <div className="flex justify-between items-end mb-1">
                         <span className="text-[10px] font-bold text-zinc-500">間隔（余白）</span>
-                        <span className="text-xs font-black text-zinc-900">{gapWidth}<span className="text-[9px] font-normal text-zinc-400 ml-0.5">mm</span></span>
+                        <span className="text-xs font-bold text-zinc-900">{gapWidth}<span className="text-[9px] font-normal text-zinc-400 ml-0.5">mm</span></span>
                       </div>
                       <input type="range" min="0" max="100" value={gapWidth} onChange={(e) => setGapWidth(Number(e.target.value))} className="w-full cursor-pointer accent-zinc-900 h-2 bg-zinc-200 rounded-lg appearance-none" />
                     </div>
@@ -615,7 +622,7 @@ export default function ControlPanel({
                   <div>
                     <div className="flex justify-between items-end mb-1">
                       <span className="text-[10px] font-bold text-zinc-500">市松の大きさ（1マス）</span>
-                      <span className="text-xs font-black text-zinc-900">{lineWidth}<span className="text-[9px] font-normal text-zinc-400 ml-0.5">mm</span></span>
+                      <span className="text-xs font-bold text-zinc-900">{lineWidth}<span className="text-[9px] font-normal text-zinc-400 ml-0.5">mm</span></span>
                     </div>
                     <input type="range" min="1" max="200" value={lineWidth} onChange={(e) => setLineWidth(Number(e.target.value))} className="w-full cursor-pointer accent-zinc-900 h-2 bg-zinc-200 rounded-lg appearance-none" />
                   </div>
@@ -626,14 +633,14 @@ export default function ControlPanel({
                     <div>
                       <div className="flex justify-between items-end mb-1">
                         <span className="text-[10px] font-bold text-zinc-500">線の太さ</span>
-                        <span className="text-xs font-black text-zinc-900">{lineWidth}<span className="text-[9px] font-normal text-zinc-400 ml-0.5">mm</span></span>
+                        <span className="text-xs font-bold text-zinc-900">{lineWidth}<span className="text-[9px] font-normal text-zinc-400 ml-0.5">mm</span></span>
                       </div>
                       <input type="range" min="1" max="100" value={lineWidth} onChange={(e) => setLineWidth(Number(e.target.value))} className="w-full cursor-pointer accent-zinc-900 h-2 bg-zinc-200 rounded-lg appearance-none" />
                     </div>
                     <div>
                       <div className="flex justify-between items-end mb-1">
                         <span className="text-[10px] font-bold text-zinc-500">間隔（余白）</span>
-                        <span className="text-xs font-black text-zinc-900">{gapWidth}<span className="text-[9px] font-normal text-zinc-400 ml-0.5">mm</span></span>
+                        <span className="text-xs font-bold text-zinc-900">{gapWidth}<span className="text-[9px] font-normal text-zinc-400 ml-0.5">mm</span></span>
                       </div>
                       <input type="range" min="0" max="200" value={gapWidth} onChange={(e) => setGapWidth(Number(e.target.value))} className="w-full cursor-pointer accent-zinc-900 h-2 bg-zinc-200 rounded-lg appearance-none" />
                     </div>
@@ -702,8 +709,7 @@ export default function ControlPanel({
               {errorMsg && <div className="p-3 bg-red-50 text-red-600 border border-red-200 text-xs font-bold shadow-sm">{errorMsg}</div>}
               
               {premiumStatusMsg && (
-                <div className="p-3 bg-emerald-50 text-emerald-800 border border-emerald-300 text-xs font-bold shadow-sm flex items-center gap-1.5 animate-fade-in">
-                  <span>🎉</span>
+                <div className="p-3 bg-zinc-100 text-zinc-900 border border-zinc-300 text-xs font-bold shadow-sm flex items-center gap-1.5 animate-fade-in">
                   <span>{premiumStatusMsg}</span>
                 </div>
               )}
@@ -713,62 +719,61 @@ export default function ControlPanel({
                 onClick={onTriggerGenerate} 
                 disabled={
                   loading || 
-                  (selectedEngine !== 'openai_premium' && remainingCount <= 0) ||
+                  (selectedEngine === 'flux' && remainingCount <= 0) ||
+                  (selectedEngine === 'openai_free' && openAiFreeUsed) ||
                   (selectedEngine === 'openai_premium' && (!localCode.trim() || (ticketRemaining !== null && ticketRemaining <= 0)))
                 } 
-                className={`w-full py-4 px-4 font-black text-xs sm:text-sm tracking-widest transition-all duration-200 flex flex-col items-center justify-center gap-1 shadow-md relative z-10 ${
-                  (selectedEngine !== 'openai_premium' && remainingCount <= 0) ||
+                className={`w-full py-4 px-4 font-bold text-xs sm:text-sm tracking-widest transition-all duration-200 flex flex-col items-center justify-center gap-1 shadow-md relative z-10 ${
+                  (selectedEngine === 'flux' && remainingCount <= 0) ||
+                  (selectedEngine === 'openai_free' && openAiFreeUsed) ||
                   (selectedEngine === 'openai_premium' && (!localCode.trim() || (ticketRemaining !== null && ticketRemaining <= 0)))
                     ? 'bg-zinc-100 text-zinc-400 border border-zinc-200 cursor-not-allowed' 
                     : 'bg-zinc-950 text-white hover:bg-zinc-800 hover:shadow-lg disabled:opacity-50'
                 }`}
               >
-                {/* ★ 実戦的ローディング表示 */}
+                {/* 実戦的ローディング表示 */}
                 {loading ? (
                   <div className="flex flex-col items-center text-center px-2 py-1 space-y-1.5">
                     <div className="flex items-center gap-2">
                       <span className="w-2.5 h-2.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                      <span className="text-xs font-bold text-amber-300">
-                        {loadingEngine === 'openai' ? '極みの意匠を描き出し中（約15〜20秒）…' : '軽快スケッチ中…'}
+                      <span className="text-xs font-bold text-zinc-100">
+                        {loadingEngine === 'openai' ? '丁寧モードで描き出し中（約15〜20秒）…' : 'スケッチモードで描き出し中…'}
                       </span>
                     </div>
-                    <p className="text-[11px] font-normal text-zinc-200 leading-snug animate-fade-in max-w-md">
+                    <p className="text-[11px] font-normal text-zinc-300 leading-snug animate-fade-in max-w-md">
                       {PRACTICAL_LOADING_STEPS[stepIndex]}
                     </p>
                   </div>
                 ) : (
                   <>
                     <div className="flex items-center gap-1.5">
-                      {selectedEngine === 'flux' && <span className="text-amber-400">⚡</span>}
-                      {selectedEngine === 'openai_free' && <span>✨</span>}
-                      {selectedEngine === 'openai_premium' && <span className="text-amber-400">🎫</span>}
                       <span>
-                        {selectedEngine === 'flux' && `軽快スケッチで描き出す (残り ${remainingCount} 回)`}
-                        {selectedEngine === 'openai_free' && `本番清書で描き出す (残り ${remainingCount} 回)`}
+                        {selectedEngine === 'flux' && `スケッチモードで描き出す（残り ${remainingCount} 回）`}
+                        {selectedEngine === 'openai_free' && (openAiFreeUsed ? '丁寧モード（本日分は終了しました）' : '丁寧モードで描き出す（1日1回限定）')}
                         {selectedEngine === 'openai_premium' && (
                           ticketRemaining !== null 
-                            ? `極みの意匠を描き出す（チケット残り ${ticketRemaining} 回）` 
-                            : '極みの意匠を描き出す（チケット利用）'
+                            ? `丁寧モードで描き出す（チケット残り ${ticketRemaining} 回）` 
+                            : '丁寧モードで描き出す（チケット利用）'
                         )}
                       </span>
                     </div>
                     <span className="text-[9px] font-normal text-zinc-400 tracking-normal">
-                      {selectedEngine === 'flux' && '約1〜2秒で何パターンもアイデア出し'}
-                      {selectedEngine === 'openai_free' && 'モナリザ印刷用の最高精細仕上げ'}
-                      {selectedEngine === 'openai_premium' && 'モナリザ直結・最高解像度レンダリング（Enterキーでも実行可）'}
+                      {selectedEngine === 'flux' && '気に入ればこの図案でも製品化可能'}
+                      {selectedEngine === 'openai_free' && '高精度・高精細な描画（モナリザ印刷対応）'}
+                      {selectedEngine === 'openai_premium' && 'チケット購入で50回作れます（Enterキーでも実行可）'}
                     </span>
                   </>
                 )}
               </button>
 
               {selectedEngine !== 'openai_premium' && remainingCount <= 0 && (
-                <div className="p-5 bg-gradient-to-br from-zinc-50 to-zinc-100 border-2 border-zinc-900 rounded-sm shadow-md animate-fade-in space-y-4">
+                <div className="p-5 bg-zinc-50 border border-zinc-300 rounded-xs shadow-sm animate-fade-in space-y-4">
                   <div className="text-center">
-                    <span className="inline-block px-2.5 py-0.5 bg-zinc-900 text-white text-[9px] font-black tracking-widest rounded-full uppercase mb-2">
-                      無料枠上限のお知らせ
+                    <span className="inline-block px-2.5 py-0.5 bg-zinc-900 text-white text-[9px] font-bold tracking-widest rounded-full uppercase mb-2">
+                      無料枠上限のご案内
                     </span>
-                    <h4 className="text-xs sm:text-sm font-black text-zinc-900 tracking-wider">
-                      本日の無料枠は使い切りましたが、プレミアムチケットなら今すぐ続けられます！
+                    <h4 className="text-xs sm:text-sm font-bold text-zinc-900 tracking-wider">
+                      本日の無料枠は使い切りましたが、プレミアムチケットなら今すぐ続けられます
                     </h4>
                   </div>
 
@@ -776,7 +781,7 @@ export default function ControlPanel({
                     <button
                       type="button"
                       onClick={() => setSelectedEngine?.('openai_premium')}
-                      className="w-full py-3 bg-zinc-950 text-white text-xs font-black tracking-wider transition-colors shadow-sm"
+                      className="w-full py-3 bg-zinc-950 text-white text-xs font-bold tracking-wider transition-colors shadow-sm"
                     >
                       チケット利用モードに切り替える →
                     </button>
@@ -814,7 +819,7 @@ export default function ControlPanel({
             </div>
 
             <div className="space-y-3 pt-2">
-              <button type="button" onClick={handleDownloadOriginal} className="w-full py-3 text-center border border-zinc-300 bg-white hover:border-zinc-950 hover:bg-zinc-100 text-zinc-800 text-xs font-bold tracking-widest transition-all flex items-center justify-center gap-2 shadow-sm rounded-sm">
+              <button type="button" onClick={handleDownloadOriginal} className="w-full py-3 text-center border border-zinc-300 bg-white hover:border-zinc-950 hover:bg-zinc-100 text-zinc-800 text-xs font-bold tracking-widest transition-all flex items-center justify-center gap-2 shadow-sm rounded-xs">
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                 この作品の画像データを手元に残す
               </button>
@@ -845,27 +850,27 @@ export default function ControlPanel({
                 </div>
               </div>
 
-              <a href="#" onClick={handleOrderClick} className="block w-full py-4 mt-2 text-center bg-zinc-950 text-white text-[15px] font-black tracking-widest transition-all shadow-xl hover:shadow-2xl hover:scale-[1.01] border-2 border-zinc-950 rounded-sm">
-                妄想を現実に<br/><span className="text-[10px] font-medium tracking-wider opacity-90 mt-1 block">（この作品を現実の着物・帯として仕立てる）</span>
+              <a href="#" onClick={handleOrderClick} className="block w-full py-4 mt-2 text-center bg-zinc-950 text-white text-[15px] font-bold tracking-widest transition-all shadow-xl hover:shadow-2xl hover:scale-[1.01] border-2 border-zinc-950 rounded-xs">
+                妄想を現実に<br/><span className="text-[10px] font-normal tracking-wider opacity-90 mt-1 block">（この作品を現実の着物・帯として仕立てる）</span>
               </a>
 
-              {/* ★ 復活：「これ好きじゃない！」寄り道案内（作品完成エリア） */}
+              {/* 寄り道案内（作品完成エリア・絵文字なし） */}
               {primaryMotif && (
-                <div className="mt-6 p-4 bg-zinc-100 border border-zinc-200 shadow-inner rounded-sm text-center animate-fade-in">
-                  <p className="text-[11px] font-bold text-zinc-700 mb-1 leading-relaxed">
+                <div className="mt-6 p-4 bg-zinc-100 border border-zinc-200 shadow-inner rounded-xs text-center animate-fade-in">
+                  <p className="text-[11px] font-bold text-zinc-800 mb-1 leading-relaxed">
                     <span className="text-[9px] text-zinc-500 block mb-0.5">【 寄り道のご案内 】</span>
-                    AIの柄、なんかコレじゃない…これ好きじゃない！と思ったら
+                    AIの柄がしっくりこない、これ好きじゃないと感じたら
                   </p>
                   <p className="text-[9px] text-zinc-500 mb-3 leading-relaxed px-2">
-                    プロが本気で仕立てたゴフクヤサンの『{primaryMotif}』コレクションを覗いてみませんか？
+                    プロが仕立てたゴフクヤサンの『{primaryMotif}』コレクションを覗いてみませんか？
                   </p>
                   <a 
                     href={makeshopSearchUrl} 
                     target="_blank" 
                     rel="noopener noreferrer" 
-                    className="inline-block w-full py-3 bg-white border border-zinc-300 text-zinc-900 text-[11px] font-black tracking-widest hover:bg-zinc-950 hover:text-white hover:border-zinc-950 transition-colors shadow-sm rounded-sm"
+                    className="inline-block w-full py-3 bg-white border border-zinc-300 text-zinc-900 text-[11px] font-bold tracking-widest hover:bg-zinc-950 hover:text-white hover:border-zinc-950 transition-colors shadow-sm rounded-xs"
                   >
-                    👉 プロの既製品「{primaryMotif}」を見る（無料） →
+                    プロの既製品「{primaryMotif}」を見る（MakeShop） →
                   </a>
                 </div>
               )}
@@ -879,15 +884,15 @@ export default function ControlPanel({
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fade-in">
           <div className="bg-white border-2 border-zinc-950 p-6 sm:p-7 max-w-md w-full shadow-2xl relative space-y-4">
             <div className="flex items-center gap-2">
-              <span className="text-xl">🛠️</span>
-              <h3 className="text-sm sm:text-base font-black tracking-wider text-zinc-900">
+              <span className="text-xs px-2 py-0.5 bg-zinc-900 text-white font-bold rounded-xs">ご案内</span>
+              <h3 className="text-sm sm:text-base font-bold tracking-wider text-zinc-900">
                 妄想意匠モード ご利用中のお客様へ
               </h3>
             </div>
             <div className="text-xs text-zinc-600 leading-relaxed space-y-2.5">
               <p>いつもご利用いただき誠にありがとうございます。</p>
               <p className="bg-zinc-50 p-3 border border-zinc-200 text-zinc-800 rounded-xs font-medium">
-                ただいま図案生成システムの精度向上のため、<strong>継続的な改修・アップデート</strong>を行っております。
+                ただいま図案生成システムの精度向上のため、継続的な改修・アップデートを行っております。
               </p>
               <p>
                 調整作業に伴い、一時的に生成が不安定になったり、エラーが発生する場合がございます。お客様にはご不便をおかけし大変申し訳ございません。順次改善を進めてまいります。
