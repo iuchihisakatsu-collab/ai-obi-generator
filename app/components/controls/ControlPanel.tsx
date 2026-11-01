@@ -1,16 +1,22 @@
 // components/controls/ControlPanel.tsx
 'use client';
 
-import { useState, MouseEvent } from 'react';
+import { useState, useEffect, MouseEvent } from 'react';
 import { TRADITIONAL_COLORS, CategoryItem, LOADING_STEPS } from '../../lib/constants';
 
 interface ControlPanelProps {
   creationMode?: 'ai' | 'geometric';
   setCreationMode?: (mode: 'ai' | 'geometric') => void;
+  itemType?: 'hanhaba' | 'kyobukuro' | 'kimono';
+  setItemType?: (type: 'hanhaba' | 'kyobukuro' | 'kimono') => void;
   aiStyle?: string;
   setAiStyle?: (val: string) => void;
+  selectedArtist?: string;
+  setSelectedArtist?: (val: string) => void;
   motif?: string;
   setMotif?: (val: string) => void;
+  motif2?: string;
+  setMotif2?: (val: string) => void;
   handleTagClick?: (item: CategoryItem) => void;
   selectedColors?: typeof TRADITIONAL_COLORS;
   setSelectedColors?: any;
@@ -37,25 +43,36 @@ interface ControlPanelProps {
   setGeoPatternColor?: (val: string) => void;
   showGeoPaletteFor?: 'bg' | 'pattern' | null;
   setShowGeoPaletteFor?: (val: 'bg' | 'pattern' | null) => void;
+  obiLiningColor?: string;
+  setObiLiningColor?: (val: string) => void;
+  kimonoHaneriColor?: string;
+  setKimonoHaneriColor?: (val: string) => void;
+  kimonoObiageColor?: string;
+  setKimonoObiageColor?: (val: string) => void;
+  kimonoObiColor?: string;
+  setKimonoObiColor?: (val: string) => void;
+  customObiUrl?: string | null;
+  setCustomObiUrl?: (url: string | null) => void;
+  handleCustomObiUpload?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   agreed?: boolean;
   setAgreed?: (val: boolean) => void;
   errorMsg?: string;
   loading?: boolean;
   loadingEngine?: 'flux' | 'openai' | null;
-  remainingCount?: number | null;
-  remainingFlux?: number;
-  remainingOpenAI?: number;
+  remainingCount?: number;
   loadingStep?: number;
-  handleGenerate?: (engine: 'flux' | 'openai') => void;
+  handleGenerate?: () => void;
   imageUrl?: string;
   patternTitle?: string;
   setPatternTitle?: (val: string) => void;
+  serialNumber?: string;
   handleDownloadOriginal?: () => void;
   handleOrderClick?: (e: MouseEvent<HTMLAnchorElement>) => void;
-  useTicket?: boolean;
-  setUseTicket?: (val: boolean) => void;
-  ticketCode?: string;
-  setTicketCode?: (val: string) => void;
+  selectedEngine?: 'flux' | 'openai_free' | 'openai_premium';
+  setSelectedEngine?: (engine: 'flux' | 'openai_free' | 'openai_premium') => void;
+  premiumCode?: string;
+  setPremiumCode?: (code: string) => void;
+  premiumStatusMsg?: string;
   [key: string]: any;
 }
 
@@ -130,9 +147,7 @@ export default function ControlPanel({
   errorMsg = '',
   loading = false,
   loadingEngine = null,
-  remainingCount = 1,
-  remainingFlux = 15,
-  remainingOpenAI = 1,
+  remainingCount = 20,
   loadingStep = 0,
   handleGenerate = () => {},
   imageUrl = '',
@@ -140,22 +155,25 @@ export default function ControlPanel({
   setPatternTitle = () => {},
   handleDownloadOriginal = () => {},
   handleOrderClick = () => {},
-  useTicket = false,
-  setUseTicket = () => {},
-  ticketCode = '',
-  setTicketCode = () => {}
+  selectedEngine = 'flux',
+  setSelectedEngine = () => {},
+  premiumCode = '',
+  setPremiumCode = () => {},
+  premiumStatusMsg = ''
 }: ControlPanelProps) {
 
-  // 改良中お知らせモーダルの開閉ステート
+  // 改良中お知らせモーダルの開閉ステート（案B）
   const [showNoticeModal, setShowNoticeModal] = useState<boolean>(true);
 
-  // ★ 解決策①：親に依存しない自前の入力保持ステート（これで文字が確実に打てるようになります）
-  const [localTicketCode, setLocalTicketCode] = useState<string>(ticketCode || '');
+  // 文字入力が空文字でリセットされないためのローカル保持ステート
+  const [localCode, setLocalCode] = useState<string>(premiumCode || '');
 
-  // エンジン選択ステート: 'flux' | 'openai' | 'ticket'
-  const [selectedEngine, setSelectedEngine] = useState<'flux' | 'openai' | 'ticket'>(
-    useTicket ? 'ticket' : (remainingFlux > 0 ? 'flux' : 'openai')
-  );
+  // 親の premiumCode がリセット等で変わった場合にローカルも同期
+  useEffect(() => {
+    if (premiumCode !== undefined && premiumCode !== localCode) {
+      setLocalCode(premiumCode);
+    }
+  }, [premiumCode]);
 
   const finalTitle = patternTitle.trim() || '（無題）';
   const colorSummary = selectedColors.length > 0 ? selectedColors.map((c) => c.name.split(' ')[0]).join('・') : '自由配色';
@@ -208,21 +226,24 @@ export default function ControlPanel({
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // 生成実行ハンドラー
+  // シリアルコード入力ハンドラー
+  const handleCodeChange = (val: string) => {
+    setLocalCode(val);
+    setPremiumCode?.(val);
+  };
+
+  // 生成実行ハンドラー（親の handleGenerate を確実にトリガー）
   const onTriggerGenerate = () => {
-    const code = localTicketCode.trim() || ticketCode.trim();
-    if (selectedEngine === 'ticket') {
+    if (loading) return;
+    if (selectedEngine === 'openai_premium') {
+      const code = localCode.trim();
       if (!code) {
-        alert('シリアルコードを入力してください。');
+        alert('プレミアムチケットのシリアルコードを入力してください。');
         return;
       }
-      setTicketCode?.(code);
-      handleGenerate?.('openai');
-    } else if (selectedEngine === 'flux') {
-      handleGenerate?.('flux');
-    } else {
-      handleGenerate?.('openai');
+      setPremiumCode?.(code);
     }
+    handleGenerate?.();
   };
 
   return (
@@ -370,20 +391,17 @@ export default function ControlPanel({
               </div>
             </div>
 
-            {/* ▼ 05. 図案の描き分け（3大エンジン選択） ▼ */}
+            {/* ▼ 05. 図案の描き分け（親の selectedEngine と完全連動） ▼ */}
             <div className="pt-4 border-t border-zinc-200">
               <label className="block text-xs font-bold text-zinc-900 tracking-wider mb-2">
                 05. 図案の描き分け（生成エンジン）
               </label>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                {/* 1. 軽快スケッチ */}
+                {/* 1. 軽快スケッチ (flux) */}
                 <button
                   type="button"
-                  onClick={() => {
-                    setSelectedEngine('flux');
-                    setUseTicket?.(false);
-                  }}
+                  onClick={() => setSelectedEngine?.('flux')}
                   className={`p-3 text-left border transition-all flex flex-col justify-between ${
                     selectedEngine === 'flux'
                       ? 'bg-zinc-900 text-white border-zinc-900 shadow ring-2 ring-zinc-900'
@@ -399,19 +417,16 @@ export default function ControlPanel({
                     </p>
                   </div>
                   <span className={`text-[10px] font-bold mt-2 ${selectedEngine === 'flux' ? 'text-amber-300' : 'text-zinc-800'}`}>
-                    残り {remainingFlux} 回
+                    無料枠残り {remainingCount} 回
                   </span>
                 </button>
 
-                {/* 2. 本番清書 */}
+                {/* 2. 本番清書 (openai_free) */}
                 <button
                   type="button"
-                  onClick={() => {
-                    setSelectedEngine('openai');
-                    setUseTicket?.(false);
-                  }}
+                  onClick={() => setSelectedEngine?.('openai_free')}
                   className={`p-3 text-left border transition-all flex flex-col justify-between ${
-                    selectedEngine === 'openai'
+                    selectedEngine === 'openai_free'
                       ? 'bg-zinc-900 text-white border-zinc-900 shadow ring-2 ring-zinc-900'
                       : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50'
                   }`}
@@ -420,24 +435,21 @@ export default function ControlPanel({
                     <div className="flex items-center gap-1 font-black text-xs">
                       <span>✨ 本番清書</span>
                     </div>
-                    <p className={`text-[9px] mt-1 ${selectedEngine === 'openai' ? 'text-zinc-300' : 'text-zinc-500'}`}>
-                      高精細仕上げ（1日1回限定）
+                    <p className={`text-[9px] mt-1 ${selectedEngine === 'openai_free' ? 'text-zinc-300' : 'text-zinc-500'}`}>
+                      高精細仕上げ（OpenAI）
                     </p>
                   </div>
-                  <span className={`text-[10px] font-bold mt-2 ${selectedEngine === 'openai' ? 'text-amber-300' : 'text-zinc-800'}`}>
-                    残り {remainingOpenAI} 回
+                  <span className={`text-[10px] font-bold mt-2 ${selectedEngine === 'openai_free' ? 'text-amber-300' : 'text-zinc-800'}`}>
+                    無料枠残り {remainingCount} 回
                   </span>
                 </button>
 
-                {/* 3. チケット利用（極みの意匠） */}
+                {/* 3. 極みの意匠 (openai_premium / チケット利用) */}
                 <button
                   type="button"
-                  onClick={() => {
-                    setSelectedEngine('ticket');
-                    setUseTicket?.(true);
-                  }}
+                  onClick={() => setSelectedEngine?.('openai_premium')}
                   className={`p-3 text-left border transition-all flex flex-col justify-between ${
-                    selectedEngine === 'ticket'
+                    selectedEngine === 'openai_premium'
                       ? 'bg-zinc-900 text-white border-zinc-900 shadow ring-2 ring-zinc-900'
                       : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50'
                   }`}
@@ -447,18 +459,18 @@ export default function ControlPanel({
                       <span className="text-amber-400">🎫</span>
                       <span>極みの意匠</span>
                     </div>
-                    <p className={`text-[9px] mt-1 ${selectedEngine === 'ticket' ? 'text-zinc-300' : 'text-zinc-500'}`}>
+                    <p className={`text-[9px] mt-1 ${selectedEngine === 'openai_premium' ? 'text-zinc-300' : 'text-zinc-500'}`}>
                       モナリザ直結・最高解像度
                     </p>
                   </div>
-                  <span className={`text-[10px] font-bold mt-2 ${selectedEngine === 'ticket' ? 'text-amber-300' : 'text-amber-600'}`}>
+                  <span className={`text-[10px] font-bold mt-2 ${selectedEngine === 'openai_premium' ? 'text-amber-300' : 'text-amber-600'}`}>
                     チケット利用
                   </span>
                 </button>
               </div>
 
-              {/* チケット選択時のコード入力枠 */}
-              {selectedEngine === 'ticket' && (
+              {/* 極みの意匠（チケット）選択時のコード入力枠 */}
+              {selectedEngine === 'openai_premium' && (
                 <div className="mt-3 p-3.5 bg-zinc-50 border border-zinc-300 space-y-2 animate-fade-in">
                   <div className="flex justify-between items-center">
                     <label className="block text-[11px] font-bold text-zinc-800">
@@ -471,12 +483,8 @@ export default function ControlPanel({
 
                   <input
                     type="text"
-                    value={localTicketCode}
-                    onChange={(e) => {
-                      const val = e.target.value.trim();
-                      setLocalTicketCode(val);
-                      setTicketCode?.(val);
-                    }}
+                    value={localCode}
+                    onChange={(e) => handleCodeChange(e.target.value.trim())}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
                         e.preventDefault();
@@ -513,7 +521,7 @@ export default function ControlPanel({
               {geoPatternType === 'stripe' && (
                 <div>
                   <label className="block text-[11px] font-bold text-zinc-900 mb-1.5">縞の向き</label>
-                  <select value={stripeDir} onChange={(e) => setStripeDir(e.target.value as 'vertical' | 'horizontal' | 'diagonal')} className="w-full border border-zinc-300 p-2.5 bg-white text-xs focus:border-zinc-900 focus:outline-none shadow-sm relative z-10">
+                  <select value={stripeDir} onChange={(e) => setStripeDir(e.target.value as any)} className="w-full border border-zinc-300 p-2.5 bg-white text-xs focus:border-zinc-900 focus:outline-none shadow-sm relative z-10">
                     <option value="vertical">縦縞（滝縞）</option>
                     <option value="horizontal">横縞（ボーダー）</option>
                     <option value="diagonal">斜め（右上がり）</option>
@@ -523,7 +531,7 @@ export default function ControlPanel({
               {geoPatternType === 'dot' && (
                 <div>
                   <label className="block text-[11px] font-bold text-zinc-900 mb-1.5">配置</label>
-                  <select value={dotLayout} onChange={(e) => setDotLayout(e.target.value as 'staggered' | 'grid')} className="w-full border border-zinc-300 p-2.5 bg-white text-xs focus:border-zinc-900 focus:outline-none shadow-sm relative z-10">
+                  <select value={dotLayout} onChange={(e) => setDotLayout(e.target.value as any)} className="w-full border border-zinc-300 p-2.5 bg-white text-xs focus:border-zinc-900 focus:outline-none shadow-sm relative z-10">
                     <option value="staggered">千鳥（互い違い）</option>
                     <option value="grid">正方格子</option>
                   </select>
@@ -626,7 +634,7 @@ export default function ControlPanel({
           </div>
         )}
 
-        {/* ▼ 生成実行ボタンエリア（1本化） ▼ */}
+        {/* ▼ 生成実行ボタンエリア ▼ */}
         <div className="space-y-4 mt-6">
           {creationMode === 'ai' && (
             <div className="pt-6 border-t border-zinc-200 space-y-3">
@@ -634,7 +642,7 @@ export default function ControlPanel({
                 <input
                   type="checkbox"
                   checked={agreed}
-                  onChange={(e) => setAgreed(e.target.checked)}
+                  onChange={(e) => setAgreed?.(e.target.checked)}
                   className="mt-0.5 h-3.5 w-3.5 border-zinc-300 text-zinc-900 focus:ring-zinc-900 transition-colors cursor-pointer"
                 />
                 <span className="text-[10px] text-zinc-500 leading-tight group-hover:text-zinc-800 transition-colors">
@@ -642,22 +650,29 @@ export default function ControlPanel({
                 </span>
               </label>
               
+              {/* エラーメッセージ */}
               {errorMsg && <div className="p-3 bg-red-50 text-red-600 border border-red-200 text-xs font-bold shadow-sm">{errorMsg}</div>}
               
-              {/* 1本化されたメイン生成ボタン */}
+              {/* チケット消費完了メッセージ */}
+              {premiumStatusMsg && (
+                <div className="p-3 bg-emerald-50 text-emerald-800 border border-emerald-300 text-xs font-bold shadow-sm flex items-center gap-1.5 animate-fade-in">
+                  <span>🎉</span>
+                  <span>{premiumStatusMsg}</span>
+                </div>
+              )}
+
+              {/* 親プログラムと直結した生成ボタン */}
               <button 
                 type="button" 
                 onClick={onTriggerGenerate} 
                 disabled={
                   loading || 
-                  (selectedEngine === 'flux' && remainingFlux === 0) ||
-                  (selectedEngine === 'openai' && remainingOpenAI === 0) ||
-                  (selectedEngine === 'ticket' && !localTicketCode.trim())
+                  (selectedEngine !== 'openai_premium' && remainingCount <= 0) ||
+                  (selectedEngine === 'openai_premium' && !localCode.trim())
                 } 
                 className={`w-full py-4 px-4 font-black text-xs sm:text-sm tracking-widest transition-all duration-200 flex flex-col items-center justify-center gap-0.5 shadow-md relative z-10 ${
-                  (selectedEngine === 'flux' && remainingFlux === 0) ||
-                  (selectedEngine === 'openai' && remainingOpenAI === 0) ||
-                  (selectedEngine === 'ticket' && !localTicketCode.trim())
+                  (selectedEngine !== 'openai_premium' && remainingCount <= 0) ||
+                  (selectedEngine === 'openai_premium' && !localCode.trim())
                     ? 'bg-zinc-100 text-zinc-400 border border-zinc-200 cursor-not-allowed' 
                     : 'bg-zinc-950 text-white hover:bg-zinc-800 hover:shadow-lg disabled:opacity-50'
                 }`}
@@ -665,31 +680,33 @@ export default function ControlPanel({
                 {loading ? (
                   <div className="flex flex-col items-center gap-1">
                     <span className="text-xs">{LOADING_STEPS[loadingStep]}</span>
-                    <span className="text-[8px] text-zinc-400">RENDERING...</span>
+                    <span className="text-[8px] text-zinc-400 tracking-wider">
+                      {loadingEngine === 'openai' ? 'HIGH-RES RENDERING (OPENAI)...' : 'FAST SKETCHING (FLUX)...'}
+                    </span>
                   </div>
                 ) : (
                   <>
                     <div className="flex items-center gap-1.5">
                       {selectedEngine === 'flux' && <span className="text-amber-400">⚡</span>}
-                      {selectedEngine === 'openai' && <span>✨</span>}
-                      {selectedEngine === 'ticket' && <span className="text-amber-400">🎫</span>}
+                      {selectedEngine === 'openai_free' && <span>✨</span>}
+                      {selectedEngine === 'openai_premium' && <span className="text-amber-400">🎫</span>}
                       <span>
-                        {selectedEngine === 'flux' && `軽快スケッチで描き出す (残り ${remainingFlux} 回)`}
-                        {selectedEngine === 'openai' && (remainingOpenAI === 0 ? '本日の清書上限に達しました (1/1)' : `本番清書で描き出す (残り ${remainingOpenAI} 回)`)}
-                        {selectedEngine === 'ticket' && '極みの意匠を描き出す（チケット利用）'}
+                        {selectedEngine === 'flux' && `軽快スケッチで描き出す (残り ${remainingCount} 回)`}
+                        {selectedEngine === 'openai_free' && `本番清書で描き出す (残り ${remainingCount} 回)`}
+                        {selectedEngine === 'openai_premium' && '極みの意匠を描き出す（チケット利用）'}
                       </span>
                     </div>
                     <span className="text-[9px] font-normal text-zinc-400 tracking-normal">
                       {selectedEngine === 'flux' && '約1〜2秒で何パターンもアイデア出し'}
-                      {selectedEngine === 'openai' && 'モナリザ印刷用の最高精細仕上げ'}
-                      {selectedEngine === 'ticket' && 'モナリザ直結・最高解像度レンダリング（Enterキーでも実行可）'}
+                      {selectedEngine === 'openai_free' && 'モナリザ印刷用の最高精細仕上げ'}
+                      {selectedEngine === 'openai_premium' && 'モナリザ直結・最高解像度レンダリング（Enterキーでも実行可）'}
                     </span>
                   </>
                 )}
               </button>
 
               {/* 無料枠上限到達時の案内カード */}
-              {selectedEngine !== 'ticket' && remainingFlux === 0 && remainingOpenAI === 0 && (
+              {selectedEngine !== 'openai_premium' && remainingCount <= 0 && (
                 <div className="p-5 bg-gradient-to-br from-zinc-50 to-zinc-100 border-2 border-zinc-900 rounded-sm shadow-md animate-fade-in space-y-4">
                   <div className="text-center">
                     <span className="inline-block px-2.5 py-0.5 bg-zinc-900 text-white text-[9px] font-black tracking-widest rounded-full uppercase mb-2">
@@ -703,10 +720,7 @@ export default function ControlPanel({
                   <div className="space-y-2 pt-1 text-center">
                     <button
                       type="button"
-                      onClick={() => {
-                        setSelectedEngine('ticket');
-                        setUseTicket?.(true);
-                      }}
+                      onClick={() => setSelectedEngine?.('openai_premium')}
                       className="w-full py-3 bg-zinc-950 text-white text-xs font-black tracking-wider transition-colors shadow-sm"
                     >
                       チケット利用モードに切り替える →
@@ -766,95 +780,4 @@ export default function ControlPanel({
                   <button type="button" onClick={shareToThreads} className="flex flex-col items-center justify-center py-2.5 px-1 bg-white border border-zinc-300 rounded hover:bg-zinc-950 hover:text-white hover:border-zinc-950 transition-all shadow-sm group" title="Threadsでポスト">
                     <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" className="transition-transform group-hover:scale-110">
                       <path d="M12.186 24C5.467 24 0 18.533 0 11.814 0 5.094 5.467 0 12.186 0c6.72 0 12.186 5.094 12.186 11.814 0 2.253-.615 4.417-1.78 6.257l-1.92-1.22c.905-1.43 1.38-3.11 1.38-4.863 0-5.467-4.44-9.5-9.866-9.5-5.426 0-9.866 4.44-9.866 9.866 0 5.427 4.44 9.867 9.866 9.867 3.52 0 6.64-1.854 8.36-4.96l1.986 1.1c-2.226 4.013-6.24 6.406-10.74 6.406z"/>
-                      <path d="M12.186 17.5c-3.14 0-5.694-2.553-5.694-5.693 0-3.14 2.554-5.694 5.694-5.694 3.14 0 5.693 2.554 5.693 5.694 0 .693-.56 1.253-1.253 1.253-.694 0-1.254-.56-1.254-1.253 0-1.76-1.433-3.194-3.193-3.194-1.76 0-3.194 1.434-3.194 3.194 0 1.76 1.434 3.193 3.194 3.194 1.053 0 1.986-.52 2.56-1.306.493.533 1.2 1.306 2.066 1.306 1.96 0 3.547-1.587 3.547-3.547 0-4.32-3.507-7.827-7.827-7.827-4.32 0-7.827 3.507-7.827 7.827 0 4.32 3.507 7.827 7.827 7.827 2.373 0 4.547-1.067 6.013-2.773l1.84 1.333C20.693 20.307 17.973 21.667 15 21.667c-.933 0-1.88-.134-2.814-.414z"/>
-                    </svg>
-                    <span className="text-[9px] font-bold mt-1 tracking-tighter">Threads</span>
-                  </button>
-
-                  <button type="button" onClick={shareToInstagram} className="flex flex-col items-center justify-center py-2.5 px-1 bg-white border border-zinc-300 rounded hover:bg-zinc-950 hover:text-white hover:border-zinc-950 transition-all shadow-sm group" title="Instagram用テキストをコピーして開く">
-                    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="transition-transform group-hover:scale-110">
-                      <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
-                      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
-                      <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
-                    </svg>
-                    <span className="text-[9px] font-bold mt-1 tracking-tighter">Instagram</span>
-                  </button>
-
-                  <button type="button" onClick={shareToPinterest} className="flex flex-col items-center justify-center py-2.5 px-1 bg-white border border-zinc-300 rounded hover:bg-zinc-950 hover:text-white hover:border-zinc-950 transition-all shadow-sm group" title="Pinterestにピン留め">
-                    <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" className="transition-transform group-hover:scale-110">
-                      <path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.162-.105-.949-.199-2.403.041-3.439.219-.937 1.406-5.957s-.359-.72-.359-1.781c0-1.663.967-2.911 2.168-2.911 1.024 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738a.36.36 0 0 1 .083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.631-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146 1.124.347 2.317.535 3.554.535 6.627 0 12.004-5.367 12.004-11.987C24.02 5.367 18.644 0 12.017 0z"/>
-                    </svg>
-                    <span className="text-[9px] font-bold mt-1 tracking-tighter">Pinterest</span>
-                  </button>
-
-                  <button type="button" onClick={shareToFacebook} className="flex flex-col items-center justify-center py-2.5 px-1 bg-white border border-zinc-300 rounded hover:bg-zinc-950 hover:text-white hover:border-zinc-950 transition-all shadow-sm group" title="Facebookでシェア">
-                    <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" className="transition-transform group-hover:scale-110">
-                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                    </svg>
-                    <span className="text-[9px] font-bold mt-1 tracking-tighter">Facebook</span>
-                  </button>
-                </div>
-              </div>
-
-              <a href="#" onClick={handleOrderClick} className="block w-full py-4 mt-2 text-center bg-zinc-950 text-white text-[15px] font-black tracking-widest transition-all shadow-xl hover:shadow-2xl hover:scale-[1.01] border-2 border-zinc-950 rounded-sm">
-                妄想を現実に<br/><span className="text-[10px] font-medium tracking-wider opacity-90 mt-1 block">（この作品を現実の着物・帯として仕立てる）</span>
-              </a>
-
-              {primaryMotif && (
-                <div className="mt-6 p-4 bg-zinc-100 border border-zinc-200 shadow-inner rounded-sm text-center animate-fade-in">
-                  <p className="text-[11px] font-bold text-zinc-700 mb-2 leading-relaxed">
-                    <span className="text-[9px] text-zinc-500 block mb-1">【 寄り道のご案内 】</span>
-                    お客様、もしかして『<span className="text-zinc-950 font-black text-sm">{primaryMotif}</span>』に<br/>目がありませんね？
-                  </p>
-                  <p className="text-[9px] text-zinc-500 mb-4 leading-relaxed px-2">
-                    妄想図案もいいですが……実はゴフクヤサンにも、<br/>自慢の『{primaryMotif}』アイテムがたくさんスタンバイしています。
-                  </p>
-                  <a href={makeshopSearchUrl} target="_blank" rel="noopener noreferrer" className="inline-block w-full py-3 bg-white border border-zinc-300 text-zinc-800 text-[10px] font-bold tracking-widest hover:bg-zinc-950 hover:text-white hover:border-zinc-950 transition-colors shadow-sm rounded-sm">
-                    ゴフクヤサンの「{primaryMotif}」コレクションを覗く（無料） →
-                  </a>
-                </div>
-              )}
-
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* 案B：改良中お知らせポップアップ（モーダル） */}
-      {creationMode === 'ai' && showNoticeModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fade-in">
-          <div className="bg-white border-2 border-zinc-950 p-6 sm:p-7 max-w-md w-full shadow-2xl relative space-y-4">
-            <div className="flex items-center gap-2">
-              <span className="text-xl">🛠️</span>
-              <h3 className="text-sm sm:text-base font-black tracking-wider text-zinc-900">
-                妄想意匠モード ご利用中のお客様へ
-              </h3>
-            </div>
-
-            <div className="text-xs text-zinc-600 leading-relaxed space-y-2.5">
-              <p>
-                いつもご利用いただき誠にありがとうございます。
-              </p>
-              <p className="bg-zinc-50 p-3 border border-zinc-200 text-zinc-800 rounded-xs font-medium">
-                ただいま図案生成システムの精度向上のため、<strong>継続的な改修・アップデート</strong>を行っております。
-              </p>
-              <p>
-                調整作業に伴い、一時的に生成が不安定になったり、エラーが発生する場合がございます。お客様にはご不便をおかけし大変申し訳ございません。順次改善を進めてまいります。
-              </p>
-            </div>
-
-            <div className="pt-2">
-              <button
-                type="button"
-                onClick={() => setShowNoticeModal(false)}
-                className="w-full py-3 bg-zinc-950 hover:bg-zinc-800 text-white font-bold text-xs tracking-widest transition-colors shadow-md"
-              >
-                閉じる
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+                      <path d="M12.186 17.5c-3.14 0-5.694-2.553-5.694-5.693 0-3.14 2.554-5.694 5.694-5.694 3.14 0 5.693 2.554 5.693 5.694 0 .693-.56 1.253-1.253 1.253-.694 0-1.254-.56-1.254-1.253 0-1.76-1.433-3.194-3.193-3.194-1.76 0-3.194 1.434-3.1
