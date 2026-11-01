@@ -277,7 +277,11 @@ function HomeContent() {
           artist: selectedArtist,
           engine: actualEngine,
           paymentMode: engineType === 'openai_premium' ? 'premium' : 'free',
-          premiumCode: engineType === 'openai_premium' ? premiumCode.trim() : undefined
+          // サーバーがどのプロパティ名で受け取っていても100%届くように網羅
+          premiumCode: engineType === 'openai_premium' ? premiumCode.trim() : undefined,
+          ticketCode: engineType === 'openai_premium' ? premiumCode.trim() : undefined,
+          code: engineType === 'openai_premium' ? premiumCode.trim() : undefined,
+          useTicket: engineType === 'openai_premium'
         })
       });
       const data = await res.json();
