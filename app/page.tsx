@@ -93,7 +93,6 @@ function HomeContent() {
   const [remainingCount, setRemainingCount] = useState<number>(MAX_GENERATE_PER_DAY);
   const [loadingStep, setLoadingStep] = useState<number>(0);
 
-  // OpenAIモデル：標準無料枠 または プレミアムチケット枠
   const [selectedEngine, setSelectedEngine] = useState<'openai_free' | 'openai_premium'>('openai_free');
   const [premiumCode, setPremiumCode] = useState<string>('');
   const [premiumStatusMsg, setPremiumStatusMsg] = useState<string>('');
@@ -239,9 +238,9 @@ function HomeContent() {
     }
   };
 
-  const handleGenerate = async () => {
+  const handleGenerate = async (isPremium: boolean = false) => {
     if (loading) return;
-    if (selectedEngine !== 'openai_premium' && remainingCount <= 0) return;
+    if (!isPremium && remainingCount <= 0) return;
 
     setErrorMsg('');
     setPremiumStatusMsg('');
@@ -250,7 +249,7 @@ function HomeContent() {
       if (motif.includes(forbidden)) { setErrorMsg(`禁止ワード「${forbidden}」が含まれています。`); return; }
     }
 
-    if (selectedEngine === 'openai_premium' && !premiumCode.trim()) {
+    if (isPremium && !premiumCode.trim()) {
       setErrorMsg('プレミアムチケットのコードを入力してください。');
       return;
     }
@@ -274,8 +273,8 @@ function HomeContent() {
           itemType, 
           aiStyle, 
           artist: selectedArtist,
-          paymentMode: selectedEngine === 'openai_premium' ? 'premium' : 'free',
-          premiumCode: selectedEngine === 'openai_premium' ? premiumCode.trim() : undefined
+          paymentMode: isPremium ? 'premium' : 'free',
+          premiumCode: isPremium ? premiumCode.trim() : undefined
         })
       });
       const data = await res.json();
@@ -296,8 +295,8 @@ function HomeContent() {
       const colorPrefix = selectedColors.length > 0 ? `${getColorNameFromHex(selectedColors[0].hex)}の` : '';
       setPatternTitle(motif.trim() ? `${colorPrefix}${motif.trim()}小紋` : '無題の小紋');
 
-      if (selectedEngine === 'openai_premium') {
-        setPremiumStatusMsg('プレミアムチケットを消費して生成しました！');
+      if (isPremium) {
+        setPremiumStatusMsg('プレミアムチケットを消費して高精度生成しました！');
         setPremiumCode('');
       } else {
         const used = parseInt(localStorage.getItem('komon_count_total') || '0', 10) + 1;
