@@ -4,7 +4,10 @@
 import { useState, useEffect, MouseEvent } from 'react';
 import { TRADITIONAL_COLORS, CategoryItem } from '../../lib/constants';
 
-// 実戦的ローディングメッセージ（絵文字なし・職人品質のトーン）
+// チケット購入ページ直通URL
+const TICKET_ITEM_URL = 'https://store.gofukuyasan.com/view/item/000000007311';
+
+// 実戦的ローディングメッセージ（職人品質のトーン・秘伝の呪文）
 const PRACTICAL_LOADING_STEPS = [
   '出てきた柄は一期一会です。二度と同じ図案は出ませんので、気に入ったら必ず手元に保存してください。',
   '画面の中で眺めるだけでなく、実際にあなただけのオリジナル帯（半幅帯・京袋帯）にお仕立てしてみませんか？',
@@ -358,7 +361,7 @@ export default function ControlPanel({
                 disabled={loading} 
               />
 
-              {/* 実戦的「ゴフクヤサンに好きな柄あるかも」検索誘導バナー（MakeShop表記なし・絵文字なし） */}
+              {/* 実戦的「ゴフクヤサンに好きな柄あるかも」検索誘導バナー */}
               <div className="mt-2.5 p-3 bg-zinc-50 border border-zinc-200 rounded-xs">
                 <p className="text-[11px] font-bold text-zinc-800 mb-1.5">
                   AIの柄がしっくりこない、これ好きじゃないと感じたら
@@ -422,7 +425,7 @@ export default function ControlPanel({
               </div>
             </div>
 
-            {/* 05. 図案の描き分け（端正な職人目線のテキスト） */}
+            {/* 05. 図案の描き分け */}
             <div className="pt-4 border-t border-zinc-200">
               <label className="block text-xs font-bold text-zinc-900 tracking-wider mb-2">
                 05. 図案の描き分け（生成モード）
@@ -499,20 +502,20 @@ export default function ControlPanel({
                 </button>
               </div>
 
-              {/* 丁寧モード（チケット）選択時のコード入力枠 ＆ 残数表示 */}
+              {/* 丁寧モード（チケット）選択時のコード入力枠 ＆ 購入リンク */}
               {selectedEngine === 'openai_premium' && (
-                <div className="mt-3 p-3.5 bg-zinc-50 border border-zinc-300 space-y-2 animate-fade-in">
-                  <div className="flex justify-between items-center">
+                <div className="mt-3 p-3.5 bg-zinc-50 border border-zinc-300 space-y-2.5 animate-fade-in">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
                     <label className="block text-[11px] font-bold text-zinc-800">
                       シリアルコードを入力：
                     </label>
                     <a
-                      href="https://store.gofukuyasan.com/"
+                      href={TICKET_ITEM_URL}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-[10px] text-zinc-700 hover:text-zinc-950 underline font-bold"
+                      className="text-[10px] text-zinc-800 hover:text-black font-bold underline transition-colors"
                     >
-                      チケット購入はこちら（実質0円 ※ポイント全額還元）
+                      チケットの購入はこちら（50回分・実質0円 ※ポイント全額還元） →
                     </a>
                   </div>
 
@@ -762,6 +765,7 @@ export default function ControlPanel({
                 )}
               </button>
 
+              {/* 無料枠上限のご案内 ＆ チケット直販導線 */}
               {selectedEngine !== 'openai_premium' && remainingCount <= 0 && (
                 <div className="p-5 bg-zinc-50 border border-zinc-300 rounded-xs shadow-sm animate-fade-in space-y-4">
                   <div className="text-center">
@@ -774,17 +778,25 @@ export default function ControlPanel({
                   </div>
 
                   <div className="space-y-2 pt-1 text-center">
+                    <a
+                      href={TICKET_ITEM_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block w-full py-3 bg-zinc-950 hover:bg-zinc-800 text-white text-xs font-bold tracking-wider transition-colors shadow-sm"
+                    >
+                      チケットを購入する（50回分・実質0円 ※ポイント全額還元） →
+                    </a>
                     <button
                       type="button"
                       onClick={() => setSelectedEngine?.('openai_premium')}
-                      className="w-full py-3 bg-zinc-950 text-white text-xs font-bold tracking-wider transition-colors shadow-sm"
+                      className="w-full py-2.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-900 border border-zinc-300 text-[11px] font-bold tracking-wider transition-colors shadow-2xs"
                     >
-                      チケット利用モードに切り替える →
+                      お持ちのシリアルコードを入力する →
                     </button>
                     <button
                       type="button"
                       onClick={switchToGeometric}
-                      className="w-full py-2.5 bg-white hover:bg-zinc-100 text-zinc-900 border border-zinc-400 text-[11px] font-bold tracking-wider transition-colors shadow-2xs"
+                      className="w-full py-2.5 bg-white hover:bg-zinc-50 text-zinc-600 border border-zinc-200 text-[11px] font-bold tracking-wider transition-colors shadow-2xs"
                     >
                       完全無料の「格子・水玉製作所」で遊ぶ →
                     </button>
@@ -850,7 +862,7 @@ export default function ControlPanel({
                 妄想を現実に<br/><span className="text-[10px] font-normal tracking-wider opacity-90 mt-1 block">（この作品を現実の着物・帯として仕立てる）</span>
               </a>
 
-              {/* 寄り道案内（作品完成エリア・絵文字なし） */}
+              {/* 寄り道案内（作品完成エリア） */}
               {primaryMotif && (
                 <div className="mt-6 p-4 bg-zinc-100 border border-zinc-200 shadow-inner rounded-xs text-center animate-fade-in">
                   <p className="text-[11px] font-bold text-zinc-800 mb-1 leading-relaxed">
@@ -858,7 +870,7 @@ export default function ControlPanel({
                     AIの柄がしっくりこない、これ好きじゃないと感じたら
                   </p>
                   <p className="text-[9px] text-zinc-500 mb-3 leading-relaxed px-2">
-                    プロが仕立てたゴフクヤサンの『{primaryMotif}』コレクションを覗いてみませんか？
+                    数千種類あるゴフクヤサンの『{primaryMotif}』コレクションを覗いてみませんか？
                   </p>
                   <a 
                     href={makeshopSearchUrl} 
