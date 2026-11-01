@@ -1,96 +1,128 @@
 // app/components/controls/ControlPanel.tsx
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { TRADITIONAL_COLORS } from '../../lib/constants';
 import { StripeDirection, DotLayout } from '../../utils/geometricPatterns';
 
 export interface ControlPanelProps {
-  creationMode: 'ai' | 'geometric';
-  setCreationMode: (mode: 'ai' | 'geometric') => void;
-  itemType: 'hanhaba' | 'kyobukuro' | 'kimono';
-  setItemType: (type: 'hanhaba' | 'kyobukuro' | 'kimono') => void;
-  aiStyle: string;
-  setAiStyle: (style: string) => void;
-  selectedArtist: string;
-  setSelectedArtist: (artist: string) => void;
-  motif: string;
-  setMotif: (motif: string) => void;
-  motif2: string;
-  setMotif2: (motif: string) => void;
-  selectedColors: typeof TRADITIONAL_COLORS;
-  setSelectedColors: (colors: typeof TRADITIONAL_COLORS) => void;
-  handleColorToggle: (color: typeof TRADITIONAL_COLORS[0]) => void;
-  showColorPalette: boolean;
-  setShowColorPalette: (show: boolean) => void;
-  density: string;
-  setDensity: (density: string) => void;
-  geoPatternType: 'plain' | 'stripe' | 'dot' | 'grid' | 'gingham' | 'checker';
-  setGeoPatternType: (type: 'plain' | 'stripe' | 'dot' | 'grid' | 'gingham' | 'checker') => void;
-  stripeDir: StripeDirection;
-  setStripeDir: (dir: StripeDirection) => void;
-  dotLayout: DotLayout;
-  setDotLayout: (layout: DotLayout) => void;
-  dotRadius: number;
-  setDotRadius: (r: number) => void;
-  gapWidth: number;
-  setGapWidth: (w: number) => void;
-  lineWidth: number;
-  setLineWidth: (w: number) => void;
-  geoBgColor: string;
-  setGeoBgColor: (c: string) => void;
-  geoPatternColor: string;
-  setGeoPatternColor: (c: string) => void;
-  showGeoPaletteFor: 'bg' | 'pattern' | null;
-  setShowGeoPaletteFor: (target: 'bg' | 'pattern' | null) => void;
-  agreed: boolean;
-  setAgreed: (agreed: boolean) => void;
-  errorMsg: string;
-  loading: boolean;
-  loadingEngine: 'flux' | 'openai' | null;
-  remainingCount: number;
-  loadingStep: number;
-  handleGenerate: (engine: 'flux' | 'openai_free' | 'openai_premium') => void;
-  imageUrl: string;
-  patternTitle: string;
-  setPatternTitle: (title: string) => void;
-  serialNumber: string;
-  handleDownloadOriginal: () => void;
-  handleOrderClick: (e: React.MouseEvent<HTMLAnchorElement>) => void;
-  premiumCode: string;
-  setPremiumCode: (code: string) => void;
-  premiumStatusMsg: string;
+  creationMode?: 'ai' | 'geometric';
+  setCreationMode?: (mode: 'ai' | 'geometric') => void;
+  itemType?: 'hanhaba' | 'kyobukuro' | 'kimono';
+  setItemType?: (type: 'hanhaba' | 'kyobukuro' | 'kimono') => void;
+  aiStyle?: string;
+  setAiStyle?: (style: string) => void;
+  selectedArtist?: string;
+  setSelectedArtist?: (artist: string) => void;
+  motif?: string;
+  setMotif?: (motif: string) => void;
+  motif2?: string;
+  setMotif2?: (motif: string) => void;
+  selectedColors?: typeof TRADITIONAL_COLORS;
+  setSelectedColors?: (colors: typeof TRADITIONAL_COLORS) => void;
+  handleColorToggle?: (color: typeof TRADITIONAL_COLORS[0]) => void;
+  showColorPalette?: boolean;
+  setShowColorPalette?: (show: boolean) => void;
+  density?: string;
+  setDensity?: (density: string) => void;
+  geoPatternType?: 'plain' | 'stripe' | 'dot' | 'grid' | 'gingham' | 'checker';
+  setGeoPatternType?: (type: 'plain' | 'stripe' | 'dot' | 'grid' | 'gingham' | 'checker') => void;
+  stripeDir?: StripeDirection;
+  setStripeDir?: (dir: StripeDirection) => void;
+  dotLayout?: DotLayout;
+  setDotLayout?: (layout: DotLayout) => void;
+  dotRadius?: number;
+  setDotRadius?: (r: number) => void;
+  gapWidth?: number;
+  setGapWidth?: (w: number) => void;
+  lineWidth?: number;
+  setLineWidth?: (w: number) => void;
+  geoBgColor?: string;
+  setGeoBgColor?: (c: string) => void;
+  geoPatternColor?: string;
+  setGeoPatternColor?: (c: string) => void;
+  showGeoPaletteFor?: 'bg' | 'pattern' | null;
+  setShowGeoPaletteFor?: (target: 'bg' | 'pattern' | null) => void;
+  agreed?: boolean;
+  setAgreed?: (agreed: boolean) => void;
+  errorMsg?: string;
+  loading?: boolean;
+  loadingEngine?: 'flux' | 'openai' | null;
+  remainingCount?: number;
+  loadingStep?: number;
+  handleGenerate?: (engine: 'flux' | 'openai_free' | 'openai_premium' | any) => void;
+  imageUrl?: string;
+  patternTitle?: string;
+  setPatternTitle?: (title: string) => void;
+  serialNumber?: string;
+  handleDownloadOriginal?: () => void;
+  handleOrderClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void;
+  premiumCode?: string;
+  setPremiumCode?: (code: string) => void;
+  premiumStatusMsg?: string;
+  [key: string]: any;
 }
 
 export default function ControlPanel(props: ControlPanelProps) {
   const {
-    creationMode, setCreationMode,
-    itemType, setItemType,
-    motif, setMotif,
-    selectedColors, setSelectedColors, handleColorToggle,
-    showColorPalette, setShowColorPalette,
-    density, setDensity,
-    geoPatternType, setGeoPatternType,
-    stripeDir, setStripeDir,
-    dotLayout, setDotLayout,
-    dotRadius, setDotRadius,
-    gapWidth, setGapWidth,
-    lineWidth, setLineWidth,
-    geoBgColor, setGeoBgColor,
-    geoPatternColor, setGeoPatternColor,
-    showGeoPaletteFor, setShowGeoPaletteFor,
-    agreed, setAgreed,
-    errorMsg,
-    loading, loadingEngine,
-    remainingCount, loadingStep,
-    handleGenerate,
-    imageUrl,
-    patternTitle, setPatternTitle,
-    handleDownloadOriginal,
-    handleOrderClick,
-    premiumCode, setPremiumCode,
-    premiumStatusMsg,
+    creationMode = 'ai',
+    setCreationMode = () => {},
+    itemType = 'hanhaba',
+    setItemType = () => {},
+    motif = '',
+    setMotif = () => {},
+    selectedColors = [],
+    setSelectedColors = () => {},
+    handleColorToggle = () => {},
+    showColorPalette = false,
+    setShowColorPalette = () => {},
+    density = '四方柄',
+    setDensity = () => {},
+    geoPatternType = 'plain',
+    setGeoPatternType = () => {},
+    stripeDir = 'vertical',
+    setStripeDir = () => {},
+    dotLayout = 'staggered',
+    setDotLayout = () => {},
+    dotRadius = 5,
+    setDotRadius = () => {},
+    gapWidth = 10,
+    setGapWidth = () => {},
+    lineWidth = 5,
+    setLineWidth = () => {},
+    geoBgColor = '#fffffc',
+    setGeoBgColor = () => {},
+    geoPatternColor = '#161616',
+    setGeoPatternColor = () => {},
+    showGeoPaletteFor = null,
+    setShowGeoPaletteFor = () => {},
+    agreed = false,
+    setAgreed = () => {},
+    errorMsg = '',
+    loading = false,
+    loadingEngine = null,
+    remainingCount = 1,
+    loadingStep = 0,
+    handleGenerate = () => {},
+    imageUrl = '',
+    patternTitle = '',
+    setPatternTitle = () => {},
+    handleDownloadOriginal = () => {},
+    handleOrderClick = () => {},
+    premiumCode: propPremiumCode,
+    setPremiumCode: propSetPremiumCode,
+    premiumStatusMsg = '',
   } = props;
+
+  // 親（page.tsx）が未改修でもエラー落ちしないためのローカル安全ステート
+  const [localCode, setLocalCode] = useState('');
+  const activeCode = propPremiumCode !== undefined ? propPremiumCode : localCode;
+  const onCodeChange = (val: string) => {
+    setLocalCode(val);
+    if (propSetPremiumCode) propSetPremiumCode(val);
+  };
+
+  const isFreeExhausted = typeof remainingCount === 'number' && remainingCount <= 0;
 
   const LOADING_STEPS = [
     '意匠の着想を練り上げています...',
@@ -460,7 +492,7 @@ export default function ControlPanel(props: ControlPanelProps) {
             />
           </div>
 
-          {/* ★★★ 3つの生成ボタン（常時縦並び配置） ★★★ */}
+          {/* ★★★ 3つの生成ボタン（常時縦並び配置・エラー完全遮断） ★★★ */}
           {creationMode === 'ai' && (
             <div className="pt-2 border-t border-zinc-100 space-y-4">
               <label className="flex items-start gap-2.5 cursor-pointer select-none group">
@@ -490,7 +522,7 @@ export default function ControlPanel(props: ControlPanelProps) {
                   className="w-full py-3 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 text-white font-bold text-xs tracking-wider rounded-sm shadow transition-colors flex items-center justify-center gap-2"
                 >
                   {loading && loadingEngine === 'flux' ? (
-                    <span>{LOADING_STEPS[loadingStep]}</span>
+                    <span>{LOADING_STEPS[loadingStep % LOADING_STEPS.length]}</span>
                   ) : (
                     <span>スケッチモードで試す</span>
                   )}
@@ -502,20 +534,20 @@ export default function ControlPanel(props: ControlPanelProps) {
                 <button
                   type="button"
                   onClick={() => handleGenerate('openai_free')}
-                  disabled={loading || remainingCount <= 0}
+                  disabled={loading || isFreeExhausted}
                   className={`w-full py-3.5 font-bold text-xs sm:text-sm tracking-wider transition-all flex items-center justify-center gap-2 shadow-sm rounded-sm ${
-                    remainingCount <= 0
+                    isFreeExhausted
                       ? 'bg-zinc-100 text-zinc-400 border border-zinc-200 cursor-not-allowed'
                       : 'bg-zinc-950 text-white hover:bg-zinc-800 disabled:opacity-50'
                   }`}
                 >
-                  {loading && loadingEngine === 'openai' && !premiumCode ? (
+                  {loading && loadingEngine === 'openai' && !activeCode ? (
                     <div className="flex flex-col items-center gap-0.5">
-                      <span>{LOADING_STEPS[loadingStep]}</span>
+                      <span>{LOADING_STEPS[loadingStep % LOADING_STEPS.length]}</span>
                     </div>
                   ) : (
                     <span>
-                      {remainingCount <= 0
+                      {isFreeExhausted
                         ? '本日の無料枠は終了しました'
                         : '丁寧に作るモードで試す (本日無料 1回)'}
                     </span>
@@ -542,8 +574,8 @@ export default function ControlPanel(props: ControlPanelProps) {
                 <div className="flex gap-2">
                   <input
                     type="text"
-                    value={premiumCode}
-                    onChange={(e) => setPremiumCode(e.target.value)}
+                    value={activeCode}
+                    onChange={(e) => onCodeChange(e.target.value)}
                     placeholder="チケットコードを入力"
                     className="flex-1 border border-zinc-300 p-2 text-xs bg-white font-mono rounded-sm focus:border-zinc-900 focus:outline-none"
                     disabled={loading}
@@ -551,10 +583,10 @@ export default function ControlPanel(props: ControlPanelProps) {
                   <button
                     type="button"
                     onClick={() => handleGenerate('openai_premium')}
-                    disabled={loading || !premiumCode.trim()}
+                    disabled={loading || !(activeCode && activeCode.trim())}
                     className="px-3 py-2 bg-zinc-900 hover:bg-zinc-800 disabled:bg-zinc-300 text-white text-xs font-bold rounded-sm shadow transition-colors whitespace-nowrap"
                   >
-                    {loading && loadingEngine === 'openai' && premiumCode ? '生成中...' : 'チケットコードで丁寧に作る'}
+                    {loading && loadingEngine === 'openai' && activeCode ? '生成中...' : 'チケットコードで丁寧に作る'}
                   </button>
                 </div>
                 {premiumStatusMsg && <p className="text-[10px] text-green-700 font-bold">{premiumStatusMsg}</p>}
