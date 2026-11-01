@@ -146,7 +146,6 @@ export default function ControlPanel({
   setTicketCode = () => {}
 }: ControlPanelProps) {
 
-  // チケットコードの入力文字を即座に確実に受け止める自立ステート
   const [localTicketCode, setLocalTicketCode] = useState<string>(ticketCode || '');
 
   useEffect(() => {
@@ -155,15 +154,31 @@ export default function ControlPanel({
     }
   }, [ticketCode]);
 
+  // ★文字を入力した時点で、親画面へチケットモードONを即時通知
   const handleTicketChange = (e: ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setLocalTicketCode(val);
     if (setTicketCode) {
       setTicketCode(val);
     }
+    if (setUseTicket) {
+      setUseTicket(val.trim().length > 0);
+    }
   };
 
   const activeTicketCode = (localTicketCode || ticketCode || '').trim();
+
+  // ★チケット実行処理：親画面のstate更新を待ってから確実に実行する安全関数
+  const executeTicketGeneration = () => {
+    if (!activeTicketCode || loading) return;
+    if (setUseTicket) setUseTicket(true);
+    if (setTicketCode) setTicketCode(activeTicketCode);
+
+    // 親画面がチケットモードとして認識を完了するのを50ミリ秒だけ待ってから発火
+    setTimeout(() => {
+      handleGenerate?.('openai');
+    }, 50);
+  };
 
   const finalTitle = patternTitle.trim() || '（無題）';
   const colorSummary = selectedColors.length > 0 ? selectedColors.map((c) => c.name.split(' ')[0]).join('・') : '自由配色';
@@ -574,7 +589,7 @@ export default function ControlPanel({
           />
         </div>
 
-        {/* ★★★ 3つの生成ボタン（常時縦並び配置・自立入力対応） ★★★ */}
+        {/* ★★★ 3つの生成ボタン（常時縦並び配置・安全装置付き） ★★★ */}
         <div className="space-y-4 mt-6">
           {creationMode === 'ai' && (
             <div className="pt-6 border-t border-zinc-200 space-y-3">
@@ -648,7 +663,7 @@ export default function ControlPanel({
                 </button>
               </div>
 
-              {/* ===== ボタン③：チケットコードで丁寧に作る（自立入力枠＋ボタン） ===== */}
+              {/* ===== ボタン③：チケットコードで丁寧に作る（安全実行装置付き） ===== */}
               <div className="p-3.5 bg-zinc-50 border border-zinc-200 rounded-sm space-y-2 relative z-10">
                 <div className="flex justify-between items-center">
                   <span className="text-[11px] font-bold text-zinc-800">
@@ -672,11 +687,7 @@ export default function ControlPanel({
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
                         e.preventDefault();
-                        if (!loading && activeTicketCode) {
-                          setUseTicket?.(true);
-                          if (setTicketCode) setTicketCode(activeTicketCode);
-                          handleGenerate?.('openai');
-                        }
+                        executeTicketGeneration();
                       }
                     }}
                     placeholder="例：GFK-XXXX-XXXX"
@@ -685,11 +696,7 @@ export default function ControlPanel({
                   />
                   <button
                     type="button"
-                    onClick={() => {
-                      setUseTicket?.(true);
-                      if (setTicketCode) setTicketCode(activeTicketCode);
-                      handleGenerate?.('openai');
-                    }}
+                    onClick={executeTicketGeneration}
                     disabled={loading || !activeTicketCode}
                     className="px-3 py-2 bg-zinc-900 hover:bg-zinc-800 disabled:bg-zinc-200 disabled:text-zinc-400 text-white text-xs font-bold rounded-sm shadow transition-colors whitespace-nowrap"
                   >
