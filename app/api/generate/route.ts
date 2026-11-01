@@ -189,12 +189,20 @@ export async function POST(req: Request) {
       prompt: prompt,
       n: 1,
       size: "1024x1024",
-      response_format: "b64_json",
     });
 
-    const base64Image = response.data?.[0]?.b64_json;
-    if (!base64Image) throw new Error('画像生成失敗');
-    const buffer = Buffer.from(base64Image, 'base64');
+    const item = response.data?.[0];
+    let buffer: Buffer;
+
+    if (item?.b64_json) {
+      buffer = Buffer.from(item.b64_json, 'base64');
+    } else if (item?.url) {
+      const imgRes = await fetch(item.url);
+      buffer = Buffer.from(await imgRes.arrayBuffer());
+    } else {
+      throw new Error('画像データの取得に失敗しました');
+    }
+
     const blob = await put(`textile-openai-${Date.now()}.png`, buffer, { access: 'public', contentType: 'image/png' });
 
     return NextResponse.json({ 
