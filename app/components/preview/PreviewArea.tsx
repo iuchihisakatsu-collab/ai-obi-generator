@@ -269,149 +269,18 @@ export default function PreviewArea(props: PreviewAreaProps) {
           </button>
         </div>
 
-        {/* 描画エリア（フロートが切れないよう overflow-visible を確保） */}
+        {/* 描画エリア */}
         <div className="bg-[#e4e4e7] flex flex-col items-center justify-center p-3 sm:p-5 relative shadow-inner min-h-[320px]">
           {displayMode === 'mockup' && (
             <div className="w-full flex flex-col items-center animate-fade-in relative">
               
-              {/* マッピング画像ラッパー */}
-              <div className="relative mx-auto drop-shadow-xl" style={{ zIndex: 10 }}>
+              {/* マッピング画像 ＆ 最前面フロートの包括ラッパー */}
+              <div className="relative mx-auto drop-shadow-xl w-[220px] sm:w-[340px] aspect-square">
                 
-                {/* ★★★ レイヤー最前面（z-[9999]）：拡大ボタン ★★★ */}
-                <button
-                  type="button"
-                  onClick={() => setIsZoomModalOpen(true)}
-                  style={{ zIndex: 9999 }}
-                  className="absolute top-2 right-2 flex items-center gap-1 bg-zinc-900/90 hover:bg-zinc-950 text-white px-2.5 py-1 rounded-full text-[10px] font-bold shadow-2xl transition-transform hover:scale-105 active:scale-95 border border-white/20"
-                >
-                  <span>🔍</span>
-                  <span>拡大</span>
-                </button>
-
-                {/* ★★★ レイヤー最前面（z-[9999]）：コーディネート・裏地フロート操作バー ★★★ */}
-                <div 
-                  style={{ zIndex: 9999 }}
-                  className="absolute top-2 left-2 flex flex-wrap gap-1 bg-white/95 backdrop-blur-md p-1 rounded border border-zinc-400 shadow-2xl"
-                >
-                  {itemType === 'kimono' ? (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => setActiveFloatPalette(activeFloatPalette === 'haneri' ? null : 'haneri')}
-                        className={`flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded border transition-all ${
-                          activeFloatPalette === 'haneri' ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white text-zinc-800 border-zinc-300 hover:bg-zinc-100'
-                        }`}
-                      >
-                        <span className="w-2.5 h-2.5 rounded-full border border-zinc-400 shrink-0 inline-block" style={{ backgroundColor: kimonoHaneriColor }} />
-                        <span>半衿</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setActiveFloatPalette(activeFloatPalette === 'obiage' ? null : 'obiage')}
-                        className={`flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded border transition-all ${
-                          activeFloatPalette === 'obiage' ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white text-zinc-800 border-zinc-300 hover:bg-zinc-100'
-                        }`}
-                      >
-                        <span className="w-2.5 h-2.5 rounded-full border border-zinc-400 shrink-0 inline-block" style={{ backgroundColor: kimonoObiageColor }} />
-                        <span>帯揚</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setActiveFloatPalette(activeFloatPalette === 'obi' ? null : 'obi')}
-                        className={`flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded border transition-all ${
-                          activeFloatPalette === 'obi' ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white text-zinc-800 border-zinc-300 hover:bg-zinc-100'
-                        }`}
-                      >
-                        <span className="w-2.5 h-2.5 rounded-full border border-zinc-400 shrink-0 inline-block" style={{ backgroundColor: kimonoObiColor }} />
-                        <span>帯{customObiUrl ? '(画像)' : ''}</span>
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setActiveFloatPalette(activeFloatPalette === 'lining' ? null : 'lining')}
-                      className={`flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded border transition-all ${
-                        activeFloatPalette === 'lining' ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white text-zinc-800 border-zinc-300 hover:bg-zinc-100'
-                      }`}
-                    >
-                      <span className="w-2.5 h-2.5 rounded-full border border-zinc-400 shrink-0 inline-block" style={{ backgroundColor: obiLiningColor }} />
-                      <span>裏地の色</span>
-                    </button>
-                  )}
-                </div>
-
-                {/* ★★★ 最前面オーバーレイ（z-[10000]）：展開カラーパレット ★★★ */}
-                {activeFloatPalette && (
-                  <div 
-                    style={{ zIndex: 10000 }}
-                    className="absolute top-10 left-2 right-2 bg-white border-2 border-zinc-800 p-2.5 rounded shadow-2xl animate-fade-in max-w-[340px]"
-                  >
-                    <div className="flex justify-between items-center mb-1.5 pb-1 border-b border-zinc-200">
-                      <span className="text-[10px] font-black text-zinc-900">
-                        {activeFloatPalette === 'lining' && '帯の裏地色を選択'}
-                        {activeFloatPalette === 'haneri' && '半衿の色を選択'}
-                        {activeFloatPalette === 'obiage' && '帯揚の色を選択'}
-                        {activeFloatPalette === 'obi' && '帯の指定'}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setActiveFloatPalette(null)}
-                        className="text-[11px] font-black text-zinc-500 hover:text-zinc-900 px-1"
-                      >
-                        ✕ 閉じる
-                      </button>
-                    </div>
-
-                    {activeFloatPalette === 'obi' && (
-                      <div className="flex gap-1 mb-2 pb-1 border-b border-zinc-100">
-                        <button
-                          type="button"
-                          onClick={() => setCustomObiUrl?.(null)}
-                          className={`flex-1 py-1 text-[10px] font-bold rounded border ${!customObiUrl ? 'bg-zinc-900 text-white' : 'bg-zinc-100 text-zinc-700'}`}
-                        >
-                          伝統色無地
-                        </button>
-                        <label className={`flex-1 py-1 text-[10px] font-bold text-center rounded border cursor-pointer ${customObiUrl ? 'bg-zinc-900 text-white' : 'bg-zinc-100 text-zinc-700'}`}>
-                          画像アップロード
-                          <input type="file" accept="image/*" onChange={handleCustomObiUpload} className="hidden" />
-                        </label>
-                      </div>
-                    )}
-
-                    {!(activeFloatPalette === 'obi' && customObiUrl) && (
-                      <div className="max-h-[150px] overflow-y-auto pr-1 grid grid-cols-4 sm:grid-cols-6 gap-1">
-                        {TRADITIONAL_COLORS.map((col) => (
-                          <button
-                            key={col.name}
-                            type="button"
-                            onClick={() => {
-                              if (activeFloatPalette === 'lining') setObiLiningColor(col.hex);
-                              if (activeFloatPalette === 'haneri') setKimonoHaneriColor(col.hex);
-                              if (activeFloatPalette === 'obiage') setKimonoObiageColor(col.hex);
-                              if (activeFloatPalette === 'obi') {
-                                setKimonoObiColor(col.hex);
-                                setCustomObiUrl?.(null);
-                              }
-                              setActiveFloatPalette(null);
-                            }}
-                            className="relative h-8 p-0.5 flex flex-col justify-end text-left border border-zinc-300 rounded-sm shadow-sm hover:scale-95 transition-transform"
-                            style={{ backgroundColor: col.hex }}
-                          >
-                            <span className={`text-[7px] font-bold truncate leading-none ${col.isDark ? 'text-white' : 'text-zinc-900'}`}>
-                              {col.name.split(' ')[0]}
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* 1. 半幅帯マッピング画像 */}
-                {itemType === 'hanhaba' && (
-                  <div ref={previewContainerRef} className="relative w-[220px] sm:w-[340px] aspect-square">
+                {/* 1. マッピング画像（背面に描画） */}
+                <div ref={previewContainerRef} className="w-full h-full relative overflow-hidden">
+                  {/* 半幅帯 */}
+                  {itemType === 'hanhaba' && (
                     <div className="relative w-full h-full overflow-hidden">
                       {[
                         { id: '01', file: 'hanhaba_Layer01.png', z: 10, rot: 2, bgX: '12%', bgY: '34%' },
@@ -485,12 +354,10 @@ export default function PreviewArea(props: PreviewAreaProps) {
                         }}
                       />
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {/* 2. 京袋帯マッピング画像 */}
-                {itemType === 'kyobukuro' && (
-                  <div ref={previewContainerRef} className="relative w-[220px] sm:w-[340px] aspect-square">
+                  {/* 京袋帯 */}
+                  {itemType === 'kyobukuro' && (
                     <div className="relative w-full h-full overflow-hidden">
                       <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 10 }}>
                         <img src={`/kyoubukurogrand.png?v=${v}`} alt="" className="w-full h-full object-contain" />
@@ -565,15 +432,140 @@ export default function PreviewArea(props: PreviewAreaProps) {
                         }}
                       />
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {/* 3. 着物マッピング画像 */}
-                {itemType === 'kimono' && (
-                  <div ref={previewContainerRef} className="relative w-[240px] sm:w-[380px] aspect-square">
-                    {renderKimonoLayers()}
+                  {/* 着物 */}
+                  {itemType === 'kimono' && renderKimonoLayers()}
+                </div>
+
+                {/* 2. ★★★ 絶対に手前に出る最上位オーバーレイ層（DOMで画像の後 ＋ pointer-events） ★★★ */}
+                <div className="absolute inset-0 pointer-events-none z-[9999]">
+                  
+                  {/* 拡大ボタン（右上） */}
+                  <button
+                    type="button"
+                    onClick={() => setIsZoomModalOpen(true)}
+                    className="pointer-events-auto absolute top-2 right-2 flex items-center gap-1 bg-zinc-950 text-white px-2.5 py-1 rounded-full text-[10px] font-black shadow-2xl transition-transform hover:scale-105 active:scale-95 border border-white/30"
+                  >
+                    <span>🔍</span>
+                    <span>拡大</span>
+                  </button>
+
+                  {/* コーディネート・裏地ボタンバー（左上） */}
+                  <div className="pointer-events-auto absolute top-2 left-2 flex flex-wrap gap-1 bg-white/95 backdrop-blur-md p-1 rounded-sm border border-zinc-400 shadow-2xl">
+                    {itemType === 'kimono' ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => setActiveFloatPalette(activeFloatPalette === 'haneri' ? null : 'haneri')}
+                          className={`flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-sm border transition-all ${
+                            activeFloatPalette === 'haneri' ? 'bg-zinc-950 text-white border-zinc-950' : 'bg-white text-zinc-800 border-zinc-300 hover:bg-zinc-100'
+                          }`}
+                        >
+                          <span className="w-2.5 h-2.5 rounded-full border border-zinc-400 shrink-0 inline-block" style={{ backgroundColor: kimonoHaneriColor }} />
+                          <span>半衿</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setActiveFloatPalette(activeFloatPalette === 'obiage' ? null : 'obiage')}
+                          className={`flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-sm border transition-all ${
+                            activeFloatPalette === 'obiage' ? 'bg-zinc-950 text-white border-zinc-950' : 'bg-white text-zinc-800 border-zinc-300 hover:bg-zinc-100'
+                          }`}
+                        >
+                          <span className="w-2.5 h-2.5 rounded-full border border-zinc-400 shrink-0 inline-block" style={{ backgroundColor: kimonoObiageColor }} />
+                          <span>帯揚</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setActiveFloatPalette(activeFloatPalette === 'obi' ? null : 'obi')}
+                          className={`flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-sm border transition-all ${
+                            activeFloatPalette === 'obi' ? 'bg-zinc-950 text-white border-zinc-950' : 'bg-white text-zinc-800 border-zinc-300 hover:bg-zinc-100'
+                          }`}
+                        >
+                          <span className="w-2.5 h-2.5 rounded-full border border-zinc-400 shrink-0 inline-block" style={{ backgroundColor: kimonoObiColor }} />
+                          <span>帯{customObiUrl ? '(画像)' : ''}</span>
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setActiveFloatPalette(activeFloatPalette === 'lining' ? null : 'lining')}
+                        className={`flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-sm border transition-all ${
+                          activeFloatPalette === 'lining' ? 'bg-zinc-950 text-white border-zinc-950' : 'bg-white text-zinc-800 border-zinc-300 hover:bg-zinc-100'
+                        }`}
+                      >
+                        <span className="w-2.5 h-2.5 rounded-full border border-zinc-400 shrink-0 inline-block" style={{ backgroundColor: obiLiningColor }} />
+                        <span>裏地の色</span>
+                      </button>
+                    )}
                   </div>
-                )}
+
+                  {/* 展開カラーパレット */}
+                  {activeFloatPalette && (
+                    <div className="pointer-events-auto absolute top-10 left-2 right-2 bg-white border-2 border-zinc-900 p-2.5 rounded shadow-2xl animate-fade-in max-w-[340px]">
+                      <div className="flex justify-between items-center mb-1.5 pb-1 border-b border-zinc-200">
+                        <span className="text-[10px] font-black text-zinc-900">
+                          {activeFloatPalette === 'lining' && '帯の裏地色を選択'}
+                          {activeFloatPalette === 'haneri' && '半衿の色を選択'}
+                          {activeFloatPalette === 'obiage' && '帯揚の色を選択'}
+                          {activeFloatPalette === 'obi' && '帯の指定'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setActiveFloatPalette(null)}
+                          className="text-[11px] font-black text-zinc-500 hover:text-zinc-950 px-1"
+                        >
+                          ✕ 閉じる
+                        </button>
+                      </div>
+
+                      {activeFloatPalette === 'obi' && (
+                        <div className="flex gap-1 mb-2 pb-1 border-b border-zinc-100">
+                          <button
+                            type="button"
+                            onClick={() => setCustomObiUrl?.(null)}
+                            className={`flex-1 py-1 text-[10px] font-bold rounded border ${!customObiUrl ? 'bg-zinc-900 text-white' : 'bg-zinc-100 text-zinc-700'}`}
+                          >
+                            伝統色無地
+                          </button>
+                          <label className={`flex-1 py-1 text-[10px] font-bold text-center rounded border cursor-pointer ${customObiUrl ? 'bg-zinc-900 text-white' : 'bg-zinc-100 text-zinc-700'}`}>
+                            画像アップロード
+                            <input type="file" accept="image/*" onChange={handleCustomObiUpload} className="hidden" />
+                          </label>
+                        </div>
+                      )}
+
+                      {!(activeFloatPalette === 'obi' && customObiUrl) && (
+                        <div className="max-h-[150px] overflow-y-auto pr-1 grid grid-cols-4 sm:grid-cols-6 gap-1">
+                          {TRADITIONAL_COLORS.map((col) => (
+                            <button
+                              key={col.name}
+                              type="button"
+                              onClick={() => {
+                                if (activeFloatPalette === 'lining') setObiLiningColor(col.hex);
+                                if (activeFloatPalette === 'haneri') setKimonoHaneriColor(col.hex);
+                                if (activeFloatPalette === 'obiage') setKimonoObiageColor(col.hex);
+                                if (activeFloatPalette === 'obi') {
+                                  setKimonoObiColor(col.hex);
+                                  setCustomObiUrl?.(null);
+                                }
+                                setActiveFloatPalette(null);
+                              }}
+                              className="relative h-8 p-0.5 flex flex-col justify-end text-left border border-zinc-300 rounded-sm shadow-sm hover:scale-95 transition-transform"
+                              style={{ backgroundColor: col.hex }}
+                            >
+                              <span className={`text-[7px] font-bold truncate leading-none ${col.isDark ? 'text-white' : 'text-zinc-900'}`}>
+                                {col.name.split(' ')[0]}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* 保存ボタン */}
@@ -610,7 +602,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
             </div>
           )}
 
-          {/* データ表示 */}
+          {/* 反物・プリントデータ表示 */}
           {displayMode === 'data' && (
             <div className="flex flex-col items-center w-full animate-fade-in">
               {itemType === 'hanhaba' ? (
@@ -645,7 +637,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
         </div>
       </div>
 
-      {/* ★★★ 全画面拡大モーダル（最前面 z-[99999]） ★★★ */}
+      {/* ★★★ 全画面拡大モーダル ★★★ */}
       {isZoomModalOpen && (
         <div 
           style={{ zIndex: 99999 }}
