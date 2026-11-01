@@ -10,7 +10,31 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-const GAS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbzhOwP3nHglg5z23lFTULbHNLfOGh0R0VxKsF1IhVYYL-bEAENbyzoGW0ikaz187lvn/exec';
+// ★ 最新のGAS WebアプリURL
+const GAS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbxaG8AFwsNy3tTrQ3T1MjhckJwvyNhUIBY-mXM6JkYMa60rE4LFvD1NM5rR-1kykw/exec';
+
+// ★ GET: シリアルコードの残数照会（スプレッドシートの残数は減らしません）
+export async function GET(req: Request) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const code = (searchParams.get('code') || '').trim().toUpperCase();
+
+    if (!code) {
+      return NextResponse.json({ success: false, error: 'コードが未入力です' }, { status: 400 });
+    }
+
+    const gasRes = await fetch(GAS_WEBAPP_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, action: 'check' }),
+    });
+
+    const data = await gasRes.json();
+    return NextResponse.json(data);
+  } catch (error: any) {
+    return NextResponse.json({ success: false, error: '残数照会エラー' }, { status: 500 });
+  }
+}
 
 async function translateToEnglish(text: string): Promise<string> {
   if (!text || !text.trim()) return '';
@@ -63,47 +87,32 @@ export async function POST(req: Request) {
 
     if (!motif) return NextResponse.json({ error: 'モチーフを指定してください。' }, { status: 400 });
 
-    // エンジン種別の判定（page.tsxと直接指定の両方に対応）
     const isPremium = paymentMode === 'premium' || engine === 'openai_premium' || (engine === 'openai' && Boolean(premiumCode));
     const isFlux = !isPremium && engine === 'flux';
     const isOpenAiFree = !isPremium && (engine === 'openai_free' || engine === 'openai');
 
-    let remainingTickets: number | null = null;
-
-    // ★ 1. チケット利用（極みの意匠）：Googleスプレッドシート（GAS）で残数チェック＆消費
+    // ★ 1. チケット利用：生成前の残数チェック（ここでは絶対に減らさない）
+    const code = (premiumCode || '').trim().toUpperCase();
     if (isPremium) {
-      const code = (premiumCode || '').trim().toUpperCase();
       if (!code) {
         return NextResponse.json({ error: 'プレミアムチケットのシリアルコードを入力してください。' }, { status: 400 });
       }
 
-      try {
-        const gasRes = await fetch(GAS_WEBAPP_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code }),
-        });
+      const checkRes = await fetch(GAS_WEBAPP_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, action: 'check' }),
+      });
+      const checkData = await checkRes.json();
 
-        const gasData = await gasRes.json();
-
-        // コードが存在しない、または上限（50回）に達している場合はここで遮断
-        if (!gasData.success) {
-          return NextResponse.json(
-            { error: gasData.error || 'チケットの認証に失敗しました。' },
-            { status: 400 }
-          );
-        }
-
-        remainingTickets = gasData.remaining;
-      } catch (gasErr: any) {
-        console.error('GASチケット認証通信エラー:', gasErr);
-        return NextResponse.json(
-          { error: 'チケット認証サーバーとの通信に失敗しました。時間をおいて再試行してください。' },
-          { status: 500 }
-        );
+      if (!checkData.success) {
+        return NextResponse.json({ error: checkData.error || '無効なシリアルコードです。' }, { status: 400 });
+      }
+      if (checkData.remaining <= 0) {
+        return NextResponse.json({ error: 'このチケットは利用上限（50回）に達しました。' }, { status: 403 });
       }
 
-    // ★ 2. 無料枠（FLUX / OpenAI無料お試し）：Vercel KVによるIP/日付制限
+    // ★ 2. 無料枠：Vercel KVによる制限
     } else {
       const ip = req.headers.get('x-forwarded-for') || 'anonymous_ip';
       const today = new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' }).split(' ')[0].replace(/\//g, '-');
@@ -174,16 +183,12 @@ export async function POST(req: Request) {
           const imgRes = await fetch(generatedUrl);
           const buffer = Buffer.from(await imgRes.arrayBuffer());
           const blob = await put(`textile-flux-${Date.now()}.png`, buffer, { access: 'public', contentType: 'image/png' });
-          return NextResponse.json({ 
-            imageUrl: blob.url, 
-            blobUrl: blob.url, 
-            engine: 'flux' 
-          });
+          return NextResponse.json({ imageUrl: blob.url, blobUrl: blob.url, engine: 'flux' });
         }
       }
     }
 
-    // ★ チケット利用 または 本番清書（最新 gpt-image-2.5-sunburst + quality: high）
+    // ★ OpenAI 高精細生成（gpt-image-2.5-sunburst）
     const response = await openai.images.generate({
       model: "gpt-image-2.5-sunburst",
       prompt: prompt,
@@ -204,13 +209,32 @@ export async function POST(req: Request) {
       throw new Error('画像データの取得に失敗しました');
     }
 
+    // ★ Vercel Blobへ保存（100%成功を確認）
     const blob = await put(`textile-openai-${Date.now()}.png`, buffer, { access: 'public', contentType: 'image/png' });
+
+    // ★★★ 生成が成功した瞬間「だけ」チケット残数を1減らす（安全設計） ★★★
+    let finalRemaining: number | null = null;
+    if (isPremium) {
+      try {
+        const consumeRes = await fetch(GAS_WEBAPP_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code, action: 'consume' }),
+        });
+        const consumeData = await consumeRes.json();
+        if (consumeData.success) {
+          finalRemaining = consumeData.remaining;
+        }
+      } catch (err) {
+        console.error('GAS消費処理エラー（生成は成功済み）:', err);
+      }
+    }
 
     return NextResponse.json({ 
       imageUrl: blob.url, 
       blobUrl: blob.url, 
       engine: 'openai',
-      remainingTickets 
+      remainingTickets: finalRemaining 
     });
 
   } catch (error: any) {
