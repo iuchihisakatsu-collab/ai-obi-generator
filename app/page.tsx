@@ -16,7 +16,8 @@ import ControlPanel from './components/controls/ControlPanel';
 import { PlatformType, submitOrder } from './lib/orders';
 import { renderTiledGeometricPng, render18cmPrintDataPng } from './lib/production/canvasRenderer';
 
-const MAX_GENERATE_PER_DAY = 20;
+// 1日の無料生成回数は「1回」
+const MAX_GENERATE_PER_DAY = 1;
 
 function getTodayJST(): string {
   const parts = new Intl.DateTimeFormat('ja-JP', { timeZone: 'Asia/Tokyo', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date());
@@ -89,11 +90,11 @@ function HomeContent() {
   const [agreed, setAgreed] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
-  const [loadingEngine, setLoadingEngine] = useState<'flux' | 'openai' | null>(null);
   const [remainingCount, setRemainingCount] = useState<number>(MAX_GENERATE_PER_DAY);
   const [loadingStep, setLoadingStep] = useState<number>(0);
 
-  const [selectedEngine, setSelectedEngine] = useState<'flux' | 'openai_free' | 'openai_premium'>('flux');
+  // OpenAIモデル：標準無料枠 または プレミアムチケット枠
+  const [selectedEngine, setSelectedEngine] = useState<'openai_free' | 'openai_premium'>('openai_free');
   const [premiumCode, setPremiumCode] = useState<string>('');
   const [premiumStatusMsg, setPremiumStatusMsg] = useState<string>('');
 
@@ -254,10 +255,7 @@ function HomeContent() {
       return;
     }
 
-    const actualEngine: 'flux' | 'openai' = (selectedEngine === 'openai_free' || selectedEngine === 'openai_premium') ? 'openai' : 'flux';
-
     setLoading(true);
-    setLoadingEngine(actualEngine);
     setLoadingStep(0);
 
     const startTime = Date.now();
@@ -270,13 +268,12 @@ function HomeContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           motif: motif.trim(), 
-          motif2: motif2.trim(),
+          motif2: motif2.trim(), 
           color: colorNames || 'おまかせ', 
           density, 
           itemType, 
           aiStyle, 
           artist: selectedArtist,
-          engine: actualEngine,
           paymentMode: selectedEngine === 'openai_premium' ? 'premium' : 'free',
           premiumCode: selectedEngine === 'openai_premium' ? premiumCode.trim() : undefined
         })
@@ -285,7 +282,7 @@ function HomeContent() {
       if (!res.ok || data.error) throw new Error(data.error || '画像生成に失敗しました');
 
       const elapsedTime = Date.now() - startTime;
-      const MIN_WAIT_MS = actualEngine === 'openai' ? 10000 : 5000;
+      const MIN_WAIT_MS = 6000;
       if (elapsedTime < MIN_WAIT_MS) {
         await new Promise((resolve) => setTimeout(resolve, MIN_WAIT_MS - elapsedTime));
       }
@@ -300,7 +297,7 @@ function HomeContent() {
       setPatternTitle(motif.trim() ? `${colorPrefix}${motif.trim()}小紋` : '無題の小紋');
 
       if (selectedEngine === 'openai_premium') {
-        setPremiumStatusMsg('プレミアムチケットを1回分消費して生成しました！');
+        setPremiumStatusMsg('プレミアムチケットを消費して生成しました！');
         setPremiumCode('');
       } else {
         const used = parseInt(localStorage.getItem('komon_count_total') || '0', 10) + 1;
@@ -314,7 +311,6 @@ function HomeContent() {
     } finally {
       clearInterval(stepTimer);
       setLoading(false);
-      setLoadingEngine(null);
     }
   };
 
@@ -403,7 +399,6 @@ function HomeContent() {
 
           const maskImg = await loadImage(`/${layer.file}?v=21`);
           tCtx.drawImage(maskImg, 0, 0, size, size);
-
           tCtx.globalCompositeOperation = 'source-in';
 
           tCtx.save();
@@ -716,6 +711,8 @@ function HomeContent() {
           kimonoObiColor={kimonoObiColor}
           setKimonoObiColor={setKimonoObiColor}
           customObiUrl={customObiUrl}
+          setCustomObiUrl={setCustomObiUrl}
+          handleCustomObiUpload={handleCustomObiUpload}
           mockupSubmitting={mockupSubmitting} previewRef={previewRef} previewContainerRef={previewContainerRef}
           handleItemTypeChange={setItemType} setDisplayMode={setDisplayMode}
           handleDownloadMapping={handleDownloadMapping} UNIVERSAL_SCALE_FACTOR={UNIVERSAL_SCALE_FACTOR}
@@ -744,7 +741,7 @@ function HomeContent() {
           customObiUrl={customObiUrl} setCustomObiUrl={setCustomObiUrl}
           handleCustomObiUpload={handleCustomObiUpload}
           agreed={agreed} setAgreed={setAgreed} errorMsg={errorMsg}
-          loading={loading} loadingEngine={loadingEngine}
+          loading={loading}
           remainingCount={remainingCount} loadingStep={loadingStep}
           handleGenerate={handleGenerate} imageUrl={imageUrl} patternTitle={patternTitle} setPatternTitle={setPatternTitle}
           serialNumber={serialNumber}
