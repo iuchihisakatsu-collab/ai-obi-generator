@@ -64,11 +64,11 @@ interface ControlPanelProps {
 }
 
 const LOADING_STEPS = [
-  '意匠の着想を練り上げています...',
-  '色と柄の調和を整えています...',
-  '図案を描き出しています...',
-  '割り付けを検証しています...',
-  '仕上げの調合を行っています...',
+  '思い描いた意匠から、図案のアイデアを練り上げています...',
+  '色や柄の調和を組み合わせ、反物のイメージを整えています...',
+  '柄のつなぎ目は仕立て時にスタッフが整えますので、自由な妄想をお楽しみください...',
+  '今回の図案イメージを準備しています...',
+  'もう少しで、図案帖に仕上がります...',
 ];
 
 const AI_STYLES = [
@@ -349,6 +349,7 @@ export default function ControlPanel({
                 disabled={loading} 
               />
 
+              {/* ★ 寄り道導線①（リアルタイム） */}
               {primaryMotif && (
                 <div className="mt-1.5 flex justify-end">
                   <a 
@@ -573,10 +574,11 @@ export default function ControlPanel({
           />
         </div>
 
-        {/* ★★★ 3つの生成ボタン（根本治療版：残数と進行テキストの完全連動） ★★★ */}
+        {/* ★★★ 3つの生成ボタン（進行テキスト・残数連動） ★★★ */}
         <div className="space-y-4 mt-6">
           {creationMode === 'ai' && (
             <div className="pt-6 border-t border-zinc-200 space-y-3">
+              {/* ★ 安心メッセージ（案B：すっきりシンプル） */}
               <label className="flex items-start gap-2.5 cursor-pointer select-none mb-2 group relative z-10">
                 <input 
                   type="checkbox" 
@@ -585,7 +587,7 @@ export default function ControlPanel({
                   className="mt-0.5 h-3.5 w-3.5 border-zinc-300 text-zinc-900 focus:ring-zinc-900 transition-colors cursor-pointer" 
                 />
                 <span className="text-[10px] text-zinc-500 leading-tight group-hover:text-zinc-800 transition-colors">
-                  生成図案は意匠アイデアであり、実際の生地制作時はゴフクヤサンの手でデータ調整が行われることに同意します。
+                  生成図案は意匠のアイデアです。実際の生地制作時はスタッフが目視で柄のつなぎ目（送り）をきれいに調整することに同意します。
                 </span>
               </label>
               
@@ -595,7 +597,7 @@ export default function ControlPanel({
                 </div>
               )}
 
-              {/* ===== ボタン①：スケッチモード（FLUX枠・残り15回カウント連動） ===== */}
+              {/* ===== ボタン①：スケッチモード ===== */}
               <div>
                 <button 
                   type="button" 
@@ -608,7 +610,7 @@ export default function ControlPanel({
                   }`}
                 >
                   {loading && generatingMode === 'flux' ? (
-                    <span className="text-xs text-amber-200 animate-pulse">
+                    <span className="text-[11px] text-amber-200 animate-pulse font-medium tracking-wide">
                       {LOADING_STEPS[loadingStep % LOADING_STEPS.length]}
                     </span>
                   ) : (
@@ -621,7 +623,7 @@ export default function ControlPanel({
                 </button>
               </div>
 
-              {/* ===== ボタン②：丁寧に作るモード（OpenAI無料枠・残り1回カウント連動） ===== */}
+              {/* ===== ボタン②：丁寧に作るモード（無料枠） ===== */}
               <div>
                 <button 
                   type="button" 
@@ -634,7 +636,7 @@ export default function ControlPanel({
                   }`}
                 >
                   {loading && generatingMode === 'openai_free' ? (
-                    <span className="text-xs text-amber-200 animate-pulse">
+                    <span className="text-[11px] text-amber-200 animate-pulse font-medium tracking-wide">
                       {LOADING_STEPS[loadingStep % LOADING_STEPS.length]}
                     </span>
                   ) : (
@@ -647,7 +649,7 @@ export default function ControlPanel({
                 </button>
               </div>
 
-              {/* ===== ボタン③：チケットコードで丁寧に作る（残数表示・進行テキスト連動） ===== */}
+              {/* ===== ボタン③：チケットコードで丁寧に作る ===== */}
               <div className="p-3.5 bg-zinc-50 border border-zinc-200 rounded-sm space-y-2 relative z-10">
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-2">
@@ -694,7 +696,7 @@ export default function ControlPanel({
                     className="px-3 py-2 bg-zinc-900 hover:bg-zinc-800 disabled:bg-zinc-200 disabled:text-zinc-400 text-white text-xs font-bold rounded-sm shadow transition-colors whitespace-nowrap min-w-[170px] text-center"
                   >
                     {loading && generatingMode === 'openai_premium' ? (
-                      <span className="text-[11px] text-amber-200 animate-pulse">
+                      <span className="text-[11px] text-amber-200 animate-pulse font-medium tracking-wide">
                         {LOADING_STEPS[loadingStep % LOADING_STEPS.length]}
                       </span>
                     ) : (
@@ -775,6 +777,7 @@ export default function ControlPanel({
                 妄想を現実に<br/><span className="text-[10px] font-medium tracking-wider opacity-90 mt-1 block">（この作品を現実の着物・帯として仕立てる）</span>
               </a>
 
+              {/* ★ 寄り道導線②（画像生成完了後のカード） */}
               {primaryMotif && (
                 <div className="mt-6 p-4 bg-zinc-100 border border-zinc-200 shadow-inner rounded-sm text-center animate-fade-in">
                   <p className="text-[11px] font-bold text-zinc-700 mb-2 leading-relaxed">
