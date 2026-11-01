@@ -75,8 +75,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
     { id: 'hidarieri', file: 'hidarieri_117.png', angle: 117, z: 10 },
   ];
 
-  // 着物マッピングの共通レンダラー
-  const renderKimonoContent = () => (
+  const renderKimonoLayers = () => (
     <div className="relative w-full h-full overflow-hidden">
       <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 1 }}>
         <img src={`/haikei.png?v=${v}`} alt="" className="w-full h-full object-contain" />
@@ -199,7 +198,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
     <div ref={previewRef} className="w-full lg:w-1/2 shrink-0 sticky top-2 z-30 lg:top-8 flex flex-col gap-3">
       <div className="bg-white border border-zinc-300 shadow-xl overflow-hidden animate-fade-in">
         
-        {/* アイテム切替バー */}
+        {/* アイテム切替 */}
         <div className="px-3 py-2 bg-zinc-900 text-white flex items-center justify-between">
           <span className="text-[10px] font-bold text-zinc-400 tracking-wider">仕立てアイテム：</span>
           <div className="flex gap-1">
@@ -233,7 +232,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
           </div>
         </div>
 
-        {/* プレビュー表示タブ */}
+        {/* タブ */}
         <div className="px-3 py-2 border-b border-zinc-200 bg-zinc-100 flex gap-1.5 overflow-x-auto">
           <button
             type="button"
@@ -270,33 +269,37 @@ export default function PreviewArea(props: PreviewAreaProps) {
           </button>
         </div>
 
-        {/* 描画エリア */}
-        <div className="bg-[#e4e4e7] flex flex-col items-center justify-center p-3 sm:p-5 relative shadow-inner overflow-hidden min-h-[320px]">
+        {/* 描画エリア（フロートが切れないよう overflow-visible を確保） */}
+        <div className="bg-[#e4e4e7] flex flex-col items-center justify-center p-3 sm:p-5 relative shadow-inner min-h-[320px]">
           {displayMode === 'mockup' && (
             <div className="w-full flex flex-col items-center animate-fade-in relative">
               
-              {/* マッピング画像コンテナ（フロート配置の基準親要素） */}
-              <div className="relative mx-auto drop-shadow-xl">
+              {/* マッピング画像ラッパー */}
+              <div className="relative mx-auto drop-shadow-xl" style={{ zIndex: 10 }}>
                 
-                {/* ★★★ 1. 拡大フローティングボタン（右上に配置） ★★★ */}
+                {/* ★★★ レイヤー最前面（z-[9999]）：拡大ボタン ★★★ */}
                 <button
                   type="button"
                   onClick={() => setIsZoomModalOpen(true)}
-                  className="absolute top-2 right-2 z-50 flex items-center gap-1 bg-zinc-900/80 hover:bg-zinc-900 text-white backdrop-blur-md px-2.5 py-1 rounded-full text-[10px] font-bold shadow-lg transition-transform hover:scale-105 active:scale-95"
+                  style={{ zIndex: 9999 }}
+                  className="absolute top-2 right-2 flex items-center gap-1 bg-zinc-900/90 hover:bg-zinc-950 text-white px-2.5 py-1 rounded-full text-[10px] font-bold shadow-2xl transition-transform hover:scale-105 active:scale-95 border border-white/20"
                 >
                   <span>🔍</span>
                   <span>拡大</span>
                 </button>
 
-                {/* ★★★ 2. コーディネート・裏地フローティングバー（左上に配置） ★★★ */}
-                <div className="absolute top-2 left-2 z-50 flex flex-wrap gap-1 bg-white/90 backdrop-blur-md p-1 rounded border border-zinc-300/80 shadow-md">
+                {/* ★★★ レイヤー最前面（z-[9999]）：コーディネート・裏地フロート操作バー ★★★ */}
+                <div 
+                  style={{ zIndex: 9999 }}
+                  className="absolute top-2 left-2 flex flex-wrap gap-1 bg-white/95 backdrop-blur-md p-1 rounded border border-zinc-400 shadow-2xl"
+                >
                   {itemType === 'kimono' ? (
                     <>
                       <button
                         type="button"
                         onClick={() => setActiveFloatPalette(activeFloatPalette === 'haneri' ? null : 'haneri')}
                         className={`flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded border transition-all ${
-                          activeFloatPalette === 'haneri' ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white/80 text-zinc-700 border-zinc-300 hover:bg-zinc-100'
+                          activeFloatPalette === 'haneri' ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white text-zinc-800 border-zinc-300 hover:bg-zinc-100'
                         }`}
                       >
                         <span className="w-2.5 h-2.5 rounded-full border border-zinc-400 shrink-0 inline-block" style={{ backgroundColor: kimonoHaneriColor }} />
@@ -307,7 +310,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
                         type="button"
                         onClick={() => setActiveFloatPalette(activeFloatPalette === 'obiage' ? null : 'obiage')}
                         className={`flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded border transition-all ${
-                          activeFloatPalette === 'obiage' ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white/80 text-zinc-700 border-zinc-300 hover:bg-zinc-100'
+                          activeFloatPalette === 'obiage' ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white text-zinc-800 border-zinc-300 hover:bg-zinc-100'
                         }`}
                       >
                         <span className="w-2.5 h-2.5 rounded-full border border-zinc-400 shrink-0 inline-block" style={{ backgroundColor: kimonoObiageColor }} />
@@ -318,7 +321,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
                         type="button"
                         onClick={() => setActiveFloatPalette(activeFloatPalette === 'obi' ? null : 'obi')}
                         className={`flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded border transition-all ${
-                          activeFloatPalette === 'obi' ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white/80 text-zinc-700 border-zinc-300 hover:bg-zinc-100'
+                          activeFloatPalette === 'obi' ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white text-zinc-800 border-zinc-300 hover:bg-zinc-100'
                         }`}
                       >
                         <span className="w-2.5 h-2.5 rounded-full border border-zinc-400 shrink-0 inline-block" style={{ backgroundColor: kimonoObiColor }} />
@@ -330,7 +333,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
                       type="button"
                       onClick={() => setActiveFloatPalette(activeFloatPalette === 'lining' ? null : 'lining')}
                       className={`flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded border transition-all ${
-                        activeFloatPalette === 'lining' ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white/80 text-zinc-700 border-zinc-300 hover:bg-zinc-100'
+                        activeFloatPalette === 'lining' ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white text-zinc-800 border-zinc-300 hover:bg-zinc-100'
                       }`}
                     >
                       <span className="w-2.5 h-2.5 rounded-full border border-zinc-400 shrink-0 inline-block" style={{ backgroundColor: obiLiningColor }} />
@@ -339,11 +342,14 @@ export default function PreviewArea(props: PreviewAreaProps) {
                   )}
                 </div>
 
-                {/* ★★★ 3. 画像の上にフロート展開する伝統色パレット ★★★ */}
+                {/* ★★★ 最前面オーバーレイ（z-[10000]）：展開カラーパレット ★★★ */}
                 {activeFloatPalette && (
-                  <div className="absolute top-10 left-2 right-2 z-50 bg-white/95 backdrop-blur-md border border-zinc-300 p-2.5 rounded shadow-2xl animate-fade-in max-w-[340px]">
+                  <div 
+                    style={{ zIndex: 10000 }}
+                    className="absolute top-10 left-2 right-2 bg-white border-2 border-zinc-800 p-2.5 rounded shadow-2xl animate-fade-in max-w-[340px]"
+                  >
                     <div className="flex justify-between items-center mb-1.5 pb-1 border-b border-zinc-200">
-                      <span className="text-[10px] font-bold text-zinc-800">
+                      <span className="text-[10px] font-black text-zinc-900">
                         {activeFloatPalette === 'lining' && '帯の裏地色を選択'}
                         {activeFloatPalette === 'haneri' && '半衿の色を選択'}
                         {activeFloatPalette === 'obiage' && '帯揚の色を選択'}
@@ -352,7 +358,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
                       <button
                         type="button"
                         onClick={() => setActiveFloatPalette(null)}
-                        className="text-[10px] font-bold text-zinc-400 hover:text-zinc-800"
+                        className="text-[11px] font-black text-zinc-500 hover:text-zinc-900 px-1"
                       >
                         ✕ 閉じる
                       </button>
@@ -363,11 +369,11 @@ export default function PreviewArea(props: PreviewAreaProps) {
                         <button
                           type="button"
                           onClick={() => setCustomObiUrl?.(null)}
-                          className={`flex-1 py-0.5 text-[9px] font-bold rounded border ${!customObiUrl ? 'bg-zinc-900 text-white' : 'bg-zinc-100 text-zinc-600'}`}
+                          className={`flex-1 py-1 text-[10px] font-bold rounded border ${!customObiUrl ? 'bg-zinc-900 text-white' : 'bg-zinc-100 text-zinc-700'}`}
                         >
                           伝統色無地
                         </button>
-                        <label className={`flex-1 py-0.5 text-[9px] font-bold text-center rounded border cursor-pointer ${customObiUrl ? 'bg-zinc-900 text-white' : 'bg-zinc-100 text-zinc-600'}`}>
+                        <label className={`flex-1 py-1 text-[10px] font-bold text-center rounded border cursor-pointer ${customObiUrl ? 'bg-zinc-900 text-white' : 'bg-zinc-100 text-zinc-700'}`}>
                           画像アップロード
                           <input type="file" accept="image/*" onChange={handleCustomObiUpload} className="hidden" />
                         </label>
@@ -375,7 +381,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
                     )}
 
                     {!(activeFloatPalette === 'obi' && customObiUrl) && (
-                      <div className="max-h-[140px] overflow-y-auto pr-1 grid grid-cols-4 sm:grid-cols-6 gap-1">
+                      <div className="max-h-[150px] overflow-y-auto pr-1 grid grid-cols-4 sm:grid-cols-6 gap-1">
                         {TRADITIONAL_COLORS.map((col) => (
                           <button
                             key={col.name}
@@ -390,7 +396,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
                               }
                               setActiveFloatPalette(null);
                             }}
-                            className="relative h-7 p-0.5 flex flex-col justify-end text-left border border-zinc-200 rounded-sm shadow-sm hover:scale-95 transition-transform"
+                            className="relative h-8 p-0.5 flex flex-col justify-end text-left border border-zinc-300 rounded-sm shadow-sm hover:scale-95 transition-transform"
                             style={{ backgroundColor: col.hex }}
                           >
                             <span className={`text-[7px] font-bold truncate leading-none ${col.isDark ? 'text-white' : 'text-zinc-900'}`}>
@@ -403,7 +409,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
                   </div>
                 )}
 
-                {/* 半幅帯マッピング */}
+                {/* 1. 半幅帯マッピング画像 */}
                 {itemType === 'hanhaba' && (
                   <div ref={previewContainerRef} className="relative w-[220px] sm:w-[340px] aspect-square">
                     <div className="relative w-full h-full overflow-hidden">
@@ -482,7 +488,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
                   </div>
                 )}
 
-                {/* 京袋帯マッピング */}
+                {/* 2. 京袋帯マッピング画像 */}
                 {itemType === 'kyobukuro' && (
                   <div ref={previewContainerRef} className="relative w-[220px] sm:w-[340px] aspect-square">
                     <div className="relative w-full h-full overflow-hidden">
@@ -562,10 +568,10 @@ export default function PreviewArea(props: PreviewAreaProps) {
                   </div>
                 )}
 
-                {/* 着物マッピング */}
+                {/* 3. 着物マッピング画像 */}
                 {itemType === 'kimono' && (
                   <div ref={previewContainerRef} className="relative w-[240px] sm:w-[380px] aspect-square">
-                    {renderKimonoContent()}
+                    {renderKimonoLayers()}
                   </div>
                 )}
               </div>
@@ -604,7 +610,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
             </div>
           )}
 
-          {/* 反物・プリントデータ表示 */}
+          {/* データ表示 */}
           {displayMode === 'data' && (
             <div className="flex flex-col items-center w-full animate-fade-in">
               {itemType === 'hanhaba' ? (
@@ -639,32 +645,33 @@ export default function PreviewArea(props: PreviewAreaProps) {
         </div>
       </div>
 
-      {/* ★★★ 全画面拡大モーダル（🔍拡大ボタンを押したときに展開） ★★★ */}
+      {/* ★★★ 全画面拡大モーダル（最前面 z-[99999]） ★★★ */}
       {isZoomModalOpen && (
         <div 
-          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
+          style={{ zIndex: 99999 }}
+          className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in"
           onClick={() => setIsZoomModalOpen(false)}
         >
           <div 
-            className="relative bg-white p-3 sm:p-6 rounded-lg max-w-[90vw] max-h-[90vh] overflow-auto shadow-2xl flex flex-col items-center"
+            className="relative bg-white p-4 sm:p-6 rounded-lg max-w-[95vw] max-h-[95vh] overflow-auto shadow-2xl flex flex-col items-center border border-zinc-300"
             onClick={(e) => e.stopPropagation()}
           >
             <button
               type="button"
               onClick={() => setIsZoomModalOpen(false)}
-              className="absolute top-3 right-3 text-zinc-500 hover:text-zinc-900 text-lg font-black w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center"
+              className="absolute top-3 right-3 text-zinc-500 hover:text-zinc-950 text-base font-black w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center"
             >
               ✕
             </button>
-            <h3 className="text-xs sm:text-sm font-bold text-zinc-800 mb-3 tracking-widest">
-              【拡大表示】{itemType === 'hanhaba' ? '半幅帯' : itemType === 'kyobukuro' ? '京袋帯' : '着物'}マッピング
+            <h3 className="text-xs sm:text-sm font-black text-zinc-900 mb-4 tracking-widest">
+              【原寸拡大プレビュー】{itemType === 'hanhaba' ? '半幅帯' : itemType === 'kyobukuro' ? '京袋帯' : '着物'}
             </h3>
             <div className="w-[300px] sm:w-[500px] lg:w-[600px] aspect-square bg-[#e4e4e7] relative overflow-hidden shadow-inner border border-zinc-300">
               {itemType === 'kimono' ? (
-                renderKimonoContent()
+                renderKimonoLayers()
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
-                  <p className="text-xs text-zinc-400 font-bold">帯プレビュー拡大</p>
+                  <p className="text-xs text-zinc-500 font-bold">帯プレビュー拡大</p>
                 </div>
               )}
             </div>
