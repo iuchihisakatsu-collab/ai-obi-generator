@@ -46,10 +46,12 @@ interface ControlPanelProps {
   setAgreed: (val: boolean) => void;
   errorMsg: string;
   loading: boolean;
-  generatingMode: 'flux' | 'openai_free' | 'openai_premium' | null;
-  remainingFlux: number;
-  remainingOpenAI: number;
-  ticketRemaining: number | null;
+  loadingEngine?: 'flux' | 'openai' | null;
+  generatingMode?: 'flux' | 'openai_free' | 'openai_premium' | null;
+  remainingCount?: number;
+  remainingFlux?: number;
+  remainingOpenAI?: number;
+  ticketRemaining?: number | null;
   loadingStep: number;
   handleGenerate: (engineType: 'flux' | 'openai_free' | 'openai_premium') => void;
   imageUrl: string;
@@ -147,7 +149,9 @@ export default function ControlPanel({
   setAgreed,
   errorMsg,
   loading,
+  loadingEngine,
   generatingMode,
+  remainingCount,
   remainingFlux,
   remainingOpenAI,
   ticketRemaining,
@@ -209,6 +213,9 @@ export default function ControlPanel({
       setMotif(motif ? `${motif}、${word}` : word);
     }
   };
+
+  const effectiveRemainingOpenAI = remainingOpenAI ?? remainingCount ?? 1;
+  const effectiveRemainingFlux = remainingFlux ?? 15;
 
   return (
     <div className="w-full lg:w-1/2 bg-white border border-zinc-200 p-4 sm:p-8 lg:p-10 shrink-0 shadow-sm z-10 relative">
@@ -349,7 +356,6 @@ export default function ControlPanel({
                 disabled={loading} 
               />
 
-              {/* ★ 寄り道導線①（リアルタイム） */}
               {primaryMotif && (
                 <div className="mt-1.5 flex justify-end">
                   <a 
@@ -574,11 +580,11 @@ export default function ControlPanel({
           />
         </div>
 
-        {/* ★★★ 3つの生成ボタン（進行テキスト・残数連動） ★★★ */}
+        {/* ★★★ 3つの生成ボタン（すっきり配置） ★★★ */}
         <div className="space-y-4 mt-6">
           {creationMode === 'ai' && (
             <div className="pt-6 border-t border-zinc-200 space-y-3">
-              {/* ★ 安心メッセージ（案B：すっきりシンプル） */}
+              {/* 同意チェック欄 */}
               <label className="flex items-start gap-2.5 cursor-pointer select-none mb-2 group relative z-10">
                 <input 
                   type="checkbox" 
@@ -602,22 +608,20 @@ export default function ControlPanel({
                 <button 
                   type="button" 
                   onClick={() => handleGenerate('flux')} 
-                  disabled={loading || remainingFlux <= 0} 
+                  disabled={loading || effectiveRemainingFlux <= 0} 
                   className={`w-full py-3.5 px-4 font-bold text-xs sm:text-sm tracking-wider transition-all duration-200 flex items-center justify-center gap-2 shadow-sm rounded-sm relative z-10 ${
-                    remainingFlux <= 0
+                    effectiveRemainingFlux <= 0
                       ? 'bg-zinc-100 text-zinc-400 border border-zinc-200 cursor-not-allowed'
                       : 'bg-zinc-800 hover:bg-zinc-700 text-white disabled:opacity-50'
                   }`}
                 >
-                  {loading && generatingMode === 'flux' ? (
-                    <span className="text-[11px] text-amber-200 animate-pulse font-medium tracking-wide">
-                      {LOADING_STEPS[loadingStep % LOADING_STEPS.length]}
-                    </span>
+                  {loading && (generatingMode === 'flux' || loadingEngine === 'flux') ? (
+                    <span>スケッチを作成中...</span>
                   ) : (
                     <span>
-                      {remainingFlux <= 0
+                      {effectiveRemainingFlux <= 0
                         ? '本日のスケッチ枠は終了しました'
-                        : `スケッチモードで試す (本日残り ${remainingFlux}回)`}
+                        : `スケッチモードで試す (本日残り ${effectiveRemainingFlux}回)`}
                     </span>
                   )}
                 </button>
@@ -628,20 +632,18 @@ export default function ControlPanel({
                 <button 
                   type="button" 
                   onClick={() => handleGenerate('openai_free')} 
-                  disabled={loading || remainingOpenAI <= 0} 
+                  disabled={loading || effectiveRemainingOpenAI <= 0} 
                   className={`w-full py-3.5 px-4 font-bold text-xs sm:text-sm tracking-wider transition-all duration-200 flex items-center justify-center gap-2 shadow-sm rounded-sm relative z-10 ${
-                    remainingOpenAI <= 0 
+                    effectiveRemainingOpenAI <= 0 
                       ? 'bg-zinc-100 text-zinc-400 border border-zinc-200 cursor-not-allowed' 
                       : 'bg-zinc-950 text-white hover:bg-zinc-800 disabled:opacity-50'
                   }`}
                 >
-                  {loading && generatingMode === 'openai_free' ? (
-                    <span className="text-[11px] text-amber-200 animate-pulse font-medium tracking-wide">
-                      {LOADING_STEPS[loadingStep % LOADING_STEPS.length]}
-                    </span>
+                  {loading && (generatingMode === 'openai_free' || (loadingEngine === 'openai' && !premiumCode)) ? (
+                    <span>丁寧に作成中...</span>
                   ) : (
                     <span>
-                      {remainingOpenAI <= 0 
+                      {effectiveRemainingOpenAI <= 0 
                         ? '本日の無料枠は終了しました' 
                         : '丁寧に作るモードで試す (本日無料 1回)'}
                     </span>
@@ -656,7 +658,7 @@ export default function ControlPanel({
                     <span className="text-[11px] font-bold text-zinc-800">
                       チケットコード利用
                     </span>
-                    {ticketRemaining !== null && (
+                    {ticketRemaining !== null && ticketRemaining !== undefined && (
                       <span className="text-[10px] font-bold px-1.5 py-0.5 bg-green-100 text-green-800 rounded">
                         残数: {ticketRemaining}回
                       </span>
@@ -695,17 +697,28 @@ export default function ControlPanel({
                     disabled={loading || !premiumCode.trim()}
                     className="px-3 py-2 bg-zinc-900 hover:bg-zinc-800 disabled:bg-zinc-200 disabled:text-zinc-400 text-white text-xs font-bold rounded-sm shadow transition-colors whitespace-nowrap min-w-[170px] text-center"
                   >
-                    {loading && generatingMode === 'openai_premium' ? (
-                      <span className="text-[11px] text-amber-200 animate-pulse font-medium tracking-wide">
-                        {LOADING_STEPS[loadingStep % LOADING_STEPS.length]}
-                      </span>
-                    ) : (
-                      'チケットコードで丁寧に作る'
-                    )}
+                    {loading && (generatingMode === 'openai_premium' || (loadingEngine === 'openai' && premiumCode))
+                      ? '高精度生成中...'
+                      : 'チケットコードで丁寧に作る'}
                   </button>
                 </div>
                 {premiumStatusMsg && <p className="text-[10px] text-green-700 font-bold">{premiumStatusMsg}</p>}
               </div>
+
+              {/* ★★★ 独立した生成中ステップ表示専用エリア（大きく・クッキリ・白背景） ★★★ */}
+              {loading && (
+                <div className="p-4 bg-zinc-50 border border-zinc-300 rounded-sm shadow-sm flex items-start gap-3.5 animate-fade-in my-3">
+                  <div className="w-5 h-5 border-2 border-zinc-300 border-t-zinc-900 rounded-full animate-spin shrink-0 mt-0.5" />
+                  <div className="flex-1 space-y-1">
+                    <p className="text-xs sm:text-sm font-bold text-zinc-900 leading-relaxed">
+                      {LOADING_STEPS[loadingStep % LOADING_STEPS.length]}
+                    </p>
+                    <p className="text-[10px] text-zinc-500 leading-normal">
+                      AIが図案の調合を行っています。画面を閉じず、そのまま少々お待ちください。
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -777,7 +790,7 @@ export default function ControlPanel({
                 妄想を現実に<br/><span className="text-[10px] font-medium tracking-wider opacity-90 mt-1 block">（この作品を現実の着物・帯として仕立てる）</span>
               </a>
 
-              {/* ★ 寄り道導線②（画像生成完了後のカード） */}
+              {/* 寄り道導線② */}
               {primaryMotif && (
                 <div className="mt-6 p-4 bg-zinc-100 border border-zinc-200 shadow-inner rounded-sm text-center animate-fade-in">
                   <p className="text-[11px] font-bold text-zinc-700 mb-2 leading-relaxed">
