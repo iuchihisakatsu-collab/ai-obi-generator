@@ -16,7 +16,8 @@ import ControlPanel from './components/controls/ControlPanel';
 import { PlatformType, submitOrder } from './lib/orders';
 import { renderTiledGeometricPng, render18cmPrintDataPng } from './lib/production/canvasRenderer';
 
-const MAX_GENERATE_PER_DAY = 1;
+const MAX_FLUX_PER_DAY = 15;
+const MAX_OPENAI_PER_DAY = 1;
 
 function getTodayJST(): string {
   const parts = new Intl.DateTimeFormat('ja-JP', { timeZone: 'Asia/Tokyo', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date());
@@ -89,12 +90,18 @@ function HomeContent() {
   const [agreed, setAgreed] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
-  const [loadingEngine, setLoadingEngine] = useState<'flux' | 'openai' | null>(null);
-  const [remainingCount, setRemainingCount] = useState<number>(MAX_GENERATE_PER_DAY);
+  
+  // ★ 根本治療：どの生成モードが実行中かを完全に明示
+  const [generatingMode, setGeneratingMode] = useState<'flux' | 'openai_free' | 'openai_premium' | null>(null);
   const [loadingStep, setLoadingStep] = useState<number>(0);
 
+  // ★ 回数の独立管理
+  const [remainingFlux, setRemainingFlux] = useState<number>(MAX_FLUX_PER_DAY);
+  const [remainingOpenAI, setRemainingOpenAI] = useState<number>(MAX_OPENAI_PER_DAY);
+  
   const [premiumCode, setPremiumCode] = useState<string>('');
   const [premiumStatusMsg, setPremiumStatusMsg] = useState<string>('');
+  const [ticketRemaining, setTicketRemaining] = useState<number | null>(null);
 
   const [imageUrl, setImageUrl] = useState<string>('');
   const [blobUrl, setBlobUrl] = useState<string>('');
@@ -112,10 +119,15 @@ function HomeContent() {
     const storedDate = localStorage.getItem('komon_usage_date');
     if (storedDate !== today) {
       localStorage.setItem('komon_usage_date', today);
-      localStorage.setItem('komon_count_total', '0');
-      setRemainingCount(MAX_GENERATE_PER_DAY);
+      localStorage.setItem('komon_count_flux', '0');
+      localStorage.setItem('komon_count_openai', '0');
+      setRemainingFlux(MAX_FLUX_PER_DAY);
+      setRemainingOpenAI(MAX_OPENAI_PER_DAY);
     } else {
-      setRemainingCount(Math.max(0, MAX_GENERATE_PER_DAY - parseInt(localStorage.getItem('komon_count_total') || '0', 10)));
+      const usedFlux = parseInt(localStorage.getItem('komon_count_flux') || '0', 10);
+      const usedOpenAI = parseInt(localStorage.getItem('komon_count_openai') || '0', 10);
+      setRemainingFlux(Math.max(0, MAX_FLUX_PER_DAY - usedFlux));
+      setRemainingOpenAI(Math.max(0, MAX_OPENAI_PER_DAY - usedOpenAI));
     }
 
     if (CURRENT_NOTICE.enabled && localStorage.getItem('last_dismissed_notice_id') !== CURRENT_NOTICE.id) {
@@ -237,10 +249,17 @@ function HomeContent() {
     }
   };
 
-  // 3つの生成ボタンから呼ばれるメイン処理
+  // ★ 根本治療：3つのボタンから呼ばれるメイン処理
   const handleGenerate = async (engineType: 'flux' | 'openai_free' | 'openai_premium') => {
     if (loading) return;
-    if (engineType === 'openai_free' && remainingCount <= 0) return;
+    if (engineType === 'flux' && remainingFlux <= 0) {
+      setErrorMsg('本日のスケッチ作成上限に達しました。');
+      return;
+    }
+    if (engineType === 'openai_free' && remainingOpenAI <= 0) {
+      setErrorMsg('本日の無料枠は終了しました。');
+      return;
+    }
 
     setErrorMsg('');
     setPremiumStatusMsg('');
@@ -250,13 +269,13 @@ function HomeContent() {
     }
 
     if (engineType === 'openai_premium' && !premiumCode.trim()) {
-      setErrorMsg('プレミアムチケットのコードを入力してください。');
+      setErrorMsg('チケットコードを入力してください。');
       return;
     }
 
     const actualEngine = engineType === 'flux' ? 'flux' : 'openai';
     setLoading(true);
-    setLoadingEngine(actualEngine);
+    setGeneratingMode(engineType);
     setLoadingStep(0);
 
     const startTime = Date.now();
@@ -277,7 +296,6 @@ function HomeContent() {
           artist: selectedArtist,
           engine: actualEngine,
           paymentMode: engineType === 'openai_premium' ? 'premium' : 'free',
-          // サーバーがどのプロパティ名で受け取っていても100%届くように網羅
           premiumCode: engineType === 'openai_premium' ? premiumCode.trim() : undefined,
           ticketCode: engineType === 'openai_premium' ? premiumCode.trim() : undefined,
           code: engineType === 'openai_premium' ? premiumCode.trim() : undefined,
@@ -288,7 +306,7 @@ function HomeContent() {
       if (!res.ok || data.error) throw new Error(data.error || '画像生成に失敗しました');
 
       const elapsedTime = Date.now() - startTime;
-      const MIN_WAIT_MS = actualEngine === 'openai' ? 6000 : 3000;
+      const MIN_WAIT_MS = actualEngine === 'openai' ? 5000 : 2500;
       if (elapsedTime < MIN_WAIT_MS) {
         await new Promise((resolve) => setTimeout(resolve, MIN_WAIT_MS - elapsedTime));
       }
@@ -302,13 +320,23 @@ function HomeContent() {
       const colorPrefix = selectedColors.length > 0 ? `${getColorNameFromHex(selectedColors[0].hex)}の` : '';
       setPatternTitle(motif.trim() ? `${colorPrefix}${motif.trim()}小紋` : '無題の小紋');
 
+      // ★ 残数の正確な更新処理
       if (engineType === 'openai_premium') {
-        setPremiumStatusMsg('プレミアムチケットを消費して高精度生成しました！');
-        setPremiumCode('');
+        const remaining = data.ticketRemaining ?? data.remaining ?? null;
+        if (typeof remaining === 'number') {
+          setTicketRemaining(remaining);
+          setPremiumStatusMsg(`チケットを消費して生成しました（残り ${remaining} 回）`);
+        } else {
+          setPremiumStatusMsg('チケットを消費して高精度生成しました！');
+        }
       } else if (engineType === 'openai_free') {
-        const used = parseInt(localStorage.getItem('komon_count_total') || '0', 10) + 1;
-        localStorage.setItem('komon_count_total', used.toString());
-        setRemainingCount(Math.max(0, MAX_GENERATE_PER_DAY - used));
+        const used = parseInt(localStorage.getItem('komon_count_openai') || '0', 10) + 1;
+        localStorage.setItem('komon_count_openai', used.toString());
+        setRemainingOpenAI(Math.max(0, MAX_OPENAI_PER_DAY - used));
+      } else if (engineType === 'flux') {
+        const used = parseInt(localStorage.getItem('komon_count_flux') || '0', 10) + 1;
+        localStorage.setItem('komon_count_flux', used.toString());
+        setRemainingFlux(Math.max(0, MAX_FLUX_PER_DAY - used));
       }
 
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -317,7 +345,7 @@ function HomeContent() {
     } finally {
       clearInterval(stepTimer);
       setLoading(false);
-      setLoadingEngine(null);
+      setGeneratingMode(null);
     }
   };
 
@@ -742,8 +770,12 @@ function HomeContent() {
           geoPatternColor={geoPatternColor} setGeoPatternColor={setGeoPatternColor}
           showGeoPaletteFor={showGeoPaletteFor} setShowGeoPaletteFor={setShowGeoPaletteFor}
           agreed={agreed} setAgreed={setAgreed} errorMsg={errorMsg}
-          loading={loading} loadingEngine={loadingEngine}
-          remainingCount={remainingCount} loadingStep={loadingStep}
+          loading={loading}
+          generatingMode={generatingMode}
+          remainingFlux={remainingFlux}
+          remainingOpenAI={remainingOpenAI}
+          ticketRemaining={ticketRemaining}
+          loadingStep={loadingStep}
           handleGenerate={handleGenerate} imageUrl={imageUrl} patternTitle={patternTitle} setPatternTitle={setPatternTitle}
           serialNumber={serialNumber}
           handleDownloadOriginal={handleDownloadOriginal} handleOrderClick={handleOrderClick}
