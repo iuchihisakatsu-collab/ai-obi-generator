@@ -93,6 +93,7 @@ function HomeContent() {
 
   const [agreed, setAgreed] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>('');
+  const [uploadingImage, setUploadingImage] = useState<boolean>(false); // アップロード中のローディング
   const [loading, setLoading] = useState<boolean>(false);
   const [generatingMode, setGeneratingMode] = useState<'flux' | 'openai_free' | 'openai_premium' | null>(null);
   const [loadingStep, setLoadingStep] = useState<number>(0);
@@ -148,7 +149,7 @@ function HomeContent() {
     }
   };
 
-  // 「ぷっぴ」隠しコマンドの復活
+  // 「ぷっぴ」隠しコマンド
   useEffect(() => {
     if (motif.trim() === 'ぷっぴ') {
       localStorage.setItem('komon_count_flux', '0');
@@ -259,32 +260,93 @@ function HomeContent() {
     }
   };
 
-  const handleCustomObiUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCustomObiUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setCustomObiUrl(url);
-    }
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const base64 = reader.result as string;
+      setCustomObiUrl(base64);
+      try {
+        const uploadRes = await fetch('/api/upload-blob', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ base64Data: base64, filename: `custom_obi_${Date.now()}.png` }),
+        });
+        const uploadData = await uploadRes.json();
+        if (uploadData.url) setCustomObiUrl(uploadData.url);
+      } catch (err) {
+        console.warn('帯画像のアップロード失敗:', err);
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
-  const handleCustomHaraUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCustomHaraUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setCustomHaraUrl(url);
-    }
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const base64 = reader.result as string;
+      setCustomHaraUrl(base64);
+      try {
+        const uploadRes = await fetch('/api/upload-blob', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ base64Data: base64, filename: `custom_hara_${Date.now()}.png` }),
+        });
+        const uploadData = await uploadRes.json();
+        if (uploadData.url) setCustomHaraUrl(uploadData.url);
+      } catch (err) {
+        console.warn('前腹画像のアップロード失敗:', err);
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
+  // ★ 根本修正：画像選択時にBase64化し、即座にVercel Blobの「本物の公開URL」を取得する
   const handleUserImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const url = URL.createObjectURL(file);
-    setImageUrl(url);
-    setBlobUrl('');
-    setRotatedPatternUrl('');
+
+    setErrorMsg('');
+    setUploadingImage(true);
+
     const cleanFileName = file.name.replace(/\.[^/.]+$/, '');
+    const newSerial = `USER-${Math.floor(1000 + Math.random() * 9000)}`;
     setPatternTitle(cleanFileName ? `${cleanFileName}（持ち込み）` : '持ち込み図案');
-    setSerialNumber(`USER-${Math.floor(1000 + Math.random() * 9000)}`);
+    setSerialNumber(newSerial);
+
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const base64Data = reader.result as string;
+      // まず画面表示用にBase64をセット
+      setImageUrl(base64Data);
+      setRotatedPatternUrl('');
+
+      try {
+        // すぐにVercel Blobへアップロードして本物のURL（https://...）を取得する
+        const uploadRes = await fetch('/api/upload-blob', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ base64Data, filename: `${newSerial}_original.png` }),
+        });
+        const uploadData = await uploadRes.json();
+        if (uploadData.url) {
+          // 本物のURLをセット（これでMakeShopでも画像が割れなくなる！）
+          setBlobUrl(uploadData.url);
+          setImageUrl(uploadData.url);
+        } else {
+          setBlobUrl(base64Data);
+        }
+      } catch (uploadErr) {
+        console.error('Blob upload error:', uploadErr);
+        setBlobUrl(base64Data);
+      } finally {
+        setUploadingImage(false);
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleCopyPrompt = (text: string, type: 'seamless' | 'centered') => {
@@ -296,7 +358,6 @@ function HomeContent() {
   const handleGenerate = async (engineType: 'flux' | 'openai_free' | 'openai_premium') => {
     if (loading) return;
 
-    // ★ 同意チェックの必須化（AI妄想モードの時のみ）
     if (creationMode === 'ai' && !agreed) {
       setErrorMsg('生成図案の利用に関する確認事項への同意が必要です。');
       return;
@@ -764,7 +825,6 @@ function HomeContent() {
     }
   };
 
-  // ★ 根本解決: MakeShopへの注文連携（クラッシュ対策＆URL振り分け）
   const handleOrderClick = async (e: MouseEvent<HTMLButtonElement | HTMLAnchorElement>) => {
     e.preventDefault();
     try {
@@ -782,7 +842,7 @@ function HomeContent() {
         );
       }
 
-      // ★ URLオーバー防止策
+      // Base64で生成されたデータ（幾何学や18cm加工後）のみアップロードしてURL化
       if (finalImg && finalImg.startsWith('data:')) {
         const uploadRes = await fetch('/api/upload-blob', {
           method: 'POST',
@@ -825,6 +885,7 @@ function HomeContent() {
 
       if (result.message) alert(result.message);
 
+      // MakeShopへのURL自動振り分け（本物の公開URLを渡すのでクラッシュしない＆画像も割れない）
       if (platform === 'makeshop') {
         let targetOrderUrl = 'https://store.gofukuyasan.com/view/item/000000007300';
         if (itemType === 'kimono') {
@@ -848,7 +909,6 @@ function HomeContent() {
   return (
     <div className="min-h-screen bg-[#f4f4f5] text-zinc-900 flex flex-col items-center justify-start font-sans lg:p-8">
       
-      {/* PC画面幅を広げ、黄金比調整 */}
       <div className="w-full max-w-[1536px] flex flex-col lg:flex-row lg:gap-8 items-start justify-center">
         
         <div className="w-full lg:w-[55%] shrink-0">
@@ -921,16 +981,25 @@ function HomeContent() {
               <div className="border-2 border-dashed border-zinc-300 rounded p-6 bg-zinc-50 hover:bg-zinc-100/80 transition-colors flex flex-col items-center justify-center text-center">
                 <label className="cursor-pointer flex flex-col items-center justify-center w-full">
                   <span className="text-2xl mb-2">📤</span>
-                  <span className="text-xs font-bold text-zinc-800 mb-1">メイン図案を選択、またはドラッグ＆ドロップ</span>
+                  <span className="text-xs font-bold text-zinc-800 mb-1">
+                    {uploadingImage ? '画像をアップロード中...' : 'メイン図案を選択、またはドラッグ＆ドロップ'}
+                  </span>
                   <span className="text-[10px] text-zinc-500">推奨形式：正方形 (1:1) / PNG または JPEG</span>
                   <input
                     type="file"
                     accept="image/png, image/jpeg, image/webp"
                     onChange={handleUserImageUpload}
+                    disabled={uploadingImage}
                     className="hidden"
                   />
                 </label>
               </div>
+
+              {errorMsg && (
+                <div className="p-3 bg-red-50 text-red-600 border border-red-200 text-xs font-bold rounded">
+                  {errorMsg}
+                </div>
+              )}
 
               {imageUrl && (
                 <div className="p-3 bg-zinc-100 border border-zinc-200 rounded flex items-center justify-between">
@@ -1047,19 +1116,18 @@ function HomeContent() {
                   >
                     ↓ アップロード原寸画像を保存
                   </button>
-                  {/* ★ Aボタンから onClickトリガーのボタンへ変更 */}
                   <button
                     type="button"
                     onClick={handleOrderClick}
-                    className="w-full py-3 text-center text-xs font-black text-white bg-zinc-900 hover:bg-zinc-800 rounded shadow-md transition-colors"
+                    disabled={uploadingImage}
+                    className="w-full py-3 text-center text-xs font-black text-white bg-zinc-900 hover:bg-zinc-800 rounded shadow-md transition-colors disabled:opacity-50"
                   >
-                    この持ち込み画像で仕立てる（注文へ）
+                    {uploadingImage ? '画像を準備中...' : 'この持ち込み画像で仕立てる（注文へ）'}
                   </button>
                 </div>
               )}
             </div>
           ) : (
-            /* PC表示でも操作パネルが100%広がるラッパーを追加 */
             <div className="w-full [&>div]:!w-full [&>div]:!max-w-none">
               <ControlPanel
                 creationMode={creationMode} setCreationMode={setCreationMode}
