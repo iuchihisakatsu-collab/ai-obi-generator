@@ -119,7 +119,7 @@ function HomeContent() {
   const previewRef = useRef<HTMLDivElement>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
 
-  // 日付チェック（日本時間0時をまたいだら自動リセット）
+  // 日付チェック
   useEffect(() => {
     const today = getTodayJST();
     const storedDate = localStorage.getItem('komon_usage_date');
@@ -148,7 +148,7 @@ function HomeContent() {
     }
   };
 
-  // ★修正箇所①：「ぷっぴ」隠しコマンドの完全復活
+  // 「ぷっぴ」隠しコマンドの復活
   useEffect(() => {
     if (motif.trim() === 'ぷっぴ') {
       localStorage.setItem('komon_count_flux', '0');
@@ -167,7 +167,6 @@ function HomeContent() {
       return;
     }
 
-    // AIモードまたは入稿モードの半幅帯では90度回転を適用
     if (creationMode !== 'geometric' && itemType === 'hanhaba') {
       rotateImage90Degrees(src)
         .then((rotated) => setRotatedPatternUrl(rotated))
@@ -260,7 +259,6 @@ function HomeContent() {
     }
   };
 
-  // 着物の帯画像ハンドラー
   const handleCustomObiUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -269,7 +267,6 @@ function HomeContent() {
     }
   };
 
-  // 京袋帯の前腹画像ハンドラー
   const handleCustomHaraUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -278,7 +275,6 @@ function HomeContent() {
     }
   };
 
-  // 入稿モード用：マスター画像の取り込みハンドラー
   const handleUserImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -291,7 +287,6 @@ function HomeContent() {
     setSerialNumber(`USER-${Math.floor(1000 + Math.random() * 9000)}`);
   };
 
-  // プロンプトコピーハンドラー
   const handleCopyPrompt = (text: string, type: 'seamless' | 'centered') => {
     navigator.clipboard.writeText(text);
     setCopiedPromptType(type);
@@ -301,7 +296,7 @@ function HomeContent() {
   const handleGenerate = async (engineType: 'flux' | 'openai_free' | 'openai_premium') => {
     if (loading) return;
 
-    // ★修正箇所②：同意チェックの完全復活
+    // ★ 同意チェックの必須化（AI妄想モードの時のみ）
     if (creationMode === 'ai' && !agreed) {
       setErrorMsg('生成図案の利用に関する確認事項への同意が必要です。');
       return;
@@ -769,7 +764,8 @@ function HomeContent() {
     }
   };
 
-  const handleOrderClick = async (e: MouseEvent<HTMLAnchorElement>) => {
+  // ★ 根本解決: MakeShopへの注文連携（クラッシュ対策＆URL振り分け）
+  const handleOrderClick = async (e: MouseEvent<HTMLButtonElement | HTMLAnchorElement>) => {
     e.preventDefault();
     try {
       let finalImg = blobUrl || imageUrl;
@@ -786,7 +782,7 @@ function HomeContent() {
         );
       }
 
-      // ★ URLオーバー防止策：注文する画像データ（Base64）を安全な短縮URL（Vercel Blob）に変換
+      // ★ URLオーバー防止策
       if (finalImg && finalImg.startsWith('data:')) {
         const uploadRes = await fetch('/api/upload-blob', {
           method: 'POST',
@@ -829,7 +825,6 @@ function HomeContent() {
 
       if (result.message) alert(result.message);
 
-      // ★ 着物と帯のURL自動振り分け（安全なURLに変換済みのためクラッシュしません）
       if (platform === 'makeshop') {
         let targetOrderUrl = 'https://store.gofukuyasan.com/view/item/000000007300';
         if (itemType === 'kimono') {
@@ -853,7 +848,7 @@ function HomeContent() {
   return (
     <div className="min-h-screen bg-[#f4f4f5] text-zinc-900 flex flex-col items-center justify-start font-sans lg:p-8">
       
-      {/* ★ 修正箇所④：PC画面の狭さを解消（最大幅を拡張し、左55%:右45%に最適化） */}
+      {/* PC画面幅を広げ、黄金比調整 */}
       <div className="w-full max-w-[1536px] flex flex-col lg:flex-row lg:gap-8 items-start justify-center">
         
         <div className="w-full lg:w-[55%] shrink-0">
@@ -914,7 +909,6 @@ function HomeContent() {
             </button>
           </div>
 
-          {/* ★修正箇所①：隠しCSSを一切やめ、元の構造に完全復帰 */}
           {creationMode === 'upload' ? (
             <div className="bg-white border border-zinc-300 shadow-xl p-5 flex flex-col gap-5 animate-fade-in rounded-sm">
               <div>
@@ -1053,18 +1047,19 @@ function HomeContent() {
                   >
                     ↓ アップロード原寸画像を保存
                   </button>
-                  <a
-                    href="#order"
+                  {/* ★ Aボタンから onClickトリガーのボタンへ変更 */}
+                  <button
+                    type="button"
                     onClick={handleOrderClick}
                     className="w-full py-3 text-center text-xs font-black text-white bg-zinc-900 hover:bg-zinc-800 rounded shadow-md transition-colors"
                   >
                     この持ち込み画像で仕立てる（注文へ）
-                  </a>
+                  </button>
                 </div>
               )}
             </div>
           ) : (
-            /* ★修正箇所④：ControlPanel が中で50%に縮まないよう、幅を強制的に100%にするラッパーを追加 */
+            /* PC表示でも操作パネルが100%広がるラッパーを追加 */
             <div className="w-full [&>div]:!w-full [&>div]:!max-w-none">
               <ControlPanel
                 creationMode={creationMode} setCreationMode={setCreationMode}
