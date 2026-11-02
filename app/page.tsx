@@ -94,7 +94,7 @@ function HomeContent() {
   const [agreed, setAgreed] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [uploadingImage, setUploadingImage] = useState<boolean>(false);
-  const [analyzingImage, setAnalyzingImage] = useState<boolean>(false); // ★ 4o-mini解析中ローディング
+  const [analyzingImage, setAnalyzingImage] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [generatingMode, setGeneratingMode] = useState<'flux' | 'openai_free' | 'openai_premium' | null>(null);
   const [loadingStep, setLoadingStep] = useState<number>(0);
@@ -305,7 +305,6 @@ function HomeContent() {
     reader.readAsDataURL(file);
   };
 
-  // 画像アップロード処理
   const handleUserImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -347,7 +346,6 @@ function HomeContent() {
     reader.readAsDataURL(file);
   };
 
-  // ★ 4o-miniによる画像解析・プロンプト抽出ハンドラー
   const handleExtractPrompt = async () => {
     const targetImg = blobUrl || imageUrl;
     if (!targetImg) return;
@@ -370,9 +368,7 @@ function HomeContent() {
       const { prompt, motif: extractedMotif, color, texture } = result.data;
       const combinedPrompt = prompt || `${extractedMotif}。配色：${color}。タッチ：${texture}`;
 
-      // AI妄想モードのプロンプト欄にセット
       setMotif(combinedPrompt);
-      // AI妄想モードへ切り替え
       setCreationMode('ai');
       
       alert('写真から色・柄のエッセンスを抽出しました！「AI妄想モード」で生成をお試しください。');
@@ -515,6 +511,7 @@ function HomeContent() {
     }
   };
 
+  // ★ 画面プレビューと1ミリも違わない完全一致マッピング画像生成（WYSIWYG）
   const handleDownloadMapping = async () => {
     if (!previewContainerRef.current) return;
     try {
@@ -543,6 +540,7 @@ function HomeContent() {
 
       const patternImg = await loadImage(effectivePatternUrl);
 
+      // ★ 画面（PreviewArea）と完全に同じ黄金比率スケール（実寸ロック）
       const pxPerMm = 27 / 11;
       const bgWidth = creationMode === 'geometric' ? (bgSizeMm * pxPerMm) : (180 * pxPerMm);
       const bgScale = bgWidth / Math.max(1, patternImg.width);
@@ -559,6 +557,34 @@ function HomeContent() {
       pCtx.drawImage(patternImg, 0, 0, bgWidth, bgHeight);
 
       const patternFill = ctx.createPattern(pCanvas, 'repeat')!;
+
+      // 共通の描画ヘルパー：画面の CSS（width: 150%, top: -25%, left: -25%）と完全に同じ回転・タイリング
+      const drawLayer = (
+        targetCtx: CanvasRenderingContext2D,
+        fillPattern: CanvasPattern,
+        rotDeg: number,
+        bgXPercent: number,
+        bgYPercent: number
+      ) => {
+        targetCtx.save();
+        // 画面の transformOrigin: center center
+        targetCtx.translate(size / 2, size / 2);
+        targetCtx.rotate((rotDeg * Math.PI) / 180);
+        targetCtx.translate(-size / 2, -size / 2);
+
+        // CSS の top: -25%, left: -25%, width: 150%, height: 150% に正確に対応
+        const rectSize = size * 1.5;
+        const rectOffset = -size * 0.25;
+
+        // CSS の background-position: X% Y% は (要素幅 - 画像幅) * (X / 100)
+        const posX = (rectSize - bgWidth) * (bgXPercent / 100);
+        const posY = (rectSize - bgHeight) * (bgYPercent / 100);
+
+        targetCtx.translate(rectOffset + posX, rectOffset + posY);
+        targetCtx.fillStyle = fillPattern;
+        targetCtx.fillRect(-size * 2, -size * 2, size * 5, size * 5);
+        targetCtx.restore();
+      };
 
       // 1. 半幅帯の合成
       if (itemType === 'hanhaba') {
@@ -577,23 +603,11 @@ function HomeContent() {
           tempCanvas.height = size;
           const tCtx = tempCanvas.getContext('2d')!;
 
-          const maskImg = await loadImage(`/${layer.file}?v=21`);
+          const maskImg = await loadImage(`/${layer.file}?v=30`);
           tCtx.drawImage(maskImg, 0, 0, size, size);
           tCtx.globalCompositeOperation = 'source-in';
 
-          tCtx.save();
-          tCtx.translate(size / 2, size / 2);
-          tCtx.rotate(layer.rot * Math.PI / 180);
-          tCtx.translate(-size / 2, -size / 2);
-
-          const rectSize = size * 1.5;
-          const rectOffset = -size * 0.25;
-
-          tCtx.translate(rectOffset + (rectSize * layer.bgX / 100), rectOffset + (rectSize * layer.bgY / 100));
-          tCtx.fillStyle = patternFill;
-          tCtx.fillRect(-size * 2, -size * 2, size * 4, size * 4); 
-          tCtx.restore();
-
+          drawLayer(tCtx, patternFill, layer.rot, layer.bgX, layer.bgY);
           ctx.drawImage(tempCanvas, 0, 0);
         }
 
@@ -601,14 +615,14 @@ function HomeContent() {
         tempCanvas7.width = size;
         tempCanvas7.height = size;
         const tCtx7 = tempCanvas7.getContext('2d')!;
-        const mask7 = await loadImage('/hanhaba_Layer07.png?v=21');
+        const mask7 = await loadImage('/hanhaba_Layer07.png?v=30');
         tCtx7.drawImage(mask7, 0, 0, size, size);
         tCtx7.globalCompositeOperation = 'source-in';
         tCtx7.fillStyle = obiLiningColor || '#dcdddd';
         tCtx7.fillRect(0, 0, size, size);
         ctx.drawImage(tempCanvas7, 0, 0);
 
-        const kage = await loadImage('/hanhaba_Layer_kage.png?v=21');
+        const kage = await loadImage('/hanhaba_Layer_kage.png?v=30');
         ctx.globalCompositeOperation = 'multiply';
         ctx.globalAlpha = 0.5; 
         ctx.drawImage(kage, 0, 0, size, size);
@@ -616,69 +630,26 @@ function HomeContent() {
         ctx.globalCompositeOperation = 'source-over';
       }
 
-      // 2. 京袋帯の合成
+      // 2. 京袋帯の合成（切り刻みや勝手な回転を全廃し、画面と完全同期）
       if (itemType === 'kyobukuro') {
-        const grandImg = await loadImage('/kyoubukurogrand.png?v=21');
+        const grandImg = await loadImage('/kyoubukurogrand.png?v=30');
         ctx.drawImage(grandImg, 0, 0, size, size);
 
         const urajiCanvas = document.createElement('canvas');
         urajiCanvas.width = size;
         urajiCanvas.height = size;
         const uCtx = urajiCanvas.getContext('2d')!;
-        const urajiImg = await loadImage('/kyoubukurouraji.png?v=21');
+        const urajiImg = await loadImage('/kyoubukurouraji.png?v=30');
         uCtx.drawImage(urajiImg, 0, 0, size, size);
         uCtx.globalCompositeOperation = 'source-in';
         uCtx.fillStyle = obiLiningColor || '#161616';
         uCtx.fillRect(0, 0, size, size);
         ctx.drawImage(urajiCanvas, 0, 0);
 
-        const isVerticalPattern = patternImg.height > patternImg.width * 1.5;
-        let taikoPatternFill = patternFill;
-        let haraPatternFill = patternFill;
-        let haraRot = 0;
-
-        if (isVerticalPattern && creationMode !== 'geometric') {
-          const sqSize = patternImg.width; 
-          const topCanvas = document.createElement('canvas');
-          topCanvas.width = sqSize;
-          topCanvas.height = sqSize;
-          topCanvas.getContext('2d')!.drawImage(patternImg, 0, patternImg.height - sqSize, sqSize, sqSize, 0, 0, sqSize, sqSize);
-          
-          const pTopCanvas = document.createElement('canvas');
-          pTopCanvas.width = bgWidth;
-          pTopCanvas.height = bgWidth;
-          const pTopCtx = pTopCanvas.getContext('2d')!;
-          pTopCtx.drawImage(topCanvas, 0, 0, bgWidth, bgWidth);
-          taikoPatternFill = ctx.createPattern(pTopCanvas, 'repeat')!;
-
-          const btmCanvas = document.createElement('canvas');
-          btmCanvas.width = sqSize;
-          btmCanvas.height = sqSize;
-          btmCanvas.getContext('2d')!.drawImage(patternImg, 0, 0, sqSize, sqSize, 0, 0, sqSize, sqSize);
-          
-          const pBtmCanvas = document.createElement('canvas');
-          pBtmCanvas.width = bgWidth;
-          pBtmCanvas.height = bgWidth;
-          const pBtmCtx = pBtmCanvas.getContext('2d')!;
-          pBtmCtx.drawImage(btmCanvas, 0, 0, bgWidth, bgWidth);
-          haraPatternFill = ctx.createPattern(pBtmCanvas, 'repeat')!;
-          
-          haraRot = 90;
-        }
-
-        let individualHaraImg: HTMLImageElement | null = null;
-        if (customHaraUrl) {
-          try {
-            individualHaraImg = await loadImage(customHaraUrl);
-          } catch (e) {
-            console.error('Failed to load custom hara image for canvas export:', e);
-          }
-        }
-
         const layers = [
-          { id: 'hara', file: 'kyoubukurohara.png', rot: 271, bgX: 50, bgY: 50, fill: haraPatternFill, extraRot: haraRot },
-          { id: 'tare', file: 'kyoubukurotare.png', rot: -1, bgX: 50, bgY: 50, fill: taikoPatternFill, extraRot: 0 },
-          { id: 'taiko', file: 'kyoubukurotakio.png', rot: 2, bgX: 50, bgY: 50, fill: taikoPatternFill, extraRot: 0 },
+          { id: 'hara', file: 'kyoubukurohara.png', rot: 271, bgX: 50, bgY: 50 },
+          { id: 'tare', file: 'kyoubukurotare.png', rot: -1, bgX: 50, bgY: 50 },
+          { id: 'taiko', file: 'kyoubukurotakio.png', rot: 2, bgX: 50, bgY: 50 },
         ];
 
         for (const layer of layers) {
@@ -686,40 +657,15 @@ function HomeContent() {
           tempCanvas.width = size;
           tempCanvas.height = size;
           const tCtx = tempCanvas.getContext('2d')!;
-          const maskImg = await loadImage(`/${layer.file}?v=21`);
+          const maskImg = await loadImage(`/${layer.file}?v=30`);
           tCtx.drawImage(maskImg, 0, 0, size, size);
           tCtx.globalCompositeOperation = 'source-in';
 
-          if (layer.id === 'hara' && individualHaraImg) {
-            const hRatio = Math.max(size / individualHaraImg.width, size / individualHaraImg.height);
-            const drawW = individualHaraImg.width * hRatio;
-            const drawH = individualHaraImg.height * hRatio;
-            const drawX = (size - drawW) / 2;
-            const drawY = (size - drawH) / 2;
-            tCtx.drawImage(individualHaraImg, drawX, drawY, drawW, drawH);
-          } else {
-            tCtx.save();
-            tCtx.translate(size / 2, size / 2);
-            tCtx.rotate(layer.rot * Math.PI / 180);
-            tCtx.translate(-size / 2, -size / 2);
-
-            const rectSize = size * 1.5;
-            const rectOffset = -size * 0.25;
-            tCtx.translate(rectOffset + (rectSize * layer.bgX / 100), rectOffset + (rectSize * layer.bgY / 100));
-            
-            if (layer.extraRot) {
-              tCtx.rotate(layer.extraRot * Math.PI / 180);
-            }
-            
-            tCtx.fillStyle = layer.fill;
-            tCtx.fillRect(-size * 2, -size * 2, size * 4, size * 4); 
-            tCtx.restore();
-          }
-
+          drawLayer(tCtx, patternFill, layer.rot, layer.bgX, layer.bgY);
           ctx.drawImage(tempCanvas, 0, 0);
         }
 
-        const kage = await loadImage('/kyoubukuromask.png?v=21');
+        const kage = await loadImage('/kyoubukuromask.png?v=30');
         ctx.globalCompositeOperation = 'multiply';
         ctx.globalAlpha = 0.5; 
         ctx.drawImage(kage, 0, 0, size, size);
@@ -727,34 +673,21 @@ function HomeContent() {
         ctx.globalCompositeOperation = 'source-over';
       }
 
-      // 3. 着物の合成
+      // 3. 着物の合成（半減バグを撤廃し、帯と完全に同じ等倍スケールで描画）
       if (itemType === 'kimono') {
         const haikei = await loadImage('/haikei.png?v=30');
         ctx.drawImage(haikei, 0, 0, size, size);
 
-        const kimonoBgWidth = bgWidth / 2;
-        const kimonoBgHeight = bgHeight / 2;
-        const kpCanvas = document.createElement('canvas');
-        kpCanvas.width = Math.max(1, kimonoBgWidth);
-        kpCanvas.height = Math.max(1, kimonoBgHeight);
-        const kpCtx = kpCanvas.getContext('2d')!;
-        if (creationMode === 'geometric' && geoBgColor) {
-          kpCtx.fillStyle = geoBgColor;
-          kpCtx.fillRect(0, 0, kimonoBgWidth, kimonoBgHeight);
-        }
-        kpCtx.drawImage(patternImg, 0, 0, kimonoBgWidth, kimonoBgHeight);
-        const kimonoPatternFill = ctx.createPattern(kpCanvas, 'repeat')!;
-
         const kimonoLayers = [
-          { id: 'usiromigoro', file: 'usiromigoro_75.png', angle: 75, bgX: 50, bgY: 50 },
-          { id: 'migisode', file: 'migisode_165.png', angle: 165, bgX: 20, bgY: 30 },
-          { id: 'hidarisode', file: 'hidarisode_150.png', angle: 150, bgX: 80, bgY: 40 },
-          { id: 'hidarisode2', file: 'hidarisode2_175.png', angle: 175, bgX: 80, bgY: 70 },
-          { id: 'maemigoro', file: 'maemigoro_105.png', angle: 105, bgX: 45, bgY: 60 },
-          { id: 'maemigoro2', file: 'maemigoro2_140.png', angle: 140, bgX: 45, bgY: 20 },
-          { id: 'maeokumi', file: 'maeokumi_110.png', angle: 110, bgX: 55, bgY: 50 },
-          { id: 'migieri', file: 'migieri_65.png', angle: 65, bgX: 30, bgY: 10 },
-          { id: 'hidarieri', file: 'hidarieri_117.png', angle: 117, bgX: 70, bgY: 10 },
+          { id: 'usiromigoro', file: 'usiromigoro_75.png', angle: 75 },
+          { id: 'hidarisode2', file: 'hidarisode2_175.png', angle: 175 },
+          { id: 'hidarisode', file: 'hidarisode_150.png', angle: 150 },
+          { id: 'migisode', file: 'migisode_165.png', angle: 165 },
+          { id: 'maemigoro2', file: 'maemigoro2_140.png', angle: 140 },
+          { id: 'maemigoro', file: 'maemigoro_105.png', angle: 105 },
+          { id: 'maeokumi', file: 'maeokumi_110.png', angle: 110 },
+          { id: 'migieri', file: 'migieri_65.png', angle: 65 },
+          { id: 'hidarieri', file: 'hidarieri_117.png', angle: 117 },
         ];
 
         for (const layer of kimonoLayers) {
@@ -766,18 +699,8 @@ function HomeContent() {
           tCtx.drawImage(maskImg, 0, 0, size, size);
           tCtx.globalCompositeOperation = 'source-in';
 
-          tCtx.save();
-          tCtx.translate(size / 2, size / 2);
-          tCtx.rotate((layer.angle - 90) * Math.PI / 180);
-          tCtx.translate(-size / 2, -size / 2);
-
-          const rectSize = size * 2;
-          const rectOffset = -size * 0.5;
-          tCtx.translate(rectOffset + (rectSize * layer.bgX / 100), rectOffset + (rectSize * layer.bgY / 100));
-          tCtx.fillStyle = kimonoPatternFill;
-          tCtx.fillRect(-size * 2, -size * 2, size * 5, size * 5);
-          tCtx.restore();
-
+          // 画面（PreviewArea）と全く同一の回転（angle - 90）と中心揃え（50%, 50%）
+          drawLayer(tCtx, patternFill, layer.angle - 90, 50, 50);
           ctx.drawImage(tempCanvas, 0, 0);
         }
 
@@ -1042,7 +965,7 @@ function HomeContent() {
                     <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded">プレビュー反映中</span>
                   </div>
 
-                  {/* ★ 4o-mini プロンプト抽出ボタン */}
+                  {/* 4o-mini プロンプト抽出ボタン */}
                   <button
                     type="button"
                     onClick={handleExtractPrompt}
