@@ -201,25 +201,9 @@ function HomeContent() {
     setImageUrl(svgDataUrl);
     setRotatedPatternUrl('');
 
-    const newSerial = `GEO-${Math.floor(1000 + Math.random() * 9000)}`;
-    setSerialNumber(newSerial);
-
-    // ★ 根本解決 1: 幾何学モードでも生成時に必ず Vercel Blob にアップロードして blobUrl を確保する
     try {
       const tiledPng = await renderTiledGeometricPng(svgDataUrl, tileSize, geoBgColor, 400, 2400);
-      
-      const uploadRes = await fetch('/api/upload-blob', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ base64Data: tiledPng, filename: `${newSerial}.png` }),
-      });
-      const uploadData = await uploadRes.json();
-      
-      if (uploadData.url) {
-        setBlobUrl(uploadData.url);
-      } else {
-        setBlobUrl(tiledPng); // 失敗時はフォールバック
-      }
+      setBlobUrl(tiledPng);
     } catch {
       try {
         const fallbackPng = await svgToHighResPng(svgString, 2400);
@@ -283,41 +267,16 @@ function HomeContent() {
   };
 
   // 入稿モード用：マスター画像の取り込みハンドラー
-  const handleUserImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUserImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
-    // ★ 根本解決 2: 入稿モードでもアップロード時に Vercel Blob に保存して blobUrl を確保する
-    const reader = new FileReader();
-    reader.onloadend = async () => {
-      const base64Data = reader.result as string;
-      setImageUrl(base64Data);
-      setRotatedPatternUrl('');
-      
-      const newSerial = `USER-${Math.floor(1000 + Math.random() * 9000)}`;
-      setSerialNumber(newSerial);
-      
-      const cleanFileName = file.name.replace(/\.[^/.]+$/, '');
-      setPatternTitle(cleanFileName ? `${cleanFileName}（持ち込み）` : '持ち込み図案');
-
-      try {
-        const uploadRes = await fetch('/api/upload-blob', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ base64Data, filename: `${newSerial}.png` }),
-        });
-        const uploadData = await uploadRes.json();
-        if (uploadData.url) {
-          setBlobUrl(uploadData.url);
-        } else {
-          setBlobUrl(base64Data);
-        }
-      } catch (err) {
-        console.error('Blob upload failed', err);
-        setBlobUrl(base64Data);
-      }
-    };
-    reader.readAsDataURL(file);
+    const url = URL.createObjectURL(file);
+    setImageUrl(url);
+    setBlobUrl('');
+    setRotatedPatternUrl('');
+    const cleanFileName = file.name.replace(/\.[^/.]+$/, '');
+    setPatternTitle(cleanFileName ? `${cleanFileName}（持ち込み）` : '持ち込み図案');
+    setSerialNumber(`USER-${Math.floor(1000 + Math.random() * 9000)}`);
   };
 
   // プロンプトコピーハンドラー
@@ -360,8 +319,6 @@ function HomeContent() {
 
     try {
       const colorNames = selectedColors.map(c => getColorNameFromHex(c.hex)).join('、');
-      
-      // API側ですでに Blob URL が返ってくる想定
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -381,7 +338,6 @@ function HomeContent() {
           useTicket: engineType === 'openai_premium'
         })
       });
-      
       const data = await res.json();
       if (!res.ok || data.error) throw new Error(data.error || '画像生成に失敗しました');
 
@@ -392,7 +348,7 @@ function HomeContent() {
       }
 
       setImageUrl(data.imageUrl);
-      setBlobUrl(data.blobUrl); 
+      setBlobUrl(data.blobUrl);
       
       const newSerial = `KOMON-${Math.floor(1000 + Math.random() * 9000)}`;
       setSerialNumber(newSerial);
@@ -600,6 +556,7 @@ function HomeContent() {
           haraRot = 90;
         }
 
+        // 個別前腹画像の事前ロード
         let individualHaraImg: HTMLImageElement | null = null;
         if (customHaraUrl) {
           try {
@@ -624,6 +581,7 @@ function HomeContent() {
           tCtx.drawImage(maskImg, 0, 0, size, size);
           tCtx.globalCompositeOperation = 'source-in';
 
+          // 前腹の個別画像がある場合は回転せずそのまま中央フィット描画
           if (layer.id === 'hara' && individualHaraImg) {
             const hRatio = Math.max(size / individualHaraImg.width, size / individualHaraImg.height);
             const drawW = individualHaraImg.width * hRatio;
@@ -797,32 +755,33 @@ function HomeContent() {
   const handleOrderClick = async (e: MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
     try {
-      // ★ 根本解決 3: 注文遷移時は必ずVercel Blob上の短いURL（blobUrl）を使う
       let finalImg = blobUrl || imageUrl;
       const validSerial = serialNumber || (creationMode === 'geometric' ? `GEO-${Math.floor(1000 + Math.random() * 9000)}` : `KOMON-${Math.floor(1000 + Math.random() * 9000)}`);
-      
       if (!serialNumber) setSerialNumber(validSerial);
 
-      // 半幅帯の場合は再レンダリング処理が必要だが、これも必ずアップロードして短いURLにする
+      // 半幅帯の場合は再レンダリング処理が必要
       if (itemType === 'hanhaba') {
-        const png18cm = await render18cmPrintDataPng(
+        finalImg = await render18cmPrintDataPng(
           creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl),
           creationMode === 'geometric' ? 'geometric' : 'ai',
           bgSizeMm,
           geoBgColor
         );
-        
-        // 生成した18cm縦長Base64データを Vercel Blob にアップロードしてURL化
+      }
+
+      // ▼ 巨大なBase64データを Vercel Blob にアップロードしてURL化（クラッシュ対策）
+      if (finalImg && finalImg.startsWith('data:')) {
         const uploadRes = await fetch('/api/upload-blob', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ base64Data: png18cm, filename: `${validSerial}_hanhaba.png` }),
+          body: JSON.stringify({ base64Data: finalImg, filename: `${validSerial}_${itemType}.png` }),
         });
         const uploadData = await uploadRes.json();
         if (uploadData.url) {
           finalImg = uploadData.url;
+          if (itemType !== 'hanhaba') setBlobUrl(uploadData.url); 
         } else {
-          throw new Error('半幅帯用画像のアップロードに失敗しました');
+          throw new Error('画像のアップロードに失敗しました');
         }
       }
 
@@ -833,7 +792,7 @@ function HomeContent() {
 
       const finalTitle = patternTitle.trim() || '（無題）';
 
-      // 工房へデータを送る（メール送信）※復活
+      // 工房宛てメール送信（復活）
       try {
         await fetch('/api/send-email', {
           method: 'POST',
@@ -844,21 +803,33 @@ function HomeContent() {
         console.warn('メール送信エラー:', mailErr);
       }
 
-      // ★ URL分岐処理（着物と帯の振り分け）
-      let targetOrderUrl = 'https://store.gofukuyasan.com/view/item/000000007300'; // 帯ページ（デフォルト）
-      if (itemType === 'kimono') {
-        targetOrderUrl = 'https://store.gofukuyasan.com/view/item/000000007312'; // 着物ページ
+      const result = await submitOrder(platform, {
+        title: finalTitle,
+        serialNumber: validSerial,
+        imageUrl: finalImg,
+        itemType,
+        creationMode: creationMode === 'geometric' ? 'geometric' : 'ai',
+        vendor: 'Printag Creator',
+        designFee,
+      });
+
+      if (result.message) alert(result.message);
+
+      // ▼ MakeShop遷移時のURL振り分け（着物か帯か）
+      if (platform === 'makeshop') {
+        let targetOrderUrl = 'https://store.gofukuyasan.com/view/item/000000007300'; // 帯ページ（デフォルト）
+        if (itemType === 'kimono') {
+          targetOrderUrl = 'https://store.gofukuyasan.com/view/item/000000007312'; // 着物ページ
+        }
+        const cleanOrderUrl = `${targetOrderUrl}?komon_id=${encodeURIComponent(validSerial)}&title=${encodeURIComponent(finalTitle)}&image_url=${encodeURIComponent(finalImg)}`;
+        window.location.href = cleanOrderUrl;
+      } else if (result.redirectUrl) {
+        // Shopify等の場合は既存のredirectUrlに従う
+        window.location.href = result.redirectUrl;
       }
 
-      // MakeShopの仕様に合わせてURLパラメータを付与して遷移
-      // ※ finalImg は短い blobUrl なのでURLが長すぎてクラッシュすることはない
-      const cleanOrderUrl = `${targetOrderUrl}?komon_id=${encodeURIComponent(validSerial)}&title=${encodeURIComponent(finalTitle)}&image_url=${encodeURIComponent(finalImg)}`;
-      
-      window.location.href = cleanOrderUrl;
-
     } catch (err: any) {
-      console.error(err);
-      setErrorMsg(err.message || '注文画面への遷移中にエラーが発生しました');
+      setErrorMsg(err.message || '通信エラーが発生しました');
     }
   };
 
