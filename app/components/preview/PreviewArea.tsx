@@ -59,21 +59,21 @@ export default function PreviewArea(props: PreviewAreaProps) {
   // 出力画像は常にたった1つ（単一マスター画像）
   const effectivePatternUrl = creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl);
 
-  // ★ 全アイテム共通・実寸ロック黄金比率（半幅帯・京袋帯・着物すべてで完全に同一のスケール）
+  // ★ 全アイテム共通・実寸ロック黄金比率（マスター400mm角基準で半幅帯・京袋帯・着物すべて等倍同期）
   const patternSize = creationMode === 'geometric'
     ? `${bgSizeMm * UNIVERSAL_SCALE_FACTOR}% auto`
-    : `${180 * UNIVERSAL_SCALE_FACTOR}% auto`;
+    : `${400 * UNIVERSAL_SCALE_FACTOR}% auto`;
 
   const v = '30';
 
-  // 半幅帯パーツ定義
+  // 半幅帯パーツ定義（角度rotは完全保持、柄位置は40cmセンター正中線50% 50%に統一）
   const hanhabaLayers = [
-    { id: '01', file: 'hanhaba_Layer01.png', z: 10, rot: 2, bgX: '12%', bgY: '34%' },
-    { id: '02', file: 'hanhaba_Layer02.png', z: 20, rot: 1, bgX: '45%', bgY: '67%' },
-    { id: '03', file: 'hanhaba_Layer03.png', z: 30, rot: 8, bgX: '78%', bgY: '12%' },
-    { id: '04', file: 'hanhaba_Layer04.png', z: 40, rot: -1, bgX: '23%', bgY: '89%' },
-    { id: '05', file: 'hanhaba_Layer05.png', z: 50, rot: -10, bgX: '56%', bgY: '45%' },
-    { id: '06', file: 'hanhaba_Layer06.png', z: 60, rot: -93, bgX: '89%', bgY: '23%' },
+    { id: '01', file: 'hanhaba_Layer01.png', z: 10, rot: 2, bgX: '50%', bgY: '50%' },
+    { id: '02', file: 'hanhaba_Layer02.png', z: 20, rot: 1, bgX: '50%', bgY: '50%' },
+    { id: '03', file: 'hanhaba_Layer03.png', z: 30, rot: 8, bgX: '50%', bgY: '50%' },
+    { id: '04', file: 'hanhaba_Layer04.png', z: 40, rot: -1, bgX: '50%', bgY: '50%' },
+    { id: '05', file: 'hanhaba_Layer05.png', z: 50, rot: -10, bgX: '50%', bgY: '50%' },
+    { id: '06', file: 'hanhaba_Layer06.png', z: 60, rot: -93, bgX: '50%', bgY: '50%' },
   ];
 
   // 半幅帯マッピングのレイヤー描画
@@ -146,7 +146,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
     </div>
   );
 
-  // 京袋帯パーツ定義
+  // 京袋帯パーツ定義（角度rotは完全保持、センター正中線50% 50%）
   const kyobukuroLayers = [
     { id: 'hara', file: 'kyoubukurohara.png', z: 30, rot: 271, bgX: '50%', bgY: '50%' },
     { id: 'tare', file: 'kyoubukurotare.png', z: 40, rot: -1, bgX: '50%', bgY: '50%' },
@@ -227,7 +227,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
     </div>
   );
 
-  // 着物パーツ定義（分度器実測角度ルール）
+  // 着物パーツ定義（分度器実測角度ルール・完全保持）
   const kimonoParts = [
     { id: 'usiromigoro', file: 'usiromigoro_75.png', angle: 75, z: 2 },
     { id: 'hidarisode2', file: 'hidarisode2_175.png', angle: 175, z: 3 },
@@ -240,7 +240,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
     { id: 'hidarieri', file: 'hidarieri_117.png', angle: 117, z: 10 },
   ];
 
-  // 着物マッピングのレイヤー描画（半幅帯と完全に同じ土台 150% ＆ 同じ patternSize で等倍描画）
+  // 着物マッピングのレイヤー描画（全パーツ center center ＆ 同一土台 150% ＆ patternSize で等倍描画）
   const renderKimonoLayers = () => (
     <div className="relative w-full h-full overflow-hidden">
       <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 1 }}>
@@ -271,7 +271,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
               width: '150%',
               height: '150%',
               backgroundImage: `url(${effectivePatternUrl})`,
-              backgroundSize: patternSize, // 半幅帯とまったく同じスケール
+              backgroundSize: patternSize,
               backgroundRepeat: 'repeat',
               backgroundPosition: 'center center',
               transform: `rotate(${part.angle - 90}deg)`,
@@ -596,15 +596,15 @@ export default function PreviewArea(props: PreviewAreaProps) {
             </div>
           )}
 
-          {/* トリム表示 */}
+          {/* トリム表示（京袋帯 34cm 裁断イメージ：40cmマスターの中央34cmを左右各3cmトリミング） */}
           {displayMode === 'trim' && itemType === 'kyobukuro' && (
             <div className="w-full flex flex-col items-center animate-fade-in">
-              <div className="relative w-[280px] sm:w-[400px] mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden" style={{ aspectRatio: '40 / 34' }}>
+              <div className="relative w-[272px] sm:w-[340px] mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden" style={{ aspectRatio: '34 / 40' }}>
                 <div
                   className="absolute inset-0"
                   style={{
                     backgroundImage: `url(${effectivePatternUrl})`,
-                    backgroundSize: creationMode === 'geometric' ? `${(bgSizeMm / 400) * 100}% auto` : `${(180 / 400) * 100}% auto`,
+                    backgroundSize: creationMode === 'geometric' ? `${(bgSizeMm / 340) * 100}% auto` : `${(400 / 340) * 100}% auto`,
                     backgroundPosition: 'center center',
                     backgroundRepeat: 'repeat',
                     backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff',
@@ -618,19 +618,21 @@ export default function PreviewArea(props: PreviewAreaProps) {
           {displayMode === 'data' && (
             <div className="flex flex-col items-center w-full animate-fade-in">
               {itemType === 'hanhaba' ? (
+                // 半幅帯 18cm プリントデータ：40cmマスターの中央18cmを左右各11cmトリミング
                 <div className="relative mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden" style={{ width: '216px', height: '480px' }}>
                   <div
                     className="absolute inset-0"
                     style={{
                       backgroundImage: `url(${effectivePatternUrl})`,
-                      backgroundSize: creationMode === 'geometric' ? `${(bgSizeMm / 180) * 100}% auto` : '100% auto',
-                      backgroundPosition: 'top left',
+                      backgroundSize: creationMode === 'geometric' ? `${(bgSizeMm / 180) * 100}% auto` : `${(400 / 180) * 100}% auto`,
+                      backgroundPosition: 'center top',
                       backgroundRepeat: 'repeat',
                       backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff',
                     }}
                   />
                 </div>
               ) : (
+                // 40cm 反物データ：40cmマスター正方形をそのまま等倍表示
                 <div className="relative w-[260px] sm:w-[400px] aspect-square mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden">
                   <div
                     className="absolute inset-0"
