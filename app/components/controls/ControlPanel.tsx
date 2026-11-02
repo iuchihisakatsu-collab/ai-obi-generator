@@ -652,7 +652,7 @@ export default function ControlPanel({
               </div>
 
               {/* ===== ボタン③：チケットコードで丁寧に作る ===== */}
-              <div className="p-3.5 bg-zinc-50 border border-zinc-200 rounded-sm space-y-2 relative z-10">
+              <div className="p-3.5 bg-zinc-50 border border-zinc-200 rounded-sm space-y-2.5 relative z-10">
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-2">
                     <span className="text-[11px] font-bold text-zinc-800">
@@ -702,7 +702,20 @@ export default function ControlPanel({
                       : 'チケットコードで丁寧に作る'}
                   </button>
                 </div>
-                {premiumStatusMsg && <p className="text-[10px] text-green-700 font-bold">{premiumStatusMsg}</p>}
+
+                {/* ★ チケット生成時の完了通知カード（視認性改善） ★ */}
+                {premiumStatusMsg && (
+                  <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-sm flex items-center gap-2.5 animate-fade-in shadow-2xs">
+                    <div className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 text-xs font-black">
+                      ✓
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs sm:text-sm font-black text-emerald-900 leading-snug">
+                        {premiumStatusMsg}
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* ★★★ 独立した生成中ステップ表示専用エリア（大きく・クッキリ・白背景） ★★★ */}
