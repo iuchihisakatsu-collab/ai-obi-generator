@@ -58,6 +58,33 @@ export default function PreviewArea(props: PreviewAreaProps) {
   const [activeFloatPalette, setActiveFloatPalette] = useState<'lining' | 'haneri' | 'obiage' | 'obi' | 'hara' | null>(null);
   const [isZoomModalOpen, setIsZoomModalOpen] = useState<boolean>(false);
 
+  // ★ 半幅帯リアルタイム位置調整スライダー用のState（手元コードの現在値を完全反映）
+  const [showTuningPanel, setShowTuningPanel] = useState<boolean>(true);
+  const [hanhabaOffsets, setHanhabaOffsets] = useState([
+    { id: '01', name: 'Layer01（奥羽・左）', file: 'hanhaba_Layer01.png', z: 10, rot: 2,   x: 50, y: 50 },
+    { id: '02', name: 'Layer02（奥羽・右）', file: 'hanhaba_Layer02.png', z: 20, rot: 1,   x: 50, y: 50 },
+    { id: '03', name: 'Layer03（奥垂れ）',   file: 'hanhaba_Layer03.png', z: 30, rot: 8,   x: 50, y: 50 },
+    { id: '04', name: 'Layer04（手前羽・左）', file: 'hanhaba_Layer04.png', z: 40, rot: -1,  x: 83, y: 35 },
+    { id: '05', name: 'Layer05（手前羽・右）', file: 'hanhaba_Layer05.png', z: 50, rot: -10, x: 83, y: 35 },
+    { id: '06', name: 'Layer06（手前垂れ・基準）', file: 'hanhaba_Layer06.png', z: 60, rot: -93, x: 50, y: 50 },
+  ]);
+
+  const handleOffsetChange = (index: number, axis: 'x' | 'y', value: number) => {
+    setHanhabaOffsets((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], [axis]: value };
+      return next;
+    });
+  };
+
+  const handleCopyCode = () => {
+    const code = `  const hanhabaLayers = [\n` +
+      hanhabaOffsets.map((l) => `    { id: '${l.id}', file: '${l.file}', z: ${l.z}, rot: ${l.rot}, bgX: '${l.x}%', bgY: '${l.y}%' },`).join('\n') +
+      `\n  ];`;
+    navigator.clipboard.writeText(code);
+    alert('確定コードをコピーしました！チャットに貼り付けてください。');
+  };
+
   if (!imageUrl) return null;
 
   // 出力画像は常にたった1つ（単一マスター画像）
@@ -70,20 +97,10 @@ export default function PreviewArea(props: PreviewAreaProps) {
 
   const v = '30';
 
-  // 半幅帯パーツ定義（角度rot完全保持）
-  const hanhabaLayers = [
-    { id: '01', file: 'hanhaba_Layer01.png', z: 10, rot: 2, bgX: '50%', bgY: '50%' },
-    { id: '02', file: 'hanhaba_Layer02.png', z: 20, rot: 1, bgX: '50%', bgY: '50%' },
-    { id: '03', file: 'hanhaba_Layer03.png', z: 30, rot: 8, bgX: '50%', bgY: '50%' },
-    { id: '04', file: 'hanhaba_Layer04.png', z: 40, rot: -1, bgX: '83%', bgY: '35%' },
-    { id: '05', file: 'hanhaba_Layer05.png', z: 50, rot: -10, bgX: '83%', bgY: '35%' },
-    { id: '06', file: 'hanhaba_Layer06.png', z: 60, rot: -93, bgX: '50%', bgY: '50%' },
-  ];
-
-  // 半幅帯マッピングのレイヤー描画
+  // 半幅帯マッピングのレイヤー描画（スライダーStateとリアルタイム連動）
   const renderHanhabaLayers = () => (
     <div className="relative w-full h-full overflow-hidden">
-      {hanhabaLayers.map((layer) => (
+      {hanhabaOffsets.map((layer) => (
         <div
           key={layer.id}
           className="absolute inset-0 pointer-events-none"
@@ -109,10 +126,11 @@ export default function PreviewArea(props: PreviewAreaProps) {
               backgroundImage: `url(${effectivePatternUrl})`,
               backgroundSize: patternSize,
               backgroundRepeat: 'repeat',
-              backgroundPosition: `${layer.bgX} ${layer.bgY}`,
+              backgroundPosition: `${layer.x}% ${layer.y}%`,
               transform: `rotate(${layer.rot}deg)`,
               transformOrigin: 'center center',
               backgroundColor: creationMode === 'geometric' ? geoBgColor : 'transparent',
+              transition: 'background-position 0.05s ease-out',
             }}
           />
         </div>
@@ -185,7 +203,6 @@ export default function PreviewArea(props: PreviewAreaProps) {
         const isHara = layer.id === 'hara';
         const useIndividualHara = isHara && !!customHaraUrl;
         
-        // 個別前腹がある場合はその画像を使用、回転角0度（回転させない）
         const layerPatternUrl = useIndividualHara ? customHaraUrl : effectivePatternUrl;
         const layerRot = useIndividualHara ? 0 : layer.rot;
         const layerBgPos = useIndividualHara ? 'center center' : `${layer.bgX} ${layer.bgY}`;
@@ -332,7 +349,6 @@ export default function PreviewArea(props: PreviewAreaProps) {
         <div className="w-full h-full" style={{ backgroundColor: kimonoObiageColor }} />
       </div>
 
-      {/* 着物の帯パーツ */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
@@ -537,6 +553,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
                             activeFloatPalette === 'hara' ? 'bg-zinc-950 text-white border-zinc-950' : 'bg-white text-zinc-800 border-zinc-300 hover:bg-zinc-100'
                           }`}
                         >
+                          <span className="w-2.5 h-2.5 rounded-full border border-zinc-400 shrink-0 inline-block" style={{ backgroundColor: obiLiningColor }} />
                           <span>前腹{customHaraUrl ? '(画像)' : ''}</span>
                         </button>
                       </>
@@ -574,7 +591,6 @@ export default function PreviewArea(props: PreviewAreaProps) {
                         </button>
                       </div>
 
-                      {/* 京袋帯の前腹個別アップロード */}
                       {activeFloatPalette === 'hara' && (
                         <div className="flex flex-col gap-2">
                           <p className="text-[9px] text-zinc-500 leading-normal">
@@ -596,7 +612,6 @@ export default function PreviewArea(props: PreviewAreaProps) {
                         </div>
                       )}
 
-                      {/* 着物の帯指定 */}
                       {activeFloatPalette === 'obi' && (
                         <div className="flex gap-1 mb-2 pb-1 border-b border-zinc-100">
                           <button
@@ -613,7 +628,6 @@ export default function PreviewArea(props: PreviewAreaProps) {
                         </div>
                       )}
 
-                      {/* 伝統色パレット（半衿・帯揚・裏地・着物の帯色） */}
                       {!(activeFloatPalette === 'hara' || (activeFloatPalette === 'obi' && customObiUrl)) && (
                         <div className="max-h-[150px] overflow-y-auto pr-1 grid grid-cols-4 sm:grid-cols-6 gap-1">
                           {TRADITIONAL_COLORS.map((col) => (
@@ -658,6 +672,94 @@ export default function PreviewArea(props: PreviewAreaProps) {
                   {mockupSubmitting ? '画像を作成中...' : '↓ マッピング画像を保存'}
                 </button>
               </div>
+
+              {/* ★★★ 半幅帯リアルタイム位置調整スライダーパネル（開発用ツール） ★★★ */}
+              {itemType === 'hanhaba' && (
+                <div className="w-full mt-4 bg-white border-2 border-indigo-500 rounded p-3 shadow-lg text-left">
+                  <div className="flex justify-between items-center mb-2 pb-1 border-b border-zinc-200">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs">🎛️</span>
+                      <span className="text-[11px] font-black text-indigo-950">
+                        半幅帯 各パーツ位置微調整（目視スライダー）
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowTuningPanel(!showTuningPanel)}
+                      className="text-[10px] font-bold text-zinc-500 hover:text-zinc-950 underline"
+                    >
+                      {showTuningPanel ? '閉じる' : '開く'}
+                    </button>
+                  </div>
+
+                  {showTuningPanel && (
+                    <div className="space-y-3">
+                      <p className="text-[9px] text-zinc-500 leading-tight">
+                        手前垂れ（Layer06）を基準に、羽パーツ（Layer01, 02, 04, 05）は主に<strong>「Y（縦）」</strong>を動かすと黒鍵が現れます。
+                      </p>
+
+                      <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+                        {hanhabaOffsets.map((layer, idx) => (
+                          <div key={layer.id} className="p-2 bg-zinc-50 border border-zinc-200 rounded text-[10px]">
+                            <div className="flex justify-between items-center mb-1">
+                              <span className="font-bold text-zinc-800">{layer.name}</span>
+                              <span className="font-mono text-zinc-500 text-[9px]">
+                                X: {layer.x}% / Y: {layer.y}% (rot: {layer.rot}°)
+                              </span>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <div className="flex justify-between text-[9px] text-zinc-600 mb-0.5">
+                                  <span>X（横位置）</span>
+                                  <span className="font-mono font-bold text-indigo-600">{layer.x}%</span>
+                                </div>
+                                <input
+                                  type="range"
+                                  min="0"
+                                  max="100"
+                                  step="1"
+                                  value={layer.x}
+                                  onChange={(e) => handleOffsetChange(idx, 'x', Number(e.target.value))}
+                                  className="w-full accent-indigo-600 cursor-pointer h-1.5 bg-zinc-200 rounded"
+                                />
+                              </div>
+
+                              <div>
+                                <div className="flex justify-between text-[9px] text-zinc-600 mb-0.5">
+                                  <span>Y（縦位置）</span>
+                                  <span className="font-mono font-bold text-indigo-600">{layer.y}%</span>
+                                </div>
+                                <input
+                                  type="range"
+                                  min="0"
+                                  max="100"
+                                  step="1"
+                                  value={layer.y}
+                                  onChange={(e) => handleOffsetChange(idx, 'y', Number(e.target.value))}
+                                  className="w-full accent-indigo-600 cursor-pointer h-1.5 bg-zinc-200 rounded"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="pt-2 border-t border-zinc-200 flex gap-2">
+                        <button
+                          type="button"
+                          onClick={handleCopyCode}
+                          className="flex-1 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold rounded shadow transition-colors flex items-center justify-center gap-1"
+                        >
+                          <span>📋</span>
+                          <span>調整した数値をコピー</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
             </div>
           )}
 
