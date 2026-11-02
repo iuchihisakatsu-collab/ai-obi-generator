@@ -57,6 +57,7 @@ function HomeContent() {
   const [platform, setPlatform] = useState<PlatformType>((searchParams.get('platform') as PlatformType) || 'makeshop');
   const [designFee, setDesignFee] = useState<number>(1000);
 
+  // モード：幾何学 / AI妄想 / 画像入稿
   const [creationMode, setCreationMode] = useState<'ai' | 'geometric' | 'upload'>('geometric');
   const [itemType, setItemType] = useState<'hanhaba' | 'kyobukuro' | 'kimono'>('hanhaba');
   const [displayMode, setDisplayMode] = useState<'mockup' | 'trim' | 'data'>('mockup');
@@ -86,6 +87,7 @@ function HomeContent() {
   const [kimonoObiageColor, setKimonoObiageColor] = useState<string>('#c82a36');
   const [kimonoObiColor, setKimonoObiColor] = useState<string>('#1a1a1a');
   
+  // 着物の帯・京袋帯の前腹の個別画像State
   const [customObiUrl, setCustomObiUrl] = useState<string | null>(null);
   const [customHaraUrl, setCustomHaraUrl] = useState<string | null>(null);
 
@@ -95,6 +97,7 @@ function HomeContent() {
   const [generatingMode, setGeneratingMode] = useState<'flux' | 'openai_free' | 'openai_premium' | null>(null);
   const [loadingStep, setLoadingStep] = useState<number>(0);
 
+  // 回数管理（スケッチ15回・無料1回・チケット残数）
   const [remainingFlux, setRemainingFlux] = useState<number>(MAX_FLUX_PER_DAY);
   const [remainingOpenAI, setRemainingOpenAI] = useState<number>(MAX_OPENAI_PER_DAY);
   const [ticketRemaining, setTicketRemaining] = useState<number | null>(null);
@@ -110,11 +113,13 @@ function HomeContent() {
   const [mockupSubmitting, setMockupSubmitting] = useState<boolean>(false);
   const [isNoticeOpen, setIsNoticeOpen] = useState<boolean>(false);
 
+  // コピー完了状態の管理
   const [copiedPromptType, setCopiedPromptType] = useState<'seamless' | 'centered' | null>(null);
 
   const previewRef = useRef<HTMLDivElement>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
 
+  // 日付チェック（日本時間0時をまたいだら自動リセット）
   useEffect(() => {
     const today = getTodayJST();
     const storedDate = localStorage.getItem('komon_usage_date');
@@ -143,6 +148,18 @@ function HomeContent() {
     }
   };
 
+  // ★ 修正 2: 「ぷっぴ」隠しコマンドの復活（確実に回数をMAXに戻す）
+  useEffect(() => {
+    if (motif.trim() === 'ぷっぴ') {
+      localStorage.setItem('komon_count_flux', '0');
+      localStorage.setItem('komon_count_openai', '0');
+      setRemainingFlux(MAX_FLUX_PER_DAY);
+      setRemainingOpenAI(MAX_OPENAI_PER_DAY);
+      setMotif('');
+      alert('【管理者モード】本日の生成回数を全回復しました。');
+    }
+  }, [motif]);
+
   useEffect(() => {
     const src = blobUrl || imageUrl;
     if (!src) {
@@ -150,6 +167,7 @@ function HomeContent() {
       return;
     }
 
+    // AIモードまたは入稿モードの半幅帯では90度回転を適用
     if (creationMode !== 'geometric' && itemType === 'hanhaba') {
       rotateImage90Degrees(src)
         .then((rotated) => setRotatedPatternUrl(rotated))
@@ -278,6 +296,13 @@ function HomeContent() {
 
   const handleGenerate = async (engineType: 'flux' | 'openai_free' | 'openai_premium') => {
     if (loading) return;
+
+    // ★ 修正 1: 同意チェックの復活
+    if (creationMode === 'ai' && !agreed) {
+      setErrorMsg('生成図案の利用に関する確認事項への同意が必要です。');
+      return;
+    }
+
     if (engineType === 'flux' && remainingFlux <= 0) {
       setErrorMsg('本日のスケッチ作成上限に達しました。');
       return;
@@ -396,6 +421,7 @@ function HomeContent() {
   };
 
   const handleDownloadMapping = async () => {
+    // 既存のダウンロード処理
     if (!previewContainerRef.current) return;
     try {
       setMockupSubmitting(true);
@@ -740,12 +766,12 @@ function HomeContent() {
     }
   };
 
-  // ★追加：注文ボタン押下時のMakeShop遷移（クラッシュ対策＆URL振り分け）
   const handleOrderClick = async (e: MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
     try {
       let finalImg = blobUrl || imageUrl;
       const validSerial = serialNumber || (creationMode === 'geometric' ? `GEO-${Math.floor(1000 + Math.random() * 9000)}` : `KOMON-${Math.floor(1000 + Math.random() * 9000)}`);
+      
       if (!serialNumber) setSerialNumber(validSerial);
 
       if (itemType === 'hanhaba') {
@@ -757,7 +783,6 @@ function HomeContent() {
         );
       }
 
-      // ▼ 巨大なBase64データを Vercel Blob にアップロードしてURL化（クラッシュ対策）
       if (finalImg && finalImg.startsWith('data:')) {
         const uploadRes = await fetch('/api/upload-blob', {
           method: 'POST',
@@ -768,7 +793,7 @@ function HomeContent() {
         if (uploadData.url) {
           finalImg = uploadData.url;
         } else {
-          throw new Error('画像のアップロードに失敗しました');
+          throw new Error('画像データのアップロードに失敗しました。');
         }
       }
 
@@ -785,7 +810,7 @@ function HomeContent() {
           body: JSON.stringify({ imageUrl: finalImg, komonId: validSerial, title: finalTitle }),
         });
       } catch (mailErr) {
-        console.warn('メール送信エラー:', mailErr);
+        console.warn('工房へのメール送信に失敗しました:', mailErr);
       }
 
       const result = await submitOrder(platform, {
@@ -800,12 +825,12 @@ function HomeContent() {
 
       if (result.message) alert(result.message);
 
-      // ▼ MakeShopへのURL振り分け
       if (platform === 'makeshop') {
-        let targetOrderUrl = 'https://store.gofukuyasan.com/view/item/000000007300';
+        let targetOrderUrl = 'https://store.gofukuyasan.com/view/item/000000007300'; 
         if (itemType === 'kimono') {
-          targetOrderUrl = 'https://store.gofukuyasan.com/view/item/000000007312';
+          targetOrderUrl = 'https://store.gofukuyasan.com/view/item/000000007312'; 
         }
+        
         const cleanOrderUrl = `${targetOrderUrl}?komon_id=${encodeURIComponent(validSerial)}&title=${encodeURIComponent(finalTitle)}&image_url=${encodeURIComponent(finalImg)}`;
         window.location.href = cleanOrderUrl;
       } else if (result.redirectUrl) {
@@ -813,69 +838,186 @@ function HomeContent() {
       }
 
     } catch (err: any) {
-      setErrorMsg(err.message || '通信エラーが発生しました');
+      console.error(err);
+      setErrorMsg(err.message || '注文画面への遷移中にエラーが発生しました');
     }
   };
 
+  const PROMPT_SEAMLESS = 'seamless textile pattern, full-bleed design, no humans, no mockups --tile --ar 1:1';
+  const PROMPT_CENTERED = 'centered composition, artwork directly in the center, ample margin on left and right, full-bleed design, no humans, no mockups --ar 1:1';
+
   return (
     <div className="min-h-screen bg-[#f4f4f5] text-zinc-900 flex flex-col items-center justify-start font-sans lg:p-8">
-      <div className="w-full max-w-7xl flex flex-col lg:flex-row lg:gap-6 items-start justify-center">
+      {/* ★ 修正 4: 全体の最大幅を広げ（1440px）、PCで見た時にプレビューを大きく（55%）、操作パネルを45%に調整 */}
+      <div className="w-full max-w-[1440px] flex flex-col lg:flex-row lg:gap-8 items-start justify-center mx-auto">
         
-        <PreviewArea
-          imageUrl={imageUrl} blobUrl={blobUrl} rotatedPatternUrl={rotatedPatternUrl}
-          serialNumber={serialNumber} itemType={itemType} displayMode={displayMode}
-          creationMode={creationMode === 'geometric' ? 'geometric' : 'ai'} bgSizeMm={bgSizeMm}
-          geoBgColor={geoBgColor}
-          obiLiningColor={obiLiningColor}
-          setObiLiningColor={setObiLiningColor}
-          kimonoHaneriColor={kimonoHaneriColor}
-          setKimonoHaneriColor={setKimonoHaneriColor}
-          kimonoObiageColor={kimonoObiageColor}
-          setKimonoObiageColor={setKimonoObiageColor}
-          kimonoObiColor={kimonoObiColor}
-          setKimonoObiColor={setKimonoObiColor}
-          customObiUrl={customObiUrl}
-          setCustomObiUrl={setCustomObiUrl}
-          handleCustomObiUpload={handleCustomObiUpload}
-          customHaraUrl={customHaraUrl}
-          setCustomHaraUrl={setCustomHaraUrl}
-          handleCustomHaraUpload={handleCustomHaraUpload}
-          mockupSubmitting={mockupSubmitting} previewRef={previewRef} previewContainerRef={previewContainerRef}
-          handleItemTypeChange={setItemType} setDisplayMode={setDisplayMode}
-          handleDownloadMapping={handleDownloadMapping} UNIVERSAL_SCALE_FACTOR={UNIVERSAL_SCALE_FACTOR}
-        />
-
-        <div className="w-full lg:w-1/2 flex flex-col gap-3">
-          <ControlPanel
-            creationMode={creationMode} setCreationMode={setCreationMode}
-            itemType={itemType} setItemType={setItemType}
-            aiStyle={aiStyle} setAiStyle={setAiStyle}
-            selectedArtist={selectedArtist} setSelectedArtist={setSelectedArtist}
-            motif={motif} setMotif={setMotif}
-            motif2={motif2} setMotif2={setMotif2}
-            selectedColors={selectedColors} setSelectedColors={setSelectedColors} handleColorToggle={handleColorToggle}
-            showColorPalette={showColorPalette} setShowColorPalette={setShowColorPalette}
-            density={density} setDensity={setDensity}
-            geoPatternType={geoPatternType} setGeoPatternType={setGeoPatternType}
-            stripeDir={stripeDir} setStripeDir={setStripeDir} dotLayout={dotLayout} setDotLayout={setDotLayout}
-            dotRadius={dotRadius} setDotRadius={setDotRadius} gapWidth={gapWidth} setGapWidth={setGapWidth}
-            lineWidth={lineWidth} setLineWidth={setLineWidth} geoBgColor={geoBgColor} setGeoBgColor={setGeoBgColor}
-            geoPatternColor={geoPatternColor} setGeoPatternColor={setGeoPatternColor}
-            showGeoPaletteFor={showGeoPaletteFor} setShowGeoPaletteFor={setShowGeoPaletteFor}
-            agreed={agreed} setAgreed={setAgreed} errorMsg={errorMsg}
-            loading={loading}
-            generatingMode={generatingMode}
-            remainingCount={remainingOpenAI}
-            remainingFlux={remainingFlux}
-            remainingOpenAI={remainingOpenAI}
-            ticketRemaining={ticketRemaining}
-            loadingStep={loadingStep}
-            handleGenerate={handleGenerate} imageUrl={imageUrl} patternTitle={patternTitle} setPatternTitle={setPatternTitle}
-            serialNumber={serialNumber}
-            handleDownloadOriginal={handleDownloadOriginal} handleOrderClick={handleOrderClick}
-            premiumCode={premiumCode} setPremiumCode={setPremiumCode}
-            premiumStatusMsg={premiumStatusMsg}
+        <div className="w-full lg:w-[55%] shrink-0">
+          <PreviewArea
+            imageUrl={imageUrl} blobUrl={blobUrl} rotatedPatternUrl={rotatedPatternUrl}
+            serialNumber={serialNumber} itemType={itemType} displayMode={displayMode}
+            creationMode={creationMode === 'geometric' ? 'geometric' : 'ai'} bgSizeMm={bgSizeMm}
+            geoBgColor={geoBgColor}
+            obiLiningColor={obiLiningColor}
+            setObiLiningColor={setObiLiningColor}
+            kimonoHaneriColor={kimonoHaneriColor}
+            setKimonoHaneriColor={setKimonoHaneriColor}
+            kimonoObiageColor={kimonoObiageColor}
+            setKimonoObiageColor={setKimonoObiageColor}
+            kimonoObiColor={kimonoObiColor}
+            setKimonoObiColor={setKimonoObiColor}
+            customObiUrl={customObiUrl}
+            setCustomObiUrl={setCustomObiUrl}
+            handleCustomObiUpload={handleCustomObiUpload}
+            customHaraUrl={customHaraUrl}
+            setCustomHaraUrl={setCustomHaraUrl}
+            handleCustomHaraUpload={handleCustomHaraUpload}
+            mockupSubmitting={mockupSubmitting} previewRef={previewRef} previewContainerRef={previewContainerRef}
+            handleItemTypeChange={setItemType} setDisplayMode={setDisplayMode}
+            handleDownloadMapping={handleDownloadMapping} UNIVERSAL_SCALE_FACTOR={UNIVERSAL_SCALE_FACTOR}
           />
+        </div>
+
+        <div className="w-full lg:w-[45%] flex flex-col gap-3">
+          {/* ★ 修正 3: 二重タブの原因だった親タブ（幾何学・AI・入稿）を削除 */}
+          {/* 入稿モード専用パネル */}
+          {creationMode === 'upload' ? (
+            <div className="bg-white border border-zinc-300 shadow-xl p-5 flex flex-col gap-5 animate-fade-in rounded-sm">
+              <div className="flex bg-zinc-50 border border-zinc-200 p-1 mb-2 shadow-sm">
+                <button type="button" onClick={() => setCreationMode('geometric')} className="flex-1 py-2 text-xs font-bold rounded transition-all text-zinc-600 hover:bg-zinc-200">幾何学模様</button>
+                <button type="button" onClick={() => setCreationMode('ai')} className="flex-1 py-2 text-xs font-bold rounded transition-all text-zinc-600 hover:bg-zinc-200">✨ AI妄想</button>
+                <button type="button" onClick={() => setCreationMode('upload')} className="flex-1 py-2 text-xs font-bold rounded transition-all bg-zinc-900 text-white shadow">📁 画像入稿</button>
+              </div>
+
+              <div>
+                <h2 className="text-sm font-black text-zinc-900 tracking-wider mb-1">【自作・外部AI画像の持ち込み】</h2>
+                <p className="text-[11px] text-zinc-500 leading-relaxed">
+                  Midjourneyやお持ちの画像生成AI、手描きイラストの画像をアップロードして原寸でマッピングシミュレーションできます。
+                </p>
+              </div>
+
+              <div className="border-2 border-dashed border-zinc-300 rounded p-6 bg-zinc-50 hover:bg-zinc-100/80 transition-colors flex flex-col items-center justify-center text-center">
+                <label className="cursor-pointer flex flex-col items-center justify-center w-full">
+                  <span className="text-2xl mb-2">📤</span>
+                  <span className="text-xs font-bold text-zinc-800 mb-1">メイン図案を選択、またはドラッグ＆ドロップ</span>
+                  <span className="text-[10px] text-zinc-500">推奨形式：正方形 (1:1) / PNG または JPEG</span>
+                  <input
+                    type="file"
+                    accept="image/png, image/jpeg, image/webp"
+                    onChange={handleUserImageUpload}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+
+              {imageUrl && (
+                <div className="p-3 bg-zinc-100 border border-zinc-200 rounded flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <img src={imageUrl} alt="" className="w-10 h-10 object-cover rounded border border-zinc-300" />
+                    <div>
+                      <p className="text-xs font-bold text-zinc-900 truncate max-w-[200px]">{patternTitle}</p>
+                      <p className="text-[10px] font-mono text-zinc-500">{serialNumber}</p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded">プレビュー反映中</span>
+                </div>
+              )}
+
+              {itemType === 'kyobukuro' && (
+                <div className="p-3 bg-zinc-50 border border-zinc-200 rounded flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-[11px] font-bold text-zinc-800">京袋帯：前腹（お腹正面）の個別画像</span>
+                      <p className="text-[9px] text-zinc-500">太鼓と別の柄を合わせたい場合のみ設定</p>
+                    </div>
+                    {customHaraUrl && (
+                      <button type="button" onClick={() => setCustomHaraUrl(null)} className="text-[9px] text-red-600 underline font-bold">解除</button>
+                    )}
+                  </div>
+                  <label className="py-2 text-[10px] font-bold text-center rounded border border-zinc-300 bg-white hover:bg-zinc-100 cursor-pointer transition-colors block">
+                    {customHaraUrl ? '前腹の画像を変更する' : '＋ 前腹の個別画像をアップロード'}
+                    <input type="file" accept="image/*" onChange={handleCustomHaraUpload} className="hidden" />
+                  </label>
+                </div>
+              )}
+
+              {itemType === 'kimono' && (
+                <div className="p-3 bg-zinc-50 border border-zinc-200 rounded flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-[11px] font-bold text-zinc-800">着物：帯の個別画像</span>
+                      <p className="text-[9px] text-zinc-500">自作の帯柄をコーディネートに重ねたい場合のみ設定</p>
+                    </div>
+                    {customObiUrl && (
+                      <button type="button" onClick={() => setCustomObiUrl(null)} className="text-[9px] text-red-600 underline font-bold">解除</button>
+                    )}
+                  </div>
+                  <label className="py-2 text-[10px] font-bold text-center rounded border border-zinc-300 bg-white hover:bg-zinc-100 cursor-pointer transition-colors block">
+                    {customObiUrl ? '帯の画像を変更する' : '＋ 帯の個別画像をアップロード'}
+                    <input type="file" accept="image/*" onChange={handleCustomObiUpload} className="hidden" />
+                  </label>
+                </div>
+              )}
+
+              <div className="border-t border-zinc-200 pt-4 flex flex-col gap-3">
+                <div>
+                  <h3 className="text-xs font-black text-zinc-900 mb-1">【外部AI生成用・末尾プロンプト】</h3>
+                  <p className="text-[10px] text-zinc-500">Midjourney等でデータを作る際、プロンプトの末尾に足してください。</p>
+                </div>
+                <div className="p-3 bg-zinc-50 border border-zinc-200 rounded flex flex-col gap-1.5">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[11px] font-bold text-zinc-800">小紋・総柄（半幅帯・着物向け）</span>
+                    <button type="button" onClick={() => handleCopyPrompt(PROMPT_SEAMLESS, 'seamless')} className={`text-[10px] font-bold px-2.5 py-1 rounded transition-colors ${copiedPromptType === 'seamless' ? 'bg-emerald-600 text-white' : 'bg-zinc-900 text-white'}`}>{copiedPromptType === 'seamless' ? '✓ コピー完了！' : '📋 コピー'}</button>
+                  </div>
+                  <code className="text-[10px] font-mono bg-white p-2 rounded border border-zinc-200 text-zinc-700 break-all select-all">{PROMPT_SEAMLESS}</code>
+                </div>
+                <div className="p-3 bg-zinc-50 border border-zinc-200 rounded flex flex-col gap-1.5">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[11px] font-bold text-zinc-800">お太鼓・絵羽（京袋帯向け）</span>
+                    <button type="button" onClick={() => handleCopyPrompt(PROMPT_CENTERED, 'centered')} className={`text-[10px] font-bold px-2.5 py-1 rounded transition-colors ${copiedPromptType === 'centered' ? 'bg-emerald-600 text-white' : 'bg-zinc-900 text-white'}`}>{copiedPromptType === 'centered' ? '✓ コピー完了！' : '📋 コピー'}</button>
+                  </div>
+                  <code className="text-[10px] font-mono bg-white p-2 rounded border border-zinc-200 text-zinc-700 break-all select-all">{PROMPT_CENTERED}</code>
+                </div>
+              </div>
+
+              {imageUrl && (
+                <div className="border-t border-zinc-200 pt-4 flex flex-col gap-2">
+                  <button type="button" onClick={handleDownloadOriginal} className="w-full py-2.5 text-xs font-bold text-zinc-800 bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 rounded transition-colors">↓ アップロード原寸画像を保存</button>
+                  <a href="#order" onClick={handleOrderClick} className="w-full py-3 text-center text-xs font-black text-white bg-zinc-900 hover:bg-zinc-800 rounded shadow-md transition-colors">この持ち込み画像で仕立てる（注文へ）</a>
+                </div>
+              )}
+            </div>
+          ) : (
+            <ControlPanel
+              creationMode={creationMode} setCreationMode={setCreationMode}
+              itemType={itemType} setItemType={setItemType}
+              aiStyle={aiStyle} setAiStyle={setAiStyle}
+              selectedArtist={selectedArtist} setSelectedArtist={setSelectedArtist}
+              motif={motif} setMotif={setMotif}
+              motif2={motif2} setMotif2={setMotif2}
+              selectedColors={selectedColors} setSelectedColors={setSelectedColors} handleColorToggle={handleColorToggle}
+              showColorPalette={showColorPalette} setShowColorPalette={setShowColorPalette}
+              density={density} setDensity={setDensity}
+              geoPatternType={geoPatternType} setGeoPatternType={setGeoPatternType}
+              stripeDir={stripeDir} setStripeDir={setStripeDir} dotLayout={dotLayout} setDotLayout={setDotLayout}
+              dotRadius={dotRadius} setDotRadius={setDotRadius} gapWidth={gapWidth} setGapWidth={setGapWidth}
+              lineWidth={lineWidth} setLineWidth={setLineWidth} geoBgColor={geoBgColor} setGeoBgColor={setGeoBgColor}
+              geoPatternColor={geoPatternColor} setGeoPatternColor={setGeoPatternColor}
+              showGeoPaletteFor={showGeoPaletteFor} setShowGeoPaletteFor={setShowGeoPaletteFor}
+              agreed={agreed} setAgreed={setAgreed} errorMsg={errorMsg}
+              loading={loading}
+              generatingMode={generatingMode}
+              remainingCount={remainingOpenAI}
+              remainingFlux={remainingFlux}
+              remainingOpenAI={remainingOpenAI}
+              ticketRemaining={ticketRemaining}
+              loadingStep={loadingStep}
+              handleGenerate={handleGenerate} imageUrl={imageUrl} patternTitle={patternTitle} setPatternTitle={setPatternTitle}
+              serialNumber={serialNumber}
+              handleDownloadOriginal={handleDownloadOriginal} handleOrderClick={handleOrderClick}
+              premiumCode={premiumCode} setPremiumCode={setPremiumCode}
+              premiumStatusMsg={premiumStatusMsg}
+            />
+          )}
         </div>
       </div>
 
