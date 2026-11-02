@@ -1,8 +1,8 @@
 // app/components/controls/ControlPanel.tsx
 'use client';
 
-import { MouseEvent } from 'react';
-import { TRADITIONAL_COLORS, CategoryItem } from '../../lib/constants';
+import { useState, type MouseEvent, type ChangeEvent } from 'react';
+import { TRADITIONAL_COLORS } from '../../lib/constants';
 
 interface ControlPanelProps {
   creationMode: 'ai' | 'geometric';
@@ -59,7 +59,7 @@ interface ControlPanelProps {
   setPatternTitle: (val: string) => void;
   serialNumber: string;
   handleDownloadOriginal: () => void;
-  handleOrderClick: (e: MouseEvent<HTMLAnchorElement>) => void;
+  handleOrderClick: (e: MouseEvent<HTMLButtonElement | HTMLAnchorElement>) => void;
   premiumCode: string;
   setPremiumCode: (val: string) => void;
   premiumStatusMsg: string;
@@ -168,6 +168,9 @@ export default function ControlPanel({
   premiumStatusMsg,
 }: ControlPanelProps) {
 
+  // ★ 写真解析ローディングState
+  const [analyzingImage, setAnalyzingImage] = useState(false);
+
   const finalTitle = patternTitle.trim() || '（無題）';
   const colorSummary = selectedColors.length > 0 ? selectedColors.map((c) => c.name.split(' ')[0]).join('・') : '自由配色';
   const shareText = `「妄想小紋図案帖」で柄のアイデアを試してみました。\n作品名：『${finalTitle}』\n配色：${colorSummary}\n#妄想きもの図案帳 #ゴフクヤサン`;
@@ -214,11 +217,47 @@ export default function ControlPanel({
     }
   };
 
+  // ★ 写真から色・柄を自動抽出するハンドラー（GPT-4o mini）
+  const handlePhotoAnalyze = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setAnalyzingImage(true);
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const base64Data = reader.result as string;
+      try {
+        const res = await fetch('/api/analyze-image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageUrl: base64Data }),
+        });
+
+        const result = await res.json();
+        if (!res.ok || !result.success) {
+          throw new Error(result.error || '解析に失敗しました');
+        }
+
+        const { prompt, motif: extractedMotif, color, texture } = result.data;
+        const combined = prompt || `${extractedMotif}。配色：${color}。タッチ：${texture}`;
+        
+        // 入力欄にセット
+        setMotif(combined);
+      } catch (err: any) {
+        alert(err.message || '写真の解析中にエラーが発生しました');
+      } finally {
+        setAnalyzingImage(false);
+        e.target.value = ''; // 次回同じ画像を選んでも発火するようにクリア
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   const effectiveRemainingOpenAI = remainingOpenAI ?? remainingCount ?? 1;
   const effectiveRemainingFlux = remainingFlux ?? 15;
 
   return (
-    <div className="w-full lg:w-1/2 bg-white border border-zinc-200 p-4 sm:p-8 lg:p-10 shrink-0 shadow-sm z-10 relative">
+    <div className="w-full bg-white border border-zinc-200 p-4 sm:p-8 lg:p-10 shrink-0 shadow-sm z-10 relative">
       
       {/* モード切替タブ */}
       <div className="flex bg-zinc-50 border border-zinc-200 p-1 mb-6 shadow-sm">
@@ -330,22 +369,37 @@ export default function ControlPanel({
               )}
             </div>
 
-            {/* 03. モチーフ入力＆入力アシスト */}
+            {/* 03. モチーフ入力＆入力アシスト＆写真から自動抽出 */}
             <div className="pt-4 border-t border-zinc-100">
-              <div className="flex justify-between items-baseline mb-1">
+              <div className="flex justify-between items-center mb-1">
                 <label className="block text-xs font-bold text-zinc-900 tracking-wider">
                   03. 何を描く？（モチーフ）
                 </label>
-                {motif && (
-                  <button 
-                    onClick={() => setMotif('')} 
-                    className="text-[10px] font-bold text-zinc-400 hover:text-zinc-800 tracking-widest uppercase transition-colors"
-                  >
-                    Clear
-                  </button>
-                )}
+                
+                <div className="flex items-center gap-2">
+                  {/* ★ 赤矢印の位置に新設：写真からプロンプト自動入力ボタン */}
+                  <label className="inline-flex items-center gap-1 px-2.5 py-1 bg-violet-600 hover:bg-violet-700 text-white text-[11px] font-bold rounded cursor-pointer shadow-sm transition-colors">
+                    <span>{analyzingImage ? '⏳ 解析中...' : '📷 写真から自動入力'}</span>
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={handlePhotoAnalyze} 
+                      disabled={analyzingImage || loading}
+                      className="hidden" 
+                    />
+                  </label>
+
+                  {motif && (
+                    <button 
+                      onClick={() => setMotif('')} 
+                      className="text-[10px] font-bold text-zinc-400 hover:text-zinc-800 tracking-widest uppercase transition-colors"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
               </div>
-              <p className="text-[10px] text-zinc-400 mb-2">難しい文章は不要です。好きな単語をポンと1つ入れるだけで、ゴフクヤサンが素敵な図案に仕立てます。</p>
+              <p className="text-[10px] text-zinc-400 mb-2">難しい文章は不要です。好きな単語をポンと1つ入れるか、右上の「写真から自動入力」をお使いください。</p>
               
               <textarea 
                 className="w-full border border-zinc-300 p-3 sm:p-4 bg-white text-xs sm:text-sm focus:outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 resize-none transition-all duration-200 leading-relaxed font-medium shadow-sm" 
@@ -353,7 +407,7 @@ export default function ControlPanel({
                 rows={2} 
                 value={motif} 
                 onChange={(e) => setMotif(e.target.value)} 
-                disabled={loading} 
+                disabled={loading || analyzingImage} 
               />
 
               {primaryMotif && (
@@ -580,11 +634,10 @@ export default function ControlPanel({
           />
         </div>
 
-        {/* ★★★ 3つの生成ボタン（すっきり配置） ★★★ */}
+        {/* 3つの生成ボタン */}
         <div className="space-y-4 mt-6">
           {creationMode === 'ai' && (
             <div className="pt-6 border-t border-zinc-200 space-y-3">
-              {/* 同意チェック欄 */}
               <label className="flex items-start gap-2.5 cursor-pointer select-none mb-2 group relative z-10">
                 <input 
                   type="checkbox" 
@@ -603,7 +656,7 @@ export default function ControlPanel({
                 </div>
               )}
 
-              {/* ===== ボタン①：スケッチモード ===== */}
+              {/* ボタン①：スケッチモード */}
               <div>
                 <button 
                   type="button" 
@@ -627,7 +680,7 @@ export default function ControlPanel({
                 </button>
               </div>
 
-              {/* ===== ボタン②：丁寧に作るモード（無料枠） ===== */}
+              {/* ボタン②：丁寧に作るモード（無料枠） */}
               <div>
                 <button 
                   type="button" 
@@ -651,7 +704,7 @@ export default function ControlPanel({
                 </button>
               </div>
 
-              {/* ===== ボタン③：チケットコードで丁寧に作る ===== */}
+              {/* ボタン③：チケットコードで丁寧に作る */}
               <div className="p-3.5 bg-zinc-50 border border-zinc-200 rounded-sm space-y-2.5 relative z-10">
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-2">
@@ -703,7 +756,6 @@ export default function ControlPanel({
                   </button>
                 </div>
 
-                {/* ★ チケット生成時の完了通知カード（視認性改善） ★ */}
                 {premiumStatusMsg && (
                   <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-sm flex items-center gap-2.5 animate-fade-in shadow-2xs">
                     <div className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 text-xs font-black">
@@ -718,7 +770,6 @@ export default function ControlPanel({
                 )}
               </div>
 
-              {/* ★★★ 独立した生成中ステップ表示専用エリア（大きく・クッキリ・白背景） ★★★ */}
               {loading && (
                 <div className="p-4 bg-zinc-50 border border-zinc-300 rounded-sm shadow-sm flex items-start gap-3.5 animate-fade-in my-3">
                   <div className="w-5 h-5 border-2 border-zinc-300 border-t-zinc-900 rounded-full animate-spin shrink-0 mt-0.5" />
@@ -795,15 +846,14 @@ export default function ControlPanel({
                 </div>
               </div>
 
-              <a 
-                href="#" 
+              <button 
+                type="button" 
                 onClick={handleOrderClick} 
-                className="block w-full py-4 mt-2 text-center bg-zinc-950 text-white text-[15px] font-black tracking-widest transition-all shadow-xl hover:shadow-2xl hover:scale-[1.01] border-2 border-zinc-950 rounded-sm"
+                className="w-full py-4 mt-2 text-center bg-zinc-950 text-white text-[15px] font-black tracking-widest transition-all shadow-xl hover:shadow-2xl hover:scale-[1.01] border-2 border-zinc-950 rounded-sm block cursor-pointer"
               >
                 妄想を現実に<br/><span className="text-[10px] font-medium tracking-wider opacity-90 mt-1 block">（この作品を現実の着物・帯として仕立てる）</span>
-              </a>
+              </button>
 
-              {/* 寄り道導線② */}
               {primaryMotif && (
                 <div className="mt-6 p-4 bg-zinc-100 border border-zinc-200 shadow-inner rounded-sm text-center animate-fade-in">
                   <p className="text-[11px] font-bold text-zinc-700 mb-2 leading-relaxed">
