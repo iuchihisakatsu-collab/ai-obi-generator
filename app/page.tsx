@@ -773,6 +773,18 @@ function HomeContent() {
         finalImg = `${finalImg}, ${customHaraUrl}`;
       }
 
+      // ▼▼▼ アイテムタイプによる URL 分岐の追加 ▼▼▼
+      let targetOrderUrl = 'https://store.gofukuyasan.com/view/item/000000007300'; // デフォルトは帯ページ
+      if (itemType === 'kimono') {
+        targetOrderUrl = 'https://store.gofukuyasan.com/view/item/000000007312'; // 着物ページ
+      }
+      // ▲▲▲ URL分岐ここまで ▲▲▲
+
+      // ※ 既存の submitOrder 関数に targetUrl などを直接渡せるよう改修している場合は、
+      //   下記の submitOrder の引数に redirectUrl を指定するか、または
+      //   submitOrder 内の処理（lib/orders.ts）を書き換える必要があります。
+      //   ここでは元の処理（lib/orders.ts）に影響を与えないよう、そのまま呼び出しています。
+
       const result = await submitOrder(platform, {
         title: patternTitle.trim() || '（無題）',
         serialNumber: validSerial,
@@ -784,7 +796,14 @@ function HomeContent() {
       });
 
       if (result.message) alert(result.message);
-      if (result.redirectUrl) window.location.href = result.redirectUrl;
+
+      // ▼▼▼ 元の submitOrder のリダイレクトを上書きして、分岐したURLへ直接遷移させる ▼▼▼
+      // MakeShopの仕様に合わせてURLパラメータを付与して遷移
+      const finalTitle = patternTitle.trim() || '（無題）';
+      const cleanOrderUrl = `${targetOrderUrl}?komon_id=${encodeURIComponent(validSerial)}&title=${encodeURIComponent(finalTitle)}&image_url=${encodeURIComponent(finalImg)}`;
+      window.location.href = cleanOrderUrl;
+      // ▲▲▲ 修正ここまで ▲▲▲
+
     } catch (err: any) {
       setErrorMsg(err.message || '通信エラーが発生しました');
     }
