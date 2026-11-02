@@ -57,7 +57,7 @@ function HomeContent() {
   const [platform, setPlatform] = useState<PlatformType>((searchParams.get('platform') as PlatformType) || 'makeshop');
   const [designFee, setDesignFee] = useState<number>(1000);
 
-  // モードに 'upload'（画像入稿）
+  // モード：幾何学 / AI妄想 / 画像入稿
   const [creationMode, setCreationMode] = useState<'ai' | 'geometric' | 'upload'>('geometric');
   const [itemType, setItemType] = useState<'hanhaba' | 'kyobukuro' | 'kimono'>('hanhaba');
   const [displayMode, setDisplayMode] = useState<'mockup' | 'trim' | 'data'>('mockup');
@@ -97,7 +97,7 @@ function HomeContent() {
   const [generatingMode, setGeneratingMode] = useState<'flux' | 'openai_free' | 'openai_premium' | null>(null);
   const [loadingStep, setLoadingStep] = useState<number>(0);
 
-  // 回数管理
+  // 回数管理（スケッチ15回・無料1回・チケット残数）
   const [remainingFlux, setRemainingFlux] = useState<number>(MAX_FLUX_PER_DAY);
   const [remainingOpenAI, setRemainingOpenAI] = useState<number>(MAX_OPENAI_PER_DAY);
   const [ticketRemaining, setTicketRemaining] = useState<number | null>(null);
@@ -119,7 +119,7 @@ function HomeContent() {
   const previewRef = useRef<HTMLDivElement>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
 
-  // 日付チェック
+  // 日付チェック（日本時間0時をまたいだら自動リセット）
   useEffect(() => {
     const today = getTodayJST();
     const storedDate = localStorage.getItem('komon_usage_date');
@@ -766,6 +766,11 @@ function HomeContent() {
           bgSizeMm,
           geoBgColor
         );
+      }
+
+      // 京袋帯で前腹の個別画像がある場合、カンマ区切りで2枚のURLを結合して渡す
+      if (itemType === 'kyobukuro' && customHaraUrl) {
+        finalImg = `${finalImg}, ${customHaraUrl}`;
       }
 
       const result = await submitOrder(platform, {
