@@ -14,7 +14,7 @@ import NoticeModal from './components/NoticeModal';
 import PreviewArea from './components/preview/PreviewArea';
 import ControlPanel from './components/controls/ControlPanel';
 import { PlatformType, submitOrder } from './lib/orders';
-import { renderTiledGeometricPng, render18cmPrintDataPng } from './lib/production/canvasRenderer';
+import { renderTiledGeometricPng } from './lib/production/canvasRenderer';
 
 const MAX_FLUX_PER_DAY = 15;
 const MAX_OPENAI_PER_DAY = 1;
@@ -93,7 +93,7 @@ function HomeContent() {
 
   const [agreed, setAgreed] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>('');
-  const [uploadingImage, setUploadingImage] = useState<boolean>(false); // アップロード中のローディング
+  const [uploadingImage, setUploadingImage] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [generatingMode, setGeneratingMode] = useState<'flux' | 'openai_free' | 'openai_premium' | null>(null);
   const [loadingStep, setLoadingStep] = useState<number>(0);
@@ -304,7 +304,6 @@ function HomeContent() {
     reader.readAsDataURL(file);
   };
 
-  // ★ 根本修正：画像選択時にBase64化し、即座にVercel Blobの「本物の公開URL」を取得する
   const handleUserImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -320,12 +319,10 @@ function HomeContent() {
     const reader = new FileReader();
     reader.onloadend = async () => {
       const base64Data = reader.result as string;
-      // まず画面表示用にBase64をセット
       setImageUrl(base64Data);
       setRotatedPatternUrl('');
 
       try {
-        // すぐにVercel Blobへアップロードして本物のURL（https://...）を取得する
         const uploadRes = await fetch('/api/upload-blob', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -333,7 +330,6 @@ function HomeContent() {
         });
         const uploadData = await uploadRes.json();
         if (uploadData.url) {
-          // 本物のURLをセット（これでMakeShopでも画像が割れなくなる！）
           setBlobUrl(uploadData.url);
           setImageUrl(uploadData.url);
         } else {
@@ -825,6 +821,7 @@ function HomeContent() {
     }
   };
 
+  // ★ 注文処理：半幅帯も着物と完全に同じ安全な正方形マスター画像を渡す
   const handleOrderClick = async (e: MouseEvent<HTMLButtonElement | HTMLAnchorElement>) => {
     e.preventDefault();
     try {
@@ -833,16 +830,7 @@ function HomeContent() {
       
       if (!serialNumber) setSerialNumber(validSerial);
 
-      if (itemType === 'hanhaba') {
-        finalImg = await render18cmPrintDataPng(
-          creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl),
-          creationMode === 'geometric' ? 'geometric' : 'ai',
-          bgSizeMm,
-          geoBgColor
-        );
-      }
-
-      // Base64で生成されたデータ（幾何学や18cm加工後）のみアップロードしてURL化
+      // Base64データ（幾何学モード等）のみアップロードしてURL化
       if (finalImg && finalImg.startsWith('data:')) {
         const uploadRes = await fetch('/api/upload-blob', {
           method: 'POST',
@@ -885,7 +873,7 @@ function HomeContent() {
 
       if (result.message) alert(result.message);
 
-      // MakeShopへのURL自動振り分け（本物の公開URLを渡すのでクラッシュしない＆画像も割れない）
+      // MakeShopへのURL自動振り分け（着物は7312、帯は7300）
       if (platform === 'makeshop') {
         let targetOrderUrl = 'https://store.gofukuyasan.com/view/item/000000007300';
         if (itemType === 'kimono') {
