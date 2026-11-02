@@ -94,6 +94,7 @@ function HomeContent() {
   const [agreed, setAgreed] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [uploadingImage, setUploadingImage] = useState<boolean>(false);
+  const [analyzingImage, setAnalyzingImage] = useState<boolean>(false); // ★ 4o-mini解析中ローディング
   const [loading, setLoading] = useState<boolean>(false);
   const [generatingMode, setGeneratingMode] = useState<'flux' | 'openai_free' | 'openai_premium' | null>(null);
   const [loadingStep, setLoadingStep] = useState<number>(0);
@@ -304,6 +305,7 @@ function HomeContent() {
     reader.readAsDataURL(file);
   };
 
+  // 画像アップロード処理
   const handleUserImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -343,6 +345,43 @@ function HomeContent() {
       }
     };
     reader.readAsDataURL(file);
+  };
+
+  // ★ 4o-miniによる画像解析・プロンプト抽出ハンドラー
+  const handleExtractPrompt = async () => {
+    const targetImg = blobUrl || imageUrl;
+    if (!targetImg) return;
+
+    setAnalyzingImage(true);
+    setErrorMsg('');
+
+    try {
+      const res = await fetch('/api/analyze-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageUrl: targetImg }),
+      });
+
+      const result = await res.json();
+      if (!res.ok || !result.success) {
+        throw new Error(result.error || '画像の解析に失敗しました');
+      }
+
+      const { prompt, motif: extractedMotif, color, texture } = result.data;
+      const combinedPrompt = prompt || `${extractedMotif}。配色：${color}。タッチ：${texture}`;
+
+      // AI妄想モードのプロンプト欄にセット
+      setMotif(combinedPrompt);
+      // AI妄想モードへ切り替え
+      setCreationMode('ai');
+      
+      alert('写真から色・柄のエッセンスを抽出しました！「AI妄想モード」で生成をお試しください。');
+    } catch (err: any) {
+      console.error(err);
+      setErrorMsg(err.message || '写真の解析中にエラーが発生しました');
+    } finally {
+      setAnalyzingImage(false);
+    }
   };
 
   const handleCopyPrompt = (text: string, type: 'seamless' | 'centered') => {
@@ -821,7 +860,7 @@ function HomeContent() {
     }
   };
 
-  // ★ 注文処理：半幅帯も着物と完全に同じ安全な正方形マスター画像を渡す
+  // 注文処理（単一マスター画像原則：加工せずそのまま渡す）
   const handleOrderClick = async (e: MouseEvent<HTMLButtonElement | HTMLAnchorElement>) => {
     e.preventDefault();
     try {
@@ -989,16 +1028,37 @@ function HomeContent() {
                 </div>
               )}
 
+              {/* 画像が選択されている場合の表示＆アクション */}
               {imageUrl && (
-                <div className="p-3 bg-zinc-100 border border-zinc-200 rounded flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <img src={imageUrl} alt="" className="w-10 h-10 object-cover rounded border border-zinc-300" />
-                    <div>
-                      <p className="text-xs font-bold text-zinc-900 truncate max-w-[200px]">{patternTitle}</p>
-                      <p className="text-[10px] font-mono text-zinc-500">{serialNumber}</p>
+                <div className="flex flex-col gap-3">
+                  <div className="p-3 bg-zinc-100 border border-zinc-200 rounded flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <img src={imageUrl} alt="" className="w-10 h-10 object-cover rounded border border-zinc-300" />
+                      <div>
+                        <p className="text-xs font-bold text-zinc-900 truncate max-w-[200px]">{patternTitle}</p>
+                        <p className="text-[10px] font-mono text-zinc-500">{serialNumber}</p>
+                      </div>
                     </div>
+                    <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded">プレビュー反映中</span>
                   </div>
-                  <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded">プレビュー反映中</span>
+
+                  {/* ★ 4o-mini プロンプト抽出ボタン */}
+                  <button
+                    type="button"
+                    onClick={handleExtractPrompt}
+                    disabled={analyzingImage || uploadingImage}
+                    className="w-full py-3 px-4 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white text-xs font-bold rounded shadow transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    <span>✨</span>
+                    <span>
+                      {analyzingImage 
+                        ? '写真の色・柄をAI解析中...' 
+                        : 'この写真からプロンプトを抽出して「AI妄想」へ送る'}
+                    </span>
+                  </button>
+                  <p className="text-[9px] text-zinc-400 text-center -mt-1.5">
+                    ※写真から配色・タッチ・模様の特徴だけを抽出し、AI妄想モードで新しく図案化できます（著作権安心設計）
+                  </p>
                 </div>
               )}
 
