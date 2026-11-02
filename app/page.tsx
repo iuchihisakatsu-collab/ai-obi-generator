@@ -57,7 +57,7 @@ function HomeContent() {
   const [platform, setPlatform] = useState<PlatformType>((searchParams.get('platform') as PlatformType) || 'makeshop');
   const [designFee, setDesignFee] = useState<number>(1000);
 
-  // モードに 'upload'（画像入稿）を追加
+  // モードに 'upload'（画像入稿）
   const [creationMode, setCreationMode] = useState<'ai' | 'geometric' | 'upload'>('geometric');
   const [itemType, setItemType] = useState<'hanhaba' | 'kyobukuro' | 'kimono'>('hanhaba');
   const [displayMode, setDisplayMode] = useState<'mockup' | 'trim' | 'data'>('mockup');
@@ -86,7 +86,10 @@ function HomeContent() {
   const [kimonoHaneriColor, setKimonoHaneriColor] = useState<string>('#ffffff');
   const [kimonoObiageColor, setKimonoObiageColor] = useState<string>('#c82a36');
   const [kimonoObiColor, setKimonoObiColor] = useState<string>('#1a1a1a');
+  
+  // 着物の帯・京袋帯の前腹の個別画像State
   const [customObiUrl, setCustomObiUrl] = useState<string | null>(null);
+  const [customHaraUrl, setCustomHaraUrl] = useState<string | null>(null);
 
   const [agreed, setAgreed] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>('');
@@ -94,7 +97,7 @@ function HomeContent() {
   const [generatingMode, setGeneratingMode] = useState<'flux' | 'openai_free' | 'openai_premium' | null>(null);
   const [loadingStep, setLoadingStep] = useState<number>(0);
 
-  // 回数管理（スケッチ15回・無料1回・チケット残数）
+  // 回数管理
   const [remainingFlux, setRemainingFlux] = useState<number>(MAX_FLUX_PER_DAY);
   const [remainingOpenAI, setRemainingOpenAI] = useState<number>(MAX_OPENAI_PER_DAY);
   const [ticketRemaining, setTicketRemaining] = useState<number | null>(null);
@@ -116,7 +119,7 @@ function HomeContent() {
   const previewRef = useRef<HTMLDivElement>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
 
-  // 日付チェック（日本時間0時をまたいだら自動リセット）
+  // 日付チェック
   useEffect(() => {
     const today = getTodayJST();
     const storedDate = localStorage.getItem('komon_usage_date');
@@ -245,6 +248,7 @@ function HomeContent() {
     }
   };
 
+  // 着物の帯画像ハンドラー
   const handleCustomObiUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -253,7 +257,16 @@ function HomeContent() {
     }
   };
 
-  // 入稿モード用：ユーザー画像の取り込みハンドラー
+  // 京袋帯の前腹画像ハンドラー
+  const handleCustomHaraUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setCustomHaraUrl(url);
+    }
+  };
+
+  // 入稿モード用：マスター画像の取り込みハンドラー
   const handleUserImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -343,7 +356,6 @@ function HomeContent() {
       const colorPrefix = selectedColors.length > 0 ? `${getColorNameFromHex(selectedColors[0].hex)}の` : '';
       setPatternTitle(motif.trim() ? `${colorPrefix}${motif.trim()}小紋` : '無題の小紋');
 
-      // 残数の正確な受取と反映
       if (engineType === 'openai_premium') {
         const remaining = data.ticketRemaining ?? data.remaining ?? data.remainingCount ?? null;
         if (typeof remaining === 'number') {
@@ -494,7 +506,7 @@ function HomeContent() {
         ctx.globalCompositeOperation = 'source-over';
       }
 
-      // 2. 京袋帯の合成
+      // 2. 京袋帯の合成（前腹個別画像・無回転に対応）
       if (itemType === 'kyobukuro') {
         const grandImg = await loadImage('/kyoubukurogrand.png?v=21');
         ctx.drawImage(grandImg, 0, 0, size, size);
@@ -544,6 +556,16 @@ function HomeContent() {
           haraRot = 90;
         }
 
+        // 個別前腹画像の事前ロード
+        let individualHaraImg: HTMLImageElement | null = null;
+        if (customHaraUrl) {
+          try {
+            individualHaraImg = await loadImage(customHaraUrl);
+          } catch (e) {
+            console.error('Failed to load custom hara image for canvas export:', e);
+          }
+        }
+
         const layers = [
           { id: 'hara', file: 'kyoubukurohara.png', rot: 271, bgX: 50, bgY: 50, fill: haraPatternFill, extraRot: haraRot },
           { id: 'tare', file: 'kyoubukurotare.png', rot: -1, bgX: 50, bgY: 50, fill: taikoPatternFill, extraRot: 0 },
@@ -559,22 +581,32 @@ function HomeContent() {
           tCtx.drawImage(maskImg, 0, 0, size, size);
           tCtx.globalCompositeOperation = 'source-in';
 
-          tCtx.save();
-          tCtx.translate(size / 2, size / 2);
-          tCtx.rotate(layer.rot * Math.PI / 180);
-          tCtx.translate(-size / 2, -size / 2);
+          // 前腹の個別画像がある場合は回転せずそのまま中央フィット描画
+          if (layer.id === 'hara' && individualHaraImg) {
+            const hRatio = Math.max(size / individualHaraImg.width, size / individualHaraImg.height);
+            const drawW = individualHaraImg.width * hRatio;
+            const drawH = individualHaraImg.height * hRatio;
+            const drawX = (size - drawW) / 2;
+            const drawY = (size - drawH) / 2;
+            tCtx.drawImage(individualHaraImg, drawX, drawY, drawW, drawH);
+          } else {
+            tCtx.save();
+            tCtx.translate(size / 2, size / 2);
+            tCtx.rotate(layer.rot * Math.PI / 180);
+            tCtx.translate(-size / 2, -size / 2);
 
-          const rectSize = size * 1.5;
-          const rectOffset = -size * 0.25;
-          tCtx.translate(rectOffset + (rectSize * layer.bgX / 100), rectOffset + (rectSize * layer.bgY / 100));
-          
-          if (layer.extraRot) {
-            tCtx.rotate(layer.extraRot * Math.PI / 180);
+            const rectSize = size * 1.5;
+            const rectOffset = -size * 0.25;
+            tCtx.translate(rectOffset + (rectSize * layer.bgX / 100), rectOffset + (rectSize * layer.bgY / 100));
+            
+            if (layer.extraRot) {
+              tCtx.rotate(layer.extraRot * Math.PI / 180);
+            }
+            
+            tCtx.fillStyle = layer.fill;
+            tCtx.fillRect(-size * 2, -size * 2, size * 4, size * 4); 
+            tCtx.restore();
           }
-          
-          tCtx.fillStyle = layer.fill;
-          tCtx.fillRect(-size * 2, -size * 2, size * 4, size * 4); 
-          tCtx.restore();
 
           ctx.drawImage(tempCanvas, 0, 0);
         }
@@ -761,7 +793,7 @@ function HomeContent() {
     <div className="min-h-screen bg-[#f4f4f5] text-zinc-900 flex flex-col items-center justify-start font-sans lg:p-8">
       <div className="w-full max-w-7xl flex flex-col lg:flex-row lg:gap-6 items-start justify-center">
         
-        {/* 左側プレビューエリア：既存の黄金比率・計算式を100%温存 */}
+        {/* 左側プレビューエリア：customHaraUrl と customObiUrl を完全連携 */}
         <PreviewArea
           imageUrl={imageUrl} blobUrl={blobUrl} rotatedPatternUrl={rotatedPatternUrl}
           serialNumber={serialNumber} itemType={itemType} displayMode={displayMode}
@@ -778,12 +810,15 @@ function HomeContent() {
           customObiUrl={customObiUrl}
           setCustomObiUrl={setCustomObiUrl}
           handleCustomObiUpload={handleCustomObiUpload}
+          customHaraUrl={customHaraUrl}
+          setCustomHaraUrl={setCustomHaraUrl}
+          handleCustomHaraUpload={handleCustomHaraUpload}
           mockupSubmitting={mockupSubmitting} previewRef={previewRef} previewContainerRef={previewContainerRef}
           handleItemTypeChange={setItemType} setDisplayMode={setDisplayMode}
           handleDownloadMapping={handleDownloadMapping} UNIVERSAL_SCALE_FACTOR={UNIVERSAL_SCALE_FACTOR}
         />
 
-        {/* 右側操作エリア：最上部にモード切り替えバーを配備 */}
+        {/* 右側操作エリア */}
         <div className="w-full lg:w-1/2 flex flex-col gap-3">
           
           {/* モード切替タブ */}
@@ -827,11 +862,11 @@ function HomeContent() {
                 </p>
               </div>
 
-              {/* 1. 画像アップロード枠 */}
+              {/* 1. マスター画像アップロード枠 */}
               <div className="border-2 border-dashed border-zinc-300 rounded p-6 bg-zinc-50 hover:bg-zinc-100/80 transition-colors flex flex-col items-center justify-center text-center">
                 <label className="cursor-pointer flex flex-col items-center justify-center w-full">
                   <span className="text-2xl mb-2">📤</span>
-                  <span className="text-xs font-bold text-zinc-800 mb-1">クリックして画像を選択、またはドラッグ＆ドロップ</span>
+                  <span className="text-xs font-bold text-zinc-800 mb-1">メイン図案を選択、またはドラッグ＆ドロップ</span>
                   <span className="text-[10px] text-zinc-500">推奨形式：正方形 (1:1) / PNG または JPEG</span>
                   <input
                     type="file"
@@ -842,7 +877,7 @@ function HomeContent() {
                 </label>
               </div>
 
-              {/* 選択中画像のステータス */}
+              {/* 選択中マスター画像のステータス */}
               {imageUrl && (
                 <div className="p-3 bg-zinc-100 border border-zinc-200 rounded flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -853,6 +888,55 @@ function HomeContent() {
                     </div>
                   </div>
                   <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded">プレビュー反映中</span>
+                </div>
+              )}
+
+              {/* 京袋帯または着物選択時：個別パーツ画像のアップロード補助枠 */}
+              {itemType === 'kyobukuro' && (
+                <div className="p-3 bg-zinc-50 border border-zinc-200 rounded flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-[11px] font-bold text-zinc-800">京袋帯：前腹（お腹正面）の個別画像</span>
+                      <p className="text-[9px] text-zinc-500">太鼓と別の柄を合わせたい場合のみ設定（回転せずそのまま配置）</p>
+                    </div>
+                    {customHaraUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setCustomHaraUrl(null)}
+                        className="text-[9px] text-red-600 underline font-bold"
+                      >
+                        解除
+                      </button>
+                    )}
+                  </div>
+                  <label className="py-2 text-[10px] font-bold text-center rounded border border-zinc-300 bg-white hover:bg-zinc-100 cursor-pointer transition-colors block">
+                    {customHaraUrl ? '前腹の画像を変更する' : '＋ 前腹の個別画像をアップロード'}
+                    <input type="file" accept="image/*" onChange={handleCustomHaraUpload} className="hidden" />
+                  </label>
+                </div>
+              )}
+
+              {itemType === 'kimono' && (
+                <div className="p-3 bg-zinc-50 border border-zinc-200 rounded flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-[11px] font-bold text-zinc-800">着物：帯の個別画像</span>
+                      <p className="text-[9px] text-zinc-500">自作の帯柄をコーディネートに重ねたい場合のみ設定</p>
+                    </div>
+                    {customObiUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setCustomObiUrl(null)}
+                        className="text-[9px] text-red-600 underline font-bold"
+                      >
+                        解除
+                      </button>
+                    )}
+                  </div>
+                  <label className="py-2 text-[10px] font-bold text-center rounded border border-zinc-300 bg-white hover:bg-zinc-100 cursor-pointer transition-colors block">
+                    {customObiUrl ? '帯の画像を変更する' : '＋ 帯の個別画像をアップロード'}
+                    <input type="file" accept="image/*" onChange={handleCustomObiUpload} className="hidden" />
+                  </label>
                 </div>
               )}
 
