@@ -25,6 +25,9 @@ export interface PreviewAreaProps {
   customObiUrl: string | null;
   setCustomObiUrl?: (url: string | null) => void;
   handleCustomObiUpload?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  customHaraUrl?: string | null;
+  setCustomHaraUrl?: (url: string | null) => void;
+  handleCustomHaraUpload?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   mockupSubmitting: boolean;
   previewRef: React.RefObject<HTMLDivElement | null>;
   previewContainerRef: React.RefObject<HTMLDivElement | null>;
@@ -44,6 +47,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
     kimonoObiageColor, setKimonoObiageColor,
     kimonoObiColor, setKimonoObiColor,
     customObiUrl, setCustomObiUrl, handleCustomObiUpload,
+    customHaraUrl, setCustomHaraUrl, handleCustomHaraUpload,
     mockupSubmitting,
     previewRef, previewContainerRef,
     handleItemTypeChange, setDisplayMode,
@@ -51,7 +55,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
     UNIVERSAL_SCALE_FACTOR,
   } = props;
 
-  const [activeFloatPalette, setActiveFloatPalette] = useState<'lining' | 'haneri' | 'obiage' | 'obi' | null>(null);
+  const [activeFloatPalette, setActiveFloatPalette] = useState<'lining' | 'haneri' | 'obiage' | 'obi' | 'hara' | null>(null);
   const [isZoomModalOpen, setIsZoomModalOpen] = useState<boolean>(false);
 
   if (!imageUrl) return null;
@@ -66,7 +70,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
 
   const v = '30';
 
-  // 半幅帯パーツ定義（角度rotは完全保持、正面手前パーツLayer04・05の座標を実測中心へ補正）
+  // 半幅帯パーツ定義（角度rot完全保持）
   const hanhabaLayers = [
     { id: '01', file: 'hanhaba_Layer01.png', z: 10, rot: 2, bgX: '50%', bgY: '50%' },
     { id: '02', file: 'hanhaba_Layer02.png', z: 20, rot: 1, bgX: '50%', bgY: '50%' },
@@ -146,14 +150,14 @@ export default function PreviewArea(props: PreviewAreaProps) {
     </div>
   );
 
-  // 京袋帯パーツ定義（角度rotは完全保持、上下bgY: 47%固定、水平bgX: 76.5%固定済み）
+  // 京袋帯パーツ定義（角度rot・位置保持）
   const kyobukuroLayers = [
     { id: 'hara', file: 'kyoubukurohara.png', z: 30, rot: 271, bgX: '50%', bgY: '50%' },
     { id: 'tare', file: 'kyoubukurotare.png', z: 40, rot: -1, bgX: '76.5%', bgY: '47%' },
     { id: 'taiko', file: 'kyoubukurotakio.png', z: 50, rot: 2, bgX: '76.5%', bgY: '47%' },
   ];
 
-  // 京袋帯マッピングのレイヤー描画
+  // 京袋帯マッピングのレイヤー描画（前腹の個別画像・無回転に対応）
   const renderKyobukuroLayers = () => (
     <div className="relative w-full h-full overflow-hidden">
       <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 10 }}>
@@ -177,40 +181,52 @@ export default function PreviewArea(props: PreviewAreaProps) {
         <div className="w-full h-full" style={{ backgroundColor: obiLiningColor }} />
       </div>
 
-      {kyobukuroLayers.map((layer) => (
-        <div
-          key={layer.id}
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            zIndex: layer.z,
-            maskImage: `url('/${layer.file}?v=${v}')`,
-            WebkitMaskImage: `url('/${layer.file}?v=${v}')`,
-            maskSize: 'contain',
-            WebkitMaskSize: 'contain',
-            maskRepeat: 'no-repeat',
-            WebkitMaskRepeat: 'no-repeat',
-            maskPosition: 'center',
-            WebkitMaskPosition: 'center',
-          }}
-        >
+      {kyobukuroLayers.map((layer) => {
+        const isHara = layer.id === 'hara';
+        const useIndividualHara = isHara && !!customHaraUrl;
+        
+        // 個別前腹がある場合はその画像を使用、回転角0度（回転させない）
+        const layerPatternUrl = useIndividualHara ? customHaraUrl : effectivePatternUrl;
+        const layerRot = useIndividualHara ? 0 : layer.rot;
+        const layerBgPos = useIndividualHara ? 'center center' : `${layer.bgX} ${layer.bgY}`;
+        const layerBgSize = useIndividualHara ? 'cover' : patternSize;
+        const layerRepeat = useIndividualHara ? 'no-repeat' : 'repeat';
+
+        return (
           <div
+            key={layer.id}
+            className="absolute inset-0 pointer-events-none"
             style={{
-              position: 'absolute',
-              top: '-25%',
-              left: '-25%',
-              width: '150%',
-              height: '150%',
-              backgroundImage: `url(${effectivePatternUrl})`,
-              backgroundSize: patternSize,
-              backgroundRepeat: 'repeat',
-              backgroundPosition: `${layer.bgX} ${layer.bgY}`,
-              transform: `rotate(${layer.rot}deg)`,
-              transformOrigin: 'center center',
-              backgroundColor: creationMode === 'geometric' ? geoBgColor : 'transparent',
+              zIndex: layer.z,
+              maskImage: `url('/${layer.file}?v=${v}')`,
+              WebkitMaskImage: `url('/${layer.file}?v=${v}')`,
+              maskSize: 'contain',
+              WebkitMaskSize: 'contain',
+              maskRepeat: 'no-repeat',
+              WebkitMaskRepeat: 'no-repeat',
+              maskPosition: 'center',
+              WebkitMaskPosition: 'center',
             }}
-          />
-        </div>
-      ))}
+          >
+            <div
+              style={{
+                position: 'absolute',
+                top: '-25%',
+                left: '-25%',
+                width: '150%',
+                height: '150%',
+                backgroundImage: `url(${layerPatternUrl})`,
+                backgroundSize: layerBgSize,
+                backgroundRepeat: layerRepeat,
+                backgroundPosition: layerBgPos,
+                transform: `rotate(${layerRot}deg)`,
+                transformOrigin: 'center center',
+                backgroundColor: (!useIndividualHara && creationMode === 'geometric') ? geoBgColor : 'transparent',
+              }}
+            />
+          </div>
+        );
+      })}
 
       <div
         className="absolute inset-0 pointer-events-none"
@@ -240,7 +256,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
     { id: 'hidarieri', file: 'hidarieri_117.png', angle: 117, z: 10 },
   ];
 
-  // 着物マッピングのレイヤー描画（全パーツ center center ＆ 同一土台 150% ＆ patternSize で等倍描画）
+  // 着物マッピングのレイヤー描画（帯の個別画像に対応）
   const renderKimonoLayers = () => (
     <div className="relative w-full h-full overflow-hidden">
       <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 1 }}>
@@ -316,6 +332,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
         <div className="w-full h-full" style={{ backgroundColor: kimonoObiageColor }} />
       </div>
 
+      {/* 着物の帯パーツ */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
@@ -440,7 +457,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
           {displayMode === 'mockup' && (
             <div className="w-full flex flex-col items-center animate-fade-in relative">
               
-              {/* 全アイテム共通枠サイズ（w-[240px] sm:w-[360px] aspect-square） */}
+              {/* 全アイテム共通枠サイズ */}
               <div className="relative mx-auto drop-shadow-xl w-[240px] sm:w-[360px] aspect-square">
                 
                 {/* 1. マッピング画像（背面に描画） */}
@@ -463,7 +480,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
                     <span>拡大</span>
                   </button>
 
-                  {/* コーディネート・裏地ボタンバー（左上） */}
+                  {/* コーディネート・裏地・パーツ個別指定ボタンバー（左上） */}
                   <div className="pointer-events-auto absolute top-2 left-2 flex flex-wrap gap-1 bg-white/95 backdrop-blur-md p-1 rounded-sm border border-zinc-400 shadow-2xl">
                     {itemType === 'kimono' ? (
                       <>
@@ -500,6 +517,29 @@ export default function PreviewArea(props: PreviewAreaProps) {
                           <span>帯{customObiUrl ? '(画像)' : ''}</span>
                         </button>
                       </>
+                    ) : itemType === 'kyobukuro' ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => setActiveFloatPalette(activeFloatPalette === 'lining' ? null : 'lining')}
+                          className={`flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-sm border transition-all ${
+                            activeFloatPalette === 'lining' ? 'bg-zinc-950 text-white border-zinc-950' : 'bg-white text-zinc-800 border-zinc-300 hover:bg-zinc-100'
+                          }`}
+                        >
+                          <span className="w-2.5 h-2.5 rounded-full border border-zinc-400 shrink-0 inline-block" style={{ backgroundColor: obiLiningColor }} />
+                          <span>裏地の色</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setActiveFloatPalette(activeFloatPalette === 'hara' ? null : 'hara')}
+                          className={`flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-sm border transition-all ${
+                            activeFloatPalette === 'hara' ? 'bg-zinc-950 text-white border-zinc-950' : 'bg-white text-zinc-800 border-zinc-300 hover:bg-zinc-100'
+                          }`}
+                        >
+                          <span>前腹{customHaraUrl ? '(画像)' : ''}</span>
+                        </button>
+                      </>
                     ) : (
                       <button
                         type="button"
@@ -514,7 +554,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
                     )}
                   </div>
 
-                  {/* 展開カラーパレット */}
+                  {/* 展開パレット */}
                   {activeFloatPalette && (
                     <div className="pointer-events-auto absolute top-10 left-2 right-2 bg-white border-2 border-zinc-900 p-2.5 rounded shadow-2xl animate-fade-in max-w-[340px]">
                       <div className="flex justify-between items-center mb-1.5 pb-1 border-b border-zinc-200">
@@ -522,7 +562,8 @@ export default function PreviewArea(props: PreviewAreaProps) {
                           {activeFloatPalette === 'lining' && '帯の裏地色を選択'}
                           {activeFloatPalette === 'haneri' && '半衿の色を選択'}
                           {activeFloatPalette === 'obiage' && '帯揚の色を選択'}
-                          {activeFloatPalette === 'obi' && '帯の指定'}
+                          {activeFloatPalette === 'obi' && '着物の帯を指定'}
+                          {activeFloatPalette === 'hara' && '京袋帯の前腹（胴回り）を指定'}
                         </span>
                         <button
                           type="button"
@@ -533,6 +574,29 @@ export default function PreviewArea(props: PreviewAreaProps) {
                         </button>
                       </div>
 
+                      {/* 京袋帯の前腹個別アップロード */}
+                      {activeFloatPalette === 'hara' && (
+                        <div className="flex flex-col gap-2">
+                          <p className="text-[9px] text-zinc-500 leading-normal">
+                            太鼓柄と別のデザインを前腹（お腹正面）に出したい場合に画像を個別設定できます。（回転せずそのまま配置されます）
+                          </p>
+                          <div className="flex gap-1">
+                            <button
+                              type="button"
+                              onClick={() => { setCustomHaraUrl?.(null); setActiveFloatPalette(null); }}
+                              className={`flex-1 py-1 text-[10px] font-bold rounded border ${!customHaraUrl ? 'bg-zinc-900 text-white' : 'bg-zinc-100 text-zinc-700'}`}
+                            >
+                              太鼓柄と連動（自動）
+                            </button>
+                            <label className={`flex-1 py-1 text-[10px] font-bold text-center rounded border cursor-pointer ${customHaraUrl ? 'bg-zinc-900 text-white' : 'bg-zinc-100 text-zinc-700'}`}>
+                              画像アップロード
+                              <input type="file" accept="image/*" onChange={(e) => { handleCustomHaraUpload?.(e); setActiveFloatPalette(null); }} className="hidden" />
+                            </label>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 着物の帯指定 */}
                       {activeFloatPalette === 'obi' && (
                         <div className="flex gap-1 mb-2 pb-1 border-b border-zinc-100">
                           <button
@@ -544,12 +608,13 @@ export default function PreviewArea(props: PreviewAreaProps) {
                           </button>
                           <label className={`flex-1 py-1 text-[10px] font-bold text-center rounded border cursor-pointer ${customObiUrl ? 'bg-zinc-900 text-white' : 'bg-zinc-100 text-zinc-700'}`}>
                             画像アップロード
-                            <input type="file" accept="image/*" onChange={handleCustomObiUpload} className="hidden" />
+                            <input type="file" accept="image/*" onChange={(e) => { handleCustomObiUpload?.(e); setActiveFloatPalette(null); }} className="hidden" />
                           </label>
                         </div>
                       )}
 
-                      {!(activeFloatPalette === 'obi' && customObiUrl) && (
+                      {/* 伝統色パレット（半衿・帯揚・裏地・着物の帯色） */}
+                      {!(activeFloatPalette === 'hara' || (activeFloatPalette === 'obi' && customObiUrl)) && (
                         <div className="max-h-[150px] overflow-y-auto pr-1 grid grid-cols-4 sm:grid-cols-6 gap-1">
                           {TRADITIONAL_COLORS.map((col) => (
                             <button
@@ -596,7 +661,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
             </div>
           )}
 
-          {/* トリム表示（京袋帯 34cm 裁断イメージ：40cmマスターの中央34cmを左右各3cmトリミング） */}
+          {/* トリム表示（京袋帯 34cm 裁断イメージ） */}
           {displayMode === 'trim' && itemType === 'kyobukuro' && (
             <div className="w-full flex flex-col items-center animate-fade-in">
               <div className="relative w-[272px] sm:w-[340px] mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden" style={{ aspectRatio: '34 / 40' }}>
@@ -618,7 +683,6 @@ export default function PreviewArea(props: PreviewAreaProps) {
           {displayMode === 'data' && (
             <div className="flex flex-col items-center w-full animate-fade-in">
               {itemType === 'hanhaba' ? (
-                // 半幅帯 18cm プリントデータ：40cmマスターの中央18cmを左右各11cmトリミング
                 <div className="relative mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden" style={{ width: '216px', height: '480px' }}>
                   <div
                     className="absolute inset-0"
@@ -632,7 +696,6 @@ export default function PreviewArea(props: PreviewAreaProps) {
                   />
                 </div>
               ) : (
-                // 40cm 反物データ：40cmマスター正方形をそのまま等倍表示
                 <div className="relative w-[260px] sm:w-[400px] aspect-square mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden">
                   <div
                     className="absolute inset-0"
