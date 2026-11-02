@@ -66,13 +66,13 @@ export default function PreviewArea(props: PreviewAreaProps) {
 
   const v = '30';
 
-  // 半幅帯パーツ定義（角度rotは完全保持、柄位置は40cmセンター正中線50% 50%に統一）
+  // 半幅帯パーツ定義（角度rotは完全保持、正面手前パーツLayer04・05の座標を実測中心へ補正）
   const hanhabaLayers = [
     { id: '01', file: 'hanhaba_Layer01.png', z: 10, rot: 2, bgX: '50%', bgY: '50%' },
     { id: '02', file: 'hanhaba_Layer02.png', z: 20, rot: 1, bgX: '50%', bgY: '50%' },
     { id: '03', file: 'hanhaba_Layer03.png', z: 30, rot: 8, bgX: '50%', bgY: '50%' },
-    { id: '04', file: 'hanhaba_Layer04.png', z: 40, rot: -1, bgX: '50%', bgY: '50%' },
-    { id: '05', file: 'hanhaba_Layer05.png', z: 50, rot: -10, bgX: '50%', bgY: '50%' },
+    { id: '04', file: 'hanhaba_Layer04.png', z: 40, rot: -1, bgX: '83%', bgY: '35%' },
+    { id: '05', file: 'hanhaba_Layer05.png', z: 50, rot: -10, bgX: '83%', bgY: '35%' },
     { id: '06', file: 'hanhaba_Layer06.png', z: 60, rot: -93, bgX: '50%', bgY: '50%' },
   ];
 
@@ -146,7 +146,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
     </div>
   );
 
-  // 京袋帯パーツ定義（角度rotは完全保持、上下bgY: 47%固定、水平bgXをさらに1センチ左寄りの76.5%へ補正）
+  // 京袋帯パーツ定義（角度rotは完全保持、上下bgY: 47%固定、水平bgX: 76.5%固定済み）
   const kyobukuroLayers = [
     { id: 'hara', file: 'kyoubukurohara.png', z: 30, rot: 271, bgX: '50%', bgY: '50%' },
     { id: 'tare', file: 'kyoubukurotare.png', z: 40, rot: -1, bgX: '76.5%', bgY: '47%' },
