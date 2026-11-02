@@ -544,4 +544,142 @@ export default function PreviewArea(props: PreviewAreaProps) {
                           </button>
                           <label className={`flex-1 py-1 text-[10px] font-bold text-center rounded border cursor-pointer ${customObiUrl ? 'bg-zinc-900 text-white' : 'bg-zinc-100 text-zinc-700'}`}>
                             画像アップロード
-                            <input type="file" accept="image/*" onChange={
+                            <input type="file" accept="image/*" onChange={handleCustomObiUpload} className="hidden" />
+                          </label>
+                        </div>
+                      )}
+
+                      {!(activeFloatPalette === 'obi' && customObiUrl) && (
+                        <div className="max-h-[150px] overflow-y-auto pr-1 grid grid-cols-4 sm:grid-cols-6 gap-1">
+                          {TRADITIONAL_COLORS.map((col) => (
+                            <button
+                              key={col.name}
+                              type="button"
+                              onClick={() => {
+                                if (activeFloatPalette === 'lining') setObiLiningColor(col.hex);
+                                if (activeFloatPalette === 'haneri') setKimonoHaneriColor(col.hex);
+                                if (activeFloatPalette === 'obiage') setKimonoObiageColor(col.hex);
+                                if (activeFloatPalette === 'obi') {
+                                  setKimonoObiColor(col.hex);
+                                  setCustomObiUrl?.(null);
+                                }
+                                setActiveFloatPalette(null);
+                              }}
+                              className="relative h-8 p-0.5 flex flex-col justify-end text-left border border-zinc-300 rounded-sm shadow-sm hover:scale-95 transition-transform"
+                              style={{ backgroundColor: col.hex }}
+                            >
+                              <span className={`text-[7px] font-bold truncate leading-none ${col.isDark ? 'text-white' : 'text-zinc-900'}`}>
+                                {col.name.split(' ')[0]}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* マッピング画像保存ボタン */}
+              <div className="mt-3">
+                <button
+                  type="button"
+                  onClick={handleDownloadMapping}
+                  disabled={mockupSubmitting}
+                  className={`px-3 py-1.5 text-[10px] sm:text-xs font-bold tracking-wider rounded-sm shadow-sm transition-colors ${
+                    mockupSubmitting ? 'bg-zinc-400 text-zinc-100 cursor-not-allowed' : 'bg-zinc-900 text-white hover:bg-zinc-800'
+                  }`}
+                >
+                  {mockupSubmitting ? '画像を作成中...' : '↓ マッピング画像を保存'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* トリム表示（京袋帯 34cm 裁断イメージ：40cmマスターの中央34cmを左右各3cmトリミング） */}
+          {displayMode === 'trim' && itemType === 'kyobukuro' && (
+            <div className="w-full flex flex-col items-center animate-fade-in">
+              <div className="relative w-[272px] sm:w-[340px] mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden" style={{ aspectRatio: '34 / 40' }}>
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    backgroundImage: `url(${effectivePatternUrl})`,
+                    backgroundSize: creationMode === 'geometric' ? `${(bgSizeMm / 340) * 100}% auto` : `${(400 / 340) * 100}% auto`,
+                    backgroundPosition: 'center center',
+                    backgroundRepeat: 'repeat',
+                    backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff',
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* 反物・プリントデータ表示 */}
+          {displayMode === 'data' && (
+            <div className="flex flex-col items-center w-full animate-fade-in">
+              {itemType === 'hanhaba' ? (
+                // 半幅帯 18cm プリントデータ：40cmマスターの中央18cmを左右各11cmトリミング
+                <div className="relative mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden" style={{ width: '216px', height: '480px' }}>
+                  <div
+                    className="absolute inset-0"
+                    style={{
+                      backgroundImage: `url(${effectivePatternUrl})`,
+                      backgroundSize: creationMode === 'geometric' ? `${(bgSizeMm / 180) * 100}% auto` : `${(400 / 180) * 100}% auto`,
+                      backgroundPosition: 'center top',
+                      backgroundRepeat: 'repeat',
+                      backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff',
+                    }}
+                  />
+                </div>
+              ) : (
+                // 40cm 反物データ：40cmマスター正方形をそのまま等倍表示
+                <div className="relative w-[260px] sm:w-[400px] aspect-square mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden">
+                  <div
+                    className="absolute inset-0"
+                    style={{
+                      backgroundImage: `url(${effectivePatternUrl})`,
+                      backgroundSize: creationMode === 'geometric' ? `${(bgSizeMm / 400) * 100}% auto` : '100% auto',
+                      backgroundPosition: 'center',
+                      backgroundRepeat: 'repeat',
+                      backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff',
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 全画面拡大モーダル */}
+      {isZoomModalOpen && (
+        <div 
+          style={{ zIndex: 99999 }}
+          className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in"
+          onClick={() => setIsZoomModalOpen(false)}
+        >
+          <div 
+            className="relative bg-white p-4 sm:p-6 rounded-lg max-w-[95vw] max-h-[95vh] overflow-auto shadow-2xl flex flex-col items-center border border-zinc-300"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setIsZoomModalOpen(false)}
+              className="absolute top-3 right-3 text-zinc-500 hover:text-zinc-950 text-base font-black w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center"
+            >
+              ✕
+            </button>
+            <h3 className="text-xs sm:text-sm font-black text-zinc-900 mb-4 tracking-widest">
+              【原寸拡大プレビュー】{itemType === 'hanhaba' ? '半幅帯' : itemType === 'kyobukuro' ? '京袋帯' : '着物'}
+            </h3>
+            <div className="w-[300px] sm:w-[500px] lg:w-[600px] aspect-square bg-[#e4e4e7] relative overflow-hidden shadow-inner border border-zinc-300">
+              {itemType === 'hanhaba' && renderHanhabaLayers()}
+              {itemType === 'kyobukuro' && renderKyobukuroLayers()}
+              {itemType === 'kimono' && renderKimonoLayers()}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
