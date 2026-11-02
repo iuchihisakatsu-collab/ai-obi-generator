@@ -511,7 +511,7 @@ function HomeContent() {
     }
   };
 
-  // ★ 画面プレビューと1ミリも違わない完全一致マッピング画像生成（WYSIWYG）
+  // ★ PreviewArea と1ミリも違わない完全一致マッピング画像生成（WYSIWYG）
   const handleDownloadMapping = async () => {
     if (!previewContainerRef.current) return;
     try {
@@ -540,9 +540,15 @@ function HomeContent() {
 
       const patternImg = await loadImage(effectivePatternUrl);
 
-      // ★ 画面（PreviewArea）と完全に同じ黄金比率スケール（実寸ロック）
-      const pxPerMm = 27 / 11;
-      const bgWidth = creationMode === 'geometric' ? (bgSizeMm * pxPerMm) : (180 * pxPerMm);
+      // ★ PreviewArea.tsx と 100% 同一のスケール計算
+      // PreviewArea では: patternSize = (scaleMm * UNIVERSAL_SCALE_FACTOR)% auto
+      // scaleMm は AIモード・画像入稿では 400, 幾何学では bgSizeMm
+      // この % は幅 150% の div に対する割合。
+      // 1200px キャンバスでは div の幅は 1200 * 1.5 = 1800px。
+      const scaleMm = creationMode === 'geometric' ? bgSizeMm : 400;
+      const tileWidthPercent = scaleMm * UNIVERSAL_SCALE_FACTOR;
+      const divSize = size * 1.5; // 1800px
+      const bgWidth = (divSize * tileWidthPercent) / 100; // 約981.8px (画面と完全一致！)
       const bgScale = bgWidth / Math.max(1, patternImg.width);
       const bgHeight = patternImg.height * bgScale;
 
@@ -558,7 +564,7 @@ function HomeContent() {
 
       const patternFill = ctx.createPattern(pCanvas, 'repeat')!;
 
-      // 共通の描画ヘルパー：画面の CSS（width: 150%, top: -25%, left: -25%）と完全に同じ回転・タイリング
+      // ★ CSS の background-position: X% Y% と transform: rotate を寸分違わず再現する共通関数
       const drawLayer = (
         targetCtx: CanvasRenderingContext2D,
         fillPattern: CanvasPattern,
@@ -567,34 +573,34 @@ function HomeContent() {
         bgYPercent: number
       ) => {
         targetCtx.save();
-        // 画面の transformOrigin: center center
+        // 1. transformOrigin: center center (1200px の中心で回転)
         targetCtx.translate(size / 2, size / 2);
         targetCtx.rotate((rotDeg * Math.PI) / 180);
         targetCtx.translate(-size / 2, -size / 2);
 
-        // CSS の top: -25%, left: -25%, width: 150%, height: 150% に正確に対応
-        const rectSize = size * 1.5;
-        const rectOffset = -size * 0.25;
+        // 2. CSS の top: -25%, left: -25% (1200px 基準で -300px)
+        const divOffset = -size * 0.25;
 
-        // CSS の background-position: X% Y% は (要素幅 - 画像幅) * (X / 100)
-        const posX = (rectSize - bgWidth) * (bgXPercent / 100);
-        const posY = (rectSize - bgHeight) * (bgYPercent / 100);
+        // 3. CSS の background-position: X% Y% の数学的定義: (要素幅 - 画像幅) * (X / 100)
+        const posX = (divSize - bgWidth) * (bgXPercent / 100);
+        const posY = (divSize - bgHeight) * (bgYPercent / 100);
 
-        targetCtx.translate(rectOffset + posX, rectOffset + posY);
+        targetCtx.translate(divOffset + posX, divOffset + posY);
         targetCtx.fillStyle = fillPattern;
-        targetCtx.fillRect(-size * 2, -size * 2, size * 5, size * 5);
+        // 回転された領域全体をカバーするよう十分に塗りつぶす
+        targetCtx.fillRect(-size * 3, -size * 3, size * 7, size * 7);
         targetCtx.restore();
       };
 
-      // 1. 半幅帯の合成
+      // 1. 半幅帯の合成（PreviewArea の hanhabaLayers と 100% 同一パラメータ）
       if (itemType === 'hanhaba') {
         const layers = [
-          { id: '01', file: 'hanhaba_Layer01.png', rot: 2,   bgX: 12, bgY: 34 },
-          { id: '02', file: 'hanhaba_Layer02.png', rot: 1,   bgX: 45, bgY: 67 },
-          { id: '03', file: 'hanhaba_Layer03.png', rot: 8,   bgX: 78, bgY: 12 }, 
-          { id: '04', file: 'hanhaba_Layer04.png', rot: -1,  bgX: 23, bgY: 89 },
-          { id: '05', file: 'hanhaba_Layer05.png', rot: -10, bgX: 56, bgY: 45 },
-          { id: '06', file: 'hanhaba_Layer06.png', rot: -93, bgX: 89, bgY: 23 }, 
+          { id: '01', file: 'hanhaba_Layer01.png', rot: 2,   bgX: 50, bgY: 50 },
+          { id: '02', file: 'hanhaba_Layer02.png', rot: 1,   bgX: 50, bgY: 50 },
+          { id: '03', file: 'hanhaba_Layer03.png', rot: 8,   bgX: 50, bgY: 50 }, 
+          { id: '04', file: 'hanhaba_Layer04.png', rot: -1,  bgX: 83, bgY: 35 },
+          { id: '05', file: 'hanhaba_Layer05.png', rot: -10, bgX: 83, bgY: 35 },
+          { id: '06', file: 'hanhaba_Layer06.png', rot: -93, bgX: 50, bgY: 50 }, 
         ];
 
         for (const layer of layers) {
@@ -630,7 +636,7 @@ function HomeContent() {
         ctx.globalCompositeOperation = 'source-over';
       }
 
-      // 2. 京袋帯の合成（切り刻みや勝手な回転を全廃し、画面と完全同期）
+      // 2. 京袋帯の合成（PreviewArea の kyobukuroLayers と 100% 同一パラメータ）
       if (itemType === 'kyobukuro') {
         const grandImg = await loadImage('/kyoubukurogrand.png?v=30');
         ctx.drawImage(grandImg, 0, 0, size, size);
@@ -646,10 +652,19 @@ function HomeContent() {
         uCtx.fillRect(0, 0, size, size);
         ctx.drawImage(urajiCanvas, 0, 0);
 
+        let individualHaraImg: HTMLImageElement | null = null;
+        if (customHaraUrl) {
+          try {
+            individualHaraImg = await loadImage(customHaraUrl);
+          } catch (e) {
+            console.error('Failed to load custom hara image:', e);
+          }
+        }
+
         const layers = [
           { id: 'hara', file: 'kyoubukurohara.png', rot: 271, bgX: 50, bgY: 50 },
-          { id: 'tare', file: 'kyoubukurotare.png', rot: -1, bgX: 50, bgY: 50 },
-          { id: 'taiko', file: 'kyoubukurotakio.png', rot: 2, bgX: 50, bgY: 50 },
+          { id: 'tare', file: 'kyoubukurotare.png', rot: -1, bgX: 76.5, bgY: 47 },
+          { id: 'taiko', file: 'kyoubukurotakio.png', rot: 2, bgX: 76.5, bgY: 47 },
         ];
 
         for (const layer of layers) {
@@ -661,7 +676,17 @@ function HomeContent() {
           tCtx.drawImage(maskImg, 0, 0, size, size);
           tCtx.globalCompositeOperation = 'source-in';
 
-          drawLayer(tCtx, patternFill, layer.rot, layer.bgX, layer.bgY);
+          if (layer.id === 'hara' && individualHaraImg) {
+            const hRatio = Math.max(size / individualHaraImg.width, size / individualHaraImg.height);
+            const drawW = individualHaraImg.width * hRatio;
+            const drawH = individualHaraImg.height * hRatio;
+            const drawX = (size - drawW) / 2;
+            const drawY = (size - drawH) / 2;
+            tCtx.drawImage(individualHaraImg, drawX, drawY, drawW, drawH);
+          } else {
+            drawLayer(tCtx, patternFill, layer.rot, layer.bgX, layer.bgY);
+          }
+
           ctx.drawImage(tempCanvas, 0, 0);
         }
 
@@ -673,12 +698,12 @@ function HomeContent() {
         ctx.globalCompositeOperation = 'source-over';
       }
 
-      // 3. 着物の合成（半減バグを撤廃し、帯と完全に同じ等倍スケールで描画）
+      // 3. 着物の合成（PreviewArea の kimonoParts と 100% 同一パラメータ）
       if (itemType === 'kimono') {
         const haikei = await loadImage('/haikei.png?v=30');
         ctx.drawImage(haikei, 0, 0, size, size);
 
-        const kimonoLayers = [
+        const kimonoParts = [
           { id: 'usiromigoro', file: 'usiromigoro_75.png', angle: 75 },
           { id: 'hidarisode2', file: 'hidarisode2_175.png', angle: 175 },
           { id: 'hidarisode', file: 'hidarisode_150.png', angle: 150 },
@@ -690,17 +715,17 @@ function HomeContent() {
           { id: 'hidarieri', file: 'hidarieri_117.png', angle: 117 },
         ];
 
-        for (const layer of kimonoLayers) {
+        for (const part of kimonoParts) {
           const tempCanvas = document.createElement('canvas');
           tempCanvas.width = size;
           tempCanvas.height = size;
           const tCtx = tempCanvas.getContext('2d')!;
-          const maskImg = await loadImage(`/${layer.file}?v=30`);
+          const maskImg = await loadImage(`/${part.file}?v=30`);
           tCtx.drawImage(maskImg, 0, 0, size, size);
           tCtx.globalCompositeOperation = 'source-in';
 
-          // 画面（PreviewArea）と全く同一の回転（angle - 90）と中心揃え（50%, 50%）
-          drawLayer(tCtx, patternFill, layer.angle - 90, 50, 50);
+          // PreviewArea と同じく center center (50% 50%)、回転は angle - 90
+          drawLayer(tCtx, patternFill, part.angle - 90, 50, 50);
           ctx.drawImage(tempCanvas, 0, 0);
         }
 
