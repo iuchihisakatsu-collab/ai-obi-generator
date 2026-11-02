@@ -305,6 +305,7 @@ function HomeContent() {
     reader.readAsDataURL(file);
   };
 
+  // 画像アップロード処理
   const handleUserImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -346,6 +347,7 @@ function HomeContent() {
     reader.readAsDataURL(file);
   };
 
+  // 4o-miniによる画像解析・プロンプト抽出ハンドラー
   const handleExtractPrompt = async () => {
     const targetImg = blobUrl || imageUrl;
     if (!targetImg) return;
@@ -511,298 +513,42 @@ function HomeContent() {
     }
   };
 
-  // ★ PreviewArea と1ミリも違わない完全一致マッピング画像生成（WYSIWYG）
+  // ★ 画面の見た目をそのまま100%完全キャプチャして保存（npm不要・CDN動的読み込み）
   const handleDownloadMapping = async () => {
     if (!previewContainerRef.current) return;
     try {
       setMockupSubmitting(true);
 
-      const canvas = document.createElement('canvas');
-      const size = 1200;
-      canvas.width = size;
-      canvas.height = size;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
+      // html-to-image ライブラリをCDNから動的に読み込む（初回のみ約0.1秒、お客様の操作不要）
+      if (!(window as any).htmlToImage) {
+        await new Promise<void>((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.11/html-to-image.min.js';
+          script.onload = () => resolve();
+          script.onerror = () => reject(new Error('スクリプトの読み込みに失敗しました'));
+          document.head.appendChild(script);
+        });
+      }
 
-      const loadImage = (src: string): Promise<HTMLImageElement> => new Promise((res, rej) => {
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        img.onload = () => res(img);
-        img.onerror = (e) => {
-          console.error('Image load error:', src, e);
-          rej(e);
-        };
-        img.src = src;
+      const htmlToImage = (window as any).htmlToImage;
+
+      // プレビュー枠（previewContainerRef）にレンダリングされている実寸の見た目をそのままPNG画像化
+      const dataUrl = await htmlToImage.toPng(previewContainerRef.current, {
+        cacheBust: true,
+        pixelRatio: 2, // 画面の見た目そのまま、クッキリ綺麗な解像度で保存
       });
 
-      const effectivePatternUrl = creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl);
-      if (!effectivePatternUrl) throw new Error('No pattern image');
-
-      const patternImg = await loadImage(effectivePatternUrl);
-
-      // ★ PreviewArea.tsx と 100% 同一のスケール計算
-      // PreviewArea では: patternSize = (scaleMm * UNIVERSAL_SCALE_FACTOR)% auto
-      // scaleMm は AIモード・画像入稿では 400, 幾何学では bgSizeMm
-      // この % は幅 150% の div に対する割合。
-      // 1200px キャンバスでは div の幅は 1200 * 1.5 = 1800px。
-      const scaleMm = creationMode === 'geometric' ? bgSizeMm : 400;
-      const tileWidthPercent = scaleMm * UNIVERSAL_SCALE_FACTOR;
-      const divSize = size * 1.5; // 1800px
-      const bgWidth = (divSize * tileWidthPercent) / 100; // 約981.8px (画面と完全一致！)
-      const bgScale = bgWidth / Math.max(1, patternImg.width);
-      const bgHeight = patternImg.height * bgScale;
-
-      const pCanvas = document.createElement('canvas');
-      pCanvas.width = Math.max(1, bgWidth);
-      pCanvas.height = Math.max(1, bgHeight);
-      const pCtx = pCanvas.getContext('2d')!;
-      if (creationMode === 'geometric' && geoBgColor) {
-        pCtx.fillStyle = geoBgColor;
-        pCtx.fillRect(0, 0, bgWidth, bgHeight);
-      }
-      pCtx.drawImage(patternImg, 0, 0, bgWidth, bgHeight);
-
-      const patternFill = ctx.createPattern(pCanvas, 'repeat')!;
-
-      // ★ CSS の background-position: X% Y% と transform: rotate を寸分違わず再現する共通関数
-      const drawLayer = (
-        targetCtx: CanvasRenderingContext2D,
-        fillPattern: CanvasPattern,
-        rotDeg: number,
-        bgXPercent: number,
-        bgYPercent: number
-      ) => {
-        targetCtx.save();
-        // 1. transformOrigin: center center (1200px の中心で回転)
-        targetCtx.translate(size / 2, size / 2);
-        targetCtx.rotate((rotDeg * Math.PI) / 180);
-        targetCtx.translate(-size / 2, -size / 2);
-
-        // 2. CSS の top: -25%, left: -25% (1200px 基準で -300px)
-        const divOffset = -size * 0.25;
-
-        // 3. CSS の background-position: X% Y% の数学的定義: (要素幅 - 画像幅) * (X / 100)
-        const posX = (divSize - bgWidth) * (bgXPercent / 100);
-        const posY = (divSize - bgHeight) * (bgYPercent / 100);
-
-        targetCtx.translate(divOffset + posX, divOffset + posY);
-        targetCtx.fillStyle = fillPattern;
-        // 回転された領域全体をカバーするよう十分に塗りつぶす
-        targetCtx.fillRect(-size * 3, -size * 3, size * 7, size * 7);
-        targetCtx.restore();
-      };
-
-      // 1. 半幅帯の合成（PreviewArea の hanhabaLayers と 100% 同一パラメータ）
-      if (itemType === 'hanhaba') {
-        const layers = [
-          { id: '01', file: 'hanhaba_Layer01.png', rot: 2,   bgX: 50, bgY: 50 },
-          { id: '02', file: 'hanhaba_Layer02.png', rot: 1,   bgX: 50, bgY: 50 },
-          { id: '03', file: 'hanhaba_Layer03.png', rot: 8,   bgX: 50, bgY: 50 }, 
-          { id: '04', file: 'hanhaba_Layer04.png', rot: -1,  bgX: 83, bgY: 35 },
-          { id: '05', file: 'hanhaba_Layer05.png', rot: -10, bgX: 83, bgY: 35 },
-          { id: '06', file: 'hanhaba_Layer06.png', rot: -93, bgX: 50, bgY: 50 }, 
-        ];
-
-        for (const layer of layers) {
-          const tempCanvas = document.createElement('canvas');
-          tempCanvas.width = size;
-          tempCanvas.height = size;
-          const tCtx = tempCanvas.getContext('2d')!;
-
-          const maskImg = await loadImage(`/${layer.file}?v=30`);
-          tCtx.drawImage(maskImg, 0, 0, size, size);
-          tCtx.globalCompositeOperation = 'source-in';
-
-          drawLayer(tCtx, patternFill, layer.rot, layer.bgX, layer.bgY);
-          ctx.drawImage(tempCanvas, 0, 0);
-        }
-
-        const tempCanvas7 = document.createElement('canvas');
-        tempCanvas7.width = size;
-        tempCanvas7.height = size;
-        const tCtx7 = tempCanvas7.getContext('2d')!;
-        const mask7 = await loadImage('/hanhaba_Layer07.png?v=30');
-        tCtx7.drawImage(mask7, 0, 0, size, size);
-        tCtx7.globalCompositeOperation = 'source-in';
-        tCtx7.fillStyle = obiLiningColor || '#dcdddd';
-        tCtx7.fillRect(0, 0, size, size);
-        ctx.drawImage(tempCanvas7, 0, 0);
-
-        const kage = await loadImage('/hanhaba_Layer_kage.png?v=30');
-        ctx.globalCompositeOperation = 'multiply';
-        ctx.globalAlpha = 0.5; 
-        ctx.drawImage(kage, 0, 0, size, size);
-        ctx.globalAlpha = 1.0;
-        ctx.globalCompositeOperation = 'source-over';
-      }
-
-      // 2. 京袋帯の合成（PreviewArea の kyobukuroLayers と 100% 同一パラメータ）
-      if (itemType === 'kyobukuro') {
-        const grandImg = await loadImage('/kyoubukurogrand.png?v=30');
-        ctx.drawImage(grandImg, 0, 0, size, size);
-
-        const urajiCanvas = document.createElement('canvas');
-        urajiCanvas.width = size;
-        urajiCanvas.height = size;
-        const uCtx = urajiCanvas.getContext('2d')!;
-        const urajiImg = await loadImage('/kyoubukurouraji.png?v=30');
-        uCtx.drawImage(urajiImg, 0, 0, size, size);
-        uCtx.globalCompositeOperation = 'source-in';
-        uCtx.fillStyle = obiLiningColor || '#161616';
-        uCtx.fillRect(0, 0, size, size);
-        ctx.drawImage(urajiCanvas, 0, 0);
-
-        let individualHaraImg: HTMLImageElement | null = null;
-        if (customHaraUrl) {
-          try {
-            individualHaraImg = await loadImage(customHaraUrl);
-          } catch (e) {
-            console.error('Failed to load custom hara image:', e);
-          }
-        }
-
-        const layers = [
-          { id: 'hara', file: 'kyoubukurohara.png', rot: 271, bgX: 50, bgY: 50 },
-          { id: 'tare', file: 'kyoubukurotare.png', rot: -1, bgX: 76.5, bgY: 47 },
-          { id: 'taiko', file: 'kyoubukurotakio.png', rot: 2, bgX: 76.5, bgY: 47 },
-        ];
-
-        for (const layer of layers) {
-          const tempCanvas = document.createElement('canvas');
-          tempCanvas.width = size;
-          tempCanvas.height = size;
-          const tCtx = tempCanvas.getContext('2d')!;
-          const maskImg = await loadImage(`/${layer.file}?v=30`);
-          tCtx.drawImage(maskImg, 0, 0, size, size);
-          tCtx.globalCompositeOperation = 'source-in';
-
-          if (layer.id === 'hara' && individualHaraImg) {
-            const hRatio = Math.max(size / individualHaraImg.width, size / individualHaraImg.height);
-            const drawW = individualHaraImg.width * hRatio;
-            const drawH = individualHaraImg.height * hRatio;
-            const drawX = (size - drawW) / 2;
-            const drawY = (size - drawH) / 2;
-            tCtx.drawImage(individualHaraImg, drawX, drawY, drawW, drawH);
-          } else {
-            drawLayer(tCtx, patternFill, layer.rot, layer.bgX, layer.bgY);
-          }
-
-          ctx.drawImage(tempCanvas, 0, 0);
-        }
-
-        const kage = await loadImage('/kyoubukuromask.png?v=30');
-        ctx.globalCompositeOperation = 'multiply';
-        ctx.globalAlpha = 0.5; 
-        ctx.drawImage(kage, 0, 0, size, size);
-        ctx.globalAlpha = 1.0;
-        ctx.globalCompositeOperation = 'source-over';
-      }
-
-      // 3. 着物の合成（PreviewArea の kimonoParts と 100% 同一パラメータ）
-      if (itemType === 'kimono') {
-        const haikei = await loadImage('/haikei.png?v=30');
-        ctx.drawImage(haikei, 0, 0, size, size);
-
-        const kimonoParts = [
-          { id: 'usiromigoro', file: 'usiromigoro_75.png', angle: 75 },
-          { id: 'hidarisode2', file: 'hidarisode2_175.png', angle: 175 },
-          { id: 'hidarisode', file: 'hidarisode_150.png', angle: 150 },
-          { id: 'migisode', file: 'migisode_165.png', angle: 165 },
-          { id: 'maemigoro2', file: 'maemigoro2_140.png', angle: 140 },
-          { id: 'maemigoro', file: 'maemigoro_105.png', angle: 105 },
-          { id: 'maeokumi', file: 'maeokumi_110.png', angle: 110 },
-          { id: 'migieri', file: 'migieri_65.png', angle: 65 },
-          { id: 'hidarieri', file: 'hidarieri_117.png', angle: 117 },
-        ];
-
-        for (const part of kimonoParts) {
-          const tempCanvas = document.createElement('canvas');
-          tempCanvas.width = size;
-          tempCanvas.height = size;
-          const tCtx = tempCanvas.getContext('2d')!;
-          const maskImg = await loadImage(`/${part.file}?v=30`);
-          tCtx.drawImage(maskImg, 0, 0, size, size);
-          tCtx.globalCompositeOperation = 'source-in';
-
-          // PreviewArea と同じく center center (50% 50%)、回転は angle - 90
-          drawLayer(tCtx, patternFill, part.angle - 90, 50, 50);
-          ctx.drawImage(tempCanvas, 0, 0);
-        }
-
-        const haneriCanvas = document.createElement('canvas');
-        haneriCanvas.width = size;
-        haneriCanvas.height = size;
-        const hCtx = haneriCanvas.getContext('2d')!;
-        const haneriMask = await loadImage('/haneri.png?v=30');
-        hCtx.drawImage(haneriMask, 0, 0, size, size);
-        hCtx.globalCompositeOperation = 'source-in';
-        hCtx.fillStyle = kimonoHaneriColor || '#ffffff';
-        hCtx.fillRect(0, 0, size, size);
-        ctx.drawImage(haneriCanvas, 0, 0);
-
-        const obiageCanvas = document.createElement('canvas');
-        obiageCanvas.width = size;
-        obiageCanvas.height = size;
-        const oCtx = obiageCanvas.getContext('2d')!;
-        const obiageMask = await loadImage('/obiage.png?v=30');
-        oCtx.drawImage(obiageMask, 0, 0, size, size);
-        oCtx.globalCompositeOperation = 'source-in';
-        oCtx.fillStyle = kimonoObiageColor || '#c82a36';
-        oCtx.fillRect(0, 0, size, size);
-        ctx.drawImage(obiageCanvas, 0, 0);
-
-        const obiCanvas = document.createElement('canvas');
-        obiCanvas.width = size;
-        obiCanvas.height = size;
-        const obCtx = obiCanvas.getContext('2d')!;
-        const obiMask = await loadImage('/obi_2.png?v=30');
-        obCtx.drawImage(obiMask, 0, 0, size, size);
-        obCtx.globalCompositeOperation = 'source-in';
-        if (customObiUrl) {
-          const customObiImg = await loadImage(customObiUrl);
-          obCtx.drawImage(customObiImg, 0, 0, size, size);
-        } else {
-          obCtx.fillStyle = kimonoObiColor || '#1a1a1a';
-          obCtx.fillRect(0, 0, size, size);
-        }
-        ctx.drawImage(obiCanvas, 0, 0);
-
-        const jyouzan = await loadImage('/jyouzan.png?v=30');
-        ctx.globalCompositeOperation = 'multiply';
-        ctx.globalAlpha = 0.5;
-        ctx.drawImage(jyouzan, 0, 0, size, size);
-        ctx.globalAlpha = 1.0;
-        ctx.globalCompositeOperation = 'source-over';
-      }
-
-      ctx.globalCompositeOperation = 'source-over';
-      ctx.font = 'bold 24px sans-serif';
-      ctx.textBaseline = 'middle';
-      const watermarkText = `ID: ${serialNumber || 'KOMON-XXXX'}`;
-      const textWidth = ctx.measureText(watermarkText).width;
-      
-      const rectX = size - textWidth - 40;
-      const rectY = size - 60;
-      const rectW = textWidth + 30;
-      const rectH = 40;
-
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
-      ctx.fillRect(rectX, rectY, rectW, rectH);
-
-      ctx.fillStyle = '#111111';
-      ctx.fillText(watermarkText, rectX + 15, rectY + (rectH / 2));
-
-      const finalUrl = canvas.toDataURL('image/png');
+      // 画像をダウンロード
       const a = document.createElement('a');
-      a.href = finalUrl;
+      a.href = dataUrl;
       a.download = `${serialNumber || 'mapping'}_${itemType}_mockup.png`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
 
     } catch (e) {
-      console.error(e);
-      alert('ダウンロード画像の生成に失敗しました。');
+      console.error('マッピング保存エラー:', e);
+      alert('マッピング画像の保存に失敗しました。');
     } finally {
       setMockupSubmitting(false);
     }
