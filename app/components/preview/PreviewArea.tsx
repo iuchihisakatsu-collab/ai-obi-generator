@@ -146,11 +146,11 @@ export default function PreviewArea(props: PreviewAreaProps) {
     </div>
   );
 
-  // 京袋帯パーツ定義（角度rotは完全保持、上下bgY: 47%固定、水平bgXを1センチ弱左寄りの79%へ微調整）
+  // 京袋帯パーツ定義（角度rotは完全保持、上下bgY: 47%固定、水平bgXをさらに1センチ左寄りの76.5%へ補正）
   const kyobukuroLayers = [
     { id: 'hara', file: 'kyoubukurohara.png', z: 30, rot: 271, bgX: '50%', bgY: '50%' },
-    { id: 'tare', file: 'kyoubukurotare.png', z: 40, rot: -1, bgX: '79%', bgY: '47%' },
-    { id: 'taiko', file: 'kyoubukurotakio.png', z: 50, rot: 2, bgX: '79%', bgY: '47%' },
+    { id: 'tare', file: 'kyoubukurotare.png', z: 40, rot: -1, bgX: '76.5%', bgY: '47%' },
+    { id: 'taiko', file: 'kyoubukurotakio.png', z: 50, rot: 2, bgX: '76.5%', bgY: '47%' },
   ];
 
   // 京袋帯マッピングのレイヤー描画
