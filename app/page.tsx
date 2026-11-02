@@ -57,7 +57,8 @@ function HomeContent() {
   const [platform, setPlatform] = useState<PlatformType>((searchParams.get('platform') as PlatformType) || 'makeshop');
   const [designFee, setDesignFee] = useState<number>(1000);
 
-  const [creationMode, setCreationMode] = useState<'ai' | 'geometric'>('geometric');
+  // モードに 'upload'（画像入稿）を追加
+  const [creationMode, setCreationMode] = useState<'ai' | 'geometric' | 'upload'>('geometric');
   const [itemType, setItemType] = useState<'hanhaba' | 'kyobukuro' | 'kimono'>('hanhaba');
   const [displayMode, setDisplayMode] = useState<'mockup' | 'trim' | 'data'>('mockup');
   
@@ -109,6 +110,9 @@ function HomeContent() {
   const [mockupSubmitting, setMockupSubmitting] = useState<boolean>(false);
   const [isNoticeOpen, setIsNoticeOpen] = useState<boolean>(false);
 
+  // コピー完了状態の管理
+  const [copiedPromptType, setCopiedPromptType] = useState<'seamless' | 'centered' | null>(null);
+
   const previewRef = useRef<HTMLDivElement>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
 
@@ -148,7 +152,8 @@ function HomeContent() {
       return;
     }
 
-    if (creationMode === 'ai' && itemType === 'hanhaba') {
+    // AIモードまたは入稿モードの半幅帯では90度回転を適用
+    if (creationMode !== 'geometric' && itemType === 'hanhaba') {
       rotateImage90Degrees(src)
         .then((rotated) => setRotatedPatternUrl(rotated))
         .catch((err) => {
@@ -248,6 +253,26 @@ function HomeContent() {
     }
   };
 
+  // 入稿モード用：ユーザー画像の取り込みハンドラー
+  const handleUserImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    setImageUrl(url);
+    setBlobUrl('');
+    setRotatedPatternUrl('');
+    const cleanFileName = file.name.replace(/\.[^/.]+$/, '');
+    setPatternTitle(cleanFileName ? `${cleanFileName}（持ち込み）` : '持ち込み図案');
+    setSerialNumber(`USER-${Math.floor(1000 + Math.random() * 9000)}`);
+  };
+
+  // プロンプトコピーハンドラー
+  const handleCopyPrompt = (text: string, type: 'seamless' | 'centered') => {
+    navigator.clipboard.writeText(text);
+    setCopiedPromptType(type);
+    setTimeout(() => setCopiedPromptType(null), 2000);
+  };
+
   const handleGenerate = async (engineType: 'flux' | 'openai_free' | 'openai_premium') => {
     if (loading) return;
     if (engineType === 'flux' && remainingFlux <= 0) {
@@ -291,8 +316,8 @@ function HomeContent() {
           density, 
           itemType, 
           aiStyle, 
-          artist: selectedArtist,
-          engine: actualEngine,
+          artist: selectedArtist, 
+          engine: actualEngine, 
           paymentMode: engineType === 'openai_premium' ? 'premium' : 'free',
           premiumCode: engineType === 'openai_premium' ? premiumCode.trim() : undefined,
           ticketCode: engineType === 'openai_premium' ? premiumCode.trim() : undefined,
@@ -490,7 +515,7 @@ function HomeContent() {
         let haraPatternFill = patternFill;
         let haraRot = 0;
 
-        if (isVerticalPattern && creationMode === 'ai') {
+        if (isVerticalPattern && creationMode !== 'geometric') {
           const sqSize = patternImg.width; 
           const topCanvas = document.createElement('canvas');
           topCanvas.width = sqSize;
@@ -705,7 +730,9 @@ function HomeContent() {
       if (itemType === 'hanhaba') {
         finalImg = await render18cmPrintDataPng(
           creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl),
-          creationMode, bgSizeMm, geoBgColor
+          creationMode === 'geometric' ? 'geometric' : 'ai',
+          bgSizeMm,
+          geoBgColor
         );
       }
 
@@ -714,7 +741,7 @@ function HomeContent() {
         serialNumber: validSerial,
         imageUrl: finalImg,
         itemType,
-        creationMode,
+        creationMode: creationMode === 'geometric' ? 'geometric' : 'ai',
         vendor: 'Printag Creator',
         designFee,
       });
@@ -726,14 +753,19 @@ function HomeContent() {
     }
   };
 
+  // 外部AI用の固定英語プロンプト構文
+  const PROMPT_SEAMLESS = 'seamless textile pattern, full-bleed design, no humans, no mockups --tile --ar 1:1';
+  const PROMPT_CENTERED = 'centered composition, artwork directly in the center, ample margin on left and right, full-bleed design, no humans, no mockups --ar 1:1';
+
   return (
     <div className="min-h-screen bg-[#f4f4f5] text-zinc-900 flex flex-col items-center justify-start font-sans lg:p-8">
       <div className="w-full max-w-7xl flex flex-col lg:flex-row lg:gap-6 items-start justify-center">
         
+        {/* 左側プレビューエリア：既存の黄金比率・計算式を100%温存 */}
         <PreviewArea
           imageUrl={imageUrl} blobUrl={blobUrl} rotatedPatternUrl={rotatedPatternUrl}
           serialNumber={serialNumber} itemType={itemType} displayMode={displayMode}
-          creationMode={creationMode} bgSizeMm={bgSizeMm}
+          creationMode={creationMode === 'geometric' ? 'geometric' : 'ai'} bgSizeMm={bgSizeMm}
           geoBgColor={geoBgColor}
           obiLiningColor={obiLiningColor}
           setObiLiningColor={setObiLiningColor}
@@ -751,36 +783,182 @@ function HomeContent() {
           handleDownloadMapping={handleDownloadMapping} UNIVERSAL_SCALE_FACTOR={UNIVERSAL_SCALE_FACTOR}
         />
 
-        <ControlPanel
-          creationMode={creationMode} setCreationMode={setCreationMode}
-          itemType={itemType} setItemType={setItemType}
-          aiStyle={aiStyle} setAiStyle={setAiStyle}
-          selectedArtist={selectedArtist} setSelectedArtist={setSelectedArtist}
-          motif={motif} setMotif={setMotif}
-          motif2={motif2} setMotif2={setMotif2}
-          selectedColors={selectedColors} setSelectedColors={setSelectedColors} handleColorToggle={handleColorToggle}
-          showColorPalette={showColorPalette} setShowColorPalette={setShowColorPalette}
-          density={density} setDensity={setDensity}
-          geoPatternType={geoPatternType} setGeoPatternType={setGeoPatternType}
-          stripeDir={stripeDir} setStripeDir={setStripeDir} dotLayout={dotLayout} setDotLayout={setDotLayout}
-          dotRadius={dotRadius} setDotRadius={setDotRadius} gapWidth={gapWidth} setGapWidth={setGapWidth}
-          lineWidth={lineWidth} setLineWidth={setLineWidth} geoBgColor={geoBgColor} setGeoBgColor={setGeoBgColor}
-          geoPatternColor={geoPatternColor} setGeoPatternColor={setGeoPatternColor}
-          showGeoPaletteFor={showGeoPaletteFor} setShowGeoPaletteFor={setShowGeoPaletteFor}
-          agreed={agreed} setAgreed={setAgreed} errorMsg={errorMsg}
-          loading={loading}
-          generatingMode={generatingMode}
-          remainingCount={remainingOpenAI}
-          remainingFlux={remainingFlux}
-          remainingOpenAI={remainingOpenAI}
-          ticketRemaining={ticketRemaining}
-          loadingStep={loadingStep}
-          handleGenerate={handleGenerate} imageUrl={imageUrl} patternTitle={patternTitle} setPatternTitle={setPatternTitle}
-          serialNumber={serialNumber}
-          handleDownloadOriginal={handleDownloadOriginal} handleOrderClick={handleOrderClick}
-          premiumCode={premiumCode} setPremiumCode={setPremiumCode}
-          premiumStatusMsg={premiumStatusMsg}
-        />
+        {/* 右側操作エリア：最上部にモード切り替えバーを配備 */}
+        <div className="w-full lg:w-1/2 flex flex-col gap-3">
+          
+          {/* モード切替タブ */}
+          <div className="bg-white border border-zinc-300 shadow-sm p-1.5 flex gap-1 rounded-sm">
+            <button
+              type="button"
+              onClick={() => setCreationMode('geometric')}
+              className={`flex-1 py-2 text-xs font-bold rounded transition-all ${
+                creationMode === 'geometric' ? 'bg-zinc-900 text-white shadow' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
+              }`}
+            >
+              幾何学模様
+            </button>
+            <button
+              type="button"
+              onClick={() => setCreationMode('ai')}
+              className={`flex-1 py-2 text-xs font-bold rounded transition-all ${
+                creationMode === 'ai' ? 'bg-zinc-900 text-white shadow' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
+              }`}
+            >
+              ✨ AI妄想
+            </button>
+            <button
+              type="button"
+              onClick={() => setCreationMode('upload')}
+              className={`flex-1 py-2 text-xs font-bold rounded transition-all ${
+                creationMode === 'upload' ? 'bg-zinc-900 text-white shadow' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
+              }`}
+            >
+              📁 画像入稿
+            </button>
+          </div>
+
+          {/* 入稿モード専用パネル */}
+          {creationMode === 'upload' ? (
+            <div className="bg-white border border-zinc-300 shadow-xl p-5 flex flex-col gap-5 animate-fade-in rounded-sm">
+              <div>
+                <h2 className="text-sm font-black text-zinc-900 tracking-wider mb-1">【自作・外部AI画像の持ち込み】</h2>
+                <p className="text-[11px] text-zinc-500 leading-relaxed">
+                  Midjourneyやお持ちの画像生成AI、手描きイラストの画像をアップロードして原寸でマッピングシミュレーションできます。
+                </p>
+              </div>
+
+              {/* 1. 画像アップロード枠 */}
+              <div className="border-2 border-dashed border-zinc-300 rounded p-6 bg-zinc-50 hover:bg-zinc-100/80 transition-colors flex flex-col items-center justify-center text-center">
+                <label className="cursor-pointer flex flex-col items-center justify-center w-full">
+                  <span className="text-2xl mb-2">📤</span>
+                  <span className="text-xs font-bold text-zinc-800 mb-1">クリックして画像を選択、またはドラッグ＆ドロップ</span>
+                  <span className="text-[10px] text-zinc-500">推奨形式：正方形 (1:1) / PNG または JPEG</span>
+                  <input
+                    type="file"
+                    accept="image/png, image/jpeg, image/webp"
+                    onChange={handleUserImageUpload}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+
+              {/* 選択中画像のステータス */}
+              {imageUrl && (
+                <div className="p-3 bg-zinc-100 border border-zinc-200 rounded flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <img src={imageUrl} alt="" className="w-10 h-10 object-cover rounded border border-zinc-300" />
+                    <div>
+                      <p className="text-xs font-bold text-zinc-900 truncate max-w-[200px]">{patternTitle}</p>
+                      <p className="text-[10px] font-mono text-zinc-500">{serialNumber}</p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded">プレビュー反映中</span>
+                </div>
+              )}
+
+              {/* 2. 外部AI向け推奨プロンプト（コピペ用） */}
+              <div className="border-t border-zinc-200 pt-4 flex flex-col gap-3">
+                <div>
+                  <h3 className="text-xs font-black text-zinc-900 mb-1">【外部AI生成用・末尾プロンプト】</h3>
+                  <p className="text-[10px] text-zinc-500">
+                    Midjourney等で思い通りの帯・着物データを作る際、プロンプトの末尾に足して出力してください。
+                  </p>
+                </div>
+
+                {/* 小紋・総柄用 */}
+                <div className="p-3 bg-zinc-50 border border-zinc-200 rounded flex flex-col gap-1.5">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[11px] font-bold text-zinc-800">小紋・総柄（半幅帯・着物向け：リピート柄）</span>
+                    <button
+                      type="button"
+                      onClick={() => handleCopyPrompt(PROMPT_SEAMLESS, 'seamless')}
+                      className={`text-[10px] font-bold px-2.5 py-1 rounded transition-colors ${
+                        copiedPromptType === 'seamless' ? 'bg-emerald-600 text-white' : 'bg-zinc-900 text-white hover:bg-zinc-800'
+                      }`}
+                    >
+                      {copiedPromptType === 'seamless' ? '✓ コピー完了！' : '📋 コピー'}
+                    </button>
+                  </div>
+                  <code className="text-[10px] font-mono bg-white p-2 rounded border border-zinc-200 text-zinc-700 break-all select-all">
+                    {PROMPT_SEAMLESS}
+                  </code>
+                </div>
+
+                {/* お太鼓・絵羽用 */}
+                <div className="p-3 bg-zinc-50 border border-zinc-200 rounded flex flex-col gap-1.5">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[11px] font-bold text-zinc-800">お太鼓・絵羽（京袋帯向け：センター主役）</span>
+                    <button
+                      type="button"
+                      onClick={() => handleCopyPrompt(PROMPT_CENTERED, 'centered')}
+                      className={`text-[10px] font-bold px-2.5 py-1 rounded transition-colors ${
+                        copiedPromptType === 'centered' ? 'bg-emerald-600 text-white' : 'bg-zinc-900 text-white hover:bg-zinc-800'
+                      }`}
+                    >
+                      {copiedPromptType === 'centered' ? '✓ コピー完了！' : '📋 コピー'}
+                    </button>
+                  </div>
+                  <code className="text-[10px] font-mono bg-white p-2 rounded border border-zinc-200 text-zinc-700 break-all select-all">
+                    {PROMPT_CENTERED}
+                  </code>
+                </div>
+              </div>
+
+              {/* 3. 保存・注文アクション */}
+              {imageUrl && (
+                <div className="border-t border-zinc-200 pt-4 flex flex-col gap-2">
+                  <button
+                    type="button"
+                    onClick={handleDownloadOriginal}
+                    className="w-full py-2.5 text-xs font-bold text-zinc-800 bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 rounded transition-colors"
+                  >
+                    ↓ アップロード原寸画像を保存
+                  </button>
+                  <a
+                    href="#order"
+                    onClick={handleOrderClick}
+                    className="w-full py-3 text-center text-xs font-black text-white bg-zinc-900 hover:bg-zinc-800 rounded shadow-md transition-colors"
+                  >
+                    この持ち込み画像で仕立てる（注文へ）
+                  </a>
+                </div>
+              )}
+            </div>
+          ) : (
+            /* 幾何学・AIモード時は既存のControlPanelを100%温存 */
+            <ControlPanel
+              creationMode={creationMode} setCreationMode={setCreationMode}
+              itemType={itemType} setItemType={setItemType}
+              aiStyle={aiStyle} setAiStyle={setAiStyle}
+              selectedArtist={selectedArtist} setSelectedArtist={setSelectedArtist}
+              motif={motif} setMotif={setMotif}
+              motif2={motif2} setMotif2={setMotif2}
+              selectedColors={selectedColors} setSelectedColors={setSelectedColors} handleColorToggle={handleColorToggle}
+              showColorPalette={showColorPalette} setShowColorPalette={setShowColorPalette}
+              density={density} setDensity={setDensity}
+              geoPatternType={geoPatternType} setGeoPatternType={setGeoPatternType}
+              stripeDir={stripeDir} setStripeDir={setStripeDir} dotLayout={dotLayout} setDotLayout={setDotLayout}
+              dotRadius={dotRadius} setDotRadius={setDotRadius} gapWidth={gapWidth} setGapWidth={setGapWidth}
+              lineWidth={lineWidth} setLineWidth={setLineWidth} geoBgColor={geoBgColor} setGeoBgColor={setGeoBgColor}
+              geoPatternColor={geoPatternColor} setGeoPatternColor={setGeoPatternColor}
+              showGeoPaletteFor={showGeoPaletteFor} setShowGeoPaletteFor={setShowGeoPaletteFor}
+              agreed={agreed} setAgreed={setAgreed} errorMsg={errorMsg}
+              loading={loading}
+              generatingMode={generatingMode}
+              remainingCount={remainingOpenAI}
+              remainingFlux={remainingFlux}
+              remainingOpenAI={remainingOpenAI}
+              ticketRemaining={ticketRemaining}
+              loadingStep={loadingStep}
+              handleGenerate={handleGenerate} imageUrl={imageUrl} patternTitle={patternTitle} setPatternTitle={setPatternTitle}
+              serialNumber={serialNumber}
+              handleDownloadOriginal={handleDownloadOriginal} handleOrderClick={handleOrderClick}
+              premiumCode={premiumCode} setPremiumCode={setPremiumCode}
+              premiumStatusMsg={premiumStatusMsg}
+            />
+          )}
+
+        </div>
       </div>
 
       {CURRENT_NOTICE.enabled && (
