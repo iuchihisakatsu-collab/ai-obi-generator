@@ -1,7 +1,7 @@
 // app/components/controls/ControlPanel.tsx
 'use client';
 
-import { MouseEvent, useEffect } from 'react';
+import { MouseEvent, useEffect, useState } from 'react';
 import { TRADITIONAL_COLORS, CategoryItem } from '../../lib/constants';
 
 interface ControlPanelProps {
@@ -167,6 +167,48 @@ export default function ControlPanel({
   setPremiumCode,
   premiumStatusMsg,
 }: ControlPanelProps) {
+
+  // 写真解析中ローディングState
+  const [analyzingPhoto, setAnalyzingPhoto] = useState(false);
+
+  // ★ 写真から直接プロンプトを抽出してモチーフ欄に入れる関数
+  const handlePhotoUploadAndExtract = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setAnalyzingPhoto(true);
+    try {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64Data = reader.result as string;
+        try {
+          const res = await fetch('/api/analyze-image', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ imageUrl: base64Data }),
+          });
+          const result = await res.json();
+          if (result.success && result.data) {
+            const { prompt: extractedPrompt, motif: exMotif, color: exColor, texture: exTexture } = result.data;
+            const finalPrompt = extractedPrompt || `${exMotif}。配色：${exColor}。タッチ：${exTexture}`;
+            setMotif(finalPrompt);
+            alert('写真から色・柄の特徴を抽出してモチーフ欄に入力しました！');
+          } else {
+            alert(result.error || '写真の解析に失敗しました。');
+          }
+        } catch (err) {
+          console.error(err);
+          alert('解析通信エラーが発生しました。');
+        } finally {
+          setAnalyzingPhoto(false);
+        }
+      };
+      reader.readAsDataURL(file);
+    } catch (err) {
+      setAnalyzingPhoto(false);
+      console.error(err);
+    }
+  };
 
   // アイテム切り替え時に適切な「柄の配置」を自動セット
   useEffect(() => {
@@ -352,22 +394,40 @@ export default function ControlPanel({
               )}
             </div>
 
-            {/* 03. モチーフ入力＆入力アシスト */}
+            {/* 03. モチーフ入力＆写真からプロンプト常設ボタン */}
             <div className="pt-4 border-t border-zinc-100">
-              <div className="flex justify-between items-baseline mb-1">
+              <div className="flex justify-between items-center mb-1.5">
                 <label className="block text-xs font-bold text-zinc-900 tracking-wider">
                   03. 何を描く？（モチーフ）
                 </label>
+
+                {/* ★ ここに常設！写真からプロンプト自動入力ボタン */}
+                <label className="cursor-pointer inline-flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded text-[11px] font-bold shadow-sm transition-all active:scale-95">
+                  <span>✨</span>
+                  <span>{analyzingPhoto ? '写真の色・柄をAI解析中...' : '📷 写真から自動入力'}</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoUploadAndExtract}
+                    disabled={analyzingPhoto || loading}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+
+              <div className="flex justify-between items-center mb-1">
+                <p className="text-[10px] text-zinc-400">
+                  好きな単語を入れるか、右上の「📷 写真から自動入力」で手元の写真から色・柄を抽出できます。
+                </p>
                 {motif && (
                   <button 
                     onClick={() => setMotif('')} 
-                    className="text-[10px] font-bold text-zinc-400 hover:text-zinc-800 tracking-widest uppercase transition-colors"
+                    className="text-[10px] font-bold text-zinc-400 hover:text-zinc-800 tracking-widest uppercase transition-colors shrink-0 ml-2"
                   >
                     Clear
                   </button>
                 )}
               </div>
-              <p className="text-[10px] text-zinc-400 mb-2">難しい文章は不要です。好きな単語をポンと1つ入れるだけで、ゴフクヤサンが素敵な図案に仕立てます。</p>
               
               <textarea 
                 className="w-full border border-zinc-300 p-3 sm:p-4 bg-white text-xs sm:text-sm focus:outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 resize-none transition-all duration-200 leading-relaxed font-medium shadow-sm" 
@@ -375,7 +435,7 @@ export default function ControlPanel({
                 rows={2} 
                 value={motif} 
                 onChange={(e) => setMotif(e.target.value)} 
-                disabled={loading} 
+                disabled={loading || analyzingPhoto} 
               />
 
               {primaryMotif && (
