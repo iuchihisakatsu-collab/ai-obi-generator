@@ -57,7 +57,6 @@ function HomeContent() {
   const [platform, setPlatform] = useState<PlatformType>((searchParams.get('platform') as PlatformType) || 'makeshop');
   const [designFee, setDesignFee] = useState<number>(1000);
 
-  // モード：幾何学 / AI妄想 / 画像入稿
   const [creationMode, setCreationMode] = useState<'ai' | 'geometric' | 'upload'>('geometric');
   const [itemType, setItemType] = useState<'hanhaba' | 'kyobukuro' | 'kimono'>('hanhaba');
   const [displayMode, setDisplayMode] = useState<'mockup' | 'trim' | 'data'>('mockup');
@@ -87,7 +86,6 @@ function HomeContent() {
   const [kimonoObiageColor, setKimonoObiageColor] = useState<string>('#c82a36');
   const [kimonoObiColor, setKimonoObiColor] = useState<string>('#1a1a1a');
   
-  // 着物の帯・京袋帯の前腹の個別画像State
   const [customObiUrl, setCustomObiUrl] = useState<string | null>(null);
   const [customHaraUrl, setCustomHaraUrl] = useState<string | null>(null);
 
@@ -97,7 +95,6 @@ function HomeContent() {
   const [generatingMode, setGeneratingMode] = useState<'flux' | 'openai_free' | 'openai_premium' | null>(null);
   const [loadingStep, setLoadingStep] = useState<number>(0);
 
-  // 回数管理（スケッチ15回・無料1回・チケット残数）
   const [remainingFlux, setRemainingFlux] = useState<number>(MAX_FLUX_PER_DAY);
   const [remainingOpenAI, setRemainingOpenAI] = useState<number>(MAX_OPENAI_PER_DAY);
   const [ticketRemaining, setTicketRemaining] = useState<number | null>(null);
@@ -113,13 +110,11 @@ function HomeContent() {
   const [mockupSubmitting, setMockupSubmitting] = useState<boolean>(false);
   const [isNoticeOpen, setIsNoticeOpen] = useState<boolean>(false);
 
-  // コピー完了状態の管理
   const [copiedPromptType, setCopiedPromptType] = useState<'seamless' | 'centered' | null>(null);
 
   const previewRef = useRef<HTMLDivElement>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
 
-  // 日付チェック（日本時間0時をまたいだら自動リセット）
   useEffect(() => {
     const today = getTodayJST();
     const storedDate = localStorage.getItem('komon_usage_date');
@@ -155,7 +150,6 @@ function HomeContent() {
       return;
     }
 
-    // AIモードまたは入稿モードの半幅帯では90度回転を適用
     if (creationMode !== 'geometric' && itemType === 'hanhaba') {
       rotateImage90Degrees(src)
         .then((rotated) => setRotatedPatternUrl(rotated))
@@ -248,7 +242,6 @@ function HomeContent() {
     }
   };
 
-  // 着物の帯画像ハンドラー
   const handleCustomObiUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -257,7 +250,6 @@ function HomeContent() {
     }
   };
 
-  // 京袋帯の前腹画像ハンドラー
   const handleCustomHaraUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -266,20 +258,18 @@ function HomeContent() {
     }
   };
 
-  // 入稿モード用：マスター画像の取り込みハンドラー
   const handleUserImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const url = URL.createObjectURL(file);
     setImageUrl(url);
-    setBlobUrl(''); // Base64データがimageUrlに入るのでblobUrlは空にする
+    setBlobUrl('');
     setRotatedPatternUrl('');
     const cleanFileName = file.name.replace(/\.[^/.]+$/, '');
     setPatternTitle(cleanFileName ? `${cleanFileName}（持ち込み）` : '持ち込み図案');
     setSerialNumber(`USER-${Math.floor(1000 + Math.random() * 9000)}`);
   };
 
-  // プロンプトコピーハンドラー
   const handleCopyPrompt = (text: string, type: 'seamless' | 'centered') => {
     navigator.clipboard.writeText(text);
     setCopiedPromptType(type);
@@ -406,19 +396,358 @@ function HomeContent() {
   };
 
   const handleDownloadMapping = async () => {
-    // 既存のダウンロード処理（省略せずに元の実装を保持）
-    // ...
+    if (!previewContainerRef.current) return;
+    try {
+      setMockupSubmitting(true);
+
+      const canvas = document.createElement('canvas');
+      const size = 1200;
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      const loadImage = (src: string): Promise<HTMLImageElement> => new Promise((res, rej) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => res(img);
+        img.onerror = (e) => {
+          console.error('Image load error:', src, e);
+          rej(e);
+        };
+        img.src = src;
+      });
+
+      const effectivePatternUrl = creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl);
+      if (!effectivePatternUrl) throw new Error('No pattern image');
+
+      const patternImg = await loadImage(effectivePatternUrl);
+
+      const pxPerMm = 27 / 11;
+      const bgWidth = creationMode === 'geometric' ? (bgSizeMm * pxPerMm) : (180 * pxPerMm);
+      const bgScale = bgWidth / Math.max(1, patternImg.width);
+      const bgHeight = patternImg.height * bgScale;
+
+      const pCanvas = document.createElement('canvas');
+      pCanvas.width = Math.max(1, bgWidth);
+      pCanvas.height = Math.max(1, bgHeight);
+      const pCtx = pCanvas.getContext('2d')!;
+      if (creationMode === 'geometric' && geoBgColor) {
+        pCtx.fillStyle = geoBgColor;
+        pCtx.fillRect(0, 0, bgWidth, bgHeight);
+      }
+      pCtx.drawImage(patternImg, 0, 0, bgWidth, bgHeight);
+
+      const patternFill = ctx.createPattern(pCanvas, 'repeat')!;
+
+      // 1. 半幅帯の合成
+      if (itemType === 'hanhaba') {
+        const layers = [
+          { id: '01', file: 'hanhaba_Layer01.png', rot: 2,   bgX: 12, bgY: 34 },
+          { id: '02', file: 'hanhaba_Layer02.png', rot: 1,   bgX: 45, bgY: 67 },
+          { id: '03', file: 'hanhaba_Layer03.png', rot: 8,   bgX: 78, bgY: 12 }, 
+          { id: '04', file: 'hanhaba_Layer04.png', rot: -1,  bgX: 23, bgY: 89 },
+          { id: '05', file: 'hanhaba_Layer05.png', rot: -10, bgX: 56, bgY: 45 },
+          { id: '06', file: 'hanhaba_Layer06.png', rot: -93, bgX: 89, bgY: 23 }, 
+        ];
+
+        for (const layer of layers) {
+          const tempCanvas = document.createElement('canvas');
+          tempCanvas.width = size;
+          tempCanvas.height = size;
+          const tCtx = tempCanvas.getContext('2d')!;
+
+          const maskImg = await loadImage(`/${layer.file}?v=21`);
+          tCtx.drawImage(maskImg, 0, 0, size, size);
+          tCtx.globalCompositeOperation = 'source-in';
+
+          tCtx.save();
+          tCtx.translate(size / 2, size / 2);
+          tCtx.rotate(layer.rot * Math.PI / 180);
+          tCtx.translate(-size / 2, -size / 2);
+
+          const rectSize = size * 1.5;
+          const rectOffset = -size * 0.25;
+
+          tCtx.translate(rectOffset + (rectSize * layer.bgX / 100), rectOffset + (rectSize * layer.bgY / 100));
+          tCtx.fillStyle = patternFill;
+          tCtx.fillRect(-size * 2, -size * 2, size * 4, size * 4); 
+          tCtx.restore();
+
+          ctx.drawImage(tempCanvas, 0, 0);
+        }
+
+        const tempCanvas7 = document.createElement('canvas');
+        tempCanvas7.width = size;
+        tempCanvas7.height = size;
+        const tCtx7 = tempCanvas7.getContext('2d')!;
+        const mask7 = await loadImage('/hanhaba_Layer07.png?v=21');
+        tCtx7.drawImage(mask7, 0, 0, size, size);
+        tCtx7.globalCompositeOperation = 'source-in';
+        tCtx7.fillStyle = obiLiningColor || '#dcdddd';
+        tCtx7.fillRect(0, 0, size, size);
+        ctx.drawImage(tempCanvas7, 0, 0);
+
+        const kage = await loadImage('/hanhaba_Layer_kage.png?v=21');
+        ctx.globalCompositeOperation = 'multiply';
+        ctx.globalAlpha = 0.5; 
+        ctx.drawImage(kage, 0, 0, size, size);
+        ctx.globalAlpha = 1.0;
+        ctx.globalCompositeOperation = 'source-over';
+      }
+
+      // 2. 京袋帯の合成
+      if (itemType === 'kyobukuro') {
+        const grandImg = await loadImage('/kyoubukurogrand.png?v=21');
+        ctx.drawImage(grandImg, 0, 0, size, size);
+
+        const urajiCanvas = document.createElement('canvas');
+        urajiCanvas.width = size;
+        urajiCanvas.height = size;
+        const uCtx = urajiCanvas.getContext('2d')!;
+        const urajiImg = await loadImage('/kyoubukurouraji.png?v=21');
+        uCtx.drawImage(urajiImg, 0, 0, size, size);
+        uCtx.globalCompositeOperation = 'source-in';
+        uCtx.fillStyle = obiLiningColor || '#161616';
+        uCtx.fillRect(0, 0, size, size);
+        ctx.drawImage(urajiCanvas, 0, 0);
+
+        const isVerticalPattern = patternImg.height > patternImg.width * 1.5;
+        let taikoPatternFill = patternFill;
+        let haraPatternFill = patternFill;
+        let haraRot = 0;
+
+        if (isVerticalPattern && creationMode !== 'geometric') {
+          const sqSize = patternImg.width; 
+          const topCanvas = document.createElement('canvas');
+          topCanvas.width = sqSize;
+          topCanvas.height = sqSize;
+          topCanvas.getContext('2d')!.drawImage(patternImg, 0, patternImg.height - sqSize, sqSize, sqSize, 0, 0, sqSize, sqSize);
+          
+          const pTopCanvas = document.createElement('canvas');
+          pTopCanvas.width = bgWidth;
+          pTopCanvas.height = bgWidth;
+          const pTopCtx = pTopCanvas.getContext('2d')!;
+          pTopCtx.drawImage(topCanvas, 0, 0, bgWidth, bgWidth);
+          taikoPatternFill = ctx.createPattern(pTopCanvas, 'repeat')!;
+
+          const btmCanvas = document.createElement('canvas');
+          btmCanvas.width = sqSize;
+          btmCanvas.height = sqSize;
+          btmCanvas.getContext('2d')!.drawImage(patternImg, 0, 0, sqSize, sqSize, 0, 0, sqSize, sqSize);
+          
+          const pBtmCanvas = document.createElement('canvas');
+          pBtmCanvas.width = bgWidth;
+          pBtmCanvas.height = bgWidth;
+          const pBtmCtx = pBtmCanvas.getContext('2d')!;
+          pBtmCtx.drawImage(btmCanvas, 0, 0, bgWidth, bgWidth);
+          haraPatternFill = ctx.createPattern(pBtmCanvas, 'repeat')!;
+          
+          haraRot = 90;
+        }
+
+        let individualHaraImg: HTMLImageElement | null = null;
+        if (customHaraUrl) {
+          try {
+            individualHaraImg = await loadImage(customHaraUrl);
+          } catch (e) {
+            console.error('Failed to load custom hara image for canvas export:', e);
+          }
+        }
+
+        const layers = [
+          { id: 'hara', file: 'kyoubukurohara.png', rot: 271, bgX: 50, bgY: 50, fill: haraPatternFill, extraRot: haraRot },
+          { id: 'tare', file: 'kyoubukurotare.png', rot: -1, bgX: 50, bgY: 50, fill: taikoPatternFill, extraRot: 0 },
+          { id: 'taiko', file: 'kyoubukurotakio.png', rot: 2, bgX: 50, bgY: 50, fill: taikoPatternFill, extraRot: 0 },
+        ];
+
+        for (const layer of layers) {
+          const tempCanvas = document.createElement('canvas');
+          tempCanvas.width = size;
+          tempCanvas.height = size;
+          const tCtx = tempCanvas.getContext('2d')!;
+          const maskImg = await loadImage(`/${layer.file}?v=21`);
+          tCtx.drawImage(maskImg, 0, 0, size, size);
+          tCtx.globalCompositeOperation = 'source-in';
+
+          if (layer.id === 'hara' && individualHaraImg) {
+            const hRatio = Math.max(size / individualHaraImg.width, size / individualHaraImg.height);
+            const drawW = individualHaraImg.width * hRatio;
+            const drawH = individualHaraImg.height * hRatio;
+            const drawX = (size - drawW) / 2;
+            const drawY = (size - drawH) / 2;
+            tCtx.drawImage(individualHaraImg, drawX, drawY, drawW, drawH);
+          } else {
+            tCtx.save();
+            tCtx.translate(size / 2, size / 2);
+            tCtx.rotate(layer.rot * Math.PI / 180);
+            tCtx.translate(-size / 2, -size / 2);
+
+            const rectSize = size * 1.5;
+            const rectOffset = -size * 0.25;
+            tCtx.translate(rectOffset + (rectSize * layer.bgX / 100), rectOffset + (rectSize * layer.bgY / 100));
+            
+            if (layer.extraRot) {
+              tCtx.rotate(layer.extraRot * Math.PI / 180);
+            }
+            
+            tCtx.fillStyle = layer.fill;
+            tCtx.fillRect(-size * 2, -size * 2, size * 4, size * 4); 
+            tCtx.restore();
+          }
+
+          ctx.drawImage(tempCanvas, 0, 0);
+        }
+
+        const kage = await loadImage('/kyoubukuromask.png?v=21');
+        ctx.globalCompositeOperation = 'multiply';
+        ctx.globalAlpha = 0.5; 
+        ctx.drawImage(kage, 0, 0, size, size);
+        ctx.globalAlpha = 1.0;
+        ctx.globalCompositeOperation = 'source-over';
+      }
+
+      // 3. 着物の合成
+      if (itemType === 'kimono') {
+        const haikei = await loadImage('/haikei.png?v=30');
+        ctx.drawImage(haikei, 0, 0, size, size);
+
+        const kimonoBgWidth = bgWidth / 2;
+        const kimonoBgHeight = bgHeight / 2;
+        const kpCanvas = document.createElement('canvas');
+        kpCanvas.width = Math.max(1, kimonoBgWidth);
+        kpCanvas.height = Math.max(1, kimonoBgHeight);
+        const kpCtx = kpCanvas.getContext('2d')!;
+        if (creationMode === 'geometric' && geoBgColor) {
+          kpCtx.fillStyle = geoBgColor;
+          kpCtx.fillRect(0, 0, kimonoBgWidth, kimonoBgHeight);
+        }
+        kpCtx.drawImage(patternImg, 0, 0, kimonoBgWidth, kimonoBgHeight);
+        const kimonoPatternFill = ctx.createPattern(kpCanvas, 'repeat')!;
+
+        const kimonoLayers = [
+          { id: 'usiromigoro', file: 'usiromigoro_75.png', angle: 75, bgX: 50, bgY: 50 },
+          { id: 'migisode', file: 'migisode_165.png', angle: 165, bgX: 20, bgY: 30 },
+          { id: 'hidarisode', file: 'hidarisode_150.png', angle: 150, bgX: 80, bgY: 40 },
+          { id: 'hidarisode2', file: 'hidarisode2_175.png', angle: 175, bgX: 80, bgY: 70 },
+          { id: 'maemigoro', file: 'maemigoro_105.png', angle: 105, bgX: 45, bgY: 60 },
+          { id: 'maemigoro2', file: 'maemigoro2_140.png', angle: 140, bgX: 45, bgY: 20 },
+          { id: 'maeokumi', file: 'maeokumi_110.png', angle: 110, bgX: 55, bgY: 50 },
+          { id: 'migieri', file: 'migieri_65.png', angle: 65, bgX: 30, bgY: 10 },
+          { id: 'hidarieri', file: 'hidarieri_117.png', angle: 117, bgX: 70, bgY: 10 },
+        ];
+
+        for (const layer of kimonoLayers) {
+          const tempCanvas = document.createElement('canvas');
+          tempCanvas.width = size;
+          tempCanvas.height = size;
+          const tCtx = tempCanvas.getContext('2d')!;
+          const maskImg = await loadImage(`/${layer.file}?v=30`);
+          tCtx.drawImage(maskImg, 0, 0, size, size);
+          tCtx.globalCompositeOperation = 'source-in';
+
+          tCtx.save();
+          tCtx.translate(size / 2, size / 2);
+          tCtx.rotate((layer.angle - 90) * Math.PI / 180);
+          tCtx.translate(-size / 2, -size / 2);
+
+          const rectSize = size * 2;
+          const rectOffset = -size * 0.5;
+          tCtx.translate(rectOffset + (rectSize * layer.bgX / 100), rectOffset + (rectSize * layer.bgY / 100));
+          tCtx.fillStyle = kimonoPatternFill;
+          tCtx.fillRect(-size * 2, -size * 2, size * 5, size * 5);
+          tCtx.restore();
+
+          ctx.drawImage(tempCanvas, 0, 0);
+        }
+
+        const haneriCanvas = document.createElement('canvas');
+        haneriCanvas.width = size;
+        haneriCanvas.height = size;
+        const hCtx = haneriCanvas.getContext('2d')!;
+        const haneriMask = await loadImage('/haneri.png?v=30');
+        hCtx.drawImage(haneriMask, 0, 0, size, size);
+        hCtx.globalCompositeOperation = 'source-in';
+        hCtx.fillStyle = kimonoHaneriColor || '#ffffff';
+        hCtx.fillRect(0, 0, size, size);
+        ctx.drawImage(haneriCanvas, 0, 0);
+
+        const obiageCanvas = document.createElement('canvas');
+        obiageCanvas.width = size;
+        obiageCanvas.height = size;
+        const oCtx = obiageCanvas.getContext('2d')!;
+        const obiageMask = await loadImage('/obiage.png?v=30');
+        oCtx.drawImage(obiageMask, 0, 0, size, size);
+        oCtx.globalCompositeOperation = 'source-in';
+        oCtx.fillStyle = kimonoObiageColor || '#c82a36';
+        oCtx.fillRect(0, 0, size, size);
+        ctx.drawImage(obiageCanvas, 0, 0);
+
+        const obiCanvas = document.createElement('canvas');
+        obiCanvas.width = size;
+        obiCanvas.height = size;
+        const obCtx = obiCanvas.getContext('2d')!;
+        const obiMask = await loadImage('/obi_2.png?v=30');
+        obCtx.drawImage(obiMask, 0, 0, size, size);
+        obCtx.globalCompositeOperation = 'source-in';
+        if (customObiUrl) {
+          const customObiImg = await loadImage(customObiUrl);
+          obCtx.drawImage(customObiImg, 0, 0, size, size);
+        } else {
+          obCtx.fillStyle = kimonoObiColor || '#1a1a1a';
+          obCtx.fillRect(0, 0, size, size);
+        }
+        ctx.drawImage(obiCanvas, 0, 0);
+
+        const jyouzan = await loadImage('/jyouzan.png?v=30');
+        ctx.globalCompositeOperation = 'multiply';
+        ctx.globalAlpha = 0.5;
+        ctx.drawImage(jyouzan, 0, 0, size, size);
+        ctx.globalAlpha = 1.0;
+        ctx.globalCompositeOperation = 'source-over';
+      }
+
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.font = 'bold 24px sans-serif';
+      ctx.textBaseline = 'middle';
+      const watermarkText = `ID: ${serialNumber || 'KOMON-XXXX'}`;
+      const textWidth = ctx.measureText(watermarkText).width;
+      
+      const rectX = size - textWidth - 40;
+      const rectY = size - 60;
+      const rectW = textWidth + 30;
+      const rectH = 40;
+
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+      ctx.fillRect(rectX, rectY, rectW, rectH);
+
+      ctx.fillStyle = '#111111';
+      ctx.fillText(watermarkText, rectX + 15, rectY + (rectH / 2));
+
+      const finalUrl = canvas.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = finalUrl;
+      a.download = `${serialNumber || 'mapping'}_${itemType}_mockup.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+    } catch (e) {
+      console.error(e);
+      alert('ダウンロード画像の生成に失敗しました。');
+    } finally {
+      setMockupSubmitting(false);
+    }
   };
 
+  // ★追加：注文ボタン押下時のMakeShop遷移（クラッシュ対策＆URL振り分け）
   const handleOrderClick = async (e: MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
     try {
-      // 1. 注文用に送るベース画像の確保
       let finalImg = blobUrl || imageUrl;
       const validSerial = serialNumber || (creationMode === 'geometric' ? `GEO-${Math.floor(1000 + Math.random() * 9000)}` : `KOMON-${Math.floor(1000 + Math.random() * 9000)}`);
       if (!serialNumber) setSerialNumber(validSerial);
 
-      // 半幅帯の場合は18cm用に再レンダリング
       if (itemType === 'hanhaba') {
         finalImg = await render18cmPrintDataPng(
           creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl),
@@ -428,7 +757,7 @@ function HomeContent() {
         );
       }
 
-      // ★ 根本解決: URL文字数オーバー（クラッシュ）を防ぐため、Base64画像を必ずVercel Blobにアップロードして短いURLに変換する
+      // ▼ 巨大なBase64データを Vercel Blob にアップロードしてURL化（クラッシュ対策）
       if (finalImg && finalImg.startsWith('data:')) {
         const uploadRes = await fetch('/api/upload-blob', {
           method: 'POST',
@@ -439,18 +768,16 @@ function HomeContent() {
         if (uploadData.url) {
           finalImg = uploadData.url;
         } else {
-          throw new Error('画像データのアップロードに失敗しました。');
+          throw new Error('画像のアップロードに失敗しました');
         }
       }
 
-      // 京袋帯で前腹の個別画像がある場合、カンマ区切りで2枚のURLを結合して渡す
       if (itemType === 'kyobukuro' && customHaraUrl) {
         finalImg = `${finalImg}, ${customHaraUrl}`;
       }
 
       const finalTitle = patternTitle.trim() || '（無題）';
 
-      // 工房宛てに画像をメール送信する（元の処理を復活）
       try {
         await fetch('/api/send-email', {
           method: 'POST',
@@ -458,10 +785,9 @@ function HomeContent() {
           body: JSON.stringify({ imageUrl: finalImg, komonId: validSerial, title: finalTitle }),
         });
       } catch (mailErr) {
-        console.warn('工房へのメール送信に失敗しました:', mailErr);
+        console.warn('メール送信エラー:', mailErr);
       }
 
-      // Shopifyなどのための既存の注文API呼び出し（影響を与えないよう保持）
       const result = await submitOrder(platform, {
         title: finalTitle,
         serialNumber: validSerial,
@@ -474,36 +800,27 @@ function HomeContent() {
 
       if (result.message) alert(result.message);
 
-      // ★ 着物と帯の自動振り分け（MakeShopへのリダイレクト）
+      // ▼ MakeShopへのURL振り分け
       if (platform === 'makeshop') {
-        let targetOrderUrl = 'https://store.gofukuyasan.com/view/item/000000007300'; // 帯ページ（デフォルト）
+        let targetOrderUrl = 'https://store.gofukuyasan.com/view/item/000000007300';
         if (itemType === 'kimono') {
-          targetOrderUrl = 'https://store.gofukuyasan.com/view/item/000000007312'; // 着物ページ
+          targetOrderUrl = 'https://store.gofukuyasan.com/view/item/000000007312';
         }
-        
-        // 変換済みの短いURL（finalImg）をパラメータとして渡すのでクラッシュしない
         const cleanOrderUrl = `${targetOrderUrl}?komon_id=${encodeURIComponent(validSerial)}&title=${encodeURIComponent(finalTitle)}&image_url=${encodeURIComponent(finalImg)}`;
         window.location.href = cleanOrderUrl;
       } else if (result.redirectUrl) {
-        // Shopify等の場合は既存のredirectUrlに従う
         window.location.href = result.redirectUrl;
       }
 
     } catch (err: any) {
-      console.error(err);
-      setErrorMsg(err.message || '注文画面への遷移中にエラーが発生しました');
+      setErrorMsg(err.message || '通信エラーが発生しました');
     }
   };
-
-  // 外部AI用の固定英語プロンプト構文
-  const PROMPT_SEAMLESS = 'seamless textile pattern, full-bleed design, no humans, no mockups --tile --ar 1:1';
-  const PROMPT_CENTERED = 'centered composition, artwork directly in the center, ample margin on left and right, full-bleed design, no humans, no mockups --ar 1:1';
 
   return (
     <div className="min-h-screen bg-[#f4f4f5] text-zinc-900 flex flex-col items-center justify-start font-sans lg:p-8">
       <div className="w-full max-w-7xl flex flex-col lg:flex-row lg:gap-6 items-start justify-center">
         
-        {/* 左側プレビューエリア：customHaraUrl と customObiUrl を完全連携 */}
         <PreviewArea
           imageUrl={imageUrl} blobUrl={blobUrl} rotatedPatternUrl={rotatedPatternUrl}
           serialNumber={serialNumber} itemType={itemType} displayMode={displayMode}
@@ -528,38 +845,38 @@ function HomeContent() {
           handleDownloadMapping={handleDownloadMapping} UNIVERSAL_SCALE_FACTOR={UNIVERSAL_SCALE_FACTOR}
         />
 
-        {/* 右側操作エリア */}
-        <ControlPanel
-          creationMode={creationMode} setCreationMode={setCreationMode}
-          itemType={itemType} setItemType={setItemType}
-          aiStyle={aiStyle} setAiStyle={setAiStyle}
-          selectedArtist={selectedArtist} setSelectedArtist={setSelectedArtist}
-          motif={motif} setMotif={setMotif}
-          motif2={motif2} setMotif2={setMotif2}
-          selectedColors={selectedColors} setSelectedColors={setSelectedColors} handleColorToggle={handleColorToggle}
-          showColorPalette={showColorPalette} setShowColorPalette={setShowColorPalette}
-          density={density} setDensity={setDensity}
-          geoPatternType={geoPatternType} setGeoPatternType={setGeoPatternType}
-          stripeDir={stripeDir} setStripeDir={setStripeDir} dotLayout={dotLayout} setDotLayout={setDotLayout}
-          dotRadius={dotRadius} setDotRadius={setDotRadius} gapWidth={gapWidth} setGapWidth={setGapWidth}
-          lineWidth={lineWidth} setLineWidth={setLineWidth} geoBgColor={geoBgColor} setGeoBgColor={setGeoBgColor}
-          geoPatternColor={geoPatternColor} setGeoPatternColor={setGeoPatternColor}
-          showGeoPaletteFor={showGeoPaletteFor} setShowGeoPaletteFor={setShowGeoPaletteFor}
-          agreed={agreed} setAgreed={setAgreed} errorMsg={errorMsg}
-          loading={loading}
-          generatingMode={generatingMode}
-          remainingCount={remainingOpenAI}
-          remainingFlux={remainingFlux}
-          remainingOpenAI={remainingOpenAI}
-          ticketRemaining={ticketRemaining}
-          loadingStep={loadingStep}
-          handleGenerate={handleGenerate} imageUrl={imageUrl} patternTitle={patternTitle} setPatternTitle={setPatternTitle}
-          serialNumber={serialNumber}
-          handleDownloadOriginal={handleDownloadOriginal} handleOrderClick={handleOrderClick}
-          premiumCode={premiumCode} setPremiumCode={setPremiumCode}
-          premiumStatusMsg={premiumStatusMsg}
-        />
-
+        <div className="w-full lg:w-1/2 flex flex-col gap-3">
+          <ControlPanel
+            creationMode={creationMode} setCreationMode={setCreationMode}
+            itemType={itemType} setItemType={setItemType}
+            aiStyle={aiStyle} setAiStyle={setAiStyle}
+            selectedArtist={selectedArtist} setSelectedArtist={setSelectedArtist}
+            motif={motif} setMotif={setMotif}
+            motif2={motif2} setMotif2={setMotif2}
+            selectedColors={selectedColors} setSelectedColors={setSelectedColors} handleColorToggle={handleColorToggle}
+            showColorPalette={showColorPalette} setShowColorPalette={setShowColorPalette}
+            density={density} setDensity={setDensity}
+            geoPatternType={geoPatternType} setGeoPatternType={setGeoPatternType}
+            stripeDir={stripeDir} setStripeDir={setStripeDir} dotLayout={dotLayout} setDotLayout={setDotLayout}
+            dotRadius={dotRadius} setDotRadius={setDotRadius} gapWidth={gapWidth} setGapWidth={setGapWidth}
+            lineWidth={lineWidth} setLineWidth={setLineWidth} geoBgColor={geoBgColor} setGeoBgColor={setGeoBgColor}
+            geoPatternColor={geoPatternColor} setGeoPatternColor={setGeoPatternColor}
+            showGeoPaletteFor={showGeoPaletteFor} setShowGeoPaletteFor={setShowGeoPaletteFor}
+            agreed={agreed} setAgreed={setAgreed} errorMsg={errorMsg}
+            loading={loading}
+            generatingMode={generatingMode}
+            remainingCount={remainingOpenAI}
+            remainingFlux={remainingFlux}
+            remainingOpenAI={remainingOpenAI}
+            ticketRemaining={ticketRemaining}
+            loadingStep={loadingStep}
+            handleGenerate={handleGenerate} imageUrl={imageUrl} patternTitle={patternTitle} setPatternTitle={setPatternTitle}
+            serialNumber={serialNumber}
+            handleDownloadOriginal={handleDownloadOriginal} handleOrderClick={handleOrderClick}
+            premiumCode={premiumCode} setPremiumCode={setPremiumCode}
+            premiumStatusMsg={premiumStatusMsg}
+          />
+        </div>
       </div>
 
       {CURRENT_NOTICE.enabled && (
