@@ -142,8 +142,15 @@ export async function POST(req: Request) {
 
     // --- プロンプト構築 ---
     const englishMotif = await translateToEnglish(motif);
-    const isScarfMode = motif.includes('スカーフ') || motif.toLowerCase().includes('scarf');
-    const isOtaiko = density.includes('お太鼓柄');
+    
+    // ★ 手打ち「スカーフ / scarf」の既存判定を100%維持し、density（ボタン選択）からも安全に合流
+    const densityStr = typeof density === 'string' ? density : '';
+    const isScarfMode = 
+      motif.includes('スカーフ') || 
+      motif.toLowerCase().includes('scarf') || 
+      densityStr.includes('スカーフ');
+
+    const isOtaiko = densityStr.includes('お太鼓柄') || motif.includes('お太鼓');
 
     let baseInstruction = `Premium high-end luxury textile pattern design. A sophisticated masterpiece blending elegant decorative European luxury textiles with poetic artisan crafts. Strictly 2D flat surface.`;
     let layoutInstruction = isScarfMode 
@@ -209,7 +216,7 @@ export async function POST(req: Request) {
       throw new Error('画像データの取得に失敗しました');
     }
 
-    // ★ Vercel Blobへ保存（100%成功を確認）
+    // ★ Vercel Blobへ保存
     const blob = await put(`textile-openai-${Date.now()}.png`, buffer, { access: 'public', contentType: 'image/png' });
 
     // ★★★ 生成が成功した瞬間「だけ」チケット残数を1減らす（安全設計） ★★★
