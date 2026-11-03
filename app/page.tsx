@@ -57,7 +57,7 @@ function HomeContent() {
   const [platform, setPlatform] = useState<PlatformType>((searchParams.get('platform') as PlatformType) || 'makeshop');
   const [designFee, setDesignFee] = useState<number>(1000);
 
-  // ★ 初期モードを 'ai' に変更
+  // 初期モードを 'ai' に変更
   const [creationMode, setCreationMode] = useState<'ai' | 'geometric' | 'upload'>('ai');
   const [itemType, setItemType] = useState<'hanhaba' | 'kyobukuro' | 'kimono'>('hanhaba');
   const [displayMode, setDisplayMode] = useState<'mockup' | 'trim' | 'data'>('mockup');
@@ -65,7 +65,7 @@ function HomeContent() {
   const [aiStyle, setAiStyle] = useState<string>('none');
   const [selectedArtist, setSelectedArtist] = useState<string>('none');
 
-  // ★ 初期状態で傑作プロンプトとタグをセット
+  // 初期状態で傑作プロンプトとタグをセット
   const [motif, setMotif] = useState<string>('黒猫、ピアノの鍵盤、月、椿');
   const [motif2, setMotif2] = useState<string>('');
   const [selectedTags, setSelectedTags] = useState<string[]>(['大正ロマン', '水彩画']);
@@ -108,7 +108,7 @@ function HomeContent() {
   const [premiumCode, setPremiumCode] = useState<string>('');
   const [premiumStatusMsg, setPremiumStatusMsg] = useState<string>('');
 
-  // ★ 開いた瞬間に表示されるダミーの傑作画像（後で public フォルダに sample_piano_cat.png を置いてください）
+  // 開いた瞬間に表示されるダミーの傑作画像
   const [imageUrl, setImageUrl] = useState<string>('/sample_piano_cat.png');
   const [blobUrl, setBlobUrl] = useState<string>('/sample_piano_cat.png');
   
@@ -127,6 +127,14 @@ function HomeContent() {
   useEffect(() => {
     const initialColors = TRADITIONAL_COLORS.filter(c => ['漆黒', '真紅'].includes(c.name.split(' ')[0]));
     setSelectedColors(initialColors);
+  }, []);
+
+  // ★ 追加：ローカルストレージからチケットコードを復元
+  useEffect(() => {
+    const savedCode = localStorage.getItem('komon_premium_code');
+    if (savedCode) {
+      setPremiumCode(savedCode);
+    }
   }, []);
 
   useEffect(() => {
@@ -426,6 +434,11 @@ function HomeContent() {
       return;
     }
 
+    // ★ 追加：プレミアム生成を実行する時、入力されたコードをブラウザに記憶させる
+    if (engineType === 'openai_premium' && premiumCode.trim()) {
+      localStorage.setItem('komon_premium_code', premiumCode.trim());
+    }
+
     const actualEngine = engineType === 'flux' ? 'flux' : 'openai';
     setLoading(true);
     setGeneratingMode(engineType);
@@ -437,7 +450,6 @@ function HomeContent() {
     try {
       const colorNames = selectedColors.map(c => getColorNameFromHex(c.hex)).join('、');
       
-      // ★ 選択されたタグをプロンプトの末尾に合体させる！
       const tagPrompt = selectedTags.length > 0 ? `。雰囲気・タッチ：${selectedTags.join('、')}` : '';
       
       const res = await fetch('/api/generate', {
@@ -664,7 +676,6 @@ function HomeContent() {
 
         <div className="w-full lg:w-[45%] flex flex-col gap-3">
           
-          {/* ★ タブの文言を「テーマから図案をつくる」「手持ちの画像で作る」に変更 */}
           <div className="bg-white border border-zinc-300 shadow-sm p-1.5 flex gap-1 rounded-sm mt-2 lg:mt-8">
             <button
               type="button"
@@ -882,7 +893,6 @@ function HomeContent() {
                 motif={motif} setMotif={setMotif}
                 motif2={motif2} setMotif2={setMotif2}
                 
-                // ★ Propsに追加した新Stateの受け渡し
                 selectedTags={selectedTags} setSelectedTags={setSelectedTags}
                 setImageUrl={setImageUrl} setBlobUrl={setBlobUrl}
                 
