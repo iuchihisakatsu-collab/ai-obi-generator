@@ -97,7 +97,7 @@ const RECIPES = [
     title: '純喫茶ポワロのクリームソーダ',
     motif: 'メロンソーダ、さくらんぼ、ステンドグラス',
     tags: ['昭和レトロ', 'ペン画'],
-    colors: ['常磐色', '朱色'],
+　　colors: ['翡翠'], // 透き通る綺麗なメロンソーダグリーン
     image: '/sample_cafe.png'
   },
   {
