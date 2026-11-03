@@ -57,9 +57,9 @@ export default function PreviewArea(props: PreviewAreaProps) {
 
   const [activeFloatPalette, setActiveFloatPalette] = useState<'lining' | 'haneri' | 'obiage' | 'obi' | 'hara' | null>(null);
   const [isZoomModalOpen, setIsZoomModalOpen] = useState<boolean>(false);
-
-  // ★ 半幅帯 4軸調整パネル用のState（居内さんの確定数値を初期値に完全焼き付け）
   const [showTuningPanel, setShowTuningPanel] = useState<boolean>(false);
+
+  // ★ 1. 半幅帯パーツ定義（確定数値を初期値に完全焼き付け）
   const [hanhabaOffsets, setHanhabaOffsets] = useState([
     { id: '01_a', name: 'Layer01_a（奥羽・右側）', file: 'hanhaba_Layer01_a.png', z: 10, rot: 1,   scale: 111, x: 69, y: 50 },
     { id: '01_b', name: 'Layer01_b（奥羽・左下）', file: 'hanhaba_Layer01_b.png', z: 15, rot: 3,   scale: 100, x: 33, y: 50 },
@@ -70,25 +70,71 @@ export default function PreviewArea(props: PreviewAreaProps) {
     { id: '06',   name: 'Layer06（手前垂れ・基準）',file: 'hanhaba_Layer06.png',   z: 60, rot: -93, scale: 107, x: 74, y: 43 },
   ]);
 
+  // ★ 2. 京袋帯パーツ定義（4軸調整可能State）
+  const [kyobukuroOffsets, setKyobukuroOffsets] = useState([
+    { id: 'hara',  name: '前腹（胴回り）', file: 'kyoubukurohara.png', z: 30, rot: 271, scale: 100, x: 50,   y: 50 },
+    { id: 'tare',  name: '垂れ先',         file: 'kyoubukurotare.png', z: 40, rot: -1,  scale: 100, x: 76.5, y: 47 },
+    { id: 'taiko', name: 'お太鼓',         file: 'kyoubukurotakio.png', z: 50, rot: 2,   scale: 100, x: 76.5, y: 47 },
+  ]);
+
+  // ★ 3. 着物パーツ定義（分度器実測角度ルールをベースにした4軸調整可能State）
+  const [kimonoOffsets, setKimonoOffsets] = useState([
+    { id: 'usiromigoro', name: '後ろ身頃',     file: 'usiromigoro_75.png',   z: 2,  rot: -15, scale: 100, x: 50, y: 50 },
+    { id: 'hidarisode2', name: '左袖（奥）',   file: 'hidarisode2_175.png',  z: 3,  rot: 85,  scale: 100, x: 50, y: 50 },
+    { id: 'hidarisode',  name: '左袖（手前）', file: 'hidarisode_150.png',   z: 4,  rot: 60,  scale: 100, x: 50, y: 50 },
+    { id: 'migisode',    name: '右袖',         file: 'migisode_165.png',     z: 5,  rot: 75,  scale: 100, x: 50, y: 50 },
+    { id: 'maemigoro2',  name: '前身頃（下）', file: 'maemigoro2_140.png',   z: 6,  rot: 50,  scale: 100, x: 50, y: 50 },
+    { id: 'maemigoro',   name: '前身頃（上）', file: 'maemigoro_105.png',   z: 7,  rot: 15,  scale: 100, x: 50, y: 50 },
+    { id: 'maeokumi',    name: '前衽（おくみ）', file: 'maeokumi_110.png',   z: 8,  rot: 20,  scale: 100, x: 50, y: 50 },
+    { id: 'migieri',     name: '右衿',         file: 'migieri_65.png',       z: 9,  rot: -25, scale: 100, x: 50, y: 50 },
+    { id: 'hidarieri',   name: '左衿',         file: 'hidarieri_117.png',    z: 10, rot: 27,  scale: 100, x: 50, y: 50 },
+  ]);
+
+  // アイテム別のスライダー変更ハンドラ
   const handleOffsetChange = (index: number, axis: 'x' | 'y' | 'rot' | 'scale', value: number) => {
-    setHanhabaOffsets((prev) => {
-      const next = [...prev];
-      next[index] = { ...next[index], [axis]: value };
-      return next;
-    });
+    if (itemType === 'hanhaba') {
+      setHanhabaOffsets((prev) => {
+        const next = [...prev];
+        next[index] = { ...next[index], [axis]: value };
+        return next;
+      });
+    } else if (itemType === 'kyobukuro') {
+      setKyobukuroOffsets((prev) => {
+        const next = [...prev];
+        next[index] = { ...next[index], [axis]: value };
+        return next;
+      });
+    } else if (itemType === 'kimono') {
+      setKimonoOffsets((prev) => {
+        const next = [...prev];
+        next[index] = { ...next[index], [axis]: value };
+        return next;
+      });
+    }
   };
 
+  // アイテム別の確定コードコピーハンドラ
   const handleCopyCode = () => {
-    const code = `  const hanhabaLayers = [\n` +
-      hanhabaOffsets.map((l) => `    { id: '${l.id}', file: '${l.file}', z: ${l.z}, rot: ${l.rot}, scale: ${l.scale}, bgX: '${l.x}%', bgY: '${l.y}%' },`).join('\n') +
-      `\n  ];`;
+    let code = '';
+    if (itemType === 'hanhaba') {
+      code = `  const hanhabaLayers = [\n` +
+        hanhabaOffsets.map((l) => `    { id: '${l.id}', file: '${l.file}', z: ${l.z}, rot: ${l.rot}, scale: ${l.scale}, bgX: '${l.x}%', bgY: '${l.y}%' },`).join('\n') +
+        `\n  ];`;
+    } else if (itemType === 'kyobukuro') {
+      code = `  const kyobukuroLayers = [\n` +
+        kyobukuroOffsets.map((l) => `    { id: '${l.id}', file: '${l.file}', z: ${l.z}, rot: ${l.rot}, scale: ${l.scale}, bgX: '${l.x}%', bgY: '${l.y}%' },`).join('\n') +
+        `\n  ];`;
+    } else if (itemType === 'kimono') {
+      code = `  const kimonoParts = [\n` +
+        kimonoOffsets.map((l) => `    { id: '${l.id}', file: '${l.file}', z: ${l.z}, rot: ${l.rot}, scale: ${l.scale}, bgX: '${l.x}%', bgY: '${l.y}%' },`).join('\n') +
+        `\n  ];`;
+    }
     navigator.clipboard.writeText(code);
-    alert('確定コードをコピーしました！チャットに貼り付けてください。');
+    alert(`【${itemType === 'hanhaba' ? '半幅帯' : itemType === 'kyobukuro' ? '京袋帯' : '着物'}】の確定コードをコピーしました！チャットに貼り付けてください。`);
   };
 
   if (!imageUrl) return null;
 
-  // 出力画像は常にたった1つ（単一マスター画像）
   const effectivePatternUrl = creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl);
 
   // ★ 全アイテム共通・実寸ロック黄金比率（マスター400mm角基準）
@@ -96,9 +142,9 @@ export default function PreviewArea(props: PreviewAreaProps) {
     ? bgSizeMm * UNIVERSAL_SCALE_FACTOR
     : 400 * UNIVERSAL_SCALE_FACTOR;
 
-  const v = '31'; // アセット更新検知用キャッシュバスター
+  const v = '31';
 
-  // 半幅帯マッピングのレイヤー描画（確定数値を反映）
+  // 半幅帯マッピングのレイヤー描画
   const renderHanhabaLayers = () => (
     <div className="relative w-full h-full overflow-hidden">
       {hanhabaOffsets.map((layer) => (
@@ -169,14 +215,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
     </div>
   );
 
-  // 京袋帯パーツ定義
-  const kyobukuroLayers = [
-    { id: 'hara', file: 'kyoubukurohara.png', z: 30, rot: 271, bgX: '50%', bgY: '50%' },
-    { id: 'tare', file: 'kyoubukurotare.png', z: 40, rot: -1, bgX: '76.5%', bgY: '47%' },
-    { id: 'taiko', file: 'kyoubukurotakio.png', z: 50, rot: 2, bgX: '76.5%', bgY: '47%' },
-  ];
-
-  // 京袋帯マッピングのレイヤー描画（前腹の個別画像に対応）
+  // 京袋帯マッピングのレイヤー描画（スライダー連動）
   const renderKyobukuroLayers = () => (
     <div className="relative w-full h-full overflow-hidden">
       <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 10 }}>
@@ -200,14 +239,14 @@ export default function PreviewArea(props: PreviewAreaProps) {
         <div className="w-full h-full" style={{ backgroundColor: obiLiningColor }} />
       </div>
 
-      {kyobukuroLayers.map((layer) => {
+      {kyobukuroOffsets.map((layer) => {
         const isHara = layer.id === 'hara';
         const useIndividualHara = isHara && !!customHaraUrl;
         
         const layerPatternUrl = useIndividualHara ? customHaraUrl : effectivePatternUrl;
         const layerRot = useIndividualHara ? 0 : layer.rot;
-        const layerBgPos = useIndividualHara ? 'center center' : `${layer.bgX} ${layer.bgY}`;
-        const layerBgSize = useIndividualHara ? 'cover' : `${baseScale}% auto`;
+        const layerBgPos = useIndividualHara ? 'center center' : `${layer.x}% ${layer.y}%`;
+        const layerBgSize = useIndividualHara ? 'cover' : `${baseScale * (layer.scale / 100)}% auto`;
         const layerRepeat = useIndividualHara ? 'no-repeat' : 'repeat';
 
         return (
@@ -240,6 +279,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
                 transform: `rotate(${layerRot}deg)`,
                 transformOrigin: 'center center',
                 backgroundColor: (!useIndividualHara && creationMode === 'geometric') ? geoBgColor : 'transparent',
+                transition: 'background-position 0.05s ease-out, transform 0.05s ease-out, background-size 0.05s ease-out',
               }}
             />
           </div>
@@ -261,27 +301,14 @@ export default function PreviewArea(props: PreviewAreaProps) {
     </div>
   );
 
-  // 着物パーツ定義（分度器実測角度ルール・完全保持）
-  const kimonoParts = [
-    { id: 'usiromigoro', file: 'usiromigoro_75.png', angle: 75, z: 2 },
-    { id: 'hidarisode2', file: 'hidarisode2_175.png', angle: 175, z: 3 },
-    { id: 'hidarisode', file: 'hidarisode_150.png', angle: 150, z: 4 },
-    { id: 'migisode', file: 'migisode_165.png', angle: 165, z: 5 },
-    { id: 'maemigoro2', file: 'maemigoro2_140.png', angle: 140, z: 6 },
-    { id: 'maemigoro', file: 'maemigoro_105.png', angle: 105, z: 7 },
-    { id: 'maeokumi', file: 'maeokumi_110.png', angle: 110, z: 8 },
-    { id: 'migieri', file: 'migieri_65.png', angle: 65, z: 9 },
-    { id: 'hidarieri', file: 'hidarieri_117.png', angle: 117, z: 10 },
-  ];
-
-  // 着物マッピングのレイヤー描画（帯の個別画像に対応）
+  // 着物マッピングのレイヤー描画（スライダー連動）
   const renderKimonoLayers = () => (
     <div className="relative w-full h-full overflow-hidden">
       <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 1 }}>
         <img src={`/haikei.png?v=${v}`} alt="" className="w-full h-full object-contain" />
       </div>
 
-      {kimonoParts.map((part) => (
+      {kimonoOffsets.map((part) => (
         <div
           key={part.id}
           className="absolute inset-0 pointer-events-none"
@@ -305,12 +332,13 @@ export default function PreviewArea(props: PreviewAreaProps) {
               width: '150%',
               height: '150%',
               backgroundImage: `url(${effectivePatternUrl})`,
-              backgroundSize: `${baseScale}% auto`,
+              backgroundSize: `${baseScale * (part.scale / 100)}% auto`,
               backgroundRepeat: 'repeat',
-              backgroundPosition: 'center center',
-              transform: `rotate(${part.angle - 90}deg)`,
+              backgroundPosition: `${part.x}% ${part.y}%`,
+              transform: `rotate(${part.rot}deg)`,
               transformOrigin: 'center center',
               backgroundColor: creationMode === 'geometric' ? geoBgColor : 'transparent',
+              transition: 'background-position 0.05s ease-out, transform 0.05s ease-out, background-size 0.05s ease-out',
             }}
           />
         </div>
@@ -393,6 +421,13 @@ export default function PreviewArea(props: PreviewAreaProps) {
       />
     </div>
   );
+
+  // 現在選択中のアイテムに応じたオフセットリストを取得
+  const currentOffsets = itemType === 'hanhaba'
+    ? hanhabaOffsets
+    : itemType === 'kyobukuro'
+      ? kyobukuroOffsets
+      : kimonoOffsets;
 
   return (
     <div ref={previewRef} className="w-full lg:w-1/2 shrink-0 sticky top-2 z-30 lg:top-8 flex flex-col gap-3">
@@ -730,111 +765,112 @@ export default function PreviewArea(props: PreviewAreaProps) {
         </div>
       </div>
 
-      {/* ★★★ 【工房スタッフ専用】半幅帯 4軸調整ツール（最下部リンク） ★★★ */}
-      {itemType === 'hanhaba' && (
-        <div className="mt-2 text-right">
-          <button
-            type="button"
-            onClick={() => setShowTuningPanel(!showTuningPanel)}
-            className="text-[10px] text-zinc-400 hover:text-zinc-600 tracking-wider inline-flex items-center gap-1"
-          >
-            {showTuningPanel ? '✕ 閉じる' : '柄あわせ調整'}
-          </button>
+      {/* ★★★ 【工房スタッフ専用】全アイテム連動 4軸調整ツール（最下部リンク） ★★★ */}
+      <div className="mt-2 text-right">
+        <button
+          type="button"
+          onClick={() => setShowTuningPanel(!showTuningPanel)}
+          className="text-[10px] text-zinc-400 hover:text-zinc-600 tracking-wider inline-flex items-center gap-1"
+        >
+          {showTuningPanel ? '✕ 閉じる' : '柄あわせ調整'}
+        </button>
 
-          {showTuningPanel && (
-            <div className="mt-2 bg-white border-2 border-zinc-900 rounded p-4 shadow-2xl text-left animate-fade-in">
-              <div className="mb-3 pb-2 border-b border-zinc-200">
-                <h4 className="text-xs font-black text-zinc-900 mb-1 flex items-center gap-1.5">
-                  <span>🛠️</span>
-                  <span>工房スタッフ専用：柄あわせ調整ツール</span>
-                </h4>
-                <p className="text-[9px] text-zinc-500 leading-normal">
-                  生地を裁断する前に、帯の柄（送り）が美しく繋がるかを確認・微調整するためのシミュレーターです。お客様が操作されても注文データには影響しません。
-                </p>
-              </div>
+        {showTuningPanel && (
+          <div className="mt-2 bg-white border-2 border-zinc-900 rounded p-4 shadow-2xl text-left animate-fade-in">
+            <div className="mb-3 pb-2 border-b border-zinc-200">
+              <h4 className="text-xs font-black text-zinc-900 mb-1 flex items-center gap-1.5">
+                <span>🛠️</span>
+                <span>
+                  工房スタッフ専用：柄あわせ調整ツール（{itemType === 'hanhaba' ? '半幅帯' : itemType === 'kyobukuro' ? '京袋帯' : '着物'}）
+                </span>
+              </h4>
+              <p className="text-[9px] text-zinc-500 leading-normal">
+                生地を裁断する前に、帯や着物の柄（送り）が美しく繋がるかを確認・微調整するためのシミュレーターです。お客様が操作されても注文データには影響しません。
+              </p>
+            </div>
 
-              <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-zinc-300">
-                {hanhabaOffsets.map((layer, idx) => (
-                  <div key={layer.id} className="p-3 bg-zinc-50 border border-zinc-300 rounded shadow-sm">
-                    <div className="flex justify-between items-center mb-2 pb-1 border-b border-zinc-200">
-                      <span className="text-[11px] font-black text-zinc-800">{layer.name}</span>
+            <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-zinc-300">
+              {currentOffsets.map((layer, idx) => (
+                <div key={layer.id} className="p-3 bg-zinc-50 border border-zinc-300 rounded shadow-sm">
+                  <div className="flex justify-between items-center mb-2 pb-1 border-b border-zinc-200">
+                    <span className="text-[11px] font-black text-zinc-800">{layer.name}</span>
+                    <span className="font-mono text-zinc-400 text-[9px]">{layer.file}</span>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                    {/* X (横) */}
+                    <div>
+                      <div className="flex justify-between text-[9px] text-zinc-600 mb-1">
+                        <span>X（横位置）</span>
+                        <span className="font-mono font-bold text-zinc-900">{layer.x}%</span>
+                      </div>
+                      <input
+                        type="range" min="0" max="100" step="0.5"
+                        value={layer.x}
+                        onChange={(e) => handleOffsetChange(idx, 'x', Number(e.target.value))}
+                        className="w-full accent-zinc-900 cursor-pointer h-1 bg-zinc-300 rounded"
+                      />
                     </div>
-                    
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-                      {/* X (横) */}
-                      <div>
-                        <div className="flex justify-between text-[9px] text-zinc-600 mb-1">
-                          <span>X（横位置）</span>
-                          <span className="font-mono font-bold text-zinc-900">{layer.x}%</span>
-                        </div>
-                        <input
-                          type="range" min="0" max="100" step="1"
-                          value={layer.x}
-                          onChange={(e) => handleOffsetChange(idx, 'x', Number(e.target.value))}
-                          className="w-full accent-zinc-900 cursor-pointer h-1 bg-zinc-300 rounded"
-                        />
-                      </div>
 
-                      {/* Y (縦) */}
-                      <div>
-                        <div className="flex justify-between text-[9px] text-zinc-600 mb-1">
-                          <span>Y（縦位置）</span>
-                          <span className="font-mono font-bold text-zinc-900">{layer.y}%</span>
-                        </div>
-                        <input
-                          type="range" min="0" max="100" step="1"
-                          value={layer.y}
-                          onChange={(e) => handleOffsetChange(idx, 'y', Number(e.target.value))}
-                          className="w-full accent-zinc-900 cursor-pointer h-1 bg-zinc-300 rounded"
-                        />
+                    {/* Y (縦) */}
+                    <div>
+                      <div className="flex justify-between text-[9px] text-zinc-600 mb-1">
+                        <span>Y（縦位置）</span>
+                        <span className="font-mono font-bold text-zinc-900">{layer.y}%</span>
                       </div>
+                      <input
+                        type="range" min="0" max="100" step="0.5"
+                        value={layer.y}
+                        onChange={(e) => handleOffsetChange(idx, 'y', Number(e.target.value))}
+                        className="w-full accent-zinc-900 cursor-pointer h-1 bg-zinc-300 rounded"
+                      />
+                    </div>
 
-                      {/* 角度 (rot) */}
-                      <div>
-                        <div className="flex justify-between text-[9px] text-zinc-600 mb-1">
-                          <span>角度（rot）</span>
-                          <span className="font-mono font-bold text-zinc-900">{layer.rot}°</span>
-                        </div>
-                        <input
-                          type="range" min="-180" max="180" step="1"
-                          value={layer.rot}
-                          onChange={(e) => handleOffsetChange(idx, 'rot', Number(e.target.value))}
-                          className="w-full accent-zinc-900 cursor-pointer h-1 bg-zinc-300 rounded"
-                        />
+                    {/* 角度 (rot) */}
+                    <div>
+                      <div className="flex justify-between text-[9px] text-zinc-600 mb-1">
+                        <span>角度（rot）</span>
+                        <span className="font-mono font-bold text-zinc-900">{layer.rot}°</span>
                       </div>
+                      <input
+                        type="range" min="-180" max="180" step="1"
+                        value={layer.rot}
+                        onChange={(e) => handleOffsetChange(idx, 'rot', Number(e.target.value))}
+                        className="w-full accent-zinc-900 cursor-pointer h-1 bg-zinc-300 rounded"
+                      />
+                    </div>
 
-                      {/* スケール (scale) */}
-                      <div>
-                        <div className="flex justify-between text-[9px] text-zinc-600 mb-1">
-                          <span>倍率（scale）</span>
-                          <span className="font-mono font-bold text-zinc-900">{layer.scale}%</span>
-                        </div>
-                        <input
-                          type="range" min="50" max="150" step="1"
-                          value={layer.scale}
-                          onChange={(e) => handleOffsetChange(idx, 'scale', Number(e.target.value))}
-                          className="w-full accent-zinc-900 cursor-pointer h-1 bg-zinc-300 rounded"
-                        />
+                    {/* スケール (scale) */}
+                    <div>
+                      <div className="flex justify-between text-[9px] text-zinc-600 mb-1">
+                        <span>倍率（scale）</span>
+                        <span className="font-mono font-bold text-zinc-900">{layer.scale}%</span>
                       </div>
+                      <input
+                        type="range" min="50" max="150" step="1"
+                        value={layer.scale}
+                        onChange={(e) => handleOffsetChange(idx, 'scale', Number(e.target.value))}
+                        className="w-full accent-zinc-900 cursor-pointer h-1 bg-zinc-300 rounded"
+                      />
                     </div>
                   </div>
-                ))}
-              </div>
-
-              <div className="pt-3 mt-2 border-t border-zinc-200">
-                <button
-                  type="button"
-                  onClick={handleCopyCode}
-                  className="w-full py-2 bg-zinc-900 hover:bg-zinc-800 text-white text-[11px] font-bold rounded shadow transition-colors flex items-center justify-center gap-1.5"
-                >
-                  <span>📋</span>
-                  <span>確定数値をコピー</span>
-                </button>
-              </div>
+                </div>
+              ))}
             </div>
-          )}
-        </div>
-      )}
+
+            <div className="pt-3 mt-2 border-t border-zinc-200">
+              <button
+                type="button"
+                onClick={handleCopyCode}
+                className="w-full py-2 bg-zinc-900 hover:bg-zinc-800 text-white text-[11px] font-bold rounded shadow transition-colors flex items-center justify-center gap-1.5"
+              >
+                <span>📋</span>
+                <span>【{itemType === 'hanhaba' ? '半幅帯' : itemType === 'kyobukuro' ? '京袋帯' : '着物'}】の確定数値をコピー</span>
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* 全画面拡大モーダル */}
       {isZoomModalOpen && (
