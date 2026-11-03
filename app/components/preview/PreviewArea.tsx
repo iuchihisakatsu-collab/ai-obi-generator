@@ -70,24 +70,24 @@ export default function PreviewArea(props: PreviewAreaProps) {
     { id: '06',   name: 'Layer06（手前垂れ・基準）',file: 'hanhaba_Layer06.png',   z: 60, rot: -93, scale: 107, x: 74, y: 43 },
   ]);
 
-  // ★ 2. 京袋帯パーツ定義（4軸調整可能State）
+  // ★ 2. 京袋帯パーツ定義（居内さんの最新確定数値を初期値に反映）
   const [kyobukuroOffsets, setKyobukuroOffsets] = useState([
-    { id: 'hara',  name: '前腹（胴回り）', file: 'kyoubukurohara.png', z: 30, rot: 271, scale: 100, x: 50,   y: 50 },
-    { id: 'tare',  name: '垂れ先',         file: 'kyoubukurotare.png', z: 40, rot: -1,  scale: 100, x: 76.5, y: 47 },
-    { id: 'taiko', name: 'お太鼓',         file: 'kyoubukurotakio.png', z: 50, rot: 2,   scale: 100, x: 76.5, y: 47 },
+    { id: 'hara',  name: '前腹（胴回り）', file: 'kyoubukurohara.png', z: 30, rot: 90, scale: 85,  x: 50,   y: 50 },
+    { id: 'tare',  name: '垂れ先',         file: 'kyoubukurotare.png', z: 40, rot: -1, scale: 100, x: 76.5, y: 47 },
+    { id: 'taiko', name: 'お太鼓',         file: 'kyoubukurotakio.png', z: 50, rot: 1,  scale: 100, x: 75.5, y: 47 },
   ]);
 
-  // ★ 3. 着物パーツ定義（分度器実測角度ルールをベースにした4軸調整可能State）
+  // ★ 3. 着物パーツ定義（居内さんの最新確定数値を初期値に反映）
   const [kimonoOffsets, setKimonoOffsets] = useState([
-    { id: 'usiromigoro', name: '後ろ身頃',     file: 'usiromigoro_75.png',   z: 2,  rot: -15, scale: 100, x: 50, y: 50 },
-    { id: 'hidarisode2', name: '左袖（奥）',   file: 'hidarisode2_175.png',  z: 3,  rot: 85,  scale: 100, x: 50, y: 50 },
-    { id: 'hidarisode',  name: '左袖（手前）', file: 'hidarisode_150.png',   z: 4,  rot: 60,  scale: 100, x: 50, y: 50 },
-    { id: 'migisode',    name: '右袖',         file: 'migisode_165.png',     z: 5,  rot: 75,  scale: 100, x: 50, y: 50 },
-    { id: 'maemigoro2',  name: '前身頃（下）', file: 'maemigoro2_140.png',   z: 6,  rot: 50,  scale: 100, x: 50, y: 50 },
-    { id: 'maemigoro',   name: '前身頃（上）', file: 'maemigoro_105.png',   z: 7,  rot: 15,  scale: 100, x: 50, y: 50 },
-    { id: 'maeokumi',    name: '前衽（おくみ）', file: 'maeokumi_110.png',   z: 8,  rot: 20,  scale: 100, x: 50, y: 50 },
-    { id: 'migieri',     name: '右衿',         file: 'migieri_65.png',       z: 9,  rot: -25, scale: 100, x: 50, y: 50 },
-    { id: 'hidarieri',   name: '左衿',         file: 'hidarieri_117.png',    z: 10, rot: 27,  scale: 100, x: 50, y: 50 },
+    { id: 'usiromigoro', name: '後ろ身頃',     file: 'usiromigoro_75.png',   z: 2,  rot: -15, scale: 100, x: 50,   y: 50 },
+    { id: 'hidarisode2', name: '左袖（奥）',   file: 'hidarisode2_175.png',  z: 3,  rot: 85,  scale: 100, x: 49,   y: 50 },
+    { id: 'hidarisode',  name: '左袖（手前）', file: 'hidarisode_150.png',   z: 4,  rot: 60,  scale: 100, x: 49.5, y: 50 },
+    { id: 'migisode',    name: '右袖',         file: 'migisode_165.png',     z: 5,  rot: 75,  scale: 100, x: 49,   y: 50 },
+    { id: 'maemigoro2',  name: '前身頃（下）', file: 'maemigoro2_140.png',   z: 6,  rot: 75,  scale: 100, x: 45.5, y: 50 },
+    { id: 'maemigoro',   name: '前身頃（上）', file: 'maemigoro_105.png',   z: 7,  rot: 15,  scale: 100, x: 50,   y: 50 },
+    { id: 'maeokumi',    name: '前衽（おくみ）', file: 'maeokumi_110.png',   z: 8,  rot: 20,  scale: 100, x: 50,   y: 50 },
+    { id: 'migieri',     name: '右衿',         file: 'migieri_65.png',       z: 9,  rot: -25, scale: 100, x: 47.5, y: 50 },
+    { id: 'hidarieri',   name: '左衿',         file: 'hidarieri_117.png',    z: 10, rot: 31,  scale: 100, x: 52,   y: 50 },
   ]);
 
   // アイテム別のスライダー変更ハンドラ
@@ -142,7 +142,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
     ? bgSizeMm * UNIVERSAL_SCALE_FACTOR
     : 400 * UNIVERSAL_SCALE_FACTOR;
 
-  const v = '31';
+  const v = '32';
 
   // 半幅帯マッピングのレイヤー描画
   const renderHanhabaLayers = () => (
@@ -422,7 +422,6 @@ export default function PreviewArea(props: PreviewAreaProps) {
     </div>
   );
 
-  // 現在選択中のアイテムに応じたオフセットリストを取得
   const currentOffsets = itemType === 'hanhaba'
     ? hanhabaOffsets
     : itemType === 'kyobukuro'
