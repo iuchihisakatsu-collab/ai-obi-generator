@@ -57,7 +57,6 @@ function HomeContent() {
   const [platform, setPlatform] = useState<PlatformType>((searchParams.get('platform') as PlatformType) || 'makeshop');
   const [designFee, setDesignFee] = useState<number>(1000);
 
-  // 初期モードを 'ai' に変更
   const [creationMode, setCreationMode] = useState<'ai' | 'geometric' | 'upload'>('ai');
   const [itemType, setItemType] = useState<'hanhaba' | 'kyobukuro' | 'kimono'>('hanhaba');
   const [displayMode, setDisplayMode] = useState<'mockup' | 'trim' | 'data'>('mockup');
@@ -65,7 +64,6 @@ function HomeContent() {
   const [aiStyle, setAiStyle] = useState<string>('none');
   const [selectedArtist, setSelectedArtist] = useState<string>('none');
 
-  // 初期状態で傑作プロンプトとタグをセット
   const [motif, setMotif] = useState<string>('黒猫、ピアノの鍵盤、月、椿');
   const [motif2, setMotif2] = useState<string>('');
   const [selectedTags, setSelectedTags] = useState<string[]>(['大正ロマン', '水彩画']);
@@ -108,7 +106,6 @@ function HomeContent() {
   const [premiumCode, setPremiumCode] = useState<string>('');
   const [premiumStatusMsg, setPremiumStatusMsg] = useState<string>('');
 
-  // 開いた瞬間に表示されるダミーの傑作画像
   const [imageUrl, setImageUrl] = useState<string>('/sample_piano_cat.png');
   const [blobUrl, setBlobUrl] = useState<string>('/sample_piano_cat.png');
   
@@ -123,13 +120,11 @@ function HomeContent() {
   const previewRef = useRef<HTMLDivElement>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
 
-  // 初期色のセット
   useEffect(() => {
     const initialColors = TRADITIONAL_COLORS.filter(c => ['漆黒', '真紅'].includes(c.name.split(' ')[0]));
     setSelectedColors(initialColors);
   }, []);
 
-  // ★ 追加：ローカルストレージからチケットコードを復元
   useEffect(() => {
     const savedCode = localStorage.getItem('komon_premium_code');
     if (savedCode) {
@@ -184,7 +179,6 @@ function HomeContent() {
     }
 
     if (creationMode !== 'geometric' && itemType === 'hanhaba') {
-      // ダミー画像の時は回転エラーを無視する
       if (src.startsWith('/')) {
         setRotatedPatternUrl(src);
         return;
@@ -434,7 +428,6 @@ function HomeContent() {
       return;
     }
 
-    // ★ 追加：プレミアム生成を実行する時、入力されたコードをブラウザに記憶させる
     if (engineType === 'openai_premium' && premiumCode.trim()) {
       localStorage.setItem('komon_premium_code', premiumCode.trim());
     }
@@ -461,7 +454,7 @@ function HomeContent() {
           color: colorNames || 'おまかせ', 
           density, 
           itemType, 
-          aiStyle: 'none', // 様式ボタンは廃止したためnone固定
+          aiStyle: 'none',
           artist: selectedArtist, 
           engine: actualEngine, 
           paymentMode: engineType === 'openai_premium' ? 'premium' : 'free',
@@ -680,16 +673,16 @@ function HomeContent() {
             <button
               type="button"
               onClick={() => setCreationMode('geometric')}
-              className={`flex-1 py-2 text-[10px] sm:text-xs font-bold rounded transition-all ${
+              className={`flex-1 py-2 text-[9px] sm:text-xs font-bold rounded transition-all ${
                 creationMode === 'geometric' ? 'bg-zinc-900 text-white shadow' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
               }`}
             >
-              格子・水玉製作所
+              色無地・格子・縞・水玉
             </button>
             <button
               type="button"
               onClick={() => setCreationMode('ai')}
-              className={`flex-1 py-2 text-[10px] sm:text-xs font-bold rounded transition-all ${
+              className={`flex-1 py-2 text-[9px] sm:text-xs font-bold rounded transition-all ${
                 creationMode === 'ai' ? 'bg-zinc-900 text-white shadow' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
               }`}
             >
@@ -698,7 +691,7 @@ function HomeContent() {
             <button
               type="button"
               onClick={() => setCreationMode('upload')}
-              className={`flex-1 py-2 text-[10px] sm:text-xs font-bold rounded transition-all ${
+              className={`flex-1 py-2 text-[9px] sm:text-xs font-bold rounded transition-all ${
                 creationMode === 'upload' ? 'bg-zinc-900 text-white shadow' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
               }`}
             >
@@ -942,13 +935,5 @@ function HomeContent() {
         onGoToGeometric={() => { handleCloseNotice(); setCreationMode('geometric'); }}
       />
     </div>
-  );
-}
-
-export default function Home() {
-  return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[#f4f4f5]"><p className="text-zinc-400 text-sm font-bold tracking-widest">LOADING...</p></div>}>
-      <HomeContent />
-    </Suspense>
   );
 }
