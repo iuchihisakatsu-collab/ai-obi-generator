@@ -83,7 +83,7 @@ export async function POST(req: Request) {
       engine = 'flux',
       paymentMode = 'free',
       premiumCode = '',
-      patternScale: explicitScale // 直接渡された場合の保険
+      patternScale: explicitScale
     } = body;
 
     if (!motif) return NextResponse.json({ error: 'モチーフを指定してください。' }, { status: 400 });
@@ -141,47 +141,77 @@ export async function POST(req: Request) {
       }
     }
 
-    // --- ★ 柄のサイズ判定（サーバー側で自動検知） ---
+    // --- ★ 柄のサイズ判定（フロント文字列またはパラメータから自動解析） ---
     let detectedScale: 'small' | 'medium' | 'large' = 'medium';
-    if (explicitScale === 'small' || motif.includes('細かい') || motif.includes('tiny delicate')) {
+    const rawScale = (explicitScale || '').toLowerCase();
+    if (rawScale === 'small' || rawScale === 'fine' || motif.includes('細かい') || motif.includes('tiny delicate') || motif.includes('micro')) {
       detectedScale = 'small';
-    } else if (explicitScale === 'large' || motif.includes('大きい') || motif.includes('large bold')) {
+    } else if (rawScale === 'large' || motif.includes('大きい') || motif.includes('large bold') || motif.includes('大柄')) {
       detectedScale = 'large';
     }
 
-    // 翻訳AIに送る前に、サイズ指定テキストを取り除いて純粋な絵柄だけを抽出
+    // 翻訳AIに渡す前に「柄の大きさ：〜〜」などのメタ指示を切り離し、純粋なモチーフのみを抽出
     const cleanMotifForTranslation = motif
-      .replace(/。柄の大きさ：[^\n]*/g, '')
+      .replace(/。?柄の大きさ[：:][^\n]*/g, '')
+      .replace(/\(tiny delicate repeating motifs[^\)]*\)/gi, '')
+      .replace(/\(medium-scale repeating motifs[^\)]*\)/gi, '')
+      .replace(/\(large bold prominent motifs[^\)]*\)/gi, '')
       .trim();
 
     const englishMotif = await translateToEnglish(cleanMotifForTranslation);
     const isScarfMode = motif.includes('スカーフ') || motif.toLowerCase().includes('scarf');
     const isOtaiko = density.includes('お太鼓柄');
 
-    // --- ★ サイズに応じたレイアウト指示の決定 ---
-    let scaleLayoutModifier = '';
+    // --- ★ 40cm角の実寸ものさし（Physical Scale Standard）プロンプト構築 ---
+    let physicalScaleCommand = '';
+    let negativeScalePrompt = '';
+
     if (detectedScale === 'small') {
-      scaleLayoutModifier = 'Dense micro-pattern Edo-komon layout. An intricate all-over repeating textile pattern with dozens of miniature tiny motifs seamlessly distributed across the entire canvas. Very small-scale motifs, high motif density, zero massive empty space.';
+      // 細かい（1.5cm〜2cm / 画面内に60〜100個以上）
+      physicalScaleCommand = `[PHYSICAL SCALE: EXACT 40cm x 40cm (400mm x 400mm) PRINT SWATCH]
+[MICRO-KOMON DITSY REPEAT]
+- Physical Dimension: Every motif is miniature, physically measuring strictly 15mm to 20mm each (under 5% of total canvas width).
+- Motif Quantity: The 40cm canvas MUST contain a dense field of at least 60 to 100+ miniature repeated motifs scattered seamlessly across the entire surface.
+- Layout Rules: Edo-komon ditsy style. Ultra-dense distribution. ABSOLUTELY ZERO large focal motifs, ZERO single hero illustrations, ZERO giant empty voids. Pure intricate fine repeating pattern.`;
+      
+      negativeScalePrompt = 'giant motifs, oversized subjects, single hero illustration, close-up, large empty space, huge animal, massive single object, portrait composition';
+
     } else if (detectedScale === 'large') {
-      scaleLayoutModifier = 'Seamless modern bold layout. Prominent large-scale motifs with dramatic artistic presence, oversized statement pattern elements.';
+      // 大きい（10cm〜13cm / 画面内に4〜6個程度）
+      physicalScaleCommand = `[PHYSICAL SCALE: EXACT 40cm x 40cm (400mm x 400mm) PRINT SWATCH]
+[BOLD MODERN STATEMENT PATTERN]
+- Physical Dimension: Each motif is large and prominent, measuring strictly 100mm to 130mm each (25% to 30% of total canvas width).
+- Motif Quantity: The 40cm canvas contains approximately 4 to 6 large, impactful artistic motifs.
+- Layout Rules: Modern bold kimono statement pattern with striking graphic scale and artistic negative space.`;
+
+      negativeScalePrompt = 'tiny micro pattern, crowded ditsy print, dozens of small dots, miniature clutter';
+
     } else {
-      scaleLayoutModifier = 'Seamless balanced textile pattern layout. Perfectly proportioned medium-scale motifs evenly repeating with harmonious Japanese aesthetic spacing.';
+      // 普通（4cm〜5cm / 画面内に20〜30個程度）
+      physicalScaleCommand = `[PHYSICAL SCALE: EXACT 40cm x 40cm (400mm x 400mm) PRINT SWATCH]
+[BALANCED TRADITIONAL KIMONO KOMON REPEAT]
+- Physical Dimension: Classic Japanese kimono pattern scale. Each repeating motif is physically 40mm to 50mm each (approx 10% to 12% of total canvas width).
+- Motif Quantity: The 40cm canvas contains approximately 20 to 30 evenly distributed, well-proportioned motifs.
+- Layout Rules: Seamless all-over repeat with traditional Japanese aesthetic rhythm and balanced spacing.`;
+
+      negativeScalePrompt = 'giant single portrait, micro dot clutter, single focal hero';
     }
 
-    let baseInstruction = detectedScale === 'small'
-      ? `Premium high-end luxury Edo-komon micro-textile pattern. Strictly 2D flat surface. All-over fine repeat.`
-      : `Premium high-end luxury textile pattern design. A sophisticated masterpiece blending elegant decorative European luxury textiles with poetic artisan crafts. Strictly 2D flat surface.`;
+    let layoutInstruction = '';
+    if (isScarfMode) {
+      layoutInstruction = `[LAYOUT: LUXURY SILK SCARF (CARRÉ)] Perfectly balanced square framed composition for a luxury silk scarf (Carré). Clean solid unpatterned margin around the absolute outer edge for sewing allowance. Highly ornate decorative square border inside. Majestic central focal medallion. DO NOT tile.`;
+    } else if (isOtaiko) {
+      layoutInstruction = `[LAYOUT: OTAIKO DRUM PANEL] Non-seamless centered panel design. A single magnificent focal motif placed in the upper center of the 40cm swatch. Vast seamless textured background.`;
+    } else {
+      layoutInstruction = physicalScaleCommand;
+    }
 
-    let layoutInstruction = isScarfMode 
-      ? "CRITICAL LAYOUT: Perfectly balanced square framed composition for a luxury silk scarf (Carré). Clean solid unpatterned margin around the absolute outer edge for sewing allowance. Highly ornate decorative square border inside. Majestic central focal medallion. DO NOT tile."
-      : (isOtaiko ? "Non-seamless layout. A single magnificent focal motif exactly in the dead center. Vast seamless background." : scaleLayoutModifier);
-    
     const styleDetail = STYLE_PROMPTS[aiStyle] || '';
     const colorInstruction = (color && color !== 'おまかせ') ? `Main Color Theme: ${color}.` : 'Harmonious color palette.';
-    const enforcement = `【STRICT QUALITY ENFORCEMENT】 Strictly MATURE, SOPHISTICATED, and ELEGANT high-end aesthetic. ABSOLUTELY NO childish styles, NO kawaii, NO chibi. Zero gradients, zero shadows.`;
+    const enforcement = `【STRICT QUALITY & FORMAT ENFORCEMENT】 Strictly MATURE, SOPHISTICATED, and ELEGANT high-end kimono textile aesthetic. ABSOLUTELY NO childish styles, NO kawaii, NO chibi. Zero gradients, zero shadows. Top-down 2D flat orthogonal surface only. NO humans, NO mockups, NO 3D perspective. Negative constraints: ${negativeScalePrompt}.`;
 
-    // FLUX向けに先頭の構図強度を最大化したプロンプト
-    const prompt = `${baseInstruction} ${layoutInstruction}\n【Motifs】\n${englishMotif} (${cleanMotifForTranslation})\n${styleDetail ? `【Style】\n${styleDetail}\n` : ''}【Color】\n${colorInstruction}\n${enforcement}`;
+    // FLUX・OpenAI双方が最初に解釈する最重要位置に「40cm実寸定規」を配置
+    const prompt = `Flat 2D continuous textile pattern for Japanese kimono and obi fabric.\n${layoutInstruction}\n【Motifs】\n${englishMotif} (${cleanMotifForTranslation})\n${styleDetail ? `【Style】\n${styleDetail}\n` : ''}【Color】\n${colorInstruction}\n${enforcement}`;
 
     // --- 画像生成処理（FLUX または OpenAI） ---
     if (isFlux && process.env.FAL_KEY) {
