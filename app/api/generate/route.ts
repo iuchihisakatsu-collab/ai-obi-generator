@@ -13,7 +13,7 @@ const openai = new OpenAI({
 // ★ 最新のGAS WebアプリURL
 const GAS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbxaG8AFwsNy3tTrQ3T1MjhckJwvyNhUIBY-mXM6JkYMa60rE4LFvD1NM5rR-1kykw/exec';
 
-// ★ GET: シリアルコードの残数照会（スプレッドシートの残数は減らしません）
+// ★ GET: シリアルコードの残数照会
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
@@ -82,7 +82,8 @@ export async function POST(req: Request) {
       aiStyle = 'none', 
       engine = 'flux',
       paymentMode = 'free',
-      premiumCode = ''
+      premiumCode = '',
+      patternScale: explicitScale // 直接渡された場合の保険
     } = body;
 
     if (!motif) return NextResponse.json({ error: 'モチーフを指定してください。' }, { status: 400 });
@@ -91,7 +92,7 @@ export async function POST(req: Request) {
     const isFlux = !isPremium && engine === 'flux';
     const isOpenAiFree = !isPremium && (engine === 'openai_free' || engine === 'openai');
 
-    // ★ 1. チケット利用：生成前の残数チェック（ここでは絶対に減らさない）
+    // ★ 1. チケット利用：生成前の残数チェック
     const code = (premiumCode || '').trim().toUpperCase();
     if (isPremium) {
       if (!code) {
@@ -140,28 +141,47 @@ export async function POST(req: Request) {
       }
     }
 
-    // --- プロンプト構築 ---
-    const englishMotif = await translateToEnglish(motif);
-    
-    // ★ 手打ち「スカーフ / scarf」の既存判定を100%維持し、density（ボタン選択）からも安全に合流
-    const densityStr = typeof density === 'string' ? density : '';
-    const isScarfMode = 
-      motif.includes('スカーフ') || 
-      motif.toLowerCase().includes('scarf') || 
-      densityStr.includes('スカーフ');
+    // --- ★ 柄のサイズ判定（サーバー側で自動検知） ---
+    let detectedScale: 'small' | 'medium' | 'large' = 'medium';
+    if (explicitScale === 'small' || motif.includes('細かい') || motif.includes('tiny delicate')) {
+      detectedScale = 'small';
+    } else if (explicitScale === 'large' || motif.includes('大きい') || motif.includes('large bold')) {
+      detectedScale = 'large';
+    }
 
-    const isOtaiko = densityStr.includes('お太鼓柄') || motif.includes('お太鼓');
+    // 翻訳AIに送る前に、サイズ指定テキストを取り除いて純粋な絵柄だけを抽出
+    const cleanMotifForTranslation = motif
+      .replace(/。柄の大きさ：[^\n]*/g, '')
+      .trim();
 
-    let baseInstruction = `Premium high-end luxury textile pattern design. A sophisticated masterpiece blending elegant decorative European luxury textiles with poetic artisan crafts. Strictly 2D flat surface.`;
+    const englishMotif = await translateToEnglish(cleanMotifForTranslation);
+    const isScarfMode = motif.includes('スカーフ') || motif.toLowerCase().includes('scarf');
+    const isOtaiko = density.includes('お太鼓柄');
+
+    // --- ★ サイズに応じたレイアウト指示の決定 ---
+    let scaleLayoutModifier = '';
+    if (detectedScale === 'small') {
+      scaleLayoutModifier = 'Dense micro-pattern Edo-komon layout. An intricate all-over repeating textile pattern with dozens of miniature tiny motifs seamlessly distributed across the entire canvas. Very small-scale motifs, high motif density, zero massive empty space.';
+    } else if (detectedScale === 'large') {
+      scaleLayoutModifier = 'Seamless modern bold layout. Prominent large-scale motifs with dramatic artistic presence, oversized statement pattern elements.';
+    } else {
+      scaleLayoutModifier = 'Seamless balanced textile pattern layout. Perfectly proportioned medium-scale motifs evenly repeating with harmonious Japanese aesthetic spacing.';
+    }
+
+    let baseInstruction = detectedScale === 'small'
+      ? `Premium high-end luxury Edo-komon micro-textile pattern. Strictly 2D flat surface. All-over fine repeat.`
+      : `Premium high-end luxury textile pattern design. A sophisticated masterpiece blending elegant decorative European luxury textiles with poetic artisan crafts. Strictly 2D flat surface.`;
+
     let layoutInstruction = isScarfMode 
       ? "CRITICAL LAYOUT: Perfectly balanced square framed composition for a luxury silk scarf (Carré). Clean solid unpatterned margin around the absolute outer edge for sewing allowance. Highly ornate decorative square border inside. Majestic central focal medallion. DO NOT tile."
-      : (isOtaiko ? "Non-seamless layout. A single magnificent focal motif exactly in the dead center. Vast seamless background." : "Seamless abstract floating layout. Elegantly spaced motifs with massive clean negative space.");
+      : (isOtaiko ? "Non-seamless layout. A single magnificent focal motif exactly in the dead center. Vast seamless background." : scaleLayoutModifier);
     
     const styleDetail = STYLE_PROMPTS[aiStyle] || '';
     const colorInstruction = (color && color !== 'おまかせ') ? `Main Color Theme: ${color}.` : 'Harmonious color palette.';
     const enforcement = `【STRICT QUALITY ENFORCEMENT】 Strictly MATURE, SOPHISTICATED, and ELEGANT high-end aesthetic. ABSOLUTELY NO childish styles, NO kawaii, NO chibi. Zero gradients, zero shadows.`;
 
-    const prompt = `${baseInstruction} ${layoutInstruction}\n【Motifs】\n${englishMotif} (${motif})\n${styleDetail ? `【Style】\n${styleDetail}\n` : ''}【Color】\n${colorInstruction}\n${enforcement}`;
+    // FLUX向けに先頭の構図強度を最大化したプロンプト
+    const prompt = `${baseInstruction} ${layoutInstruction}\n【Motifs】\n${englishMotif} (${cleanMotifForTranslation})\n${styleDetail ? `【Style】\n${styleDetail}\n` : ''}【Color】\n${colorInstruction}\n${enforcement}`;
 
     // --- 画像生成処理（FLUX または OpenAI） ---
     if (isFlux && process.env.FAL_KEY) {
@@ -195,7 +215,7 @@ export async function POST(req: Request) {
       }
     }
 
-    // ★ OpenAI 高精細生成（gpt-image-2.5-sunburst）
+    // ★ OpenAI 高精細生成
     const response = await openai.images.generate({
       model: "gpt-image-2.5-sunburst",
       prompt: prompt,
@@ -219,7 +239,7 @@ export async function POST(req: Request) {
     // ★ Vercel Blobへ保存
     const blob = await put(`textile-openai-${Date.now()}.png`, buffer, { access: 'public', contentType: 'image/png' });
 
-    // ★★★ 生成が成功した瞬間「だけ」チケット残数を1減らす（安全設計） ★★★
+    // ★ 生成成功時のみチケット残数を1消費
     let finalRemaining: number | null = null;
     if (isPremium) {
       try {
