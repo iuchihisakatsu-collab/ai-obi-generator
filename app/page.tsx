@@ -69,7 +69,7 @@ function HomeContent() {
   const [motif2, setMotif2] = useState<string>('');
   const [selectedTags, setSelectedTags] = useState<string[]>(['大正ロマン', '水彩画']);
   
-  // ★ 柄のサイズ感State（初期値：普通）
+  // 柄のサイズ感（初期値：普通）
   const [patternScale, setPatternScale] = useState<'small' | 'medium' | 'large'>('medium');
 
   const [selectedColors, setSelectedColors] = useState<typeof TRADITIONAL_COLORS>([]);
@@ -445,7 +445,7 @@ function HomeContent() {
       
       const tagPrompt = selectedTags.length > 0 ? `。雰囲気・タッチ：${selectedTags.join('、')}` : '';
 
-      // ★ 柄のサイズ感に応じたプロンプト修飾語
+      // 柄のサイズ感に応じたプロンプト修飾語
       const scalePromptMap = {
         small: '。柄の大きさ：細かい小紋調、小さなリピート柄 (tiny delicate repeating motifs, dense micro-pattern)',
         medium: '。柄の大きさ：標準的なサイズ (medium-scale repeating motifs)',
