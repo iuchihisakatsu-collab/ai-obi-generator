@@ -172,6 +172,7 @@ function HomeContent() {
     }
   }, [motif]);
 
+  // ★ 修正箇所：レシピ画像であっても確実に90度回転させて半幅帯パーツに渡す
   useEffect(() => {
     const src = blobUrl || imageUrl;
     if (!src) {
@@ -180,10 +181,6 @@ function HomeContent() {
     }
 
     if (creationMode !== 'geometric' && itemType === 'hanhaba') {
-      if (src.startsWith('/')) {
-        setRotatedPatternUrl(src);
-        return;
-      }
       rotateImage90Degrees(src)
         .then((rotated) => setRotatedPatternUrl(rotated))
         .catch((err) => {
@@ -635,7 +632,7 @@ function HomeContent() {
   };
 
   const PROMPT_SEAMLESS = 'seamless textile pattern, full-bleed design, no humans, no mockups --tile --ar 1:1';
-  const PROMPT_CENTERED = 'centered composition, artwork directly in the center, ample margin on left and right, full-bleed design, no humans, no mockups --ar 1:1';
+  const PROMPT_CENTERED = 'centered composition, artwork directly in the center,造成 ample margin on left and right, full-bleed design, no humans, no mockups --ar 1:1';
 
   return (
     <div className="min-h-screen bg-[#f4f4f5] text-zinc-900 flex flex-col items-center justify-start font-sans lg:p-8">
