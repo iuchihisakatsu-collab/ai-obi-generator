@@ -107,13 +107,21 @@ const RECIPES = [
     tags: ['アンティーク', '木版画'],
     colors: ['銀鼠', '葡萄色'],
     image: '/sample_antique.png'
+  },
+  {
+    id: 'hokusai_cat',
+    title: '波間に遊ぶ黒白猫',
+    motif: '黒白の猫、濃淡の青い波、白い泡の点描',
+    tags: ['浮世絵風', '和モダン', '木版画', '猫', '波・雲'],
+    colors: ['鳥の子色', '瑠璃色'],
+    image: '/sample_hokusai_cat.png'
   }
 ];
 
 const TAG_CATEGORIES = [
   {
     category: '🎨 雰囲気・様式',
-    tags: ['大正ロマン', '昭和レトロ', 'アール・ヌーヴォー', '北欧風', 'アンティーク', 'ゴシック']
+    tags: ['大正ロマン', '昭和レトロ', 'アール・ヌーヴォー', '北欧風', 'アンティーク', 'ゴシック', '浮世絵風', '和モダン']
   },
   {
     category: '🖌️ タッチ・画材',
@@ -121,7 +129,7 @@ const TAG_CATEGORIES = [
   },
   {
     category: '🌸 人気モチーフ',
-    tags: ['猫', '兎', '鳥', '椿', '薔薇', '百合', '鍵盤', '幾何学']
+    tags: ['猫', '兎', '鳥', '椿', '薔薇', '百合', '鍵盤', '幾何学', '波・雲']
   },
   {
     category: '🌈 配色・トーン',
@@ -224,12 +232,32 @@ export default function ControlPanel({
   const currentUrl = typeof window !== 'undefined' ? window.location.href : 'https://store.gofukuyasan.com/';
   const mediaUrl = imageUrl || '';
 
-  const shareToX = () => window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(currentUrl)}`, '_blank', 'noopener,noreferrer,width=600,height=450');
-  const shareToThreads = () => window.open(`https://www.threads.net/intent/post?text=${encodeURIComponent(`${shareText}\n${currentUrl}`)}`, '_blank', 'noopener,noreferrer,width=600,height=550');
-  const shareToPinterest = () => window.open(`https://pinterest.com/pin/create/button/?url=${encodeURIComponent(currentUrl)}&media=${encodeURIComponent(mediaUrl)}&description=${encodeURIComponent(shareText)}`, '_blank', 'noopener,noreferrer,width=750,height=600');
-  const shareToFacebook = () => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(currentUrl)}`, '_blank', 'noopener,noreferrer,width=600,height=500');
+  const shareToX = () => {
+    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(currentUrl)}`;
+    window.open(url, '_blank', 'noopener,noreferrer,width=600,height=450');
+  };
+
+  const shareToThreads = () => {
+    const textWithUrl = `${shareText}\n${currentUrl}`;
+    const url = `https://www.threads.net/intent/post?text=${encodeURIComponent(textWithUrl)}`;
+    window.open(url, '_blank', 'noopener,noreferrer,width=600,height=550');
+  };
+
+  const shareToPinterest = () => {
+    const url = `https://pinterest.com/pin/create/button/?url=${encodeURIComponent(currentUrl)}&media=${encodeURIComponent(mediaUrl)}&description=${encodeURIComponent(shareText)}`;
+    window.open(url, '_blank', 'noopener,noreferrer,width=750,height=600');
+  };
+
+  const shareToFacebook = () => {
+    const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(currentUrl)}`;
+    window.open(url, '_blank', 'noopener,noreferrer,width=600,height=500');
+  };
+
   const shareToInstagram = async () => {
-    try { await navigator.clipboard.writeText(shareText); alert('テキストをコピーしました。Instagramに貼り付けてください。'); } catch {}
+    try {
+      await navigator.clipboard.writeText(shareText);
+      alert('作品名とテキストをコピーしました。\nInstagramの投稿画面に貼り付けてお使いください。');
+    } catch {}
     window.open('https://www.instagram.com/', '_blank', 'noopener,noreferrer');
   };
 
@@ -779,7 +807,7 @@ export default function ControlPanel({
         </div>
 
         {/* 生成完了後の作品表示エリア */}
-        {imageUrl && !imageUrl.includes('sample_piano_cat') && !imageUrl.includes('sample_cafe') && !imageUrl.includes('sample_antique') && (
+        {imageUrl && !imageUrl.includes('sample_piano_cat') && !imageUrl.includes('sample_cafe') && !imageUrl.includes('sample_antique') && !imageUrl.includes('sample_hokusai_cat') && (
           <div className="pt-8 mt-8 border-t-2 border-zinc-950 space-y-6 relative z-10 animate-fade-in bg-zinc-50 -mx-4 sm:-mx-8 lg:-mx-10 px-4 sm:px-8 lg:px-10 pb-8">
             <h3 className="text-center font-bold text-sm tracking-widest text-zinc-800 pt-6">あなただけの作品が完成しました</h3>
 
