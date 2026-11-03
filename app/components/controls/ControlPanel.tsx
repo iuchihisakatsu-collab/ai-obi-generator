@@ -2,21 +2,31 @@
 'use client';
 
 import { MouseEvent, useEffect, useState } from 'react';
-import { TRADITIONAL_COLORS, CategoryItem } from '../../lib/constants';
+import { TRADITIONAL_COLORS } from '../../lib/constants';
 
 interface ControlPanelProps {
   creationMode: 'ai' | 'geometric';
   setCreationMode: (mode: 'ai' | 'geometric') => void;
   itemType: 'hanhaba' | 'kyobukuro' | 'kimono';
   setItemType: (type: 'hanhaba' | 'kyobukuro' | 'kimono') => void;
+  
+  // aiStyle は廃止しましたが、親との互換性のため一旦残して無視します
   aiStyle: string;
   setAiStyle: (val: string) => void;
+  
   selectedArtist: string;
   setSelectedArtist: (artist: string) => void;
   motif: string;
   setMotif: (val: string) => void;
   motif2: string;
   setMotif2: (val: string) => void;
+  
+  // ★ 新しいタグState
+  selectedTags: string[];
+  setSelectedTags: (tags: string[]) => void;
+  setImageUrl: (url: string) => void;
+  setBlobUrl: (url: string) => void;
+  
   selectedColors: typeof TRADITIONAL_COLORS;
   setSelectedColors: (colors: typeof TRADITIONAL_COLORS) => void;
   handleColorToggle: (col: typeof TRADITIONAL_COLORS[0]) => void;
@@ -73,105 +83,92 @@ const LOADING_STEPS = [
   'もう少しで、図案帖に仕上がります...',
 ];
 
-const AI_STYLES = [
-  { id: 'mingei', label: '民藝と型染め', sub: '芹沢銈介風・素朴' },
-  { id: 'retro', label: '大正ロマン', sub: '竹久夢二・銘仙' },
-  { id: 'kissatten', label: '純喫茶レトロ', sub: '昭和ノスタルジー' },
-  { id: 'nordic', label: '北欧モダン', sub: 'ミニマル・大柄' },
-  { id: 'morris', label: '英国ボタニカル', sub: 'モリス調・草花' },
-  { id: 'sarasa', label: 'エキゾチック更紗', sub: 'バティック・唐草' },
-  { id: 'classic', label: '騙し絵クラシック', sub: '金襴・西陣織風' },
-  { id: 'mode', label: 'モード＆ストリート', sub: 'モノトーン・エッジ' },
-  { id: 'yuzen', label: 'はんなり友禅', sub: '上品・水彩ぼかし' },
-  { id: 'etching', label: 'アンティーク銅版画', sub: '幻想・ペン画' },
-  { id: 'silhouette', label: '切り絵影絵', sub: 'コントラスト' },
-  { id: 'artdeco', label: 'アール・デコ', sub: '1920s幾何学装飾' },
+const RECIPES = [
+  {
+    id: 'piano_cat',
+    title: '月夜のピアノと黒猫',
+    motif: '黒猫、ピアノの鍵盤、月、椿',
+    tags: ['大正ロマン', '水彩画'],
+    colors: ['漆黒', '真紅'],
+    image: '/sample_piano_cat.png' 
+  },
+  {
+    id: 'cafe',
+    title: '純喫茶ポワロのクリームソーダ',
+    motif: 'メロンソーダ、さくらんぼ、ステンドグラス',
+    tags: ['昭和レトロ', 'ペン画'],
+    colors: ['常磐色', '朱色'],
+    image: '/sample_cafe.png'
+  },
+  {
+    id: 'antique',
+    title: '英国・秘密の花園',
+    motif: '白うさぎ、ブラックベリー、時計、鍵',
+    tags: ['アンティーク', '木版画'],
+    colors: ['銀鼠', '葡萄色'],
+    image: '/sample_antique.png'
+  }
 ];
 
-const PULLDOWN_MOTIFS = [
+const TAG_CATEGORIES = [
   {
-    group: '生き物・動物',
-    items: ['犬', 'うさぎ', '小鳥', '金魚', '蝶', '虎', 'ペンギン', '恐竜']
+    category: '🎨 雰囲気・様式',
+    tags: ['大正ロマン', '昭和レトロ', 'アール・ヌーヴォー', '北欧風', 'アンティーク', 'ゴシック']
   },
   {
-    group: '花・植物・果実',
-    items: ['椿', '桜', '紫陽花', 'キノコ', '林檎', '紅葉・イチョウ', '唐草']
+    category: '🖌️ タッチ・画材',
+    tags: ['水彩画', '木版画', 'ステンドグラス', 'ペン画', '油絵', '切り絵']
   },
   {
-    group: '趣味・嗜好品',
-    items: ['ビール・洋酒', '本・古書・万年筆', '楽器・音楽', 'レコード', 'カメラ', '和菓子']
+    category: '🌸 人気モチーフ',
+    tags: ['猫', '兎', '鳥', '椿', '薔薇', '百合', '鍵盤', '幾何学']
   },
   {
-    group: '自然・天体・道具',
-    items: ['鉱物・水晶', '波・雲', '自転車', '気球', 'アンティーク時計', 'リボン・レース']
+    category: '🌈 配色・トーン',
+    tags: ['くすみカラー', 'パステル', 'ビビッド', 'セピア', 'モノトーン', '黄金色']
   }
 ];
 
 export default function ControlPanel({
-  creationMode,
-  setCreationMode,
-  itemType,
-  setItemType,
-  aiStyle,
-  setAiStyle,
-  selectedArtist,
-  setSelectedArtist,
-  motif,
-  setMotif,
-  motif2,
-  setMotif2,
-  selectedColors,
-  setSelectedColors,
-  handleColorToggle,
-  showColorPalette,
-  setShowColorPalette,
-  density,
-  setDensity,
-  geoPatternType,
-  setGeoPatternType,
-  stripeDir,
-  setStripeDir,
-  dotLayout,
-  setDotLayout,
-  dotRadius,
-  setDotRadius,
-  gapWidth,
-  setGapWidth,
-  lineWidth,
-  setLineWidth,
-  geoBgColor,
-  setGeoBgColor,
-  geoPatternColor,
-  setGeoPatternColor,
-  showGeoPaletteFor,
-  setShowGeoPaletteFor,
-  agreed,
-  setAgreed,
-  errorMsg,
-  loading,
-  loadingEngine,
-  generatingMode,
-  remainingCount,
-  remainingFlux,
-  remainingOpenAI,
-  ticketRemaining,
-  loadingStep,
-  handleGenerate,
-  imageUrl,
-  patternTitle,
-  setPatternTitle,
-  serialNumber,
-  handleDownloadOriginal,
-  handleOrderClick,
-  premiumCode,
-  setPremiumCode,
-  premiumStatusMsg,
+  creationMode, setCreationMode,
+  itemType, setItemType,
+  selectedArtist, setSelectedArtist,
+  motif, setMotif, motif2, setMotif2,
+  
+  selectedTags, setSelectedTags,
+  setImageUrl, setBlobUrl,
+  
+  selectedColors, setSelectedColors, handleColorToggle,
+  showColorPalette, setShowColorPalette,
+  density, setDensity,
+  geoPatternType, setGeoPatternType,
+  stripeDir, setStripeDir, dotLayout, setDotLayout,
+  dotRadius, setDotRadius, gapWidth, setGapWidth, lineWidth, setLineWidth,
+  geoBgColor, setGeoBgColor, geoPatternColor, setGeoPatternColor,
+  showGeoPaletteFor, setShowGeoPaletteFor,
+  agreed, setAgreed, errorMsg,
+  loading, loadingEngine, generatingMode,
+  remainingCount, remainingFlux, remainingOpenAI, ticketRemaining,
+  loadingStep, handleGenerate,
+  imageUrl, patternTitle, setPatternTitle, serialNumber,
+  handleDownloadOriginal, handleOrderClick,
+  premiumCode, setPremiumCode, premiumStatusMsg,
 }: ControlPanelProps) {
 
-  // 写真解析中ローディングState
   const [analyzingPhoto, setAnalyzingPhoto] = useState(false);
 
-  // ★ 写真から直接プロンプトを抽出してモチーフ欄に入れる関数
+  const handleRecipeSelect = (recipe: typeof RECIPES[0]) => {
+    setMotif(recipe.motif);
+    setSelectedTags(recipe.tags);
+    
+    const newColors = TRADITIONAL_COLORS.filter(c => recipe.colors.includes(c.name.split(' ')[0]));
+    setSelectedColors(newColors);
+    
+    setPatternTitle(recipe.title);
+    setImageUrl(recipe.image);
+    setBlobUrl(recipe.image);
+  };
+
   const handlePhotoUploadAndExtract = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -210,25 +207,14 @@ export default function ControlPanel({
     }
   };
 
-  // アイテム切り替え時に適切な「柄の配置」を自動セット
   useEffect(() => {
     if (itemType === 'kimono') {
-      if (density !== '四方柄（天地無用・40cm最適化）') {
-        setDensity('四方柄（天地無用・40cm最適化）');
-      }
+      if (density !== '四方柄（天地無用・40cm最適化）') setDensity('四方柄（天地無用・40cm最適化）');
     } else if (itemType === 'hanhaba') {
-      if (density !== '一方向リピート（上向き総柄・18cm最適化）') {
-        setDensity('一方向リピート（上向き総柄・18cm最適化）');
-      }
+      if (density !== '一方向リピート（上向き総柄・18cm最適化）') setDensity('一方向リピート（上向き総柄・18cm最適化）');
     } else if (itemType === 'kyobukuro') {
-      const validOptions = [
-        '総柄（小紋タイプ・34cm最適化）',
-        'お太鼓柄（ワンポイント主役パネル）',
-        'スカーフ柄（額縁スクエアパネル）'
-      ];
-      if (!validOptions.includes(density)) {
-        setDensity('総柄（小紋タイプ・34cm最適化）');
-      }
+      const validOptions = ['総柄（小紋タイプ・34cm最適化）', 'お太鼓柄（ワンポイント主役パネル）', 'スカーフ柄（額縁スクエアパネル）'];
+      if (!validOptions.includes(density)) setDensity('総柄（小紋タイプ・34cm最適化）');
     }
   }, [itemType, density, setDensity]);
 
@@ -238,45 +224,17 @@ export default function ControlPanel({
   const currentUrl = typeof window !== 'undefined' ? window.location.href : 'https://store.gofukuyasan.com/';
   const mediaUrl = imageUrl || '';
 
-  const shareToX = () => {
-    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(currentUrl)}`;
-    window.open(url, '_blank', 'noopener,noreferrer,width=600,height=450');
-  };
-
-  const shareToThreads = () => {
-    const textWithUrl = `${shareText}\n${currentUrl}`;
-    const url = `https://www.threads.net/intent/post?text=${encodeURIComponent(textWithUrl)}`;
-    window.open(url, '_blank', 'noopener,noreferrer,width=600,height=550');
-  };
-
-  const shareToPinterest = () => {
-    const url = `https://pinterest.com/pin/create/button/?url=${encodeURIComponent(currentUrl)}&media=${encodeURIComponent(mediaUrl)}&description=${encodeURIComponent(shareText)}`;
-    window.open(url, '_blank', 'noopener,noreferrer,width=750,height=600');
-  };
-
-  const shareToFacebook = () => {
-    const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(currentUrl)}`;
-    window.open(url, '_blank', 'noopener,noreferrer,width=600,height=500');
-  };
-
+  const shareToX = () => window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(currentUrl)}`, '_blank', 'noopener,noreferrer,width=600,height=450');
+  const shareToThreads = () => window.open(`https://www.threads.net/intent/post?text=${encodeURIComponent(`${shareText}\n${currentUrl}`)}`, '_blank', 'noopener,noreferrer,width=600,height=550');
+  const shareToPinterest = () => window.open(`https://pinterest.com/pin/create/button/?url=${encodeURIComponent(currentUrl)}&media=${encodeURIComponent(mediaUrl)}&description=${encodeURIComponent(shareText)}`, '_blank', 'noopener,noreferrer,width=750,height=600');
+  const shareToFacebook = () => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(currentUrl)}`, '_blank', 'noopener,noreferrer,width=600,height=500');
   const shareToInstagram = async () => {
-    try {
-      await navigator.clipboard.writeText(shareText);
-      alert('作品名とテキストをコピーしました。\nInstagramの投稿画面に貼り付けてお使いください。');
-    } catch {}
+    try { await navigator.clipboard.writeText(shareText); alert('テキストをコピーしました。Instagramに貼り付けてください。'); } catch {}
     window.open('https://www.instagram.com/', '_blank', 'noopener,noreferrer');
   };
 
   const primaryMotif = motif.trim() ? motif.split(/[、\s ]+/)[0] : '';
-  const makeshopSearchUrl = primaryMotif 
-    ? `https://store.gofukuyasan.com/view/search?search_keyword=${encodeURIComponent(primaryMotif)}` 
-    : 'https://store.gofukuyasan.com/';
-
-  const handleQuickAdd = (word: string) => {
-    if (!motif.includes(word)) {
-      setMotif(motif ? `${motif}、${word}` : word);
-    }
-  };
+  const makeshopSearchUrl = primaryMotif ? `https://store.gofukuyasan.com/view/search?search_keyword=${encodeURIComponent(primaryMotif)}` : 'https://store.gofukuyasan.com/';
 
   const effectiveRemainingOpenAI = remainingOpenAI ?? remainingCount ?? 1;
   const effectiveRemainingFlux = remainingFlux ?? 15;
@@ -284,48 +242,35 @@ export default function ControlPanel({
   return (
     <div className="w-full lg:w-1/2 bg-white border border-zinc-200 p-4 sm:p-8 lg:p-10 shrink-0 shadow-sm z-10 relative">
       
-      {/* モード切替タブ */}
-      <div className="flex bg-zinc-50 border border-zinc-200 p-1 mb-6 shadow-sm">
-        <button 
-          type="button" 
-          onClick={() => setCreationMode('geometric')} 
-          className={`flex-1 py-2.5 sm:py-3 text-xs font-black tracking-wider transition-all ${creationMode === 'geometric' ? 'bg-zinc-900 text-white shadow' : 'text-zinc-500 hover:text-zinc-800'}`}
-        >
-          格子・水玉製作所
-        </button>
-        <button 
-          type="button" 
-          onClick={() => setCreationMode('ai')} 
-          className={`flex-1 py-2.5 sm:py-3 text-xs font-black tracking-wider transition-all ${creationMode === 'ai' ? 'bg-zinc-900 text-white shadow' : 'text-zinc-500 hover:text-zinc-800'}`}
-        >
-          AI妄想モード
-        </button>
-      </div>
-
       <div className="space-y-6">
         {creationMode === 'ai' ? (
           <>
-            {/* 01. 12の意匠様式 */}
+            {/* ★ 01. ひらめき妄想レシピ（作例カード） */}
             <div>
-              <label className="block text-xs font-bold text-zinc-900 tracking-wider mb-2">
-                01. どんな世界観で？（12の意匠様式）
-              </label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 mb-2">
-                {AI_STYLES.map((s) => (
-                  <button 
-                    key={s.id} 
-                    type="button" 
-                    onClick={() => setAiStyle(s.id)} 
-                    className={`flex flex-col items-center justify-center p-2 sm:p-2.5 border transition-all shadow-sm ${aiStyle === s.id ? 'bg-zinc-900 text-white border-zinc-900 scale-95 ring-2 ring-zinc-900' : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50 hover:scale-[1.01]'}`}
+              <div className="flex justify-between items-baseline mb-2">
+                <label className="block text-xs font-bold text-zinc-900 tracking-wider">
+                  01. ひらめき妄想レシピ（作例から選ぶ）
+                </label>
+                <span className="text-[9px] text-zinc-500 font-medium">タップでプロンプトをセット</span>
+              </div>
+              
+              <div className="flex gap-2 overflow-x-auto pb-3 pt-1 scrollbar-thin scrollbar-thumb-zinc-300">
+                {RECIPES.map(recipe => (
+                  <button
+                    key={recipe.id}
+                    onClick={() => handleRecipeSelect(recipe)}
+                    className="flex-shrink-0 w-32 h-32 relative rounded-sm border border-zinc-200 overflow-hidden hover:ring-2 hover:ring-zinc-900 transition-all group shadow-sm bg-zinc-100"
                   >
-                    <span className="text-[10px] sm:text-[11px] font-black leading-tight text-center">{s.label}</span>
-                    <span className="text-[8px] sm:text-[9px] opacity-70 mt-0.5 leading-none text-center">{s.sub}</span>
+                    <img src={recipe.image} alt={recipe.title} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent flex items-end p-2.5">
+                      <span className="text-white text-[11px] font-bold leading-tight text-left drop-shadow-md">{recipe.title}</span>
+                    </div>
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* 02. テーマカラー（102色） */}
+            {/* 02. テーマカラー */}
             <div className="pt-4 border-t border-zinc-100 relative">
               <div className="flex justify-between items-baseline mb-2">
                 <div>
@@ -394,104 +339,81 @@ export default function ControlPanel({
               )}
             </div>
 
-            {/* 03. モチーフ入力＆写真からプロンプト常設ボタン */}
+            {/* 03. モチーフ入力 */}
             <div className="pt-4 border-t border-zinc-100">
               <div className="flex justify-between items-center mb-1.5">
                 <label className="block text-xs font-bold text-zinc-900 tracking-wider">
                   03. 何を描く？（モチーフ）
                 </label>
 
-                {/* ★ ここに常設！写真からプロンプト自動入力ボタン */}
                 <label className="cursor-pointer inline-flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded text-[11px] font-bold shadow-sm transition-all active:scale-95">
                   <span>✨</span>
                   <span>{analyzingPhoto ? '写真の色・柄をAI解析中...' : '📷 写真から自動入力'}</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handlePhotoUploadAndExtract}
-                    disabled={analyzingPhoto || loading}
-                    className="hidden"
-                  />
+                  <input type="file" accept="image/*" onChange={handlePhotoUploadAndExtract} disabled={analyzingPhoto || loading} className="hidden" />
                 </label>
               </div>
 
               <div className="flex justify-between items-center mb-1">
                 <p className="text-[10px] text-zinc-400">
-                  好きな単語を入れるか、右上の「📷 写真から自動入力」で手元の写真から色・柄を抽出できます。
+                  好きな単語を入れるか、上の「作例レシピ」や写真から言葉をセットできます。
                 </p>
                 {motif && (
-                  <button 
-                    onClick={() => setMotif('')} 
-                    className="text-[10px] font-bold text-zinc-400 hover:text-zinc-800 tracking-widest uppercase transition-colors shrink-0 ml-2"
-                  >
-                    Clear
-                  </button>
+                  <button onClick={() => setMotif('')} className="text-[10px] font-bold text-zinc-400 hover:text-zinc-800 tracking-widest uppercase transition-colors shrink-0 ml-2">Clear</button>
                 )}
               </div>
               
               <textarea 
                 className="w-full border border-zinc-300 p-3 sm:p-4 bg-white text-xs sm:text-sm focus:outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 resize-none transition-all duration-200 leading-relaxed font-medium shadow-sm" 
-                placeholder="例：黒猫、ホットケーキ、月、バイオリン（思いついた言葉をそのままどうぞ）" 
-                rows={2} 
-                value={motif} 
-                onChange={(e) => setMotif(e.target.value)} 
-                disabled={loading || analyzingPhoto} 
+                placeholder="例：黒猫、ホットケーキ、月、バイオリン" 
+                rows={2} value={motif} onChange={(e) => setMotif(e.target.value)} disabled={loading || analyzingPhoto} 
               />
+            </div>
 
-              {primaryMotif && (
-                <div className="mt-1.5 flex justify-end">
-                  <a 
-                    href={makeshopSearchUrl} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-[10px] font-bold text-zinc-500 hover:text-zinc-950 underline decoration-zinc-300 transition-colors"
-                  >
-                    <span>ゴフクヤサンの「{primaryMotif}」既製品コレクションを見る（無料）</span>
-                    <span className="text-[9px]">→</span>
-                  </a>
-                </div>
-              )}
+            {/* ★ 04. 統合された4カテゴリの入力アシストタグ群 */}
+            <div className="pt-4 border-t border-zinc-100">
+              <label className="block text-xs font-bold text-zinc-900 tracking-wider mb-3">
+                04. 雰囲気・画材をトッピング（複数選択OK）
+              </label>
               
-              <div className="mt-2.5 pt-2 border-t border-zinc-100 flex flex-wrap items-center gap-1.5">
-                <span className="text-[10px] font-black text-zinc-400 uppercase tracking-wider mr-1">入力アシスト:</span>
-                {['ねこ', '珈琲', '薔薇', '月と星'].map((w) => (
-                  <button
-                    key={w}
-                    type="button"
-                    onClick={() => handleQuickAdd(w)}
-                    className="px-2.5 py-1 bg-zinc-100 hover:bg-zinc-900 hover:text-white border border-zinc-200 text-zinc-700 text-[10px] font-bold rounded-sm transition-all shadow-2xs"
-                  >
-                    + {w}
-                  </button>
+              <div className="space-y-4">
+                {TAG_CATEGORIES.map(category => (
+                  <div key={category.category} className="flex flex-col sm:flex-row sm:items-start gap-1.5 sm:gap-3">
+                    <span className="text-[10px] font-black text-zinc-500 w-24 shrink-0 pt-1">{category.category}</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {category.tags.map(tag => {
+                        const isSelected = selectedTags.includes(tag);
+                        return (
+                          <button
+                            key={tag}
+                            type="button"
+                            onClick={() => {
+                              if (isSelected) {
+                                setSelectedTags(selectedTags.filter(t => t !== tag));
+                              } else {
+                                setSelectedTags([...selectedTags, tag]);
+                              }
+                            }}
+                            className={`px-2.5 py-1 text-[10px] font-bold rounded-sm transition-all shadow-sm ${
+                              isSelected 
+                                ? 'bg-zinc-900 text-white ring-1 ring-zinc-900' 
+                                : 'bg-white text-zinc-600 border border-zinc-200 hover:bg-zinc-100'
+                            }`}
+                          >
+                            {tag}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 ))}
-
-                <select
-                  onChange={(e) => {
-                    if (e.target.value) {
-                      handleQuickAdd(e.target.value);
-                      e.target.value = '';
-                    }
-                  }}
-                  className="px-2 py-1 bg-white border border-zinc-300 text-zinc-600 text-[10px] font-bold rounded-sm focus:outline-none focus:border-zinc-900 cursor-pointer shadow-2xs"
-                  defaultValue=""
-                >
-                  <option value="" disabled>その他のモチーフから選ぶ</option>
-                  {PULLDOWN_MOTIFS.map((g) => (
-                    <optgroup key={g.group} label={g.group}>
-                      {g.items.map((item) => (
-                        <option key={item} value={item}>{item}</option>
-                      ))}
-                    </optgroup>
-                  ))}
-                </select>
               </div>
             </div>
 
-            {/* 04. 柄の配置（アイテム連動・完全最適化） */}
-            <div className="pt-4 border-t border-zinc-200">
+            {/* 05. 柄の配置 */}
+            <div className="pt-4 border-t border-zinc-200 mt-2">
               <div className="flex justify-between items-baseline mb-1.5">
                 <label className="block text-xs font-bold text-zinc-800 tracking-wider">
-                  04. 柄の配置
+                  05. 柄の配置
                 </label>
                 <span className="text-[10px] font-bold text-zinc-500">
                   {itemType === 'kimono' && '着物：40cm幅に最適化'}
@@ -500,33 +422,24 @@ export default function ControlPanel({
                 </span>
               </div>
 
-              {/* 着物：四方柄固定 */}
               {itemType === 'kimono' && (
                 <div className="flex flex-col gap-1.5">
                   <div className="py-2.5 px-3 bg-zinc-900 text-white text-[11px] font-bold tracking-wider rounded-sm shadow border border-zinc-900 flex items-center justify-between">
                     <span>四方柄（天地無用・ランダム回転）</span>
                     <span className="text-[9px] bg-zinc-700 px-1.5 py-0.5 rounded text-zinc-200">自動固定</span>
                   </div>
-                  <p className="text-[9px] text-zinc-500 leading-normal">
-                    ※着物は肩山を越えると柄が上下逆さまになるため、どの角度から見ても自然な「四方柄（天地無用）」に最適化されます。
-                  </p>
                 </div>
               )}
 
-              {/* 半幅帯：一方向リピート固定 */}
               {itemType === 'hanhaba' && (
                 <div className="flex flex-col gap-1.5">
                   <div className="py-2.5 px-3 bg-zinc-900 text-white text-[11px] font-bold tracking-wider rounded-sm shadow border border-zinc-900 flex items-center justify-between">
                     <span>一方向リピート（上向き総柄）</span>
                     <span className="text-[9px] bg-zinc-700 px-1.5 py-0.5 rounded text-zinc-200">自動固定</span>
                   </div>
-                  <p className="text-[9px] text-zinc-500 leading-normal">
-                    ※細長い帯幅（仕立て16cm）で柄が綺麗に立つよう、上向きに整然と並ぶ一方向リピートに最適化されます。
-                  </p>
                 </div>
               )}
 
-              {/* 京袋帯：3択（総柄・お太鼓・スカーフ柄） */}
               {itemType === 'kyobukuro' && (
                 <div className="flex flex-col gap-2">
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
@@ -550,11 +463,6 @@ export default function ControlPanel({
                       </button>
                     ))}
                   </div>
-                  <p className="text-[9px] text-zinc-500 leading-normal">
-                    {density.includes('スカーフ') && '※エルメスのカレのように四角い額縁フレームに囲まれたラグジュアリーな正方形アートを出力します。'}
-                    {density.includes('お太鼓') && '※背中のお太鼓中央に主役モチーフがドカンと乗り、周囲に無地余白が広がる絵羽構図を出力します。'}
-                    {density.includes('総柄') && '※34cm幅いっぱいにモチーフが連続して広がる万能な小紋帯を出力します。'}
-                  </p>
                 </div>
               )}
             </div>
@@ -562,7 +470,7 @@ export default function ControlPanel({
         ) : (
           /* ================= 幾何学モード（格子・水玉製作所） ================= */
           <div className="space-y-6 animate-fade-in">
-            <div className={`grid ${geoPatternType === 'plain' ? 'grid-cols-1' : 'grid-cols-2'} gap-4`}>
+             <div className={`grid ${geoPatternType === 'plain' ? 'grid-cols-1' : 'grid-cols-2'} gap-4`}>
               <div>
                 <label className="block text-[11px] font-bold text-zinc-900 mb-1.5">柄の種類</label>
                 <select 
@@ -702,7 +610,7 @@ export default function ControlPanel({
           </div>
         )}
 
-        {/* 05. 作品名 */}
+        {/* 06. 作品名 */}
         <div className="pt-4 border-t border-zinc-200">
           <label className="block text-xs font-bold text-zinc-800 tracking-wider mb-1">
             作品名 <span className="font-normal text-[10px] text-zinc-400">（お好みの名前に変更できます）</span>
@@ -871,7 +779,7 @@ export default function ControlPanel({
         </div>
 
         {/* 生成完了後の作品表示エリア */}
-        {imageUrl && (
+        {imageUrl && !imageUrl.includes('sample_piano_cat') && !imageUrl.includes('sample_cafe') && !imageUrl.includes('sample_antique') && (
           <div className="pt-8 mt-8 border-t-2 border-zinc-950 space-y-6 relative z-10 animate-fade-in bg-zinc-50 -mx-4 sm:-mx-8 lg:-mx-10 px-4 sm:px-8 lg:px-10 pb-8">
             <h3 className="text-center font-bold text-sm tracking-widest text-zinc-800 pt-6">あなただけの作品が完成しました</h3>
 
