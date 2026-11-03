@@ -1,5 +1,6 @@
-// app/page.tsx
 'use client';
+
+export const dynamic = 'force-dynamic';
 
 import { useState, useEffect, type MouseEvent, useCallback, Suspense, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
@@ -935,5 +936,13 @@ function HomeContent() {
         onGoToGeometric={() => { handleCloseNotice(); setCreationMode('geometric'); }}
       />
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[#f4f4f5]"><p className="text-zinc-400 text-sm font-bold tracking-widest">LOADING...</p></div>}>
+      <HomeContent />
+    </Suspense>
   );
 }
