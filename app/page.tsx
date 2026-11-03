@@ -69,6 +69,9 @@ function HomeContent() {
   const [motif2, setMotif2] = useState<string>('');
   const [selectedTags, setSelectedTags] = useState<string[]>(['大正ロマン', '水彩画']);
   
+  // ★ 柄のサイズ感State（初期値：普通）
+  const [patternScale, setPatternScale] = useState<'small' | 'medium' | 'large'>('medium');
+
   const [selectedColors, setSelectedColors] = useState<typeof TRADITIONAL_COLORS>([]);
   const [showColorPalette, setShowColorPalette] = useState<boolean>(false);
   const [density, setDensity] = useState<string>('一方向リピート（上向き総柄・18cm最適化）');
@@ -172,7 +175,6 @@ function HomeContent() {
     }
   }, [motif]);
 
-  // ★ 修正箇所：レシピ画像であっても確実に90度回転させて半幅帯パーツに渡す
   useEffect(() => {
     const src = blobUrl || imageUrl;
     if (!src) {
@@ -442,12 +444,20 @@ function HomeContent() {
       const colorNames = selectedColors.map(c => getColorNameFromHex(c.hex)).join('、');
       
       const tagPrompt = selectedTags.length > 0 ? `。雰囲気・タッチ：${selectedTags.join('、')}` : '';
+
+      // ★ 柄のサイズ感に応じたプロンプト修飾語
+      const scalePromptMap = {
+        small: '。柄の大きさ：細かい小紋調、小さなリピート柄 (tiny delicate repeating motifs, dense micro-pattern)',
+        medium: '。柄の大きさ：標準的なサイズ (medium-scale repeating motifs)',
+        large: '。柄の大きさ：大胆な大柄 (large bold prominent motifs, oversized pattern elements)',
+      };
+      const scalePrompt = scalePromptMap[patternScale];
       
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          motif: motif.trim() + tagPrompt, 
+          motif: motif.trim() + tagPrompt + scalePrompt, 
           motif2: motif2.trim(), 
           color: colorNames || 'おまかせ', 
           density, 
@@ -632,7 +642,7 @@ function HomeContent() {
   };
 
   const PROMPT_SEAMLESS = 'seamless textile pattern, full-bleed design, no humans, no mockups --tile --ar 1:1';
-  const PROMPT_CENTERED = 'centered composition, artwork directly in the center,造成 ample margin on left and right, full-bleed design, no humans, no mockups --ar 1:1';
+  const PROMPT_CENTERED = 'centered composition, artwork directly in the center, ample margin on left and right, full-bleed design, no humans, no mockups --ar 1:1';
 
   return (
     <div className="min-h-screen bg-[#f4f4f5] text-zinc-900 flex flex-col items-center justify-start font-sans lg:p-8">
@@ -886,6 +896,7 @@ function HomeContent() {
                 
                 selectedTags={selectedTags} setSelectedTags={setSelectedTags}
                 setImageUrl={setImageUrl} setBlobUrl={setBlobUrl}
+                patternScale={patternScale} setPatternScale={setPatternScale}
                 
                 selectedColors={selectedColors} setSelectedColors={setSelectedColors} handleColorToggle={handleColorToggle}
                 showColorPalette={showColorPalette} setShowColorPalette={setShowColorPalette}
