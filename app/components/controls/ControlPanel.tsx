@@ -1,21 +1,4 @@
-Failed to compile.
-./app/components/controls/ControlPanel.tsx
-Error: Unexpected token `div`. Expected jsx identifier
-274 | return (
-275 | <div className="w-full lg:w-1/2 bg-white ...
-```
 
-手元の `ControlPanel.tsx` が、2つ前の返信で**途中で途切れてしまった壊れたコード（270行付近で終わっているもの）のまま残っているため**、タグが正しく閉じられず構文エラーになっています[cite: 18]。
-
----
-
-### 解決方法：`ControlPanel.tsx` を差し替えてください
-
-エラーの原因になっていた正規表現や長いURLの記述を安全な形に整え、**絶対に構文エラーが起きないようテスト済みの完全版 `ControlPanel.tsx`** です。
-
-以下のコードをコピーして、エディタで **`app/components/controls/ControlPanel.tsx`** を開き、**全選択（`Ctrl + A` / `Cmd + A`）して上書き貼り付け**してください。
-
-```tsx
 // app/components/controls/ControlPanel.tsx
 'use client';
 
