@@ -10,7 +10,6 @@ interface ControlPanelProps {
   itemType: 'hanhaba' | 'kyobukuro' | 'kimono';
   setItemType: (type: 'hanhaba' | 'kyobukuro' | 'kimono') => void;
   
-  // aiStyle は廃止しましたが、親との互換性のため一旦残して無視します
   aiStyle: string;
   setAiStyle: (val: string) => void;
   
@@ -21,11 +20,14 @@ interface ControlPanelProps {
   motif2: string;
   setMotif2: (val: string) => void;
   
-  // ★ 新しいタグState
   selectedTags: string[];
   setSelectedTags: (tags: string[]) => void;
   setImageUrl: (url: string) => void;
   setBlobUrl: (url: string) => void;
+
+  // ★ 柄のサイズ感（新規追加）
+  patternScale: 'small' | 'medium' | 'large';
+  setPatternScale: (scale: 'small' | 'medium' | 'large') => void;
   
   selectedColors: typeof TRADITIONAL_COLORS;
   setSelectedColors: (colors: typeof TRADITIONAL_COLORS) => void;
@@ -97,7 +99,8 @@ const RECIPES = [
     title: '純喫茶ポワロのクリームソーダ',
     motif: 'メロンソーダ、さくらんぼ、ステンドグラス',
     tags: ['昭和レトロ', 'ペン画'],
-　　colors: ['翡翠'], // 透き通る綺麗なメロンソーダグリーン
+    // ★ 翡翠（メロンソーダ緑）＋ 朱色（さくらんぼ）に修正
+    colors: ['翡翠', '朱色'],
     image: '/sample_cafe.png'
   },
   {
@@ -145,6 +148,7 @@ export default function ControlPanel({
   
   selectedTags, setSelectedTags,
   setImageUrl, setBlobUrl,
+  patternScale, setPatternScale,
   
   selectedColors, setSelectedColors, handleColorToggle,
   showColorPalette, setShowColorPalette,
@@ -273,7 +277,7 @@ export default function ControlPanel({
       <div className="space-y-6">
         {creationMode === 'ai' ? (
           <>
-            {/* ★ 01. ひらめき妄想レシピ（作例カード） */}
+            {/* 01. ひらめき妄想レシピ（作例カード） */}
             <div>
               <div className="flex justify-between items-baseline mb-2">
                 <label className="block text-xs font-bold text-zinc-900 tracking-wider">
@@ -397,7 +401,7 @@ export default function ControlPanel({
               />
             </div>
 
-            {/* ★ 04. 統合された4カテゴリの入力アシストタグ群 */}
+            {/* 04. 統合された4カテゴリの入力アシストタグ群 */}
             <div className="pt-4 border-t border-zinc-100">
               <label className="block text-xs font-bold text-zinc-900 tracking-wider mb-3">
                 04. 雰囲気・画材をトッピング（複数選択OK）
@@ -437,11 +441,42 @@ export default function ControlPanel({
               </div>
             </div>
 
-            {/* 05. 柄の配置 */}
+            {/* ★ 05. 柄のサイズ感（新設） */}
+            <div className="pt-4 border-t border-zinc-100">
+              <div className="flex justify-between items-baseline mb-2">
+                <label className="block text-xs font-bold text-zinc-900 tracking-wider">
+                  05. 柄の大きさ（サイズ感）
+                </label>
+                <span className="text-[9px] text-zinc-400">スケッチの大柄化を防ぐのに効果的</span>
+              </div>
+              <div className="grid grid-cols-3 gap-1.5">
+                {[
+                  { id: 'small', label: '細かい', desc: '小紋調・密' },
+                  { id: 'medium', label: '普 通', desc: '標準サイズ' },
+                  { id: 'large', label: '大きい', desc: '大胆な大柄' },
+                ].map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setPatternScale(item.id as 'small' | 'medium' | 'large')}
+                    className={`py-2 px-2 text-center border rounded-sm transition-all shadow-sm flex flex-col items-center justify-center ${
+                      patternScale === item.id
+                        ? 'bg-zinc-900 text-white border-zinc-900 ring-1 ring-zinc-900'
+                        : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50'
+                    }`}
+                  >
+                    <span className="text-[11px] font-bold">{item.label}</span>
+                    <span className="text-[8px] opacity-75 mt-0.5">{item.desc}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 06. 柄の配置 */}
             <div className="pt-4 border-t border-zinc-200 mt-2">
               <div className="flex justify-between items-baseline mb-1.5">
                 <label className="block text-xs font-bold text-zinc-800 tracking-wider">
-                  05. 柄の配置
+                  06. 柄の配置
                 </label>
                 <span className="text-[10px] font-bold text-zinc-500">
                   {itemType === 'kimono' && '着物：40cm幅に最適化'}
@@ -638,7 +673,7 @@ export default function ControlPanel({
           </div>
         )}
 
-        {/* 06. 作品名 */}
+        {/* 07. 作品名 */}
         <div className="pt-4 border-t border-zinc-200">
           <label className="block text-xs font-bold text-zinc-800 tracking-wider mb-1">
             作品名 <span className="font-normal text-[10px] text-zinc-400">（お好みの名前に変更できます）</span>
@@ -844,58 +879,4 @@ export default function ControlPanel({
                     <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="transition-transform group-hover:scale-110">
                       <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
                       <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
-                      <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
-                    </svg>
-                    <span className="text-[9px] font-bold mt-1 tracking-tighter">Instagram</span>
-                  </button>
-
-                  <button type="button" onClick={shareToPinterest} className="flex flex-col items-center justify-center py-2.5 px-1 bg-white border border-zinc-300 rounded hover:bg-zinc-950 hover:text-white hover:border-zinc-950 transition-all shadow-sm group" title="Pinterestにピン留め">
-                    <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" className="transition-transform group-hover:scale-110">
-                      <path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.162-.105-.949-.199-2.403.041-3.439.219-.937 1.406-5.957s-.359-.72-.359-1.781c0-1.663.967-2.911 2.168-2.911 1.024 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738a.36.36 0 0 1 .083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.631-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146 1.124.347 2.317.535 3.554.535 6.627 0 12.004-5.367 12.004-11.987C24.02 5.367 18.644 0 12.017 0z"/>
-                    </svg>
-                    <span className="text-[9px] font-bold mt-1 tracking-tighter">Pinterest</span>
-                  </button>
-
-                  <button type="button" onClick={shareToFacebook} className="flex flex-col items-center justify-center py-2.5 px-1 bg-white border border-zinc-300 rounded hover:bg-zinc-950 hover:text-white hover:border-zinc-950 transition-all shadow-sm group" title="Facebookでシェア">
-                    <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" className="transition-transform group-hover:scale-110">
-                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                    </svg>
-                    <span className="text-[9px] font-bold mt-1 tracking-tighter">Facebook</span>
-                  </button>
-                </div>
-              </div>
-
-              <a 
-                href="#" 
-                onClick={handleOrderClick} 
-                className="block w-full py-4 mt-2 text-center bg-zinc-950 text-white text-[15px] font-black tracking-widest transition-all shadow-xl hover:shadow-2xl hover:scale-[1.01] border-2 border-zinc-950 rounded-sm"
-              >
-                妄想を現実に<br/><span className="text-[10px] font-medium tracking-wider opacity-90 mt-1 block">（この作品を現実の着物・帯として仕立てる）</span>
-              </a>
-
-              {primaryMotif && (
-                <div className="mt-6 p-4 bg-zinc-100 border border-zinc-200 shadow-inner rounded-sm text-center animate-fade-in">
-                  <p className="text-[11px] font-bold text-zinc-700 mb-2 leading-relaxed">
-                    <span className="text-[9px] text-zinc-500 block mb-1">【 寄り道のご案内 】</span>
-                    お客様、もしかして『<span className="text-zinc-950 font-black text-sm">{primaryMotif}</span>』に<br/>目がありませんね？
-                  </p>
-                  <p className="text-[9px] text-zinc-500 mb-4 leading-relaxed px-2">
-                    妄想図案もいいですが……実はゴフクヤサンにも、<br/>自慢の『{primaryMotif}』アイテムがたくさんスタンバイしています。
-                  </p>
-                  <a 
-                    href={makeshopSearchUrl} 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
-                    className="inline-block w-full py-3 bg-white border border-zinc-300 text-zinc-800 text-[10px] font-bold tracking-widest hover:bg-zinc-950 hover:text-white hover:border-zinc-950 transition-colors shadow-sm rounded-sm"
-                  >
-                    ゴフクヤサンの「{primaryMotif}」コレクションを覗く（無料） →
-                  </a>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
+                      <line x1="17.5" y1="6.5" x2="17
