@@ -58,16 +58,16 @@ export default function PreviewArea(props: PreviewAreaProps) {
   const [activeFloatPalette, setActiveFloatPalette] = useState<'lining' | 'haneri' | 'obiage' | 'obi' | 'hara' | null>(null);
   const [isZoomModalOpen, setIsZoomModalOpen] = useState<boolean>(false);
 
-  // ★ 半幅帯 4軸リアルタイム位置調整スライダー用のState
+  // ★ 半幅帯 4軸調整パネル用のState（居内さんの確定数値を初期値に完全焼き付け）
   const [showTuningPanel, setShowTuningPanel] = useState<boolean>(false);
   const [hanhabaOffsets, setHanhabaOffsets] = useState([
-    { id: '01_a', name: 'Layer01_a（奥羽・右側）', file: 'hanhaba_Layer01_a.png', z: 10, rot: 2,   x: 50, y: 50, scale: 100 },
-    { id: '01_b', name: 'Layer01_b（奥羽・左下）', file: 'hanhaba_Layer01_b.png', z: 15, rot: 2,   x: 50, y: 50, scale: 100 },
-    { id: '02',   name: 'Layer02（奥羽・右）',     file: 'hanhaba_Layer02.png',   z: 20, rot: 1,   x: 60, y: 56, scale: 100 },
-    { id: '03',   name: 'Layer03（奥垂れ）',       file: 'hanhaba_Layer03.png',   z: 30, rot: 8,   x: 31, y: 40, scale: 100 },
-    { id: '04',   name: 'Layer04（手前羽・左）',   file: 'hanhaba_Layer04.png',   z: 40, rot: -1,  x: 60, y: 58, scale: 100 },
-    { id: '05',   name: 'Layer05（手前羽・右）',   file: 'hanhaba_Layer05.png',   z: 50, rot: -10, x: 83, y: 35, scale: 100 },
-    { id: '06',   name: 'Layer06（手前垂れ・基準）',file: 'hanhaba_Layer06.png',   z: 60, rot: -93, x: 50, y: 50, scale: 100 },
+    { id: '01_a', name: 'Layer01_a（奥羽・右側）', file: 'hanhaba_Layer01_a.png', z: 10, rot: 1,   scale: 111, x: 69, y: 50 },
+    { id: '01_b', name: 'Layer01_b（奥羽・左下）', file: 'hanhaba_Layer01_b.png', z: 15, rot: 3,   scale: 100, x: 33, y: 50 },
+    { id: '02',   name: 'Layer02（奥羽・右）',     file: 'hanhaba_Layer02.png',   z: 20, rot: 5,   scale: 108, x: 63, y: 56 },
+    { id: '03',   name: 'Layer03（奥垂れ）',       file: 'hanhaba_Layer03.png',   z: 30, rot: 13,  scale: 100, x: 32, y: 40 },
+    { id: '04',   name: 'Layer04（手前羽・左）',   file: 'hanhaba_Layer04.png',   z: 40, rot: 3,   scale: 109, x: 59, y: 58 },
+    { id: '05',   name: 'Layer05（手前羽・右）',   file: 'hanhaba_Layer05.png',   z: 50, rot: -8,  scale: 100, x: 22, y: 35 },
+    { id: '06',   name: 'Layer06（手前垂れ・基準）',file: 'hanhaba_Layer06.png',   z: 60, rot: -93, scale: 107, x: 74, y: 43 },
   ]);
 
   const handleOffsetChange = (index: number, axis: 'x' | 'y' | 'rot' | 'scale', value: number) => {
@@ -96,9 +96,9 @@ export default function PreviewArea(props: PreviewAreaProps) {
     ? bgSizeMm * UNIVERSAL_SCALE_FACTOR
     : 400 * UNIVERSAL_SCALE_FACTOR;
 
-  const v = '30';
+  const v = '31'; // アセット更新検知用キャッシュバスター
 
-  // 半幅帯マッピングのレイヤー描画（スライダーのリアルタイムStateを直接反映）
+  // 半幅帯マッピングのレイヤー描画（確定数値を反映）
   const renderHanhabaLayers = () => (
     <div className="relative w-full h-full overflow-hidden">
       {hanhabaOffsets.map((layer) => (
