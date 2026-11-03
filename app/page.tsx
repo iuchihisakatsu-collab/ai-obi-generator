@@ -57,19 +57,22 @@ function HomeContent() {
   const [platform, setPlatform] = useState<PlatformType>((searchParams.get('platform') as PlatformType) || 'makeshop');
   const [designFee, setDesignFee] = useState<number>(1000);
 
-  // モード：幾何学 / AI妄想 / 画像入稿
-  const [creationMode, setCreationMode] = useState<'ai' | 'geometric' | 'upload'>('geometric');
+  // ★ 初期モードを 'ai' に変更
+  const [creationMode, setCreationMode] = useState<'ai' | 'geometric' | 'upload'>('ai');
   const [itemType, setItemType] = useState<'hanhaba' | 'kyobukuro' | 'kimono'>('hanhaba');
   const [displayMode, setDisplayMode] = useState<'mockup' | 'trim' | 'data'>('mockup');
   
   const [aiStyle, setAiStyle] = useState<string>('none');
   const [selectedArtist, setSelectedArtist] = useState<string>('none');
 
-  const [motif, setMotif] = useState<string>('');
+  // ★ 初期状態で傑作プロンプトとタグをセット
+  const [motif, setMotif] = useState<string>('黒猫、ピアノの鍵盤、月、椿');
   const [motif2, setMotif2] = useState<string>('');
+  const [selectedTags, setSelectedTags] = useState<string[]>(['大正ロマン', '水彩画']);
+  
   const [selectedColors, setSelectedColors] = useState<typeof TRADITIONAL_COLORS>([]);
   const [showColorPalette, setShowColorPalette] = useState<boolean>(false);
-  const [density, setDensity] = useState<string>('四方柄');
+  const [density, setDensity] = useState<string>('一方向リピート（上向き総柄・18cm最適化）');
 
   const [geoPatternType, setGeoPatternType] = useState<'plain' | 'stripe' | 'dot' | 'grid' | 'gingham' | 'checker'>('plain');
   const [stripeDir, setStripeDir] = useState<StripeDirection>('vertical');
@@ -87,7 +90,6 @@ function HomeContent() {
   const [kimonoObiageColor, setKimonoObiageColor] = useState<string>('#c82a36');
   const [kimonoObiColor, setKimonoObiColor] = useState<string>('#1a1a1a');
   
-  // 着物の帯・京袋帯の前腹の個別画像State
   const [customObiUrl, setCustomObiUrl] = useState<string | null>(null);
   const [customHaraUrl, setCustomHaraUrl] = useState<string | null>(null);
 
@@ -99,7 +101,6 @@ function HomeContent() {
   const [generatingMode, setGeneratingMode] = useState<'flux' | 'openai_free' | 'openai_premium' | null>(null);
   const [loadingStep, setLoadingStep] = useState<number>(0);
 
-  // 回数管理（スケッチ15回・無料1回・チケット残数）
   const [remainingFlux, setRemainingFlux] = useState<number>(MAX_FLUX_PER_DAY);
   const [remainingOpenAI, setRemainingOpenAI] = useState<number>(MAX_OPENAI_PER_DAY);
   const [ticketRemaining, setTicketRemaining] = useState<number | null>(null);
@@ -107,21 +108,27 @@ function HomeContent() {
   const [premiumCode, setPremiumCode] = useState<string>('');
   const [premiumStatusMsg, setPremiumStatusMsg] = useState<string>('');
 
-  const [imageUrl, setImageUrl] = useState<string>('');
-  const [blobUrl, setBlobUrl] = useState<string>('');
+  // ★ 開いた瞬間に表示されるダミーの傑作画像（後で public フォルダに sample_piano_cat.png を置いてください）
+  const [imageUrl, setImageUrl] = useState<string>('/sample_piano_cat.png');
+  const [blobUrl, setBlobUrl] = useState<string>('/sample_piano_cat.png');
+  
   const [rotatedPatternUrl, setRotatedPatternUrl] = useState<string>('');
-  const [serialNumber, setSerialNumber] = useState<string>('GEO-INIT');
-  const [patternTitle, setPatternTitle] = useState<string>('色無地');
+  const [serialNumber, setSerialNumber] = useState<string>('KOMON-INIT');
+  const [patternTitle, setPatternTitle] = useState<string>('月夜のピアノと黒猫');
   const [mockupSubmitting, setMockupSubmitting] = useState<boolean>(false);
   const [isNoticeOpen, setIsNoticeOpen] = useState<boolean>(false);
 
-  // コピー完了状態の管理
   const [copiedPromptType, setCopiedPromptType] = useState<'seamless' | 'centered' | null>(null);
 
   const previewRef = useRef<HTMLDivElement>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
 
-  // 日付チェック
+  // 初期色のセット
+  useEffect(() => {
+    const initialColors = TRADITIONAL_COLORS.filter(c => ['漆黒', '真紅'].includes(c.name.split(' ')[0]));
+    setSelectedColors(initialColors);
+  }, []);
+
   useEffect(() => {
     const today = getTodayJST();
     const storedDate = localStorage.getItem('komon_usage_date');
@@ -150,7 +157,6 @@ function HomeContent() {
     }
   };
 
-  // 「ぷっぴ」隠しコマンド
   useEffect(() => {
     if (motif.trim() === 'ぷっぴ') {
       localStorage.setItem('komon_count_flux', '0');
@@ -170,6 +176,11 @@ function HomeContent() {
     }
 
     if (creationMode !== 'geometric' && itemType === 'hanhaba') {
+      // ダミー画像の時は回転エラーを無視する
+      if (src.startsWith('/')) {
+        setRotatedPatternUrl(src);
+        return;
+      }
       rotateImage90Degrees(src)
         .then((rotated) => setRotatedPatternUrl(rotated))
         .catch((err) => {
@@ -305,7 +316,6 @@ function HomeContent() {
     reader.readAsDataURL(file);
   };
 
-  // 画像アップロード処理
   const handleUserImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -347,7 +357,6 @@ function HomeContent() {
     reader.readAsDataURL(file);
   };
 
-  // 4o-miniによる画像解析・プロンプト抽出ハンドラー
   const handleExtractPrompt = async () => {
     const targetImg = blobUrl || imageUrl;
     if (!targetImg) return;
@@ -427,16 +436,20 @@ function HomeContent() {
 
     try {
       const colorNames = selectedColors.map(c => getColorNameFromHex(c.hex)).join('、');
+      
+      // ★ 選択されたタグをプロンプトの末尾に合体させる！
+      const tagPrompt = selectedTags.length > 0 ? `。雰囲気・タッチ：${selectedTags.join('、')}` : '';
+      
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          motif: motif.trim(), 
+          motif: motif.trim() + tagPrompt, 
           motif2: motif2.trim(), 
           color: colorNames || 'おまかせ', 
           density, 
           itemType, 
-          aiStyle, 
+          aiStyle: 'none', // 様式ボタンは廃止したためnone固定
           artist: selectedArtist, 
           engine: actualEngine, 
           paymentMode: engineType === 'openai_premium' ? 'premium' : 'free',
@@ -462,7 +475,7 @@ function HomeContent() {
       setSerialNumber(newSerial);
 
       const colorPrefix = selectedColors.length > 0 ? `${getColorNameFromHex(selectedColors[0].hex)}の` : '';
-      setPatternTitle(motif.trim() ? `${colorPrefix}${motif.trim()}小紋` : '無題の小紋');
+      setPatternTitle(motif.trim() ? `${colorPrefix}${motif.trim().split('、')[0]}小紋` : '無題の小紋');
 
       if (engineType === 'openai_premium') {
         const remaining = data.ticketRemaining ?? data.remaining ?? data.remainingCount ?? null;
@@ -513,13 +526,10 @@ function HomeContent() {
     }
   };
 
-  // ★ 画面の見た目をそのまま100%完全キャプチャして保存（npm不要・CDN動的読み込み）
   const handleDownloadMapping = async () => {
     if (!previewContainerRef.current) return;
     try {
       setMockupSubmitting(true);
-
-      // html-to-image ライブラリをCDNから動的に読み込む（初回のみ約0.1秒、お客様の操作不要）
       if (!(window as any).htmlToImage) {
         await new Promise<void>((resolve, reject) => {
           const script = document.createElement('script');
@@ -531,14 +541,11 @@ function HomeContent() {
       }
 
       const htmlToImage = (window as any).htmlToImage;
-
-      // プレビュー枠（previewContainerRef）にレンダリングされている実寸の見た目をそのままPNG画像化
       const dataUrl = await htmlToImage.toPng(previewContainerRef.current, {
         cacheBust: true,
-        pixelRatio: 2, // 画面の見た目そのまま、クッキリ綺麗な解像度で保存
+        pixelRatio: 2,
       });
 
-      // 画像をダウンロード
       const a = document.createElement('a');
       a.href = dataUrl;
       a.download = `${serialNumber || 'mapping'}_${itemType}_mockup.png`;
@@ -554,7 +561,6 @@ function HomeContent() {
     }
   };
 
-  // 注文処理（単一マスター画像原則：加工せずそのまま渡す）
   const handleOrderClick = async (e: MouseEvent<HTMLButtonElement | HTMLAnchorElement>) => {
     e.preventDefault();
     try {
@@ -563,7 +569,6 @@ function HomeContent() {
       
       if (!serialNumber) setSerialNumber(validSerial);
 
-      // Base64データ（幾何学モード等）のみアップロードしてURL化
       if (finalImg && finalImg.startsWith('data:')) {
         const uploadRes = await fetch('/api/upload-blob', {
           method: 'POST',
@@ -606,7 +611,6 @@ function HomeContent() {
 
       if (result.message) alert(result.message);
 
-      // MakeShopへのURL自動振り分け（着物は7312、帯は7300）
       if (platform === 'makeshop') {
         let targetOrderUrl = 'https://store.gofukuyasan.com/view/item/000000007300';
         if (itemType === 'kimono') {
@@ -660,33 +664,34 @@ function HomeContent() {
 
         <div className="w-full lg:w-[45%] flex flex-col gap-3">
           
-          <div className="bg-white border border-zinc-300 shadow-sm p-1.5 flex gap-1 rounded-sm">
+          {/* ★ タブの文言を「テーマから図案をつくる」「手持ちの画像で作る」に変更 */}
+          <div className="bg-white border border-zinc-300 shadow-sm p-1.5 flex gap-1 rounded-sm mt-2 lg:mt-8">
             <button
               type="button"
               onClick={() => setCreationMode('geometric')}
-              className={`flex-1 py-2 text-xs font-bold rounded transition-all ${
+              className={`flex-1 py-2 text-[10px] sm:text-xs font-bold rounded transition-all ${
                 creationMode === 'geometric' ? 'bg-zinc-900 text-white shadow' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
               }`}
             >
-              幾何学模様
+              格子・水玉製作所
             </button>
             <button
               type="button"
               onClick={() => setCreationMode('ai')}
-              className={`flex-1 py-2 text-xs font-bold rounded transition-all ${
+              className={`flex-1 py-2 text-[10px] sm:text-xs font-bold rounded transition-all ${
                 creationMode === 'ai' ? 'bg-zinc-900 text-white shadow' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
               }`}
             >
-              ✨ AI妄想
+              ✨ テーマから図案をつくる
             </button>
             <button
               type="button"
               onClick={() => setCreationMode('upload')}
-              className={`flex-1 py-2 text-xs font-bold rounded transition-all ${
+              className={`flex-1 py-2 text-[10px] sm:text-xs font-bold rounded transition-all ${
                 creationMode === 'upload' ? 'bg-zinc-900 text-white shadow' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
               }`}
             >
-              📁 画像入稿
+              📁 手持ちの画像で作る
             </button>
           </div>
 
@@ -722,8 +727,7 @@ function HomeContent() {
                 </div>
               )}
 
-              {/* 画像が選択されている場合の表示＆アクション */}
-              {imageUrl && (
+              {imageUrl && !imageUrl.includes('sample_piano_cat') && (
                 <div className="flex flex-col gap-3">
                   <div className="p-3 bg-zinc-100 border border-zinc-200 rounded flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -736,7 +740,6 @@ function HomeContent() {
                     <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded">プレビュー反映中</span>
                   </div>
 
-                  {/* 4o-mini プロンプト抽出ボタン */}
                   <button
                     type="button"
                     onClick={handleExtractPrompt}
@@ -751,7 +754,7 @@ function HomeContent() {
                     </span>
                   </button>
                   <p className="text-[9px] text-zinc-400 text-center -mt-1.5">
-                    ※写真から配色・タッチ・模様の特徴だけを抽出し、AI妄想モードで新しく図案化できます（著作権安心設計）
+                    ※写真から配色・タッチ・模様の特徴だけを抽出し、図案づくりモードで新しく図案化できます
                   </p>
                 </div>
               )}
@@ -761,7 +764,7 @@ function HomeContent() {
                   <div className="flex items-center justify-between">
                     <div>
                       <span className="text-[11px] font-bold text-zinc-800">京袋帯：前腹（お腹正面）の個別画像</span>
-                      <p className="text-[9px] text-zinc-500">太鼓と別の柄を合わせたい場合のみ設定（回転せずそのまま配置）</p>
+                      <p className="text-[9px] text-zinc-500">太鼓と別の柄を合わせたい場合のみ設定</p>
                     </div>
                     {customHaraUrl && (
                       <button
@@ -849,7 +852,7 @@ function HomeContent() {
                 </div>
               </div>
 
-              {imageUrl && (
+              {imageUrl && !imageUrl.includes('sample_piano_cat') && (
                 <div className="border-t border-zinc-200 pt-4 flex flex-col gap-2">
                   <button
                     type="button"
@@ -878,6 +881,11 @@ function HomeContent() {
                 selectedArtist={selectedArtist} setSelectedArtist={setSelectedArtist}
                 motif={motif} setMotif={setMotif}
                 motif2={motif2} setMotif2={setMotif2}
+                
+                // ★ Propsに追加した新Stateの受け渡し
+                selectedTags={selectedTags} setSelectedTags={setSelectedTags}
+                setImageUrl={setImageUrl} setBlobUrl={setBlobUrl}
+                
                 selectedColors={selectedColors} setSelectedColors={setSelectedColors} handleColorToggle={handleColorToggle}
                 showColorPalette={showColorPalette} setShowColorPalette={setShowColorPalette}
                 density={density} setDensity={setDensity}
