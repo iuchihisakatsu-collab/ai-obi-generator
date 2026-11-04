@@ -1,7 +1,7 @@
 // app/components/preview/PreviewArea.tsx
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { TRADITIONAL_COLORS } from '../../lib/constants';
 
 export interface PreviewAreaProps {
@@ -56,7 +56,7 @@ const Icons = {
     </svg>
   ),
   Zoom: () => (
-    <svg className="w-3.5 h-3.5 stroke-current fill-none stroke-[1.75]" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+    <svg className="w-4 h-4 stroke-current fill-none stroke-[1.75]" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="11" cy="11" r="7" />
       <path d="M21 21l-4.35-4.35M11 8v6M8 11h6" />
     </svg>
@@ -95,13 +95,23 @@ const Icons = {
     </svg>
   ),
   ArrowUp: () => (
-    <svg className="w-3.5 h-3.5 stroke-current fill-none stroke-[2]" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+    <svg className="w-4 h-4 stroke-current fill-none stroke-[2]" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
       <path d="M12 19V5M5 12l7-7 7 7" />
     </svg>
   ),
   Close: () => (
     <svg className="w-4 h-4 stroke-current fill-none stroke-[2]" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
       <path d="M18 6L6 18M6 6l12 12" />
+    </svg>
+  ),
+  Move: () => (
+    <svg className="w-3.5 h-3.5 stroke-current fill-none stroke-[2]" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="5 9 2 12 5 15" />
+      <polyline points="9 5 12 2 15 5" />
+      <polyline points="19 9 22 12 19 15" />
+      <polyline points="9 19 12 22 15 19" />
+      <line x1="2" y1="12" x2="22" y2="12" />
+      <line x1="12" y1="2" x2="12" y2="22" />
     </svg>
   ),
 };
@@ -128,6 +138,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
   const [isZoomModalOpen, setIsZoomModalOpen] = useState<boolean>(false);
   const [showTuningPanel, setShowTuningPanel] = useState<boolean>(false);
 
+  // 確実なスクロール位置検知
   const [isScrolledPast, setIsScrolledPast] = useState<boolean>(false);
 
   useEffect(() => {
@@ -145,6 +156,48 @@ export default function PreviewArea(props: PreviewAreaProps) {
   const scrollToTop = () => {
     previewRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
+
+  // ★ ドラッグ可能な丸型フローティング用の状態と処理
+  const [floatPos, setFloatPos] = useState({ x: -16, y: -24 }); // 初期位置（右下寄り）
+  const [isDragging, setIsDragging] = useState(false);
+  const dragRef = useRef<{ startX: number, startY: number, initialX: number, initialY: number, hasMoved: boolean }>({
+    startX: 0, startY: 0, initialX: 0, initialY: 0, hasMoved: false
+  });
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    setIsDragging(true);
+    e.target.setPointerCapture(e.pointerId);
+    dragRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      initialX: floatPos.x,
+      initialY: floatPos.y,
+      hasMoved: false,
+    };
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isDragging) return;
+    const dx = e.clientX - dragRef.current.startX;
+    const dy = e.clientY - dragRef.current.startY;
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+      dragRef.current.hasMoved = true;
+    }
+    setFloatPos({
+      x: dragRef.current.initialX + dx,
+      y: dragRef.current.initialY + dy,
+    });
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    setIsDragging(false);
+    e.target.releasePointerCapture(e.pointerId);
+    if (!dragRef.current.hasMoved) {
+      // 動かしていなければクリック（タップ）として扱う
+      setIsZoomModalOpen(true);
+    }
+  };
+
 
   const [hanhabaOffsets, setHanhabaOffsets] = useState([
     { id: '01_a', name: 'Layer01_a（奥羽・右側）', file: 'hanhaba_Layer01_a.png', z: 10, rot: 1,   scale: 111, x: 69, y: 50 },
@@ -514,14 +567,15 @@ export default function PreviewArea(props: PreviewAreaProps) {
       <div className="bg-white border border-stone-200 rounded-lg shadow-sm overflow-hidden animate-fade-in">
         
         {/* ========================================================
-            1. タイトル（センター大見出し） ＆ アイテム切替タブ
+            1. タイトル（センター特大・サブコピーと横幅一致） ＆ アイテム切替タブ
            ======================================================== */}
-        <div className="p-3 bg-stone-900 border-b border-stone-800 text-center">
-          <div className="mb-3 px-1">
-            <h2 className="text-base sm:text-lg font-bold text-white tracking-widest font-serif">
+        <div className="p-3 sm:p-4 bg-stone-900 border-b border-stone-800 text-center">
+          <div className="mb-4 flex flex-col items-center">
+            {/* 文字サイズを大きく、文字間を広げて看板のような風格に */}
+            <h1 className="text-xl sm:text-2xl font-bold text-white tracking-[0.25em] font-serif leading-none ml-2">
               妄想きもの図案帳
-            </h2>
-            <p className="text-[11px] text-stone-300 mt-1 font-medium leading-relaxed">
+            </h1>
+            <p className="text-[11px] sm:text-xs text-stone-300 mt-2.5 font-medium tracking-wide">
               スマホで世界に１枚だけの着物や帯が作れるアプリ
             </p>
           </div>
@@ -569,7 +623,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
         </div>
 
         {/* ========================================================
-            2. 表示モード切替タブ
+            2. 表示モード切替（美しく統一された2つのタブ）
            ======================================================== */}
         <div className="px-2 sm:px-3 py-2 border-b border-stone-200 bg-stone-50 flex gap-1.5">
           <button
@@ -581,35 +635,34 @@ export default function PreviewArea(props: PreviewAreaProps) {
                 : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-100'
             }`}
           >
-            <span>{itemLabel}コーデ着用</span>
+            <span>{itemLabel}完成シミュレーション</span>
           </button>
-
-          {itemType === 'kyobukuro' && (
-            <button
-              type="button"
-              onClick={() => setDisplayMode('trim')}
-              className={`flex-1 h-9 flex items-center justify-center gap-1.5 px-1 sm:px-2 text-[11px] font-bold tracking-wide transition-all border rounded ${
-                displayMode === 'trim'
-                  ? 'bg-stone-900 text-white border-stone-900 shadow-sm'
-                  : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-100'
-              }`}
-            >
-              <Icons.Scissors />
-              <span>34cm 裁断</span>
-            </button>
-          )}
 
           <button
             type="button"
-            onClick={() => setDisplayMode('data')}
+            onClick={() => setDisplayMode(itemType === 'kyobukuro' ? 'trim' : 'data')}
             className={`flex-1 h-9 flex items-center justify-center gap-1.5 px-1 sm:px-2 text-[11px] font-bold tracking-wide transition-all border rounded ${
-              displayMode === 'data'
+              (displayMode === 'data' || displayMode === 'trim')
                 ? 'bg-stone-900 text-white border-stone-900 shadow-sm'
                 : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-100'
             }`}
           >
-            <Icons.Grid />
-            <span>{itemType === 'hanhaba' ? '18cm 反物原画' : '40cm 反物原画'}</span>
+            {itemType === 'kyobukuro' ? (
+              <>
+                <Icons.Scissors />
+                <span>プリントデータイメージ（34センチ幅）</span>
+              </>
+            ) : itemType === 'hanhaba' ? (
+              <>
+                <Icons.Grid />
+                <span>プリントデータイメージ（18センチ幅）</span>
+              </>
+            ) : (
+              <>
+                <Icons.Grid />
+                <span>反物プリントデータ（40センチ幅）</span>
+              </>
+            )}
           </button>
         </div>
 
@@ -629,7 +682,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
                   {itemType === 'kimono' && renderKimonoLayers()}
                 </div>
 
-                {/* 両端フロート */}
+                {/* 両端フロートコントロール */}
                 <div className="absolute inset-0 pointer-events-none z-20">
                   <div className="pointer-events-auto absolute top-2 left-2 flex flex-col sm:flex-row gap-1 bg-white/90 backdrop-blur-md p-1 rounded border border-stone-300/80 shadow-md">
                     {itemType === 'kimono' ? (
@@ -715,7 +768,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
                   </button>
                 </div>
 
-                {/* 最前面カラーパレット（z-[9999]） */}
+                {/* 最前面カラーパレット */}
                 {activeFloatPalette && (
                   <>
                     <div 
@@ -810,7 +863,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
               </div>
 
               {/* マッピング画像保存ボタン */}
-              <div className="mt-3">
+              <div className="mt-4">
                 <button
                   type="button"
                   onClick={handleDownloadMapping}
@@ -1019,31 +1072,61 @@ export default function PreviewArea(props: PreviewAreaProps) {
       )}
 
       {/* ========================================================
-          6. 右下丸型ミニFAB
+          6. 【ドラッグ可能な大型丸型プレビュー（PiP風）】
          ======================================================== */}
       {isScrolledPast && (
-        <div className="fixed bottom-6 right-4 z-40 flex flex-col items-center gap-2.5 animate-fade-in">
-          <button
-            type="button"
-            onClick={() => setIsZoomModalOpen(true)}
-            className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-2xl bg-stone-900 hover:scale-110 active:scale-95 transition-transform"
-            title="クリックで拡大プレビュー"
+        <>
+          {/* ドラッグ操作時は画面全体でスクロールをブロックし、イベントを拾うための見えないレイヤー */}
+          {isDragging && <div className="fixed inset-0 z-[9990] cursor-grabbing" />}
+          
+          <div 
+            className="fixed z-[9999] flex flex-col items-center gap-2 animate-fade-in"
+            style={{ 
+              bottom: '24px', 
+              right: '16px',
+              transform: `translate(${floatPos.x + 16}px, ${floatPos.y + 24}px)`,
+              touchAction: 'none' // スマホのブラウザスクロールを無効化
+            }}
           >
-            <img src={effectivePatternUrl} alt="現在の図案" className="w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-black/25 flex items-center justify-center text-white">
-              <Icons.Zoom />
+            {/* 動かせる丸型サムネイル */}
+            <div className="relative group touch-none">
+              <button
+                type="button"
+                onPointerDown={handlePointerDown}
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerUp}
+                onPointerCancel={handlePointerUp}
+                className={`relative w-28 h-28 sm:w-32 sm:h-32 rounded-full overflow-hidden border-[3px] border-white shadow-2xl bg-stone-900 transition-transform ${
+                  isDragging ? 'scale-110 cursor-grabbing' : 'hover:scale-[1.03] cursor-grab'
+                }`}
+                title="ドラッグで移動 / タップで拡大"
+              >
+                <img src={effectivePatternUrl} alt="現在の図案" className="w-full h-full object-cover pointer-events-none" />
+                
+                {/* ホバー時に現れるルーペと移動アイコン */}
+                <div className="absolute inset-0 bg-black/30 flex flex-col items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Icons.Zoom />
+                  <span className="text-[9px] font-bold mt-1 tracking-widest drop-shadow-md">タップで拡大</span>
+                </div>
+              </button>
+              
+              {/* ドラッグ可能を示す小さなインジケーター（右下） */}
+              <div className="absolute bottom-0 right-1 w-6 h-6 bg-white rounded-full shadow-lg border border-stone-200 flex items-center justify-center text-stone-500 pointer-events-none">
+                <Icons.Move />
+              </div>
             </div>
-          </button>
 
-          <button
-            type="button"
-            onClick={scrollToTop}
-            className="w-10 h-10 rounded-full bg-white text-stone-900 border border-stone-300 shadow-xl flex items-center justify-center hover:bg-stone-50 active:scale-95 transition-transform"
-            title="プレビューへ戻る"
-          >
-            <Icons.ArrowUp />
-          </button>
-        </div>
+            {/* 上へ戻るボタン */}
+            <button
+              type="button"
+              onClick={scrollToTop}
+              className="w-10 h-10 rounded-full bg-white text-stone-900 border border-stone-300 shadow-xl flex items-center justify-center hover:bg-stone-50 active:scale-95 transition-transform"
+              title="プレビューへ戻る"
+            >
+              <Icons.ArrowUp />
+            </button>
+          </div>
+        </>
       )}
     </div>
   );
