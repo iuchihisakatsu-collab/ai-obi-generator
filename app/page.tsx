@@ -63,13 +63,13 @@ function HomeContent() {
   const [displayMode, setDisplayMode] = useState<'mockup' | 'trim' | 'data'>('mockup');
   
   const [aiStyle, setAiStyle] = useState<string>('none');
+  const [tasteMode, setTasteMode] = useState<string>('katazome');
   const [selectedArtist, setSelectedArtist] = useState<string>('none');
 
   const [motif, setMotif] = useState<string>('黒猫、ピアノの鍵盤、月、椿');
   const [motif2, setMotif2] = useState<string>('');
   const [selectedTags, setSelectedTags] = useState<string[]>(['大正ロマン', '水彩画']);
   
-  // 柄のサイズ感（初期値：普通）
   const [patternScale, setPatternScale] = useState<'small' | 'medium' | 'large'>('medium');
 
   const [selectedColors, setSelectedColors] = useState<typeof TRADITIONAL_COLORS>([]);
@@ -445,7 +445,6 @@ function HomeContent() {
       
       const tagPrompt = selectedTags.length > 0 ? `。雰囲気・タッチ：${selectedTags.join('、')}` : '';
 
-      // 柄のサイズ感に応じたプロンプト修飾語
       const scalePromptMap = {
         small: '。柄の大きさ：細かい小紋調、小さなリピート柄 (tiny delicate repeating motifs, dense micro-pattern)',
         medium: '。柄の大きさ：標準的なサイズ (medium-scale repeating motifs)',
@@ -463,13 +462,15 @@ function HomeContent() {
           density, 
           itemType, 
           aiStyle: 'none',
+          tasteMode,
           artist: selectedArtist, 
           engine: actualEngine, 
           paymentMode: engineType === 'openai_premium' ? 'premium' : 'free',
           premiumCode: engineType === 'openai_premium' ? premiumCode.trim() : undefined,
           ticketCode: engineType === 'openai_premium' ? premiumCode.trim() : undefined,
           code: engineType === 'openai_premium' ? premiumCode.trim() : undefined,
-          useTicket: engineType === 'openai_premium'
+          useTicket: engineType === 'openai_premium',
+          patternScale: patternScale
         })
       });
       const data = await res.json();
@@ -890,6 +891,7 @@ function HomeContent() {
                 creationMode={creationMode} setCreationMode={setCreationMode}
                 itemType={itemType} setItemType={setItemType}
                 aiStyle={aiStyle} setAiStyle={setAiStyle}
+                tasteMode={tasteMode} setTasteMode={setTasteMode}
                 selectedArtist={selectedArtist} setSelectedArtist={setSelectedArtist}
                 motif={motif} setMotif={setMotif}
                 motif2={motif2} setMotif2={setMotif2}
