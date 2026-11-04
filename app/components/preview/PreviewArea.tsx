@@ -56,7 +56,7 @@ const Icons = {
     </svg>
   ),
   Zoom: () => (
-    <svg className="w-4 h-4 stroke-current fill-none stroke-[1.75]" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+    <svg className="w-3.5 h-3.5 stroke-current fill-none stroke-[1.75]" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="11" cy="11" r="7" />
       <path d="M21 21l-4.35-4.35M11 8v6M8 11h6" />
     </svg>
@@ -157,8 +157,8 @@ export default function PreviewArea(props: PreviewAreaProps) {
     previewRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  // ★ ドラッグ可能な丸型フローティング用の状態と処理
-  const [floatPos, setFloatPos] = useState({ x: -16, y: -24 }); // 初期位置（右下寄り）
+  // ★ ドラッグ可能な1.5倍大型丸型プレビュー用の状態
+  const [floatPos, setFloatPos] = useState({ x: -16, y: -24 });
   const [isDragging, setIsDragging] = useState(false);
   const dragRef = useRef<{ startX: number, startY: number, initialX: number, initialY: number, hasMoved: boolean }>({
     startX: 0, startY: 0, initialX: 0, initialY: 0, hasMoved: false
@@ -166,7 +166,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
 
   const handlePointerDown = (e: React.PointerEvent) => {
     setIsDragging(true);
-    e.target.setPointerCapture(e.pointerId);
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     dragRef.current = {
       startX: e.clientX,
       startY: e.clientY,
@@ -191,13 +191,13 @@ export default function PreviewArea(props: PreviewAreaProps) {
 
   const handlePointerUp = (e: React.PointerEvent) => {
     setIsDragging(false);
-    e.target.releasePointerCapture(e.pointerId);
+    try {
+      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+    } catch {}
     if (!dragRef.current.hasMoved) {
-      // 動かしていなければクリック（タップ）として扱う
       setIsZoomModalOpen(true);
     }
   };
-
 
   const [hanhabaOffsets, setHanhabaOffsets] = useState([
     { id: '01_a', name: 'Layer01_a（奥羽・右側）', file: 'hanhaba_Layer01_a.png', z: 10, rot: 1,   scale: 111, x: 69, y: 50 },
@@ -571,7 +571,6 @@ export default function PreviewArea(props: PreviewAreaProps) {
            ======================================================== */}
         <div className="p-3 sm:p-4 bg-stone-900 border-b border-stone-800 text-center">
           <div className="mb-4 flex flex-col items-center">
-            {/* 文字サイズを大きく、文字間を広げて看板のような風格に */}
             <h1 className="text-xl sm:text-2xl font-bold text-white tracking-[0.25em] font-serif leading-none ml-2">
               妄想きもの図案帳
             </h1>
@@ -1072,23 +1071,22 @@ export default function PreviewArea(props: PreviewAreaProps) {
       )}
 
       {/* ========================================================
-          6. 【ドラッグ可能な大型丸型プレビュー（PiP風）】
+          6. 【1.5倍大型化 ＆ タイリング対応】ドラッグ可能な丸型プレビュー
          ======================================================== */}
       {isScrolledPast && (
         <>
-          {/* ドラッグ操作時は画面全体でスクロールをブロックし、イベントを拾うための見えないレイヤー */}
           {isDragging && <div className="fixed inset-0 z-[9990] cursor-grabbing" />}
           
           <div 
-            className="fixed z-[9999] flex flex-col items-center gap-2 animate-fade-in"
+            className="fixed z-[9999] flex flex-col items-center gap-2.5 animate-fade-in"
             style={{ 
               bottom: '24px', 
               right: '16px',
               transform: `translate(${floatPos.x + 16}px, ${floatPos.y + 24}px)`,
-              touchAction: 'none' // スマホのブラウザスクロールを無効化
+              touchAction: 'none'
             }}
           >
-            {/* 動かせる丸型サムネイル */}
+            {/* 1.5倍大型丸型サムネイル（w-40 h-40 sm:w-48 sm:h-48） */}
             <div className="relative group touch-none">
               <button
                 type="button"
@@ -1096,22 +1094,36 @@ export default function PreviewArea(props: PreviewAreaProps) {
                 onPointerMove={handlePointerMove}
                 onPointerUp={handlePointerUp}
                 onPointerCancel={handlePointerUp}
-                className={`relative w-28 h-28 sm:w-32 sm:h-32 rounded-full overflow-hidden border-[3px] border-white shadow-2xl bg-stone-900 transition-transform ${
-                  isDragging ? 'scale-110 cursor-grabbing' : 'hover:scale-[1.03] cursor-grab'
+                className={`relative w-40 h-40 sm:w-48 sm:h-48 rounded-full overflow-hidden border-4 border-white shadow-2xl bg-stone-900 transition-transform ${
+                  isDragging ? 'scale-105 cursor-grabbing' : 'hover:scale-[1.02] cursor-grab'
                 }`}
                 title="ドラッグで移動 / タップで拡大"
               >
-                <img src={effectivePatternUrl} alt="現在の図案" className="w-full h-full object-cover pointer-events-none" />
+                {/* ★ 幾何学モードの時はタイリングと地色を完全に再現して表示 ★ */}
+                {creationMode === 'geometric' ? (
+                  <div
+                    className="w-full h-full pointer-events-none"
+                    style={{
+                      backgroundImage: `url(${effectivePatternUrl})`,
+                      backgroundSize: `${Math.max(12, (bgSizeMm / 300) * 100)}% auto`,
+                      backgroundRepeat: 'repeat',
+                      backgroundPosition: 'center center',
+                      backgroundColor: geoBgColor,
+                    }}
+                  />
+                ) : (
+                  <img src={effectivePatternUrl} alt="現在の図案" className="w-full h-full object-cover pointer-events-none" />
+                )}
                 
-                {/* ホバー時に現れるルーペと移動アイコン */}
-                <div className="absolute inset-0 bg-black/30 flex flex-col items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                {/* ホバー時に現れるルーペと案内 */}
+                <div className="absolute inset-0 bg-black/35 flex flex-col items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity">
                   <Icons.Zoom />
-                  <span className="text-[9px] font-bold mt-1 tracking-widest drop-shadow-md">タップで拡大</span>
+                  <span className="text-[10px] font-bold mt-1.5 tracking-widest drop-shadow-md">タップで拡大</span>
                 </div>
               </button>
               
-              {/* ドラッグ可能を示す小さなインジケーター（右下） */}
-              <div className="absolute bottom-0 right-1 w-6 h-6 bg-white rounded-full shadow-lg border border-stone-200 flex items-center justify-center text-stone-500 pointer-events-none">
+              {/* 移動可能を示すバッジ */}
+              <div className="absolute bottom-1 right-2 w-7 h-7 bg-white rounded-full shadow-lg border border-stone-300 flex items-center justify-center text-stone-600 pointer-events-none">
                 <Icons.Move />
               </div>
             </div>
@@ -1120,7 +1132,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
             <button
               type="button"
               onClick={scrollToTop}
-              className="w-10 h-10 rounded-full bg-white text-stone-900 border border-stone-300 shadow-xl flex items-center justify-center hover:bg-stone-50 active:scale-95 transition-transform"
+              className="w-9 h-9 rounded-full bg-white text-stone-900 border border-stone-300 shadow-xl flex items-center justify-center hover:bg-stone-50 active:scale-95 transition-transform"
               title="プレビューへ戻る"
             >
               <Icons.ArrowUp />
