@@ -33,7 +33,7 @@ export interface PreviewAreaProps {
   previewContainerRef: React.RefObject<HTMLDivElement | null>;
   handleItemTypeChange: (type: 'hanhaba' | 'kyobukuro' | 'kimono') => void;
   setDisplayMode: (mode: 'mockup' | 'trim' | 'data') => void;
-  handleDownloadMapping: () => Promise<void>; // Promiseを返すように想定
+  handleDownloadMapping: () => Promise<void>;
   UNIVERSAL_SCALE_FACTOR: number;
 }
 
@@ -143,11 +143,8 @@ export default function PreviewArea(props: PreviewAreaProps) {
   const [activeFloatPalette, setActiveFloatPalette] = useState<'lining' | 'haneri' | 'obiage' | 'obi' | 'hara' | null>(null);
   const [isZoomModalOpen, setIsZoomModalOpen] = useState<boolean>(false);
   const [showTuningPanel, setShowTuningPanel] = useState<boolean>(false);
-
-  // ダウンロード完了後のトースト表示用ステート
   const [showDownloadToast, setShowDownloadToast] = useState(false);
 
-  // 確実なスクロール位置検知
   const [isScrolledPast, setIsScrolledPast] = useState<boolean>(false);
 
   useEffect(() => {
@@ -166,24 +163,16 @@ export default function PreviewArea(props: PreviewAreaProps) {
     previewRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  // 保存ボタン押下時のラッパー関数
   const onDownloadClick = async () => {
     try {
-      // 既存のダウンロード処理を呼び出し
       await handleDownloadMapping();
-      
-      // ダウンロード完了後にトーストを表示
       setShowDownloadToast(true);
-      // 6秒後に自動でトーストを消す
-      setTimeout(() => {
-        setShowDownloadToast(false);
-      }, 6000);
+      setTimeout(() => setShowDownloadToast(false), 6000);
     } catch (error) {
       console.error("ダウンロード中にエラーが発生しました", error);
     }
   };
 
-  // ドラッグ可能な1.5倍大型丸型プレビュー用の状態
   const [floatPos, setFloatPos] = useState({ x: -16, y: -24 });
   const [isDragging, setIsDragging] = useState(false);
   const dragRef = useRef<{ startX: number, startY: number, initialX: number, initialY: number, hasMoved: boolean }>({
@@ -590,9 +579,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
   return (
     <div ref={previewRef} className="w-full lg:w-1/2 shrink-0 sticky top-2 z-30 lg:top-8 flex flex-col gap-3 relative">
       
-      {/* ========================================================
-          【NEW】保存完了・SNSシェアのお願いトーストポップアップ
-         ======================================================== */}
+      {/* 保存完了トースト */}
       {showDownloadToast && (
         <div className="absolute top-4 left-4 right-4 z-[9999] animate-fade-in flex justify-center">
           <div className="bg-stone-900 text-white p-4 rounded-lg shadow-2xl flex items-start gap-3 border border-stone-700 max-w-sm">
@@ -618,9 +605,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
 
       <div className="bg-white border border-stone-200 rounded-lg shadow-sm overflow-hidden animate-fade-in">
         
-        {/* ========================================================
-            1. タイトル（センター特大・サブコピーと横幅一致） ＆ アイテム切替タブ
-           ======================================================== */}
+        {/* タイトル ＆ アイテム切替タブ */}
         <div className="p-3 sm:p-4 bg-stone-900 border-b border-stone-800 text-center">
           <div className="mb-4 flex flex-col items-center">
             <h1 className="text-xl sm:text-2xl font-bold text-white tracking-[0.25em] font-serif leading-none ml-2">
@@ -673,26 +658,24 @@ export default function PreviewArea(props: PreviewAreaProps) {
           </div>
         </div>
 
-        {/* ========================================================
-            2. 表示モード切替（美しく統一された2つのタブ）
-           ======================================================== */}
+        {/* ★ 表示モード切替（cm記号化＆短縮・スマホ1行固定） ★ */}
         <div className="px-2 sm:px-3 py-2 border-b border-stone-200 bg-stone-50 flex gap-1.5">
           <button
             type="button"
             onClick={() => setDisplayMode('mockup')}
-            className={`flex-1 h-9 flex items-center justify-center gap-1.5 px-1 sm:px-2 text-[11px] font-bold tracking-wide transition-all border rounded ${
+            className={`flex-1 h-9 flex items-center justify-center gap-1 px-1 sm:px-2 text-[11px] font-bold tracking-wide transition-all border rounded whitespace-nowrap overflow-hidden ${
               displayMode === 'mockup'
                 ? 'bg-stone-900 text-white border-stone-900 shadow-sm'
                 : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-100'
             }`}
           >
-            <span>{itemLabel}完成シミュレーション</span>
+            <span>{itemLabel}シミュレーション</span>
           </button>
 
           <button
             type="button"
             onClick={() => setDisplayMode(itemType === 'kyobukuro' ? 'trim' : 'data')}
-            className={`flex-1 h-9 flex items-center justify-center gap-1.5 px-1 sm:px-2 text-[11px] font-bold tracking-wide transition-all border rounded ${
+            className={`flex-1 h-9 flex items-center justify-center gap-1 px-1 sm:px-2 text-[11px] font-bold tracking-wide transition-all border rounded whitespace-nowrap overflow-hidden ${
               (displayMode === 'data' || displayMode === 'trim')
                 ? 'bg-stone-900 text-white border-stone-900 shadow-sm'
                 : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-100'
@@ -701,25 +684,23 @@ export default function PreviewArea(props: PreviewAreaProps) {
             {itemType === 'kyobukuro' ? (
               <>
                 <Icons.Scissors />
-                <span>プリントデータイメージ（34センチ幅）</span>
+                <span>裁断イメージ (34cm幅)</span>
               </>
             ) : itemType === 'hanhaba' ? (
               <>
                 <Icons.Grid />
-                <span>プリントデータイメージ（18センチ幅）</span>
+                <span>プリント原画 (18cm幅)</span>
               </>
             ) : (
               <>
                 <Icons.Grid />
-                <span>反物プリントデータ（40センチ幅）</span>
+                <span>反物データ (40cm幅)</span>
               </>
             )}
           </button>
         </div>
 
-        {/* ========================================================
-            3. メイン描画エリア
-           ======================================================== */}
+        {/* メイン描画エリア */}
         <div className="bg-[#e4e4e7] flex flex-col items-center justify-center p-1 sm:p-4 relative min-h-[340px]">
           {displayMode === 'mockup' && (
             <div className="w-full flex flex-col items-center animate-fade-in relative">
@@ -910,7 +891,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
                 )}
               </div>
 
-              {/* ★ トースト表示トリガー付きの保存ボタン */}
+              {/* 保存ボタン */}
               <div className="mt-4">
                 <button
                   type="button"
@@ -983,9 +964,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
         </div>
       </div>
 
-      {/* ========================================================
-          4. 工房用 柄あわせ微調整ツール
-         ======================================================== */}
+      {/* 工房用 柄あわせ微調整ツール */}
       <div className="text-right">
         <button
           type="button"
@@ -1087,9 +1066,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
         )}
       </div>
 
-      {/* ========================================================
-          5. 全画面原寸拡大モーダル
-         ======================================================== */}
+      {/* 原寸拡大モーダル */}
       {isZoomModalOpen && (
         <div 
           style={{ zIndex: 99999 }}
@@ -1119,9 +1096,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
         </div>
       )}
 
-      {/* ========================================================
-          6. 【1.5倍大型化 ＆ タイリング対応】ドラッグ可能な丸型プレビュー
-         ======================================================== */}
+      {/* ドラッグ可能な丸型プレビュー */}
       {isScrolledPast && (
         <>
           {isDragging && <div className="fixed inset-0 z-[9990] cursor-grabbing" />}
