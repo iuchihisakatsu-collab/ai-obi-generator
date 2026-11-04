@@ -1,4 +1,3 @@
-// app/api/generate/route.ts
 import { NextResponse } from 'next/server';
 import { put } from '@vercel/blob';
 import { kv } from '@vercel/kv';
@@ -10,10 +9,8 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// ★ 最新のGAS WebアプリURL
 const GAS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbxaG8AFwsNy3tTrQ3T1MjhckJwvyNhUIBY-mXM6JkYMa60rE4LFvD1NM5rR-1kykw/exec';
 
-// ★ GET: シリアルコードの残数照会
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
@@ -60,6 +57,13 @@ async function translateToEnglish(text: string): Promise<string> {
   }
 }
 
+const TASTE_PROMPTS: Record<string, string> = {
+  katazome: 'Traditional Japanese katazome stencil dye aesthetic, crisp clean silhouettes, sumi ink and indigo wash, Edo-period graphic boldness, zero gradients, wabi-sabi balance.',
+  botanical: 'Antique copperplate etching style, vintage scientific botanical illustration, intricate hatching lines, William Morris Arts and Crafts depth, muted sepia and earthy tones.',
+  mingei: 'Folk-art woodblock and linocut print, rustic hand-stamped ink texture, imperfect rough edges, mid-20th-century retro graphic poster, bold woodcut relief.',
+  mode: 'Contemporary high-end Scandinavian textile, Bauhaus minimalism, sharp graphic geometry, solid color blocking, sophisticated avant-garde kimono aesthetic, high contrast.'
+};
+
 const STYLE_PROMPTS: Record<string, string> = {
   none: '',
   scarf: 'Premium luxury European silk scarf aesthetic. Vivid harmonious colors, extremely intricate decorative details.',
@@ -80,6 +84,7 @@ export async function POST(req: Request) {
       color = 'おまかせ', 
       density = '', 
       aiStyle = 'none', 
+      tasteMode = 'katazome',
       engine = 'flux',
       paymentMode = 'free',
       premiumCode = '',
@@ -92,7 +97,6 @@ export async function POST(req: Request) {
     const isFlux = !isPremium && engine === 'flux';
     const isOpenAiFree = !isPremium && (engine === 'openai_free' || engine === 'openai');
 
-    // ★ 1. チケット利用：生成前の残数チェック
     const code = (premiumCode || '').trim().toUpperCase();
     if (isPremium) {
       if (!code) {
@@ -113,7 +117,6 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: 'このチケットは利用上限（50回）に達しました。' }, { status: 403 });
       }
 
-    // ★ 2. 無料枠：Vercel KVによる制限
     } else {
       const ip = req.headers.get('x-forwarded-for') || 'anonymous_ip';
       const today = new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' }).split(' ')[0].replace(/\//g, '-');
@@ -122,7 +125,7 @@ export async function POST(req: Request) {
         const fluxKey = `usage:flux:${ip}:${today}`;
         const fluxCount = (await kv.get<number>(fluxKey)) || 0;
         if (fluxCount >= 15) {
-          return NextResponse.json({ error: '本日の無料アイデア出し（FLUX）の枠（15回）を使い切りました。明日またお試しください。' }, { status: 429 });
+          return NextResponse.json({ error: '本日の無料スケッチ（FLUX）枠（15回）を使い切りました。明日またお試しください。' }, { status: 429 });
         }
         await kv.incr(fluxKey);
         await kv.expire(fluxKey, 86400);
@@ -131,7 +134,7 @@ export async function POST(req: Request) {
         const freeKey = `usage:openaifree:${ip}:${today}`;
         const freeCount = (await kv.get<number>(freeKey)) || 0;
         if (freeCount >= 1) {
-          return NextResponse.json({ error: '本日の「本気の1枚（無料お試し）」はすでに利用済みです。続きはプレミアムコードをご利用ください。' }, { status: 429 });
+          return NextResponse.json({ error: '本日の「丁寧に作る（無料枠）」はすでに利用済みです。続きはチケットコードをご利用ください。' }, { status: 429 });
         }
         await kv.incr(freeKey);
         await kv.expire(freeKey, 86400);
@@ -141,16 +144,6 @@ export async function POST(req: Request) {
       }
     }
 
-    // --- ★ 柄のサイズ判定（フロント文字列またはパラメータから自動解析） ---
-    let detectedScale: 'small' | 'medium' | 'large' = 'medium';
-    const rawScale = (explicitScale || '').toLowerCase();
-    if (rawScale === 'small' || rawScale === 'fine' || motif.includes('細かい') || motif.includes('tiny delicate') || motif.includes('micro')) {
-      detectedScale = 'small';
-    } else if (rawScale === 'large' || motif.includes('大きい') || motif.includes('large bold') || motif.includes('大柄')) {
-      detectedScale = 'large';
-    }
-
-    // 翻訳AIに渡す前に「柄の大きさ：〜〜」などのメタ指示を切り離し、純粋なモチーフのみを抽出
     const cleanMotifForTranslation = motif
       .replace(/。?柄の大きさ[：:][^\n]*/g, '')
       .replace(/\(tiny delicate repeating motifs[^\)]*\)/gi, '')
@@ -159,61 +152,69 @@ export async function POST(req: Request) {
       .trim();
 
     const englishMotif = await translateToEnglish(cleanMotifForTranslation);
-    const isScarfMode = motif.includes('スカーフ') || motif.toLowerCase().includes('scarf');
-    const isOtaiko = density.includes('お太鼓柄');
+    
+    let detectedScale: 'small' | 'medium' | 'large' = 'medium';
+    const rawScale = (explicitScale || '').toLowerCase();
+    if (rawScale === 'small' || rawScale === 'fine' || motif.includes('細かい') || motif.includes('tiny delicate') || motif.includes('micro')) {
+      detectedScale = 'small';
+    } else if (rawScale === 'large' || motif.includes('大きい') || motif.includes('large bold') || motif.includes('大柄')) {
+      detectedScale = 'large';
+    }
 
-    // --- ★ 40cm角の実寸ものさし（Physical Scale Standard）プロンプト構築 ---
-    let physicalScaleCommand = '';
+    let scaleKeyword = '';
     let negativeScalePrompt = '';
-
     if (detectedScale === 'small') {
-      // 細かい（1.5cm〜2cm / 画面内に60〜100個以上）
-      physicalScaleCommand = `[PHYSICAL SCALE: EXACT 40cm x 40cm (400mm x 400mm) PRINT SWATCH]
-[MICRO-KOMON DITSY REPEAT]
-- Physical Dimension: Every motif is miniature, physically measuring strictly 15mm to 20mm each (under 5% of total canvas width).
-- Motif Quantity: The 40cm canvas MUST contain a dense field of at least 60 to 100+ miniature repeated motifs scattered seamlessly across the entire surface.
-- Layout Rules: Edo-komon ditsy style. Ultra-dense distribution. ABSOLUTELY ZERO large focal motifs, ZERO single hero illustrations, ZERO giant empty voids. Pure intricate fine repeating pattern.`;
-      
+      scaleKeyword = '[MICRO-KOMON DITSY REPEAT] ultra-dense micro pattern, tiny delicate scattered motifs, miniature scale elements covering the entire surface without large gaps';
       negativeScalePrompt = 'giant motifs, oversized subjects, single hero illustration, close-up, large empty space, huge animal, massive single object, portrait composition';
-
     } else if (detectedScale === 'large') {
-      // 大きい（10cm〜13cm / 画面内に4〜6個程度）
-      physicalScaleCommand = `[PHYSICAL SCALE: EXACT 40cm x 40cm (400mm x 400mm) PRINT SWATCH]
-[BOLD MODERN STATEMENT PATTERN]
-- Physical Dimension: Each motif is large and prominent, measuring strictly 100mm to 130mm each (25% to 30% of total canvas width).
-- Motif Quantity: The 40cm canvas contains approximately 4 to 6 large, impactful artistic motifs.
-- Layout Rules: Modern bold kimono statement pattern with striking graphic scale and artistic negative space.`;
-
+      scaleKeyword = '[BOLD MODERN STATEMENT PATTERN] extremely large scale pattern, giant prominent artistic motifs, macro layout, bold composition';
       negativeScalePrompt = 'tiny micro pattern, crowded ditsy print, dozens of small dots, miniature clutter';
-
     } else {
-      // 普通（4cm〜5cm / 画面内に20〜30個程度）
-      physicalScaleCommand = `[PHYSICAL SCALE: EXACT 40cm x 40cm (400mm x 400mm) PRINT SWATCH]
-[BALANCED TRADITIONAL KIMONO KOMON REPEAT]
-- Physical Dimension: Classic Japanese kimono pattern scale. Each repeating motif is physically 40mm to 50mm each (approx 10% to 12% of total canvas width).
-- Motif Quantity: The 40cm canvas contains approximately 20 to 30 evenly distributed, well-proportioned motifs.
-- Layout Rules: Seamless all-over repeat with traditional Japanese aesthetic rhythm and balanced spacing.`;
-
+      scaleKeyword = '[BALANCED TRADITIONAL SCALE] medium scale balanced repeating pattern, well-proportioned evenly distributed motifs';
       negativeScalePrompt = 'giant single portrait, micro dot clutter, single focal hero';
     }
 
-    let layoutInstruction = '';
+    const isScarfMode = motif.includes('スカーフ') || motif.toLowerCase().includes('scarf');
+    const isOtaiko = density.includes('お太鼓柄');
+    
+    let directionKeyword = '';
     if (isScarfMode) {
-      layoutInstruction = `[LAYOUT: LUXURY SILK SCARF (CARRÉ)] Perfectly balanced square framed composition for a luxury silk scarf (Carré). Clean solid unpatterned margin around the absolute outer edge for sewing allowance. Highly ornate decorative square border inside. Majestic central focal medallion. DO NOT tile.`;
+      directionKeyword = 'Perfectly balanced square framed composition for a luxury silk scarf (Carré). Clean solid unpatterned margin around the absolute outer edge for sewing allowance. Highly ornate decorative square border inside. Majestic central focal medallion. DO NOT tile.';
     } else if (isOtaiko) {
-      layoutInstruction = `[LAYOUT: OTAIKO DRUM PANEL] Non-seamless centered panel design. A single magnificent focal motif placed in the upper center of the 40cm swatch. Vast seamless textured background.`;
+      directionKeyword = 'Non-seamless centered panel design. A single magnificent focal motif placed in the upper center. Vast seamless textured background.';
+    } else if (density.includes('四方柄') || density.includes('天地無用') || body.itemType === 'kimono') {
+      directionKeyword = '[MULTI-DIRECTIONAL TOSSED PATTERN] Motifs must be randomly rotated facing ALL different angles (up, down, left, right, diagonal). Seamless all-over non-directional layout. NO definitive top or bottom.';
+    } else if (density.includes('一方向') || body.itemType === 'hanhaba') {
+      directionKeyword = '[ONE-DIRECTIONAL UPRIGHT PATTERN] All motifs must stand perfectly upright, facing TOP. Bottom-to-top orientation. Vertical alignment.';
     } else {
-      layoutInstruction = physicalScaleCommand;
+      directionKeyword = 'Seamless all-over repeat layout.';
     }
 
+    const tasteDetail = TASTE_PROMPTS[tasteMode] || TASTE_PROMPTS['katazome'];
     const styleDetail = STYLE_PROMPTS[aiStyle] || '';
-    const colorInstruction = (color && color !== 'おまかせ') ? `Main Color Theme: ${color}.` : 'Harmonious color palette.';
-    const enforcement = `【STRICT QUALITY & FORMAT ENFORCEMENT】 Strictly MATURE, SOPHISTICATED, and ELEGANT high-end kimono textile aesthetic. ABSOLUTELY NO childish styles, NO kawaii, NO chibi. Zero gradients, zero shadows. Top-down 2D flat orthogonal surface only. NO humans, NO mockups, NO 3D perspective. Negative constraints: ${negativeScalePrompt}.`;
+    const colorInstruction = (color && color !== 'おまかせ') ? `Main Color Theme: ${color}.` : 'Harmonious mature color palette.';
 
-    // FLUX・OpenAI双方が最初に解釈する最重要位置に「40cm実寸定規」を配置
-    const prompt = `Flat 2D continuous textile pattern for Japanese kimono and obi fabric.\n${layoutInstruction}\n【Motifs】\n${englishMotif} (${cleanMotifForTranslation})\n${styleDetail ? `【Style】\n${styleDetail}\n` : ''}【Color】\n${colorInstruction}\n${enforcement}`;
+    const enforcement = `【STRICT QUALITY & FORMAT ENFORCEMENT】
+Strictly MATURE, SOPHISTICATED, ARTISAN-CRAFTED high-end kimono textile aesthetic.
+ABSOLUTELY NO kawaii, NO pastel, NO chibi, NO childish, NO fluffy, NO cartoon, NO anime, NO fairy tale, NO soft glowing gradient.
+Zero gradients, zero shadows. Top-down 2D flat orthogonal surface only. NO humans, NO mockups, NO 3D perspective.
+Negative constraints: ${negativeScalePrompt}, sweet cute elements, childish doodle.`;
 
-    // --- 画像生成処理（FLUX または OpenAI） ---
+    const prompt = `Flat 2D continuous textile pattern for Japanese kimono and obi fabric. 
+${scaleKeyword}
+${directionKeyword}
+
+【Motifs】
+${englishMotif} (${cleanMotifForTranslation})
+
+【Taste & Technique】
+${tasteDetail}
+${styleDetail ? `【Style Accent】\n${styleDetail}\n` : ''}
+【Color】
+${colorInstruction}
+
+${enforcement}`;
+
     if (isFlux && process.env.FAL_KEY) {
       const falResponse = await fetch('https://queue.fal.run/fal-ai/flux/schnell', {
         method: 'POST',
@@ -245,7 +246,6 @@ export async function POST(req: Request) {
       }
     }
 
-    // ★ OpenAI 高精細生成
     const response = await openai.images.generate({
       model: "gpt-image-2.5-sunburst",
       prompt: prompt,
@@ -266,10 +266,8 @@ export async function POST(req: Request) {
       throw new Error('画像データの取得に失敗しました');
     }
 
-    // ★ Vercel Blobへ保存
     const blob = await put(`textile-openai-${Date.now()}.png`, buffer, { access: 'public', contentType: 'image/png' });
 
-    // ★ 生成成功時のみチケット残数を1消費
     let finalRemaining: number | null = null;
     if (isPremium) {
       try {
