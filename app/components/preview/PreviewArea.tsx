@@ -37,9 +37,6 @@ export interface PreviewAreaProps {
   UNIVERSAL_SCALE_FACTOR: number;
 }
 
-// ----------------------------------------------------------------------
-// ミニマル極細線画SVGアイコン（絵文字完全排除）
-// ----------------------------------------------------------------------
 const Icons = {
   Hanhaba: () => (
     <svg className="w-4 h-4 stroke-current fill-none stroke-[1.5]" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
@@ -131,7 +128,6 @@ export default function PreviewArea(props: PreviewAreaProps) {
   const [isZoomModalOpen, setIsZoomModalOpen] = useState<boolean>(false);
   const [showTuningPanel, setShowTuningPanel] = useState<boolean>(false);
 
-  // 確実なスクロール位置検知
   const [isScrolledPast, setIsScrolledPast] = useState<boolean>(false);
 
   useEffect(() => {
@@ -150,7 +146,6 @@ export default function PreviewArea(props: PreviewAreaProps) {
     previewRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  // ★ 1. 半幅帯パーツ定義（確定数値）
   const [hanhabaOffsets, setHanhabaOffsets] = useState([
     { id: '01_a', name: 'Layer01_a（奥羽・右側）', file: 'hanhaba_Layer01_a.png', z: 10, rot: 1,   scale: 111, x: 69, y: 50 },
     { id: '01_b', name: 'Layer01_b（奥羽・左下）', file: 'hanhaba_Layer01_b.png', z: 15, rot: 3,   scale: 100, x: 33, y: 50 },
@@ -161,14 +156,12 @@ export default function PreviewArea(props: PreviewAreaProps) {
     { id: '06',   name: 'Layer06（手前垂れ・基準）',file: 'hanhaba_Layer06.png',   z: 60, rot: -93, scale: 107, x: 74, y: 43 },
   ]);
 
-  // ★ 2. 京袋帯パーツ定義（確定数値）
   const [kyobukuroOffsets, setKyobukuroOffsets] = useState([
     { id: 'hara',  name: '前腹（胴回り）', file: 'kyoubukurohara.png', z: 30, rot: 90, scale: 85,  x: 50,   y: 50 },
     { id: 'tare',  name: '垂れ先',         file: 'kyoubukurotare.png', z: 40, rot: -1, scale: 100, x: 76.5, y: 47 },
     { id: 'taiko', name: 'お太鼓',         file: 'kyoubukurotakio.png', z: 50, rot: 1,  scale: 100, x: 75.5, y: 47 },
   ]);
 
-  // ★ 3. 着物パーツ定義（確定数値）[cite: 1]
   const [kimonoOffsets, setKimonoOffsets] = useState([
     { id: 'usiromigoro', name: '後ろ身頃',     file: 'usiromigoro_75.png',   z: 2,  rot: -15, scale: 100, x: 50,   y: 50 },
     { id: 'hidarisode2', name: '左袖（奥）',   file: 'hidarisode2_175.png',  z: 3,  rot: 85,  scale: 100, x: 49,   y: 50 },
@@ -232,7 +225,6 @@ export default function PreviewArea(props: PreviewAreaProps) {
 
   const v = '32';
 
-  // 半幅帯レイヤー描画[cite: 1]
   const renderHanhabaLayers = () => (
     <div className="relative w-full h-full overflow-hidden">
       {hanhabaOffsets.map((layer) => (
@@ -303,7 +295,6 @@ export default function PreviewArea(props: PreviewAreaProps) {
     </div>
   );
 
-  // 京袋帯レイヤー描画[cite: 1]
   const renderKyobukuroLayers = () => (
     <div className="relative w-full h-full overflow-hidden">
       <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 10 }}>
@@ -389,7 +380,6 @@ export default function PreviewArea(props: PreviewAreaProps) {
     </div>
   );
 
-  // 着物レイヤー描画[cite: 1]
   const renderKimonoLayers = () => (
     <div className="relative w-full h-full overflow-hidden">
       <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 1 }}>
@@ -524,18 +514,15 @@ export default function PreviewArea(props: PreviewAreaProps) {
       <div className="bg-white border border-stone-200 rounded-lg shadow-sm overflow-hidden animate-fade-in">
         
         {/* ========================================================
-            1. タイトル・案内 ＆ 仕立てアイテム大型セグメントタブ
+            1. タイトル（センター大見出し） ＆ アイテム切替タブ
            ======================================================== */}
-        <div className="p-3 bg-stone-900 border-b border-stone-800">
-          <div className="mb-2.5 px-0.5">
-            <div className="flex items-baseline justify-between">
-              <h2 className="text-sm sm:text-base font-bold text-white tracking-widest font-serif">
-                妄想きもの図案帳
-              </h2>
-              <span className="text-[10px] text-stone-400 font-mono tracking-wider">by GOFUKUYASAN</span>
-            </div>
-            <p className="text-[11px] text-stone-300 mt-1 leading-relaxed">
-              言葉を入力するだけ。スマホで世界に1枚だけの着物や帯が作れるAIアトリエ
+        <div className="p-3 bg-stone-900 border-b border-stone-800 text-center">
+          <div className="mb-3 px-1">
+            <h2 className="text-base sm:text-lg font-bold text-white tracking-widest font-serif">
+              妄想きもの図案帳
+            </h2>
+            <p className="text-[11px] text-stone-300 mt-1 font-medium leading-relaxed">
+              スマホで世界に１枚だけの着物や帯が作れるアプリ
             </p>
           </div>
 
@@ -627,26 +614,23 @@ export default function PreviewArea(props: PreviewAreaProps) {
         </div>
 
         {/* ========================================================
-            3. メイン描画エリア（ポップアップ欠け防止のため外枠overflow解除）
+            3. メイン描画エリア
            ======================================================== */}
         <div className="bg-[#e4e4e7] flex flex-col items-center justify-center p-1 sm:p-4 relative min-h-[340px]">
           {displayMode === 'mockup' && (
             <div className="w-full flex flex-col items-center animate-fade-in relative">
               
-              {/* マッピング正方形枠（外枠は overflow-visible に設定） */}
               <div className="relative w-full max-w-[420px] aspect-square bg-stone-100 shadow-md sm:rounded-sm">
                 
-                {/* 1. マッピング画像（背面・ここだけ overflow-hidden にして画像をピッタリ収める）[cite: 1] */}
+                {/* マッピング画像 */}
                 <div ref={previewContainerRef} className="w-full h-full relative overflow-hidden sm:rounded-sm">
                   {itemType === 'hanhaba' && renderHanhabaLayers()}
                   {itemType === 'kyobukuro' && renderKyobukuroLayers()}
                   {itemType === 'kimono' && renderKimonoLayers()}
                 </div>
 
-                {/* 2. 【両端フロート】オーバーレイコントロール */}
+                {/* 両端フロート */}
                 <div className="absolute inset-0 pointer-events-none z-20">
-                  
-                  {/* 左端寄せフロート：パーツカラー指定ボタン群 */}
                   <div className="pointer-events-auto absolute top-2 left-2 flex flex-col sm:flex-row gap-1 bg-white/90 backdrop-blur-md p-1 rounded border border-stone-300/80 shadow-md">
                     {itemType === 'kimono' ? (
                       <>
@@ -721,7 +705,6 @@ export default function PreviewArea(props: PreviewAreaProps) {
                     )}
                   </div>
 
-                  {/* 右端寄せフロート：原寸拡大ボタン */}
                   <button
                     type="button"
                     onClick={() => setIsZoomModalOpen(true)}
@@ -732,16 +715,14 @@ export default function PreviewArea(props: PreviewAreaProps) {
                   </button>
                 </div>
 
-                {/* 3. 【最前面ポップアップ】裏地・パーツカラー指定パレット（z-[9999]）[cite: 1] */}
+                {/* 最前面カラーパレット（z-[9999]） */}
                 {activeFloatPalette && (
                   <>
-                    {/* 外側タップで閉じる透明バックドロップ */}
                     <div 
                       className="fixed inset-0 z-[9990] bg-black/25 backdrop-blur-[1px]"
                       onClick={() => setActiveFloatPalette(null)}
                     />
 
-                    {/* 最前面パレット本体 */}
                     <div className="pointer-events-auto absolute top-12 left-2 right-2 sm:right-auto sm:w-[340px] bg-white border-2 border-stone-900 p-3 rounded-md shadow-2xl animate-fade-in z-[9999]">
                       <div className="flex justify-between items-center mb-2 pb-1.5 border-b border-stone-200">
                         <span className="text-[11px] font-bold text-stone-900">
@@ -902,7 +883,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
       </div>
 
       {/* ========================================================
-          4. 【工房スタッフ専用】柄あわせ微調整ツール[cite: 1]
+          4. 工房用 柄あわせ微調整ツール
          ======================================================== */}
       <div className="text-right">
         <button
@@ -1006,7 +987,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
       </div>
 
       {/* ========================================================
-          5. 【全画面原寸拡大モーダル】[cite: 1]
+          5. 全画面原寸拡大モーダル
          ======================================================== */}
       {isZoomModalOpen && (
         <div 
@@ -1038,7 +1019,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
       )}
 
       {/* ========================================================
-          6. 【右下丸型ミニFAB】邪魔にならないスマートなスクロール追従
+          6. 右下丸型ミニFAB
          ======================================================== */}
       {isScrolledPast && (
         <div className="fixed bottom-6 right-4 z-40 flex flex-col items-center gap-2.5 animate-fade-in">
