@@ -1,7 +1,7 @@
 // app/components/controls/ControlPanel.tsx
 'use client';
 
-import { MouseEvent, useEffect, useState } from 'react';
+import { MouseEvent, useEffect, useState, useRef } from 'react';
 import { TRADITIONAL_COLORS } from '../../lib/constants';
 
 interface ControlPanelProps {
@@ -90,16 +90,16 @@ const Icons = {
       <line x1="10" y1="14" x2="21" y2="3" />
     </svg>
   ),
+  Check: () => (
+    <svg className="w-3.5 h-3.5 stroke-current fill-none stroke-[2.5]" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  ),
   Download: () => (
     <svg className="w-3.5 h-3.5 stroke-current fill-none stroke-[1.75]" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
       <polyline points="7 10 12 15 17 10" />
       <line x1="12" y1="15" x2="12" y2="3" />
-    </svg>
-  ),
-  Check: () => (
-    <svg className="w-3.5 h-3.5 stroke-current fill-none stroke-[2.5]" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="20 6 9 17 4 12" />
     </svg>
   ),
 };
@@ -112,6 +112,9 @@ const LOADING_STEPS = [
   'もう少しで、図案帖に仕上がります...',
 ];
 
+// ----------------------------------------------------------------------
+// お手本データ（文字を強調するためシンプルなキーワードに整理）
+// ----------------------------------------------------------------------
 const RECIPES = [
   {
     id: 'piano_cat',
@@ -123,7 +126,7 @@ const RECIPES = [
   },
   {
     id: 'cafe',
-    title: '純喫茶ポワロのクリームソーダ',
+    title: 'クリームソーダ',
     motif: 'メロンソーダ、さくらんぼ、ステンドグラス',
     tags: ['昭和レトロ', 'ペン画'],
     colors: ['翡翠', '朱色'],
@@ -131,7 +134,7 @@ const RECIPES = [
   },
   {
     id: 'antique',
-    title: '英国・秘密の花園',
+    title: '秘密の花園',
     motif: '白うさぎ、ブラックベリー、時計、鍵',
     tags: ['アンティーク', '木版画'],
     colors: ['銀鼠', '葡萄色'],
@@ -139,9 +142,9 @@ const RECIPES = [
   },
   {
     id: 'hokusai_cat',
-    title: '波間に遊ぶ黒白猫',
+    title: '波間に遊ぶ猫',
     motif: '黒白の猫、濃淡の青い波、白い泡の点描',
-    tags: ['浮世絵風', '和モダン', '木版画', '猫', '波・雲'],
+    tags: ['浮世絵風', '木版画', '波・雲'],
     colors: ['鳥の子色', '瑠璃色'],
     image: '/sample_hokusai_cat.png'
   }
@@ -192,6 +195,10 @@ export default function ControlPanel({
 }: ControlPanelProps) {
 
   const [analyzingPhoto, setAnalyzingPhoto] = useState(false);
+  
+  // テキストエリアのフチを光らせるための状態
+  const [highlightInput, setHighlightInput] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleRecipeSelect = (recipe: typeof RECIPES[0]) => {
     setMotif(recipe.motif);
@@ -203,6 +210,14 @@ export default function ControlPanel({
     setPatternTitle(recipe.title);
     setImageUrl(recipe.image);
     setBlobUrl(recipe.image);
+
+    // テキストエリアにフォーカスし、一瞬フチを光らせる演出
+    setHighlightInput(true);
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+      textareaRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    setTimeout(() => setHighlightInput(false), 2000);
   };
 
   const handlePhotoUploadAndExtract = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -297,19 +312,29 @@ export default function ControlPanel({
   const effectiveRemainingOpenAI = remainingOpenAI ?? remainingCount ?? 1;
   const effectiveRemainingFlux = remainingFlux ?? 15;
 
+  const isSampleImage = imageUrl.includes('sample_piano_cat') || 
+                        imageUrl.includes('sample_cafe') || 
+                        imageUrl.includes('sample_antique') || 
+                        imageUrl.includes('sample_hokusai_cat');
+
   return (
     <div className="w-full lg:w-1/2 bg-white border border-stone-200 p-4 sm:p-8 lg:p-10 shrink-0 shadow-sm z-10 relative">
       
       <div className="space-y-6">
         {creationMode === 'ai' ? (
           <>
-            {/* 01. ひらめきレシピ（注記：※画像は丁寧モードで制作） */}
+            {/* 01. 言葉のお手本（言葉が主役のカードUIに変更） */}
             <div>
-              <div className="flex justify-between items-baseline mb-2">
-                <label className="block text-xs font-bold text-stone-900 tracking-wider">
-                  01. ひらめきレシピ
-                </label>
-                <span className="text-[10px] text-stone-400 font-medium">※画像は丁寧モードで制作</span>
+              <div className="mb-2.5">
+                <div className="flex justify-between items-baseline mb-0.5">
+                  <label className="block text-xs font-bold text-stone-900 tracking-wider">
+                    01. 言葉のお手本（タップして言葉をセット）
+                  </label>
+                  <span className="text-[10px] text-stone-400 font-medium">※画像は丁寧モードで制作</span>
+                </div>
+                <p className="text-[10.5px] text-stone-600 font-bold leading-relaxed bg-stone-100 px-2.5 py-1.5 rounded border border-stone-200 inline-block">
+                  <span className="text-stone-900">「猫」を「犬」に変えたり</span>、好きな言葉を自由に足し引きしてテキスト入力してください。
+                </p>
               </div>
               
               <div className="flex gap-2.5 overflow-x-auto pb-3 pt-1 scrollbar-thin scrollbar-thumb-stone-300">
@@ -317,11 +342,20 @@ export default function ControlPanel({
                   <button
                     key={recipe.id}
                     onClick={() => handleRecipeSelect(recipe)}
-                    className="flex-shrink-0 w-32 h-32 relative rounded border border-stone-200 overflow-hidden hover:ring-2 hover:ring-stone-900 transition-all group shadow-sm bg-stone-100"
+                    className="flex-shrink-0 w-36 h-[140px] flex flex-col relative rounded-md border border-stone-200 overflow-hidden hover:ring-2 hover:ring-stone-900 transition-all group shadow-sm bg-white text-left"
                   >
-                    <img src={recipe.image} alt={recipe.title} className="w-full h-full object-cover opacity-85 group-hover:opacity-100 transition-opacity" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent flex items-end p-2.5">
-                      <span className="text-white text-[11px] font-bold leading-tight text-left drop-shadow-md">{recipe.title}</span>
+                    {/* 上半分：言葉（キーワード）の強調 */}
+                    <div className="p-2.5 h-[65px] flex flex-col justify-center bg-white border-b border-stone-100 relative z-10">
+                      <span className="text-[11px] font-bold text-stone-900 leading-tight line-clamp-2">
+                        {recipe.motif}
+                      </span>
+                    </div>
+                    {/* 下半分：結果としての参考画像 */}
+                    <div className="h-[75px] relative">
+                      <img src={recipe.image} alt={recipe.title} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-2">
+                        <span className="text-white text-[9px] font-medium leading-none drop-shadow">この言葉から作ると…</span>
+                      </div>
                     </div>
                   </button>
                 ))}
@@ -413,7 +447,7 @@ export default function ControlPanel({
 
               <div className="flex justify-between items-center mb-1">
                 <p className="text-[10px] text-stone-400">
-                  好きな言葉を入れるか、上の作例や写真から言葉をセットできます。
+                  好きな言葉を自由に入力するか、上の「言葉のお手本」からセットしてアレンジしてください。
                 </p>
                 {motif && (
                   <button onClick={() => setMotif('')} className="text-[10px] font-bold text-stone-400 hover:text-stone-800 tracking-widest uppercase transition-colors shrink-0 ml-2">Clear</button>
@@ -421,7 +455,10 @@ export default function ControlPanel({
               </div>
               
               <textarea 
-                className="w-full border border-stone-300 p-3 sm:p-4 bg-white text-xs sm:text-sm focus:outline-none focus:border-stone-900 focus:ring-1 focus:ring-stone-900 resize-none transition-all duration-200 leading-relaxed font-medium shadow-sm rounded" 
+                ref={textareaRef}
+                className={`w-full border p-3 sm:p-4 bg-white text-xs sm:text-sm focus:outline-none focus:border-stone-900 focus:ring-1 focus:ring-stone-900 resize-none transition-all duration-300 leading-relaxed font-bold shadow-sm rounded ${
+                  highlightInput ? 'border-stone-900 ring-2 ring-stone-900 bg-stone-50' : 'border-stone-300'
+                }`} 
                 placeholder="例：黒猫、ホットケーキ、月、バイオリン" 
                 rows={2} value={motif} onChange={(e) => setMotif(e.target.value)} disabled={loading || analyzingPhoto} 
               />
@@ -885,7 +922,7 @@ export default function ControlPanel({
               </span>
             </a>
 
-            {/* 2. 【動くボタンに昇格！】ゴフクヤサンでよく似た商品を探す */}
+            {/* 2. ゴフクヤサンでよく似た商品を探す */}
             <a 
               href={makeshopSearchUrl} 
               target="_blank" 
