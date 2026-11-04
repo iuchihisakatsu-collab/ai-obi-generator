@@ -33,7 +33,7 @@ export interface PreviewAreaProps {
   previewContainerRef: React.RefObject<HTMLDivElement | null>;
   handleItemTypeChange: (type: 'hanhaba' | 'kyobukuro' | 'kimono') => void;
   setDisplayMode: (mode: 'mockup' | 'trim' | 'data') => void;
-  handleDownloadMapping: () => void;
+  handleDownloadMapping: () => Promise<void>; // Promiseを返すように想定
   UNIVERSAL_SCALE_FACTOR: number;
 }
 
@@ -114,6 +114,12 @@ const Icons = {
       <line x1="12" y1="2" x2="12" y2="22" />
     </svg>
   ),
+  CheckCircle: () => (
+    <svg className="w-5 h-5 stroke-current fill-none stroke-[2]" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+      <polyline points="22 4 12 14.01 9 11.01" />
+    </svg>
+  ),
 };
 
 export default function PreviewArea(props: PreviewAreaProps) {
@@ -138,6 +144,9 @@ export default function PreviewArea(props: PreviewAreaProps) {
   const [isZoomModalOpen, setIsZoomModalOpen] = useState<boolean>(false);
   const [showTuningPanel, setShowTuningPanel] = useState<boolean>(false);
 
+  // ダウンロード完了後のトースト表示用ステート
+  const [showDownloadToast, setShowDownloadToast] = useState(false);
+
   // 確実なスクロール位置検知
   const [isScrolledPast, setIsScrolledPast] = useState<boolean>(false);
 
@@ -157,7 +166,24 @@ export default function PreviewArea(props: PreviewAreaProps) {
     previewRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  // ★ ドラッグ可能な1.5倍大型丸型プレビュー用の状態
+  // 保存ボタン押下時のラッパー関数
+  const onDownloadClick = async () => {
+    try {
+      // 既存のダウンロード処理を呼び出し
+      await handleDownloadMapping();
+      
+      // ダウンロード完了後にトーストを表示
+      setShowDownloadToast(true);
+      // 6秒後に自動でトーストを消す
+      setTimeout(() => {
+        setShowDownloadToast(false);
+      }, 6000);
+    } catch (error) {
+      console.error("ダウンロード中にエラーが発生しました", error);
+    }
+  };
+
+  // ドラッグ可能な1.5倍大型丸型プレビュー用の状態
   const [floatPos, setFloatPos] = useState({ x: -16, y: -24 });
   const [isDragging, setIsDragging] = useState(false);
   const dragRef = useRef<{ startX: number, startY: number, initialX: number, initialY: number, hasMoved: boolean }>({
@@ -562,8 +588,34 @@ export default function PreviewArea(props: PreviewAreaProps) {
   const itemLabel = itemType === 'hanhaba' ? '半幅帯' : itemType === 'kyobukuro' ? '京袋帯' : '着物';
 
   return (
-    <div ref={previewRef} className="w-full lg:w-1/2 shrink-0 sticky top-2 z-30 lg:top-8 flex flex-col gap-3">
+    <div ref={previewRef} className="w-full lg:w-1/2 shrink-0 sticky top-2 z-30 lg:top-8 flex flex-col gap-3 relative">
       
+      {/* ========================================================
+          【NEW】保存完了・SNSシェアのお願いトーストポップアップ
+         ======================================================== */}
+      {showDownloadToast && (
+        <div className="absolute top-4 left-4 right-4 z-[9999] animate-fade-in flex justify-center">
+          <div className="bg-stone-900 text-white p-4 rounded-lg shadow-2xl flex items-start gap-3 border border-stone-700 max-w-sm">
+            <div className="text-stone-300 shrink-0 mt-0.5">
+              <Icons.CheckCircle />
+            </div>
+            <div className="flex-1">
+              <h4 className="text-[13px] font-bold tracking-wider mb-1">画像が保存されました！</h4>
+              <p className="text-[11px] text-stone-300 leading-relaxed font-medium">
+                SNS等でご自由にお楽しみください。<br/>
+                投稿の際に <span className="font-bold text-white">#妄想きもの図案帳</span> か <span className="font-bold text-white">#ゴフクヤサン</span> をつけていただけると嬉しいです！
+              </p>
+            </div>
+            <button 
+              onClick={() => setShowDownloadToast(false)}
+              className="text-stone-400 hover:text-white p-1 -mt-1 -mr-1"
+            >
+              <Icons.Close />
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="bg-white border border-stone-200 rounded-lg shadow-sm overflow-hidden animate-fade-in">
         
         {/* ========================================================
@@ -674,14 +726,12 @@ export default function PreviewArea(props: PreviewAreaProps) {
               
               <div className="relative w-full max-w-[420px] aspect-square bg-stone-100 shadow-md sm:rounded-sm">
                 
-                {/* マッピング画像 */}
                 <div ref={previewContainerRef} className="w-full h-full relative overflow-hidden sm:rounded-sm">
                   {itemType === 'hanhaba' && renderHanhabaLayers()}
                   {itemType === 'kyobukuro' && renderKyobukuroLayers()}
                   {itemType === 'kimono' && renderKimonoLayers()}
                 </div>
 
-                {/* 両端フロートコントロール */}
                 <div className="absolute inset-0 pointer-events-none z-20">
                   <div className="pointer-events-auto absolute top-2 left-2 flex flex-col sm:flex-row gap-1 bg-white/90 backdrop-blur-md p-1 rounded border border-stone-300/80 shadow-md">
                     {itemType === 'kimono' ? (
@@ -767,7 +817,6 @@ export default function PreviewArea(props: PreviewAreaProps) {
                   </button>
                 </div>
 
-                {/* 最前面カラーパレット */}
                 {activeFloatPalette && (
                   <>
                     <div 
@@ -861,11 +910,11 @@ export default function PreviewArea(props: PreviewAreaProps) {
                 )}
               </div>
 
-              {/* マッピング画像保存ボタン */}
+              {/* ★ トースト表示トリガー付きの保存ボタン */}
               <div className="mt-4">
                 <button
                   type="button"
-                  onClick={handleDownloadMapping}
+                  onClick={onDownloadClick}
                   disabled={mockupSubmitting}
                   className={`h-9 px-4 text-xs font-bold tracking-wider rounded shadow transition-all flex items-center gap-2 ${
                     mockupSubmitting ? 'bg-stone-300 text-stone-500 cursor-not-allowed' : 'bg-stone-900 text-white hover:bg-stone-800 active:scale-95'
@@ -1086,7 +1135,6 @@ export default function PreviewArea(props: PreviewAreaProps) {
               touchAction: 'none'
             }}
           >
-            {/* 1.5倍大型丸型サムネイル（w-40 h-40 sm:w-48 sm:h-48） */}
             <div className="relative group touch-none">
               <button
                 type="button"
@@ -1099,7 +1147,6 @@ export default function PreviewArea(props: PreviewAreaProps) {
                 }`}
                 title="ドラッグで移動 / タップで拡大"
               >
-                {/* ★ 幾何学モードの時はタイリングと地色を完全に再現して表示 ★ */}
                 {creationMode === 'geometric' ? (
                   <div
                     className="w-full h-full pointer-events-none"
@@ -1115,20 +1162,17 @@ export default function PreviewArea(props: PreviewAreaProps) {
                   <img src={effectivePatternUrl} alt="現在の図案" className="w-full h-full object-cover pointer-events-none" />
                 )}
                 
-                {/* ホバー時に現れるルーペと案内 */}
                 <div className="absolute inset-0 bg-black/35 flex flex-col items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity">
                   <Icons.Zoom />
                   <span className="text-[10px] font-bold mt-1.5 tracking-widest drop-shadow-md">タップで拡大</span>
                 </div>
               </button>
               
-              {/* 移動可能を示すバッジ */}
               <div className="absolute bottom-1 right-2 w-7 h-7 bg-white rounded-full shadow-lg border border-stone-300 flex items-center justify-center text-stone-600 pointer-events-none">
                 <Icons.Move />
               </div>
             </div>
 
-            {/* 上へ戻るボタン */}
             <button
               type="button"
               onClick={scrollToTop}
