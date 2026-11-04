@@ -66,7 +66,9 @@ const Icons = {
   ),
   Download: () => (
     <svg className="w-3.5 h-3.5 stroke-current fill-none stroke-[1.75]" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" />
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="7 10 12 15 17 10" />
+      <line x1="12" y1="15" x2="12" y2="3" />
     </svg>
   ),
   Scissors: () => (
@@ -129,14 +131,13 @@ export default function PreviewArea(props: PreviewAreaProps) {
   const [isZoomModalOpen, setIsZoomModalOpen] = useState<boolean>(false);
   const [showTuningPanel, setShowTuningPanel] = useState<boolean>(false);
 
-  // 確実なスクロール位置検知（メインプレビューが画面上に消えたらFABを表示）
+  // 確実なスクロール位置検知
   const [isScrolledPast, setIsScrolledPast] = useState<boolean>(false);
 
   useEffect(() => {
     const handleScroll = () => {
       if (!previewRef.current) return;
       const rect = previewRef.current.getBoundingClientRect();
-      // プレビュー領域の下端が画面上端を越えたら表示
       setIsScrolledPast(rect.bottom < 60);
     };
 
@@ -167,7 +168,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
     { id: 'taiko', name: 'お太鼓',         file: 'kyoubukurotakio.png', z: 50, rot: 1,  scale: 100, x: 75.5, y: 47 },
   ]);
 
-  // ★ 3. 着物パーツ定義（確定数値）
+  // ★ 3. 着物パーツ定義（確定数値）[cite: 1]
   const [kimonoOffsets, setKimonoOffsets] = useState([
     { id: 'usiromigoro', name: '後ろ身頃',     file: 'usiromigoro_75.png',   z: 2,  rot: -15, scale: 100, x: 50,   y: 50 },
     { id: 'hidarisode2', name: '左袖（奥）',   file: 'hidarisode2_175.png',  z: 3,  rot: 85,  scale: 100, x: 49,   y: 50 },
@@ -231,7 +232,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
 
   const v = '32';
 
-  // 半幅帯レイヤー描画
+  // 半幅帯レイヤー描画[cite: 1]
   const renderHanhabaLayers = () => (
     <div className="relative w-full h-full overflow-hidden">
       {hanhabaOffsets.map((layer) => (
@@ -302,7 +303,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
     </div>
   );
 
-  // 京袋帯レイヤー描画
+  // 京袋帯レイヤー描画[cite: 1]
   const renderKyobukuroLayers = () => (
     <div className="relative w-full h-full overflow-hidden">
       <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 10 }}>
@@ -388,7 +389,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
     </div>
   );
 
-  // 着物レイヤー描画
+  // 着物レイヤー描画[cite: 1]
   const renderKimonoLayers = () => (
     <div className="relative w-full h-full overflow-hidden">
       <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 1 }}>
@@ -523,12 +524,19 @@ export default function PreviewArea(props: PreviewAreaProps) {
       <div className="bg-white border border-stone-200 rounded-lg shadow-sm overflow-hidden animate-fade-in">
         
         {/* ========================================================
-            1. 仕立てアイテム大型セグメントタブ（高さ44px・極細線画）
+            1. タイトル・案内 ＆ 仕立てアイテム大型セグメントタブ
            ======================================================== */}
-        <div className="p-2 bg-stone-900 border-b border-stone-800">
-          <div className="flex items-center justify-between mb-1.5 px-1">
-            <span className="text-[10px] font-medium text-stone-400 tracking-wider">お仕立てアイテムを選択</span>
-            <span className="text-[10px] text-stone-400 font-mono">1反からお仕立て</span>
+        <div className="p-3 bg-stone-900 border-b border-stone-800">
+          <div className="mb-2.5 px-0.5">
+            <div className="flex items-baseline justify-between">
+              <h2 className="text-sm sm:text-base font-bold text-white tracking-widest font-serif">
+                妄想きもの図案帳
+              </h2>
+              <span className="text-[10px] text-stone-400 font-mono tracking-wider">by GOFUKUYASAN</span>
+            </div>
+            <p className="text-[11px] text-stone-300 mt-1 leading-relaxed">
+              言葉を入力するだけ。スマホで世界に1枚だけの着物や帯が作れるAIアトリエ
+            </p>
           </div>
 
           <div className="grid grid-cols-3 gap-1.5 bg-stone-950 p-1 rounded-md border border-stone-800">
@@ -619,23 +627,23 @@ export default function PreviewArea(props: PreviewAreaProps) {
         </div>
 
         {/* ========================================================
-            3. メイン描画エリア（スマホ幅いっぱいに最大化！）
+            3. メイン描画エリア（ポップアップ欠け防止のため外枠overflow解除）
            ======================================================== */}
         <div className="bg-[#e4e4e7] flex flex-col items-center justify-center p-1 sm:p-4 relative min-h-[340px]">
           {displayMode === 'mockup' && (
             <div className="w-full flex flex-col items-center animate-fade-in relative">
               
-              {/* マッピング正方形枠（w-full max-w-[420px] でド迫力表示） */}
-              <div className="relative w-full max-w-[420px] aspect-square bg-stone-100 shadow-md sm:rounded-sm overflow-hidden">
+              {/* マッピング正方形枠（外枠は overflow-visible に設定） */}
+              <div className="relative w-full max-w-[420px] aspect-square bg-stone-100 shadow-md sm:rounded-sm">
                 
-                {/* 1. マッピング画像（背面） */}
-                <div ref={previewContainerRef} className="w-full h-full relative overflow-hidden">
+                {/* 1. マッピング画像（背面・ここだけ overflow-hidden にして画像をピッタリ収める）[cite: 1] */}
+                <div ref={previewContainerRef} className="w-full h-full relative overflow-hidden sm:rounded-sm">
                   {itemType === 'hanhaba' && renderHanhabaLayers()}
                   {itemType === 'kyobukuro' && renderKyobukuroLayers()}
                   {itemType === 'kimono' && renderKimonoLayers()}
                 </div>
 
-                {/* 2. 【両端フロート】オーバーレイコントロール（衿元・中央を邪魔しない配置） */}
+                {/* 2. 【両端フロート】オーバーレイコントロール */}
                 <div className="absolute inset-0 pointer-events-none z-20">
                   
                   {/* 左端寄せフロート：パーツカラー指定ボタン群 */}
@@ -722,10 +730,19 @@ export default function PreviewArea(props: PreviewAreaProps) {
                     <Icons.Zoom />
                     <span>原寸拡大</span>
                   </button>
+                </div>
 
-                  {/* 展開カラーパレット */}
-                  {activeFloatPalette && (
-                    <div className="pointer-events-auto absolute top-12 left-2 right-2 bg-white/95 backdrop-blur-md border border-stone-900 p-3 rounded-md shadow-2xl animate-fade-in max-w-[340px] z-30">
+                {/* 3. 【最前面ポップアップ】裏地・パーツカラー指定パレット（z-[9999]）[cite: 1] */}
+                {activeFloatPalette && (
+                  <>
+                    {/* 外側タップで閉じる透明バックドロップ */}
+                    <div 
+                      className="fixed inset-0 z-[9990] bg-black/25 backdrop-blur-[1px]"
+                      onClick={() => setActiveFloatPalette(null)}
+                    />
+
+                    {/* 最前面パレット本体 */}
+                    <div className="pointer-events-auto absolute top-12 left-2 right-2 sm:right-auto sm:w-[340px] bg-white border-2 border-stone-900 p-3 rounded-md shadow-2xl animate-fade-in z-[9999]">
                       <div className="flex justify-between items-center mb-2 pb-1.5 border-b border-stone-200">
                         <span className="text-[11px] font-bold text-stone-900">
                           {activeFloatPalette === 'lining' && '帯の裏地色を選択'}
@@ -781,7 +798,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
                       )}
 
                       {!(activeFloatPalette === 'hara' || (activeFloatPalette === 'obi' && customObiUrl)) && (
-                        <div className="max-h-[160px] overflow-y-auto pr-1 grid grid-cols-4 sm:grid-cols-6 gap-1">
+                        <div className="max-h-[180px] overflow-y-auto pr-1 grid grid-cols-4 sm:grid-cols-6 gap-1">
                           {TRADITIONAL_COLORS.map((col) => (
                             <button
                               key={col.name}
@@ -807,8 +824,8 @@ export default function PreviewArea(props: PreviewAreaProps) {
                         </div>
                       )}
                     </div>
-                  )}
-                </div>
+                  </>
+                )}
               </div>
 
               {/* マッピング画像保存ボタン */}
@@ -885,7 +902,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
       </div>
 
       {/* ========================================================
-          4. 【工房スタッフ専用】柄あわせ微調整ツール
+          4. 【工房スタッフ専用】柄あわせ微調整ツール[cite: 1]
          ======================================================== */}
       <div className="text-right">
         <button
@@ -989,7 +1006,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
       </div>
 
       {/* ========================================================
-          5. 【全画面原寸拡大モーダル】
+          5. 【全画面原寸拡大モーダル】[cite: 1]
          ======================================================== */}
       {isZoomModalOpen && (
         <div 
@@ -1025,7 +1042,6 @@ export default function PreviewArea(props: PreviewAreaProps) {
          ======================================================== */}
       {isScrolledPast && (
         <div className="fixed bottom-6 right-4 z-40 flex flex-col items-center gap-2.5 animate-fade-in">
-          {/* 丸型サムネイル（タップで原寸拡大モーダルが開く） */}
           <button
             type="button"
             onClick={() => setIsZoomModalOpen(true)}
@@ -1038,7 +1054,6 @@ export default function PreviewArea(props: PreviewAreaProps) {
             </div>
           </button>
 
-          {/* 上へ戻る丸ボタン */}
           <button
             type="button"
             onClick={scrollToTop}
