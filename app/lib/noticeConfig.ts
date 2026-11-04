@@ -18,8 +18,8 @@ export const CURRENT_NOTICE: NoticeConfig = {
   // ★ IDを一新して、全員のブラウザで確実に再表示させる
   id: 'notice-202611-16times-update',
   category: '🎉 キャンペーン開催中！',
-  title: '【1日最大16回】心ゆくまで試せる「意匠クリエイティブ」新登場！',
-  subtitle: '鮮やかな配色とベクター調テキスタイルをたっぷり楽しめます',
+  title: '【1日最大15回】心ゆくまで試せる「スケッチモード」新登場！',
+  subtitle: '素敵な絵が出る「丁寧モード」は1日1回無料でご利用いただけます',
   badge: '期間限定',
   imageUrl: '',
   body: [
