@@ -12,7 +12,9 @@ interface ControlPanelProps {
   
   aiStyle: string;
   setAiStyle: (val: string) => void;
-  
+  tasteMode?: string;
+  setTasteMode?: (val: string) => void;
+
   selectedArtist: string;
   setSelectedArtist: (artist: string) => void;
   motif: string;
@@ -75,6 +77,13 @@ interface ControlPanelProps {
   setPremiumCode: (val: string) => void;
   premiumStatusMsg: string;
 }
+
+const TASTE_MODES = [
+  { id: 'katazome', title: '粋・型染め', desc: '江戸小紋・藍染・潔い輪郭' },
+  { id: 'botanical', title: '博物画・銅版', desc: '細密エッチング・モリス工芸' },
+  { id: 'mingei', title: '昭和民藝・木版', desc: '骨太な版画味・純喫茶ポスター' },
+  { id: 'mode', title: '辛口・モード', desc: '幾何学・バウハウス・ソリッド' },
+];
 
 const LOADING_STEPS = [
   '思い描いた意匠から、図案のアイデアを練り上げています...',
@@ -141,6 +150,8 @@ const TAG_CATEGORIES = [
 export default function ControlPanel({
   creationMode, setCreationMode,
   itemType, setItemType,
+  aiStyle, setAiStyle,
+  tasteMode = 'katazome', setTasteMode,
   selectedArtist, setSelectedArtist,
   motif, setMotif, motif2, setMotif2,
   
@@ -166,6 +177,7 @@ export default function ControlPanel({
 }: ControlPanelProps) {
 
   const [analyzingPhoto, setAnalyzingPhoto] = useState(false);
+  const currentTaste = tasteMode || 'katazome';
 
   const handleRecipeSelect = (recipe: typeof RECIPES[0]) => {
     setMotif(recipe.motif);
@@ -300,12 +312,45 @@ export default function ControlPanel({
               </div>
             </div>
 
-            {/* 02. テーマカラー */}
+            {/* ★【NEW】大人の4大テイストモード（甘さ根絶セレクター） ★ */}
+            <div className="pt-4 border-t border-zinc-100">
+              <div className="flex justify-between items-baseline mb-2">
+                <label className="block text-xs font-bold text-zinc-900 tracking-wider">
+                  02. 図案のテイスト（甘さをおさえた大人仕様）
+                </label>
+                <span className="text-[9px] text-zinc-400">ファンシー感を防ぎ本格着物へ</span>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                {TASTE_MODES.map((tm) => {
+                  const isSelected = currentTaste === tm.id;
+                  return (
+                    <button
+                      key={tm.id}
+                      type="button"
+                      onClick={() => setTasteMode?.(tm.id)}
+                      className={`p-2 rounded border text-left transition-all ${
+                        isSelected
+                          ? 'bg-zinc-900 text-white border-zinc-900 shadow-sm'
+                          : 'bg-white text-zinc-800 border-zinc-200 hover:bg-zinc-50'
+                      }`}
+                    >
+                      <span className="text-[11px] font-bold block">{tm.title}</span>
+                      <span className={`text-[8.5px] block mt-0.5 leading-tight ${isSelected ? 'text-zinc-300' : 'text-zinc-400'}`}>
+                        {tm.desc}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 03. テーマカラー */}
             <div className="pt-4 border-t border-zinc-100 relative">
               <div className="flex justify-between items-baseline mb-2">
                 <div>
                   <label className="block text-xs font-bold text-zinc-900 tracking-wider">
-                    02. 好きな色（着物のテーマカラー）
+                    03. 好きな色（着物のテーマカラー）
                   </label>
                   <p className="text-[10px] text-zinc-400 mt-0.5">選んだ色が地色や柄色として優先的に反映されます</p>
                 </div>
@@ -369,11 +414,11 @@ export default function ControlPanel({
               )}
             </div>
 
-            {/* 03. モチーフ入力 */}
+            {/* 04. モチーフ入力 */}
             <div className="pt-4 border-t border-zinc-100">
               <div className="flex justify-between items-center mb-1.5">
                 <label className="block text-xs font-bold text-zinc-900 tracking-wider">
-                  03. 何を描く？（モチーフ）
+                  04. 何を描く？（モチーフ）
                 </label>
 
                 <label className="cursor-pointer inline-flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded text-[11px] font-bold shadow-sm transition-all active:scale-95">
@@ -399,10 +444,10 @@ export default function ControlPanel({
               />
             </div>
 
-            {/* 04. 統合された4カテゴリの入力アシストタグ群 */}
+            {/* 05. 統合された4カテゴリの入力アシストタグ群 */}
             <div className="pt-4 border-t border-zinc-100">
               <label className="block text-xs font-bold text-zinc-900 tracking-wider mb-3">
-                04. 雰囲気・画材をトッピング（複数選択OK）
+                05. 雰囲気・画材をトッピング（複数選択OK）
               </label>
               
               <div className="space-y-4">
@@ -439,11 +484,11 @@ export default function ControlPanel({
               </div>
             </div>
 
-            {/* 05. 柄のサイズ感 */}
+            {/* 06. 柄のサイズ感 */}
             <div className="pt-4 border-t border-zinc-100">
               <div className="flex justify-between items-baseline mb-2">
                 <label className="block text-xs font-bold text-zinc-900 tracking-wider">
-                  05. 柄の大きさ（サイズ感）
+                  06. 柄の大きさ（サイズ感）
                 </label>
                 <span className="text-[9px] text-zinc-400">スケッチの大柄化を防ぐのに効果的</span>
               </div>
@@ -470,11 +515,11 @@ export default function ControlPanel({
               </div>
             </div>
 
-            {/* 06. 柄の配置 */}
+            {/* 07. 柄の配置 */}
             <div className="pt-4 border-t border-zinc-200 mt-2">
               <div className="flex justify-between items-baseline mb-1.5">
                 <label className="block text-xs font-bold text-zinc-800 tracking-wider">
-                  06. 柄の配置
+                  07. 柄の配置
                 </label>
                 <span className="text-[10px] font-bold text-zinc-500">
                   {itemType === 'kimono' && '着物：40cm幅に最適化'}
@@ -529,7 +574,7 @@ export default function ControlPanel({
             </div>
           </>
         ) : (
-          /* ================= 幾何学モード（格子・水玉製作所） ================= */
+          /* ================= 幾何学モード ================= */
           <div className="space-y-6 animate-fade-in">
              <div className={`grid ${geoPatternType === 'plain' ? 'grid-cols-1' : 'grid-cols-2'} gap-4`}>
               <div>
@@ -671,7 +716,7 @@ export default function ControlPanel({
           </div>
         )}
 
-        {/* 07. 作品名 */}
+        {/* 08. 作品名 */}
         <div className="pt-4 border-t border-zinc-200">
           <label className="block text-xs font-bold text-zinc-800 tracking-wider mb-1">
             作品名 <span className="font-normal text-[10px] text-zinc-400">（お好みの名前に変更できます）</span>
@@ -770,7 +815,7 @@ export default function ControlPanel({
                 </div>
               )}
 
-              {/* ボタン③：チケットコードで丁寧に作る（買い得バナー＆カート誘導強化） */}
+              {/* ★ ボタン③：チケットコードで丁寧に作る（ゴールド王冠SVG・Pro品質化） ★ */}
               <div className="p-3.5 bg-zinc-50 border border-zinc-200 rounded-sm space-y-2.5 relative z-10">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                   <div className="flex items-center gap-2">
@@ -819,11 +864,17 @@ export default function ControlPanel({
                     type="button"
                     onClick={() => handleGenerate('openai_premium')}
                     disabled={loading || !premiumCode.trim()}
-                    className="px-3 py-2 bg-zinc-900 hover:bg-zinc-800 disabled:bg-zinc-200 disabled:text-zinc-400 text-white text-xs font-bold rounded-sm shadow transition-colors whitespace-nowrap min-w-[170px] text-center"
+                    className="px-3.5 py-2.5 bg-gradient-to-r from-zinc-900 to-zinc-950 hover:from-black hover:to-zinc-900 disabled:from-zinc-200 disabled:to-zinc-200 disabled:text-zinc-400 text-white text-xs font-bold rounded-sm shadow-md transition-all whitespace-nowrap min-w-[180px] text-center flex items-center justify-center gap-1.5 border border-amber-500/40"
                   >
-                    {loading && (generatingMode === 'openai_premium' || (loadingEngine === 'openai' && premiumCode))
-                      ? '高精度生成中...'
-                      : 'チケットコードで丁寧に作る'}
+                    {/* 王冠SVGアイコン */}
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0">
+                      <path d="M2 19H22V21H2V19ZM2 5L7 11L12 3L17 11L22 5V17H2V5Z" fill="#fbbf24"/>
+                    </svg>
+                    <span>
+                      {loading && (generatingMode === 'openai_premium' || (loadingEngine === 'openai' && premiumCode))
+                        ? '高精度生成中...'
+                        : 'チケットで丁寧に作る'}
+                    </span>
                   </button>
                 </div>
 
@@ -871,7 +922,7 @@ export default function ControlPanel({
                   className="w-full py-3 text-center border border-zinc-300 bg-white hover:border-zinc-950 hover:bg-zinc-100 text-zinc-800 text-xs font-bold tracking-widest transition-all flex items-center justify-center gap-2 shadow-sm rounded-sm"
                 >
                   <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                  この作品の画像データを手元に残す
+                  この作品の原画データ（40cm角）を手元に残す
                 </button>
                 <p className="text-[10px] text-zinc-500 text-center leading-normal mt-1.5">
                   💡 気に入った柄は保存しておけば、あとからいつでも注文できます。<br />
@@ -923,13 +974,23 @@ export default function ControlPanel({
                 </div>
               </div>
 
+              {/* ★ 【最重要主役CTA】妄想を現実に ボタン（深紅・反物SVG・カート下見） ★ */}
               <div>
                 <a 
                   href="#" 
                   onClick={handleOrderClick} 
-                  className="block w-full py-3.5 mt-2 text-center bg-zinc-950 text-white text-[15px] font-black tracking-widest transition-all shadow-xl hover:shadow-2xl hover:scale-[1.01] border-2 border-zinc-950 rounded-sm"
+                  className="block w-full py-4 mt-2 text-center bg-[#8b1e2a] hover:bg-[#721822] text-white text-[15px] font-black tracking-widest transition-all shadow-xl hover:shadow-2xl hover:scale-[1.01] rounded-sm border border-red-900"
                 >
-                  妄想を現実に<br/><span className="text-[11px] font-medium tracking-wider opacity-90 mt-1 block">（生地・サイズ・仕立て価格をカートで確認する）</span>
+                  <div className="flex items-center justify-center gap-2">
+                    {/* 反物ロールSVG */}
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-amber-300">
+                      <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                    </svg>
+                    <span>妄想を現実に（本物の帯・着物にお仕立て） ＞</span>
+                  </div>
+                  <span className="text-[11px] font-medium tracking-wider text-amber-200 mt-1 block">
+                    （生地・サイズ・仕立て価格をカートで確認する / 実質0円対象）
+                  </span>
                 </a>
                 <p className="text-[10px] text-zinc-500 text-center leading-relaxed mt-1.5">
                   ※チケット代（1,100円）は商品購入時に全額ポイント還元（実質0円）されます<br />
