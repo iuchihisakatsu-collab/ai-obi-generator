@@ -76,9 +76,6 @@ interface ControlPanelProps {
   premiumStatusMsg: string;
 }
 
-// ----------------------------------------------------------------------
-// ミニマル極細線画SVGアイコン（絵文字完全排除）
-// ----------------------------------------------------------------------
 const Icons = {
   Camera: () => (
     <svg className="w-3.5 h-3.5 stroke-current fill-none stroke-[1.75]" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
@@ -87,7 +84,7 @@ const Icons = {
     </svg>
   ),
   ExternalLink: () => (
-    <svg className="w-3 h-3 stroke-current fill-none stroke-[2]" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+    <svg className="w-3.5 h-3.5 stroke-current fill-none stroke-[2]" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
       <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
       <polyline points="15 3 21 3 21 9" />
       <line x1="10" y1="14" x2="21" y2="3" />
@@ -150,7 +147,6 @@ const RECIPES = [
   }
 ];
 
-// 絵文字を排した洗練されたカテゴリ名
 const TAG_CATEGORIES = [
   {
     category: '雰囲気・様式',
@@ -175,11 +171,9 @@ export default function ControlPanel({
   itemType, setItemType,
   selectedArtist, setSelectedArtist,
   motif, setMotif, motif2, setMotif2,
-  
   selectedTags, setSelectedTags,
   setImageUrl, setBlobUrl,
   patternScale, setPatternScale,
-  
   selectedColors, setSelectedColors, handleColorToggle,
   showColorPalette, setShowColorPalette,
   density, setDensity,
@@ -295,7 +289,6 @@ export default function ControlPanel({
     window.open('https://www.instagram.com/', '_blank', 'noopener,noreferrer');
   };
 
-  // モチーフの先頭単語を確実に抽出（読点・カンマ・スペース対応）
   const primaryMotif = motif.trim() ? motif.split(/[、, \s]/)[0] : '';
   const makeshopSearchUrl = primaryMotif 
     ? `https://store.gofukuyasan.com/view/search?search_keyword=${encodeURIComponent(primaryMotif)}` 
@@ -304,24 +297,19 @@ export default function ControlPanel({
   const effectiveRemainingOpenAI = remainingOpenAI ?? remainingCount ?? 1;
   const effectiveRemainingFlux = remainingFlux ?? 15;
 
-  const isSampleImage = imageUrl.includes('sample_piano_cat') || 
-                        imageUrl.includes('sample_cafe') || 
-                        imageUrl.includes('sample_antique') || 
-                        imageUrl.includes('sample_hokusai_cat');
-
   return (
     <div className="w-full lg:w-1/2 bg-white border border-stone-200 p-4 sm:p-8 lg:p-10 shrink-0 shadow-sm z-10 relative">
       
       <div className="space-y-6">
         {creationMode === 'ai' ? (
           <>
-            {/* 01. ひらめき妄想レシピ（作例カード） */}
+            {/* 01. ひらめきレシピ（注記：※画像は丁寧モードで制作） */}
             <div>
               <div className="flex justify-between items-baseline mb-2">
                 <label className="block text-xs font-bold text-stone-900 tracking-wider">
-                  01. ひらめき妄想レシピ（作例から選ぶ）
+                  01. ひらめきレシピ
                 </label>
-                <span className="text-[10px] text-stone-400 font-medium">タップでプロンプトをセット</span>
+                <span className="text-[10px] text-stone-400 font-medium">※画像は丁寧モードで制作</span>
               </div>
               
               <div className="flex gap-2.5 overflow-x-auto pb-3 pt-1 scrollbar-thin scrollbar-thumb-stone-300">
@@ -425,7 +413,7 @@ export default function ControlPanel({
 
               <div className="flex justify-between items-center mb-1">
                 <p className="text-[10px] text-stone-400">
-                  好きな単語を入れるか、上の作例や写真から言葉をセットできます。
+                  好きな言葉を入れるか、上の作例や写真から言葉をセットできます。
                 </p>
                 {motif && (
                   <button onClick={() => setMotif('')} className="text-[10px] font-bold text-stone-400 hover:text-stone-800 tracking-widest uppercase transition-colors shrink-0 ml-2">Clear</button>
@@ -437,32 +425,9 @@ export default function ControlPanel({
                 placeholder="例：黒猫、ホットケーキ、月、バイオリン" 
                 rows={2} value={motif} onChange={(e) => setMotif(e.target.value)} disabled={loading || analyzingPhoto} 
               />
-
-              {/* ★★★ 【おすすめ案A】モチーフ入力欄直下のスマートインライン導線 ★★★ */}
-              {primaryMotif && (
-                <div className="mt-2.5 animate-fade-in">
-                  <a
-                    href={makeshopSearchUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="group flex items-center justify-between px-3 py-2 bg-stone-50 hover:bg-stone-100 border border-stone-200 hover:border-stone-400 rounded transition-all text-stone-700 shadow-2xs"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-stone-900"></span>
-                      <span className="text-[11px] font-bold">
-                        既製品をお探しなら：ゴフクヤサンの「<span className="text-stone-950 font-black underline underline-offset-2">{primaryMotif}</span>」一覧を見る
-                      </span>
-                    </div>
-                    <span className="text-[10px] text-stone-400 group-hover:text-stone-900 group-hover:translate-x-0.5 transition-all flex items-center gap-1 font-mono">
-                      <span>ONLINE STORE</span>
-                      <Icons.ExternalLink />
-                    </span>
-                  </a>
-                </div>
-              )}
             </div>
 
-            {/* 04. 統合された4カテゴリの入力アシストタグ群 */}
+            {/* 04. 雰囲気・画材 */}
             <div className="pt-4 border-t border-stone-100">
               <label className="block text-xs font-bold text-stone-900 tracking-wider mb-3">
                 04. 雰囲気・画材をトッピング（複数選択OK）
@@ -903,98 +868,88 @@ export default function ControlPanel({
         </div>
 
         {/* ========================================================
-            生成完了後・またはサンプル選択時の作品アクションエリア
+            作品アクションエリア（仕立てボタン ＆ 既製品を探すボタン）
            ======================================================== */}
         {imageUrl && (
-          <div className="pt-8 mt-8 border-t border-stone-300 space-y-6 relative z-10 animate-fade-in bg-stone-50 -mx-4 sm:-mx-8 lg:-mx-10 px-4 sm:px-8 lg:px-10 pb-8">
-            <h3 className="text-center font-bold text-sm tracking-widest text-stone-900 pt-4">
-              {isSampleImage ? 'この図案でお仕立て・既製品を探す' : 'あなただけの作品が完成しました'}
-            </h3>
+          <div className="pt-6 mt-8 border-t border-stone-300 space-y-4 relative z-10 animate-fade-in bg-stone-50 -mx-4 sm:-mx-8 lg:-mx-10 px-4 sm:px-8 lg:px-10 pb-8">
+            
+            {/* 1. オーダー仕立てボタン */}
+            <a 
+              href="#" 
+              onClick={handleOrderClick} 
+              className="block w-full py-4 text-center bg-stone-950 text-white text-[15px] font-bold tracking-widest transition-all shadow-xl hover:shadow-2xl hover:scale-[1.01] active:scale-[0.99] border-2 border-stone-950 rounded"
+            >
+              妄想を現実に<br/>
+              <span className="text-[10px] font-medium tracking-wider opacity-90 mt-1 block">
+                （この作品を現実の着物・帯として仕立てる）
+              </span>
+            </a>
 
-            <div className="space-y-3 pt-2">
-              <button 
-                type="button" 
-                onClick={handleDownloadOriginal} 
-                className="w-full py-3 text-center border border-stone-300 bg-white hover:border-stone-950 hover:bg-stone-100 text-stone-800 text-xs font-bold tracking-widest transition-all flex items-center justify-center gap-2 shadow-sm rounded"
-              >
-                <Icons.Download />
-                <span>この作品の画像データを手元に残す</span>
-              </button>
+            {/* 2. 【動くボタンに昇格！】ゴフクヤサンでよく似た商品を探す */}
+            <a 
+              href={makeshopSearchUrl} 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="flex items-center justify-center gap-2 w-full py-3.5 bg-white border-2 border-stone-900 text-stone-950 text-xs sm:text-sm font-bold tracking-wider hover:bg-stone-900 hover:text-white transition-all shadow-sm rounded active:scale-[0.99]"
+            >
+              <span>ゴフクヤサンでよく似た商品を探す</span>
+              {primaryMotif && <span className="text-[10px] opacity-75">（{primaryMotif}）</span>}
+              <Icons.ExternalLink />
+            </a>
 
-              <div className="pt-3 pb-1 border-t border-stone-200">
-                <p className="text-[10px] font-bold text-stone-400 tracking-wider uppercase mb-2 text-center">この作品をSNSでお披露目する</p>
-                
-                <div className="grid grid-cols-5 gap-1.5">
-                  <button type="button" onClick={shareToX} className="flex flex-col items-center justify-center py-2.5 px-1 bg-white border border-stone-300 rounded hover:bg-stone-950 hover:text-white hover:border-stone-950 transition-all shadow-sm group" title="Xでポスト">
-                    <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" className="transition-transform group-hover:scale-110">
-                      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-                    </svg>
-                    <span className="text-[9px] font-bold mt-1 tracking-tighter">X</span>
-                  </button>
+            {/* 3. 画像保存ボタン */}
+            <button 
+              type="button" 
+              onClick={handleDownloadOriginal} 
+              className="w-full py-2.5 text-center border border-stone-300 bg-white hover:border-stone-900 hover:bg-stone-100 text-stone-700 text-xs font-bold tracking-wider transition-all flex items-center justify-center gap-2 shadow-sm rounded"
+            >
+              <Icons.Download />
+              <span>この作品の画像データを手元に残す</span>
+            </button>
 
-                  <button type="button" onClick={shareToThreads} className="flex flex-col items-center justify-center py-2.5 px-1 bg-white border border-stone-300 rounded hover:bg-stone-950 hover:text-white hover:border-stone-950 transition-all shadow-sm group" title="Threadsでポスト">
-                    <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" className="transition-transform group-hover:scale-110">
-                      <path d="M12.186 24C5.467 24 0 18.533 0 11.814 0 5.094 5.467 0 12.186 0c6.72 0 12.186 5.094 12.186 11.814 0 2.253-.615 4.417-1.78 6.257l-1.92-1.22c.905-1.43 1.38-3.11 1.38-4.863 0-5.467-4.44-9.5-9.866-9.5-5.426 0-9.866 4.44-9.866 9.866 0 5.427 4.44 9.867 9.866 9.867 3.52 0 6.64-1.854 8.36-4.96l1.986 1.1c-2.226 4.013-6.24 6.406-10.74 6.406z"/>
-                      <path d="M12.186 17.5c-3.14 0-5.694-2.553-5.694-5.693 0-3.14 2.554-5.694 5.694-5.694 3.14 0 5.693 2.554 5.693 5.694 0 .693-.56 1.253-1.253 1.253-.694 0-1.254-.56-1.254-1.253 0-1.76-1.433-3.194-3.193-3.194-1.76 0-3.194 1.434-3.194 3.194 0 1.76 1.434 3.193 3.194 3.194 1.053 0 1.986-.52 2.56-1.306.493.533 1.2 1.306 2.066 1.306 1.96 0 3.547-1.587 3.547-3.547 0-4.32-3.507-7.827-7.827-7.827-4.32 0-7.827 3.507-7.827 7.827 0 4.32 3.507 7.827 7.827 7.827 2.373 0 4.547-1.067 6.013-2.773l1.84 1.333C20.693 20.307 17.973 21.667 15 21.667c-.933 0-1.88-.134-2.814-.414z"/>
-                    </svg>
-                    <span className="text-[9px] font-bold mt-1 tracking-tighter">Threads</span>
-                  </button>
+            {/* 4. SNSシェア */}
+            <div className="pt-3 border-t border-stone-200">
+              <p className="text-[10px] font-bold text-stone-400 tracking-wider uppercase mb-2 text-center">この作品をSNSでお披露目する</p>
+              
+              <div className="grid grid-cols-5 gap-1.5">
+                <button type="button" onClick={shareToX} className="flex flex-col items-center justify-center py-2.5 px-1 bg-white border border-stone-300 rounded hover:bg-stone-950 hover:text-white hover:border-stone-950 transition-all shadow-sm group" title="Xでポスト">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" className="transition-transform group-hover:scale-110">
+                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                  </svg>
+                  <span className="text-[9px] font-bold mt-1 tracking-tighter">X</span>
+                </button>
 
-                  <button type="button" onClick={shareToInstagram} className="flex flex-col items-center justify-center py-2.5 px-1 bg-white border border-stone-300 rounded hover:bg-stone-950 hover:text-white hover:border-stone-950 transition-all shadow-sm group" title="Instagram用テキストをコピーして開く">
-                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="transition-transform group-hover:scale-110">
-                      <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
-                      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
-                      <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
-                    </svg>
-                    <span className="text-[9px] font-bold mt-1 tracking-tighter">Instagram</span>
-                  </button>
+                <button type="button" onClick={shareToThreads} className="flex flex-col items-center justify-center py-2.5 px-1 bg-white border border-stone-300 rounded hover:bg-stone-950 hover:text-white hover:border-stone-950 transition-all shadow-sm group" title="Threadsでポスト">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" className="transition-transform group-hover:scale-110">
+                    <path d="M12.186 24C5.467 24 0 18.533 0 11.814 0 5.094 5.467 0 12.186 0c6.72 0 12.186 5.094 12.186 11.814 0 2.253-.615 4.417-1.78 6.257l-1.92-1.22c.905-1.43 1.38-3.11 1.38-4.863 0-5.467-4.44-9.5-9.866-9.5-5.426 0-9.866 4.44-9.866 9.866 0 5.427 4.44 9.867 9.866 9.867 3.52 0 6.64-1.854 8.36-4.96l1.986 1.1c-2.226 4.013-6.24 6.406-10.74 6.406z"/>
+                    <path d="M12.186 17.5c-3.14 0-5.694-2.553-5.694-5.693 0-3.14 2.554-5.694 5.694-5.694 3.14 0 5.693 2.554 5.693 5.694 0 .693-.56 1.253-1.253 1.253-.694 0-1.254-.56-1.254-1.253 0-1.76-1.433-3.194-3.193-3.194-1.76 0-3.194 1.434-3.194 3.194 0 1.76 1.434 3.193 3.194 3.194 1.053 0 1.986-.52 2.56-1.306.493.533 1.2 1.306 2.066 1.306 1.96 0 3.547-1.587 3.547-3.547 0-4.32-3.507-7.827-7.827-7.827-4.32 0-7.827 3.507-7.827 7.827 0 4.32 3.507 7.827 7.827 7.827 2.373 0 4.547-1.067 6.013-2.773l1.84 1.333C20.693 20.307 17.973 21.667 15 21.667c-.933 0-1.88-.134-2.814-.414z"/>
+                  </svg>
+                  <span className="text-[9px] font-bold mt-1 tracking-tighter">Threads</span>
+                </button>
 
-                  <button type="button" onClick={shareToPinterest} className="flex flex-col items-center justify-center py-2.5 px-1 bg-white border border-stone-300 rounded hover:bg-stone-950 hover:text-white hover:border-stone-950 transition-all shadow-sm group" title="Pinterestにピン留め">
-                    <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" className="transition-transform group-hover:scale-110">
-                      <path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.162-.105-.949-.199-2.403.041-3.439.219-.937 1.406-5.957s-.359-.72-.359-1.781c0-1.663.967-2.911 2.168-2.911 1.024 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738a.36.36 0 0 1 .083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.631-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146 1.124.347 2.317.535 3.554.535 6.627 0 12.004-5.367 12.004-11.987C24.02 5.367 18.644 0 12.017 0z"/>
-                    </svg>
-                    <span className="text-[9px] font-bold mt-1 tracking-tighter">Pinterest</span>
-                  </button>
+                <button type="button" onClick={shareToInstagram} className="flex flex-col items-center justify-center py-2.5 px-1 bg-white border border-stone-300 rounded hover:bg-stone-950 hover:text-white hover:border-stone-950 transition-all shadow-sm group" title="Instagram用テキストをコピーして開く">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="transition-transform group-hover:scale-110">
+                    <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                    <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                  </svg>
+                  <span className="text-[9px] font-bold mt-1 tracking-tighter">Instagram</span>
+                </button>
 
-                  <button type="button" onClick={shareToFacebook} className="flex flex-col items-center justify-center py-2.5 px-1 bg-white border border-stone-300 rounded hover:bg-stone-950 hover:text-white hover:border-stone-950 transition-all shadow-sm group" title="Facebookでシェア">
-                    <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" className="transition-transform group-hover:scale-110">
-                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                    </svg>
-                    <span className="text-[9px] font-bold mt-1 tracking-tighter">Facebook</span>
-                  </button>
-                </div>
+                <button type="button" onClick={shareToPinterest} className="flex flex-col items-center justify-center py-2.5 px-1 bg-white border border-stone-300 rounded hover:bg-stone-950 hover:text-white hover:border-stone-950 transition-all shadow-sm group" title="Pinterestにピン留め">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" className="transition-transform group-hover:scale-110">
+                    <path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.162-.105-.949-.199-2.403.041-3.439.219-.937 1.406-5.957s-.359-.72-.359-1.781c0-1.663.967-2.911 2.168-2.911 1.024 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738a.36.36 0 0 1 .083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.631-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146 1.124.347 2.317.535 3.554.535 6.627 0 12.004-5.367 12.004-11.987C24.02 5.367 18.644 0 12.017 0z"/>
+                  </svg>
+                  <span className="text-[9px] font-bold mt-1 tracking-tighter">Pinterest</span>
+                </button>
+
+                <button type="button" onClick={shareToFacebook} className="flex flex-col items-center justify-center py-2.5 px-1 bg-white border border-stone-300 rounded hover:bg-stone-950 hover:text-white hover:border-stone-950 transition-all shadow-sm group" title="Facebookでシェア">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" className="transition-transform group-hover:scale-110">
+                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                  </svg>
+                  <span className="text-[9px] font-bold mt-1 tracking-tighter">Facebook</span>
+                </button>
               </div>
-
-              {/* 注文導線ボタン */}
-              <a 
-                href="#" 
-                onClick={handleOrderClick} 
-                className="block w-full py-4 mt-2 text-center bg-stone-950 text-white text-[15px] font-bold tracking-widest transition-all shadow-xl hover:shadow-2xl hover:scale-[1.01] active:scale-[0.99] border-2 border-stone-950 rounded"
-              >
-                妄想を現実に<br/><span className="text-[10px] font-medium tracking-wider opacity-90 mt-1 block">（この作品を現実の着物・帯として仕立てる）</span>
-              </a>
-
-              {/* ★★★ 【おすすめ案C】注文ボタン直下の名物「寄り道のご案内」 ★★★ */}
-              {primaryMotif && (
-                <div className="mt-6 p-4 bg-stone-100 border border-stone-200 shadow-inner rounded text-center animate-fade-in">
-                  <p className="text-[11px] font-bold text-stone-700 mb-2 leading-relaxed">
-                    <span className="text-[9px] text-stone-400 block mb-1 tracking-widest font-mono">寄り道のご案内</span>
-                    お客様、もしかして『<span className="text-stone-950 font-black text-sm">{primaryMotif}</span>』に<br/>目がありませんね？
-                  </p>
-                  <p className="text-[10px] text-stone-500 mb-4 leading-relaxed px-2">
-                    妄想図案もいいですが……実はゴフクヤサンにも、<br/>自慢の『{primaryMotif}』アイテムがたくさんスタンバイしています。
-                  </p>
-                  <a 
-                    href={makeshopSearchUrl} 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
-                    className="inline-flex items-center justify-center gap-1.5 w-full py-3 bg-white border border-stone-300 text-stone-900 text-xs font-bold tracking-widest hover:bg-stone-900 hover:text-white hover:border-stone-900 transition-colors shadow-sm rounded"
-                  >
-                    <span>ゴフクヤサンの「{primaryMotif}」コレクションを覗く（無料）</span>
-                    <Icons.ExternalLink />
-                  </a>
-                </div>
-              )}
             </div>
           </div>
         )}
