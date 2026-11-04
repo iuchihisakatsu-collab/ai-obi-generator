@@ -41,20 +41,20 @@ export interface PreviewAreaProps {
 // ミニマル極細線画SVGアイコン（絵文字完全排除）
 // ----------------------------------------------------------------------
 const Icons = {
-  // 半幅帯：リボン状の帯
+  // 半幅帯
   Hanhaba: () => (
     <svg className="w-4 h-4 stroke-current fill-none stroke-[1.5]" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
       <path d="M4 8h16M4 16h16M7 8v8M17 8v8" />
     </svg>
   ),
-  // 京袋帯：お太鼓のスクエア
+  // 京袋帯
   Kyobukuro: () => (
     <svg className="w-4 h-4 stroke-current fill-none stroke-[1.5]" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
       <rect x="4" y="4" width="16" height="16" rx="1.5" />
       <path d="M4 10h16M10 10v10" />
     </svg>
   ),
-  // 着物：衣桁にかかる着物の輪郭
+  // 着物
   Kimono: () => (
     <svg className="w-4 h-4 stroke-current fill-none stroke-[1.5]" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 7l9-3 9 3v4l-4 1v9H7v-9L3 11V7z" />
@@ -147,7 +147,6 @@ export default function PreviewArea(props: PreviewAreaProps) {
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
-        // メインプレビューが上部に通り過ぎた（交差しなくなった）ら追従バーを表示
         setIsScrolledPast(!entry.isIntersecting && entry.boundingClientRect.top < 0);
       },
       { threshold: 0.1 }
@@ -540,7 +539,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
       <div className="bg-white border border-stone-200 rounded-lg shadow-sm overflow-hidden animate-fade-in">
         
         {/* ========================================================
-            1. 仕立てアイテム大型セグメントタブ（高さ46px・極細線画）
+            1. 仕立てアイテム大型セグメントタブ（高さ44px・極細線画）
            ======================================================== */}
         <div className="p-2 bg-stone-900 border-b border-stone-800">
           <div className="flex items-center justify-between mb-1.5 px-1">
@@ -645,188 +644,186 @@ export default function PreviewArea(props: PreviewAreaProps) {
           {displayMode === 'mockup' && (
             <div className="w-full flex flex-col items-center animate-fade-in relative">
               
+              {/* ★★★ 【星印の位置】マッピング枠外・上部のコントロールツールバー ★★★ */}
+              <div className="w-[260px] sm:w-[360px] flex items-center justify-between gap-1.5 mb-2.5 relative z-20">
+                {/* 左側：パーツカラー指定バー */}
+                <div className="flex flex-wrap items-center gap-1 bg-white/95 backdrop-blur-md p-1 rounded border border-stone-300 shadow-sm">
+                  {itemType === 'kimono' ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setActiveFloatPalette(activeFloatPalette === 'haneri' ? null : 'haneri')}
+                        className={`flex items-center gap-1 px-2 py-1 text-[10px] font-bold rounded border transition-all ${
+                          activeFloatPalette === 'haneri' ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-800 border-stone-200 hover:bg-stone-100'
+                        }`}
+                      >
+                        <span className="w-2.5 h-2.5 rounded-full border border-stone-400 shrink-0 inline-block" style={{ backgroundColor: kimonoHaneriColor }} />
+                        <span>半衿</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setActiveFloatPalette(activeFloatPalette === 'obiage' ? null : 'obiage')}
+                        className={`flex items-center gap-1 px-2 py-1 text-[10px] font-bold rounded border transition-all ${
+                          activeFloatPalette === 'obiage' ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-800 border-stone-200 hover:bg-stone-100'
+                        }`}
+                      >
+                        <span className="w-2.5 h-2.5 rounded-full border border-stone-400 shrink-0 inline-block" style={{ backgroundColor: kimonoObiageColor }} />
+                        <span>帯揚</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setActiveFloatPalette(activeFloatPalette === 'obi' ? null : 'obi')}
+                        className={`flex items-center gap-1 px-2 py-1 text-[10px] font-bold rounded border transition-all ${
+                          activeFloatPalette === 'obi' ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-800 border-stone-200 hover:bg-stone-100'
+                        }`}
+                      >
+                        <span className="w-2.5 h-2.5 rounded-full border border-stone-400 shrink-0 inline-block" style={{ backgroundColor: kimonoObiColor }} />
+                        <span>帯{customObiUrl ? '(画像)' : ''}</span>
+                      </button>
+                    </>
+                  ) : itemType === 'kyobukuro' ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setActiveFloatPalette(activeFloatPalette === 'lining' ? null : 'lining')}
+                        className={`flex items-center gap-1 px-2 py-1 text-[10px] font-bold rounded border transition-all ${
+                          activeFloatPalette === 'lining' ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-800 border-stone-200 hover:bg-stone-100'
+                        }`}
+                      >
+                        <span className="w-2.5 h-2.5 rounded-full border border-stone-400 shrink-0 inline-block" style={{ backgroundColor: obiLiningColor }} />
+                        <span>裏地</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setActiveFloatPalette(activeFloatPalette === 'hara' ? null : 'hara')}
+                        className={`flex items-center gap-1 px-2 py-1 text-[10px] font-bold rounded border transition-all ${
+                          activeFloatPalette === 'hara' ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-800 border-stone-200 hover:bg-stone-100'
+                        }`}
+                      >
+                        <span className="w-2.5 h-2.5 rounded-full border border-stone-400 shrink-0 inline-block" style={{ backgroundColor: obiLiningColor }} />
+                        <span>前腹{customHaraUrl ? '(画像)' : ''}</span>
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setActiveFloatPalette(activeFloatPalette === 'lining' ? null : 'lining')}
+                      className={`flex items-center gap-1 px-2 py-1 text-[10px] font-bold rounded border transition-all ${
+                        activeFloatPalette === 'lining' ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-800 border-stone-200 hover:bg-stone-100'
+                      }`}
+                    >
+                      <span className="w-2.5 h-2.5 rounded-full border border-stone-400 shrink-0 inline-block" style={{ backgroundColor: obiLiningColor }} />
+                      <span>裏地</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* 右側：原寸拡大ボタン */}
+                <button
+                  type="button"
+                  onClick={() => setIsZoomModalOpen(true)}
+                  className="flex items-center gap-1 bg-stone-900 text-white px-3 py-1.5 rounded text-[11px] font-medium shadow-sm transition-all hover:bg-stone-800 active:scale-95 shrink-0"
+                >
+                  <Icons.Zoom />
+                  <span>原寸拡大</span>
+                </button>
+
+                {/* ドロップダウン型カラー選択パレット */}
+                {activeFloatPalette && (
+                  <div className="absolute top-full left-0 right-0 mt-1.5 bg-white border border-stone-900 p-3 rounded shadow-2xl animate-fade-in z-30">
+                    <div className="flex justify-between items-center mb-2 pb-1.5 border-b border-stone-200">
+                      <span className="text-[11px] font-bold text-stone-900">
+                        {activeFloatPalette === 'lining' && '帯の裏地色を選択'}
+                        {activeFloatPalette === 'haneri' && '半衿の色を選択'}
+                        {activeFloatPalette === 'obiage' && '帯揚の色を選択'}
+                        {activeFloatPalette === 'obi' && '着物の帯を指定'}
+                        {activeFloatPalette === 'hara' && '京袋帯の前腹（胴回り）を指定'}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setActiveFloatPalette(null)}
+                        className="text-stone-400 hover:text-stone-900 p-0.5"
+                      >
+                        <Icons.Close />
+                      </button>
+                    </div>
+
+                    {activeFloatPalette === 'hara' && (
+                      <div className="flex flex-col gap-2">
+                        <p className="text-[10px] text-stone-500 leading-normal">
+                          太鼓柄と異なるデザインを前腹（お腹正面）に出したい場合に個別設定できます。
+                        </p>
+                        <div className="flex gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => { setCustomHaraUrl?.(null); setActiveFloatPalette(null); }}
+                            className={`flex-1 py-1.5 text-[10px] font-bold rounded border ${!customHaraUrl ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-700'}`}
+                          >
+                            太鼓柄と連動
+                          </button>
+                          <label className={`flex-1 py-1.5 text-[10px] font-bold text-center rounded border cursor-pointer ${customHaraUrl ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-700'}`}>
+                            画像アップロード
+                            <input type="file" accept="image/*" onChange={(e) => { handleCustomHaraUpload?.(e); setActiveFloatPalette(null); }} className="hidden" />
+                          </label>
+                        </div>
+                      </div>
+                    )}
+
+                    {activeFloatPalette === 'obi' && (
+                      <div className="flex gap-1.5 mb-2 pb-1.5 border-b border-stone-100">
+                        <button
+                          type="button"
+                          onClick={() => setCustomObiUrl?.(null)}
+                          className={`flex-1 py-1.5 text-[10px] font-bold rounded border ${!customObiUrl ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-700'}`}
+                        >
+                          伝統色無地
+                        </button>
+                        <label className={`flex-1 py-1.5 text-[10px] font-bold text-center rounded border cursor-pointer ${customObiUrl ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-700'}`}>
+                          画像アップロード
+                          <input type="file" accept="image/*" onChange={(e) => { handleCustomObiUpload?.(e); setActiveFloatPalette(null); }} className="hidden" />
+                        </label>
+                      </div>
+                    )}
+
+                    {!(activeFloatPalette === 'hara' || (activeFloatPalette === 'obi' && customObiUrl)) && (
+                      <div className="max-h-[160px] overflow-y-auto pr-1 grid grid-cols-4 sm:grid-cols-6 gap-1">
+                        {TRADITIONAL_COLORS.map((col) => (
+                          <button
+                            key={col.name}
+                            type="button"
+                            onClick={() => {
+                              if (activeFloatPalette === 'lining') setObiLiningColor(col.hex);
+                              if (activeFloatPalette === 'haneri') setKimonoHaneriColor(col.hex);
+                              if (activeFloatPalette === 'obiage') setKimonoObiageColor(col.hex);
+                              if (activeFloatPalette === 'obi') {
+                                setKimonoObiColor(col.hex);
+                                setCustomObiUrl?.(null);
+                              }
+                              setActiveFloatPalette(null);
+                            }}
+                            className="relative h-8 p-1 flex flex-col justify-end text-left border border-stone-200 rounded shadow-sm hover:scale-95 transition-transform"
+                            style={{ backgroundColor: col.hex }}
+                          >
+                            <span className={`text-[8px] font-bold truncate leading-none ${col.isDark ? 'text-white' : 'text-stone-900'}`}>
+                              {col.name.split(' ')[0]}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* マッピング画像枠（正方形・ボタン類の重なりを完全排除してクリアに表示） */}
               <div className="relative mx-auto drop-shadow-xl w-[260px] sm:w-[360px] aspect-square bg-stone-100 rounded-sm overflow-hidden">
-                
-                {/* マッピング画像 */}
                 <div ref={previewContainerRef} className="w-full h-full relative overflow-hidden">
                   {itemType === 'hanhaba' && renderHanhabaLayers()}
                   {itemType === 'kyobukuro' && renderKyobukuroLayers()}
                   {itemType === 'kimono' && renderKimonoLayers()}
-                </div>
-
-                {/* 最前面オーバーレイ層 */}
-                <div className="absolute inset-0 pointer-events-none z-[9999]">
-                  
-                  {/* 右上：拡大ボタン */}
-                  <button
-                    type="button"
-                    onClick={() => setIsZoomModalOpen(true)}
-                    className="pointer-events-auto absolute top-2 right-2 flex items-center gap-1.5 bg-stone-950/90 text-white px-3 py-1.5 rounded-full text-[11px] font-medium shadow-md transition-all hover:bg-stone-900 active:scale-95 border border-white/20 backdrop-blur-sm"
-                  >
-                    <Icons.Zoom />
-                    <span>原寸拡大</span>
-                  </button>
-
-                  {/* 左上：パーツ個別指定ボタンバー */}
-                  <div className="pointer-events-auto absolute top-2 left-2 flex flex-wrap gap-1 bg-white/95 backdrop-blur-md p-1 rounded border border-stone-300 shadow-lg">
-                    {itemType === 'kimono' ? (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() => setActiveFloatPalette(activeFloatPalette === 'haneri' ? null : 'haneri')}
-                          className={`flex items-center gap-1.5 px-2 py-1 text-[10px] font-bold rounded border transition-all ${
-                            activeFloatPalette === 'haneri' ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-800 border-stone-300 hover:bg-stone-100'
-                          }`}
-                        >
-                          <span className="w-2.5 h-2.5 rounded-full border border-stone-400 shrink-0 inline-block" style={{ backgroundColor: kimonoHaneriColor }} />
-                          <span>半衿</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setActiveFloatPalette(activeFloatPalette === 'obiage' ? null : 'obiage')}
-                          className={`flex items-center gap-1.5 px-2 py-1 text-[10px] font-bold rounded border transition-all ${
-                            activeFloatPalette === 'obiage' ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-800 border-stone-300 hover:bg-stone-100'
-                          }`}
-                        >
-                          <span className="w-2.5 h-2.5 rounded-full border border-stone-400 shrink-0 inline-block" style={{ backgroundColor: kimonoObiageColor }} />
-                          <span>帯揚</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setActiveFloatPalette(activeFloatPalette === 'obi' ? null : 'obi')}
-                          className={`flex items-center gap-1.5 px-2 py-1 text-[10px] font-bold rounded border transition-all ${
-                            activeFloatPalette === 'obi' ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-800 border-stone-300 hover:bg-stone-100'
-                          }`}
-                        >
-                          <span className="w-2.5 h-2.5 rounded-full border border-stone-400 shrink-0 inline-block" style={{ backgroundColor: kimonoObiColor }} />
-                          <span>帯{customObiUrl ? '(画像)' : ''}</span>
-                        </button>
-                      </>
-                    ) : itemType === 'kyobukuro' ? (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() => setActiveFloatPalette(activeFloatPalette === 'lining' ? null : 'lining')}
-                          className={`flex items-center gap-1.5 px-2 py-1 text-[10px] font-bold rounded border transition-all ${
-                            activeFloatPalette === 'lining' ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-800 border-stone-300 hover:bg-stone-100'
-                          }`}
-                        >
-                          <span className="w-2.5 h-2.5 rounded-full border border-stone-400 shrink-0 inline-block" style={{ backgroundColor: obiLiningColor }} />
-                          <span>裏地色</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setActiveFloatPalette(activeFloatPalette === 'hara' ? null : 'hara')}
-                          className={`flex items-center gap-1.5 px-2 py-1 text-[10px] font-bold rounded border transition-all ${
-                            activeFloatPalette === 'hara' ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-800 border-stone-300 hover:bg-stone-100'
-                          }`}
-                        >
-                          <span className="w-2.5 h-2.5 rounded-full border border-stone-400 shrink-0 inline-block" style={{ backgroundColor: obiLiningColor }} />
-                          <span>前腹{customHaraUrl ? '(画像)' : ''}</span>
-                        </button>
-                      </>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => setActiveFloatPalette(activeFloatPalette === 'lining' ? null : 'lining')}
-                        className={`flex items-center gap-1.5 px-2 py-1 text-[10px] font-bold rounded border transition-all ${
-                          activeFloatPalette === 'lining' ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-800 border-stone-300 hover:bg-stone-100'
-                        }`}
-                      >
-                        <span className="w-2.5 h-2.5 rounded-full border border-stone-400 shrink-0 inline-block" style={{ backgroundColor: obiLiningColor }} />
-                        <span>裏地色</span>
-                      </button>
-                    )}
-                  </div>
-
-                  {/* 展開カラーパレット */}
-                  {activeFloatPalette && (
-                    <div className="pointer-events-auto absolute top-12 left-2 right-2 bg-white border border-stone-900 p-3 rounded shadow-xl animate-fade-in max-w-[340px]">
-                      <div className="flex justify-between items-center mb-2 pb-1.5 border-b border-stone-200">
-                        <span className="text-[11px] font-bold text-stone-900">
-                          {activeFloatPalette === 'lining' && '帯の裏地色を選択'}
-                          {activeFloatPalette === 'haneri' && '半衿の色を選択'}
-                          {activeFloatPalette === 'obiage' && '帯揚の色を選択'}
-                          {activeFloatPalette === 'obi' && '着物の帯を指定'}
-                          {activeFloatPalette === 'hara' && '京袋帯の前腹（胴回り）を指定'}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => setActiveFloatPalette(null)}
-                          className="text-stone-400 hover:text-stone-900 p-0.5"
-                        >
-                          <Icons.Close />
-                        </button>
-                      </div>
-
-                      {activeFloatPalette === 'hara' && (
-                        <div className="flex flex-col gap-2">
-                          <p className="text-[10px] text-stone-500 leading-normal">
-                            太鼓柄と異なるデザインを前腹（お腹正面）に出したい場合に個別設定できます。
-                          </p>
-                          <div className="flex gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => { setCustomHaraUrl?.(null); setActiveFloatPalette(null); }}
-                              className={`flex-1 py-1.5 text-[10px] font-bold rounded border ${!customHaraUrl ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-700'}`}
-                            >
-                              太鼓柄と連動
-                            </button>
-                            <label className={`flex-1 py-1.5 text-[10px] font-bold text-center rounded border cursor-pointer ${customHaraUrl ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-700'}`}>
-                              画像アップロード
-                              <input type="file" accept="image/*" onChange={(e) => { handleCustomHaraUpload?.(e); setActiveFloatPalette(null); }} className="hidden" />
-                            </label>
-                          </div>
-                        </div>
-                      )}
-
-                      {activeFloatPalette === 'obi' && (
-                        <div className="flex gap-1.5 mb-2 pb-1.5 border-b border-stone-100">
-                          <button
-                            type="button"
-                            onClick={() => setCustomObiUrl?.(null)}
-                            className={`flex-1 py-1.5 text-[10px] font-bold rounded border ${!customObiUrl ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-700'}`}
-                          >
-                            伝統色無地
-                          </button>
-                          <label className={`flex-1 py-1.5 text-[10px] font-bold text-center rounded border cursor-pointer ${customObiUrl ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-700'}`}>
-                            画像アップロード
-                            <input type="file" accept="image/*" onChange={(e) => { handleCustomObiUpload?.(e); setActiveFloatPalette(null); }} className="hidden" />
-                          </label>
-                        </div>
-                      )}
-
-                      {!(activeFloatPalette === 'hara' || (activeFloatPalette === 'obi' && customObiUrl)) && (
-                        <div className="max-h-[160px] overflow-y-auto pr-1 grid grid-cols-4 sm:grid-cols-6 gap-1">
-                          {TRADITIONAL_COLORS.map((col) => (
-                            <button
-                              key={col.name}
-                              type="button"
-                              onClick={() => {
-                                if (activeFloatPalette === 'lining') setObiLiningColor(col.hex);
-                                if (activeFloatPalette === 'haneri') setKimonoHaneriColor(col.hex);
-                                if (activeFloatPalette === 'obiage') setKimonoObiageColor(col.hex);
-                                if (activeFloatPalette === 'obi') {
-                                  setKimonoObiColor(col.hex);
-                                  setCustomObiUrl?.(null);
-                                }
-                                setActiveFloatPalette(null);
-                              }}
-                              className="relative h-8 p-1 flex flex-col justify-end text-left border border-stone-200 rounded shadow-sm hover:scale-95 transition-transform"
-                              style={{ backgroundColor: col.hex }}
-                            >
-                              <span className={`text-[8px] font-bold truncate leading-none ${col.isDark ? 'text-white' : 'text-stone-900'}`}>
-                                {col.name.split(' ')[0]}
-                              </span>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
                 </div>
               </div>
 
@@ -1045,7 +1042,6 @@ export default function PreviewArea(props: PreviewAreaProps) {
       {isScrolledPast && (
         <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:w-auto z-40 animate-fade-in">
           <div className="bg-stone-900/95 backdrop-blur-md text-white px-3 py-2 rounded-full shadow-2xl border border-stone-700/80 flex items-center justify-between sm:justify-start gap-3">
-            {/* 現在の柄サムネイル */}
             <button
               type="button"
               onClick={() => setIsZoomModalOpen(true)}
@@ -1058,13 +1054,11 @@ export default function PreviewArea(props: PreviewAreaProps) {
               </div>
             </button>
 
-            {/* アイテム名案内 */}
             <div className="flex flex-col text-left pr-1">
               <span className="text-[10px] text-stone-400 leading-none">デザイン中</span>
               <span className="text-xs font-bold leading-tight tracking-wide">{itemLabel}</span>
             </div>
 
-            {/* アクションボタン群 */}
             <div className="flex items-center gap-1.5">
               <button
                 type="button"
