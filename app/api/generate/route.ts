@@ -1,3 +1,4 @@
+// app/api/generate/route.ts
 import { NextResponse } from 'next/server';
 import { put } from '@vercel/blob';
 import { kv } from '@vercel/kv';
@@ -83,6 +84,7 @@ export async function POST(req: Request) {
       motif, 
       color = 'おまかせ', 
       density = '', 
+      itemType = 'hanhaba',
       aiStyle = 'none', 
       tasteMode = 'katazome',
       engine = 'flux',
@@ -153,6 +155,7 @@ export async function POST(req: Request) {
 
     const englishMotif = await translateToEnglish(cleanMotifForTranslation);
     
+    // 1. 柄の大きさ（Scale）判定
     let detectedScale: 'small' | 'medium' | 'large' = 'medium';
     const rawScale = (explicitScale || '').toLowerCase();
     if (rawScale === 'small' || rawScale === 'fine' || motif.includes('細かい') || motif.includes('tiny delicate') || motif.includes('micro')) {
@@ -164,30 +167,47 @@ export async function POST(req: Request) {
     let scaleKeyword = '';
     let negativeScalePrompt = '';
     if (detectedScale === 'small') {
-      scaleKeyword = '[MICRO-KOMON DITSY REPEAT] ultra-dense micro pattern, tiny delicate scattered motifs, miniature scale elements covering the entire surface without large gaps';
+      scaleKeyword = '[SCALE: ULTRA-DENSE MICRO-KOMON] Miniature delicate scattered motifs (15mm scale), dozens of tiny repeating elements densely filling the surface without giant focal hero elements.';
       negativeScalePrompt = 'giant motifs, oversized subjects, single hero illustration, close-up, large empty space, huge animal, massive single object, portrait composition';
     } else if (detectedScale === 'large') {
-      scaleKeyword = '[BOLD MODERN STATEMENT PATTERN] extremely large scale pattern, giant prominent artistic motifs, macro layout, bold composition';
+      scaleKeyword = '[SCALE: BOLD STATEMENT MACRO PATTERN] Large prominent artistic motifs (100mm+ scale), bold impactful composition with striking presence.';
       negativeScalePrompt = 'tiny micro pattern, crowded ditsy print, dozens of small dots, miniature clutter';
     } else {
-      scaleKeyword = '[BALANCED TRADITIONAL SCALE] medium scale balanced repeating pattern, well-proportioned evenly distributed motifs';
+      scaleKeyword = '[SCALE: BALANCED CLASSIC KIMONO PATTERN] Medium-scale harmonious repeating motifs (40mm-50mm scale), classic Japanese kimono rhythm.';
       negativeScalePrompt = 'giant single portrait, micro dot clutter, single focal hero';
     }
 
+    // 2. 柄の向き・天地（Direction / Orientation）の超強力な判定と強制
     const isScarfMode = motif.includes('スカーフ') || motif.toLowerCase().includes('scarf');
     const isOtaiko = density.includes('お太鼓柄');
-    
-    let directionKeyword = '';
+    const isShiho = density.includes('四方') || density.includes('天地無用') || (!isScarfMode && !isOtaiko && (density.includes('四方') || itemType === 'kimono'));
+    const isUpright = density.includes('一方向') || density.includes('上向き');
+
+    let directionHeading = '';
+    let directionEnforcement = '';
+    let negativeDirectionPrompt = '';
+
     if (isScarfMode) {
-      directionKeyword = 'Perfectly balanced square framed composition for a luxury silk scarf (Carré). Clean solid unpatterned margin around the absolute outer edge for sewing allowance. Highly ornate decorative square border inside. Majestic central focal medallion. DO NOT tile.';
+      directionHeading = 'LUXURY SILK SCARF (CARRÉ) FRAMED COMPOSITION';
+      directionEnforcement = 'Perfect square framed composition with solid outer margin and central ornate medallion. DO NOT tile.';
     } else if (isOtaiko) {
-      directionKeyword = 'Non-seamless centered panel design. A single magnificent focal motif placed in the upper center. Vast seamless textured background.';
-    } else if (density.includes('四方柄') || density.includes('天地無用') || body.itemType === 'kimono') {
-      directionKeyword = '[MULTI-DIRECTIONAL TOSSED PATTERN] Motifs must be randomly rotated facing ALL different angles (up, down, left, right, diagonal). Seamless all-over non-directional layout. NO definitive top or bottom.';
-    } else if (density.includes('一方向') || body.itemType === 'hanhaba') {
-      directionKeyword = '[ONE-DIRECTIONAL UPRIGHT PATTERN] All motifs must stand perfectly upright, facing TOP. Bottom-to-top orientation. Vertical alignment.';
+      directionHeading = 'OTAIKO DRUM ACCENT PANEL';
+      directionEnforcement = 'Non-seamless centered panel design with a single magnificent focal motif placed in upper center.';
+    } else if (isShiho && !isUpright) {
+      // 四方柄（天地無用）
+      directionHeading = 'OMNIDIRECTIONAL MULTI-DIRECTIONAL TOSSED PATTERN (CHIRA-SHI)';
+      directionEnforcement = `CRITICAL MANDATORY ORIENTATION:
+Every motif MUST be randomly rotated and tossed in ALL possible angles (0°, 90°, 180°, 270°, and diagonals).
+AT LEAST HALF OF ALL MOTIFS MUST BE COMPLETELY UPSIDE-DOWN (INVERTED 180 DEGREES) AND SIDEWAYS.
+Do NOT draw animals or objects standing straight up.
+Tumble and scatter the motifs chaotically so the pattern looks identical whether viewed right-side-up, upside-down, or from the side. Zero top, zero bottom.`;
+      negativeDirectionPrompt = 'all upright, all facing up, single direction, uniform orientation, upright standing animals, standing upright, vertically aligned, heads up only';
     } else {
-      directionKeyword = 'Seamless all-over repeat layout.';
+      // 一方向（上向き）
+      directionHeading = 'STRICT ONE-DIRECTIONAL UPRIGHT REPEAT PATTERN';
+      directionEnforcement = `CRITICAL MANDATORY ORIENTATION:
+All motifs MUST face straight UP towards the top edge. Perfect vertical upright alignment, bottom-to-top orientation. No inverted motifs.`;
+      negativeDirectionPrompt = 'upside down, inverted, sideways, tilted, upside down animals, random rotation';
     }
 
     const tasteDetail = TASTE_PROMPTS[tasteMode] || TASTE_PROMPTS['katazome'];
@@ -198,11 +218,13 @@ export async function POST(req: Request) {
 Strictly MATURE, SOPHISTICATED, ARTISAN-CRAFTED high-end kimono textile aesthetic.
 ABSOLUTELY NO kawaii, NO pastel, NO chibi, NO childish, NO fluffy, NO cartoon, NO anime, NO fairy tale, NO soft glowing gradient.
 Zero gradients, zero shadows. Top-down 2D flat orthogonal surface only. NO humans, NO mockups, NO 3D perspective.
-Negative constraints: ${negativeScalePrompt}, sweet cute elements, childish doodle.`;
+Negative constraints: ${negativeScalePrompt}, ${negativeDirectionPrompt}, sweet cute elements, childish doodle.`;
 
-    const prompt = `Flat 2D continuous textile pattern for Japanese kimono and obi fabric. 
+    const prompt = `[${directionHeading}]
+${directionEnforcement}
 ${scaleKeyword}
-${directionKeyword}
+
+Flat 2D continuous seamless textile pattern for Japanese kimono and obi fabric.
 
 【Motifs】
 ${englishMotif} (${cleanMotifForTranslation})
