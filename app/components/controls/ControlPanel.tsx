@@ -86,11 +86,11 @@ const TASTE_MODES = [
 ];
 
 const LOADING_STEPS = [
-  '思い描いた意匠から、図案のアイデアを練り上げています...',
-  '色や柄の調和を組み合わせ、反物のイメージを整えています...',
-  '柄のつなぎ目は仕立て時にスタッフが整えますので、自由な妄想をお楽しみください...',
-  '今回の図案イメージを準備しています...',
-  'もう少しで、図案帖に仕上がります...',
+  '思い描いた意匠から、図案の骨格を練り上げています...',
+  'モチーフの配置と四方への回転角度を計算しています...',
+  '染めと織りの質感をピクセル単位で緻密に描き込んでいます...',
+  '反物全体のバランスと発色を整えています...',
+  '最終仕上げ中。まもなく図案帖に仕上がります...',
 ];
 
 const RECIPES = [
@@ -230,13 +230,10 @@ export default function ControlPanel({
   };
 
   useEffect(() => {
-    if (itemType === 'kimono') {
-      if (density !== '四方柄（天地無用・40cm最適化）') setDensity('四方柄（天地無用・40cm最適化）');
-    } else if (itemType === 'hanhaba') {
-      if (density !== '一方向リピート（上向き総柄・18cm最適化）') setDensity('一方向リピート（上向き総柄・18cm最適化）');
-    } else if (itemType === 'kyobukuro') {
-      const validOptions = ['総柄（小紋タイプ・34cm最適化）', 'お太鼓柄（ワンポイント主役パネル）', 'スカーフ柄（額縁スクエアパネル）'];
-      if (!validOptions.includes(density)) setDensity('総柄（小紋タイプ・34cm最適化）');
+    if (!density) {
+      if (itemType === 'kimono') setDensity('四方柄（天地無用）');
+      else if (itemType === 'hanhaba') setDensity('一方向（上向き）');
+      else setDensity('総柄（小紋タイプ）');
     }
   }, [itemType, density, setDensity]);
 
@@ -312,7 +309,7 @@ export default function ControlPanel({
               </div>
             </div>
 
-            {/* ★【NEW】大人の4大テイストモード（甘さ根絶セレクター） ★ */}
+            {/* 02. 図案のテイスト */}
             <div className="pt-4 border-t border-zinc-100">
               <div className="flex justify-between items-baseline mb-2">
                 <label className="block text-xs font-bold text-zinc-900 tracking-wider">
@@ -331,7 +328,7 @@ export default function ControlPanel({
                       onClick={() => setTasteMode?.(tm.id)}
                       className={`p-2 rounded border text-left transition-all ${
                         isSelected
-                          ? 'bg-zinc-900 text-white border-zinc-900 shadow-sm'
+                          ? 'bg-zinc-900 text-white border-zinc-900 shadow-sm ring-1 ring-zinc-900'
                           : 'bg-white text-zinc-800 border-zinc-200 hover:bg-zinc-50'
                       }`}
                     >
@@ -515,60 +512,72 @@ export default function ControlPanel({
               </div>
             </div>
 
-            {/* 07. 柄の配置 */}
+            {/* 07. 柄の向き・天地（自由選択） */}
             <div className="pt-4 border-t border-zinc-200 mt-2">
-              <div className="flex justify-between items-baseline mb-1.5">
+              <div className="flex justify-between items-baseline mb-2">
                 <label className="block text-xs font-bold text-zinc-800 tracking-wider">
-                  07. 柄の配置
+                  07. 柄の向き（天地）
                 </label>
-                <span className="text-[10px] font-bold text-zinc-500">
-                  {itemType === 'kimono' && '着物：40cm幅に最適化'}
-                  {itemType === 'hanhaba' && '半幅帯：18cm幅に最適化'}
-                  {itemType === 'kyobukuro' && '京袋帯：34cm幅に最適化'}
+                <span className="text-[10px] text-zinc-500">
+                  {density.includes('四方') ? '🔄 上下左右ランダム（着物推奨）' : '⬆️ 上向き整列（帯推奨）'}
                 </span>
               </div>
 
-              {itemType === 'kimono' && (
-                <div className="flex flex-col gap-1.5">
-                  <div className="py-2.5 px-3 bg-zinc-900 text-white text-[11px] font-bold tracking-wider rounded-sm shadow border border-zinc-900 flex items-center justify-between">
-                    <span>四方柄（天地無用・ランダム回転）</span>
-                    <span className="text-[9px] bg-zinc-700 px-1.5 py-0.5 rounded text-zinc-200">自動固定</span>
-                  </div>
+              {itemType === 'kyobukuro' ? (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
+                  {[
+                    { id: '四方柄（天地無用）', label: '四方柄', sub: '天地無用・ランダム' },
+                    { id: 'お太鼓柄（ワンポイント主役パネル）', label: 'お太鼓柄', sub: '中央主役' },
+                    { id: 'スカーフ柄（額縁スクエアパネル）', label: 'スカーフ柄', sub: 'Carré額縁' },
+                  ].map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setDensity(item.id)}
+                      className={`py-2 px-2 text-center border rounded-sm transition-all shadow-sm flex flex-col items-center justify-center ${
+                        density.includes(item.label) 
+                          ? 'bg-zinc-900 text-white border-zinc-900 ring-1 ring-zinc-900' 
+                          : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50'
+                      }`}
+                    >
+                      <span className="text-[11px] font-black">{item.label}</span>
+                      <span className="text-[8px] opacity-75 mt-0.5">{item.sub}</span>
+                    </button>
+                  ))}
                 </div>
-              )}
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setDensity('四方柄（天地無用）')}
+                    className={`py-2.5 px-3 border rounded-sm transition-all shadow-sm flex flex-col items-center justify-center text-center ${
+                      density.includes('四方') || density.includes('天地無用')
+                        ? 'bg-zinc-900 text-white border-zinc-900 ring-1 ring-zinc-900'
+                        : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50'
+                    }`}
+                  >
+                    <span className="text-[11px] font-bold flex items-center gap-1">
+                      <span>🔄</span>
+                      <span>四方柄（天地無用）</span>
+                    </span>
+                    <span className="text-[8.5px] opacity-75 mt-0.5">上下左右逆さま・着物向け</span>
+                  </button>
 
-              {itemType === 'hanhaba' && (
-                <div className="flex flex-col gap-1.5">
-                  <div className="py-2.5 px-3 bg-zinc-900 text-white text-[11px] font-bold tracking-wider rounded-sm shadow border border-zinc-900 flex items-center justify-between">
-                    <span>一方向リピート（上向き総柄）</span>
-                    <span className="text-[9px] bg-zinc-700 px-1.5 py-0.5 rounded text-zinc-200">自動固定</span>
-                  </div>
-                </div>
-              )}
-
-              {itemType === 'kyobukuro' && (
-                <div className="flex flex-col gap-2">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
-                    {[
-                      { id: '総柄（小紋タイプ・34cm最適化）', label: '総柄', sub: '連続小紋' },
-                      { id: 'お太鼓柄（ワンポイント主役パネル）', label: 'お太鼓柄', sub: '中央主役' },
-                      { id: 'スカーフ柄（額縁スクエアパネル）', label: 'スカーフ柄', sub: 'Carré額縁' },
-                    ].map((item) => (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => setDensity(item.id)}
-                        className={`py-2 px-2 text-center border rounded-sm transition-all shadow-sm flex flex-col items-center justify-center ${
-                          density === item.id 
-                            ? 'bg-zinc-900 text-white border-zinc-900 ring-1 ring-zinc-900' 
-                            : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50'
-                        }`}
-                      >
-                        <span className="text-[11px] font-black">{item.label}</span>
-                        <span className="text-[8px] opacity-75 mt-0.5">{item.sub}</span>
-                      </button>
-                    ))}
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setDensity('一方向（上向き）')}
+                    className={`py-2.5 px-3 border rounded-sm transition-all shadow-sm flex flex-col items-center justify-center text-center ${
+                      density.includes('一方向') || density.includes('上向き')
+                        ? 'bg-zinc-900 text-white border-zinc-900 ring-1 ring-zinc-900'
+                        : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50'
+                    }`}
+                  >
+                    <span className="text-[11px] font-bold flex items-center gap-1">
+                      <span>⬆️</span>
+                      <span>一方向（上向き）</span>
+                    </span>
+                    <span className="text-[8.5px] opacity-75 mt-0.5">すべて頭が上・帯向け</span>
+                  </button>
                 </div>
               )}
             </div>
@@ -815,7 +824,7 @@ export default function ControlPanel({
                 </div>
               )}
 
-              {/* ★ ボタン③：チケットコードで丁寧に作る（ゴールド王冠SVG・Pro品質化） ★ */}
+              {/* ボタン③：チケットコードで丁寧に作る */}
               <div className="p-3.5 bg-zinc-50 border border-zinc-200 rounded-sm space-y-2.5 relative z-10">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                   <div className="flex items-center gap-2">
@@ -866,7 +875,6 @@ export default function ControlPanel({
                     disabled={loading || !premiumCode.trim()}
                     className="px-3.5 py-2.5 bg-gradient-to-r from-zinc-900 to-zinc-950 hover:from-black hover:to-zinc-900 disabled:from-zinc-200 disabled:to-zinc-200 disabled:text-zinc-400 text-white text-xs font-bold rounded-sm shadow-md transition-all whitespace-nowrap min-w-[180px] text-center flex items-center justify-center gap-1.5 border border-amber-500/40"
                   >
-                    {/* 王冠SVGアイコン */}
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0">
                       <path d="M2 19H22V21H2V19ZM2 5L7 11L12 3L17 11L22 5V17H2V5Z" fill="#fbbf24"/>
                     </svg>
@@ -892,16 +900,34 @@ export default function ControlPanel({
                 )}
               </div>
 
+              {/* リッチプログレスローディング */}
               {loading && (
-                <div className="p-4 bg-zinc-50 border border-zinc-300 rounded-sm shadow-sm flex items-start gap-3.5 animate-fade-in my-3">
-                  <div className="w-5 h-5 border-2 border-zinc-300 border-t-zinc-900 rounded-full animate-spin shrink-0 mt-0.5" />
-                  <div className="flex-1 space-y-1">
-                    <p className="text-xs sm:text-sm font-bold text-zinc-900 leading-relaxed">
-                      {LOADING_STEPS[loadingStep % LOADING_STEPS.length]}
-                    </p>
-                    <p className="text-[10px] text-zinc-500 leading-normal">
-                      AIが図案の調合を行っています。画面を閉じず、そのまま少々お待ちください。
-                    </p>
+                <div className="p-4 sm:p-5 bg-zinc-900 border border-zinc-800 rounded-sm shadow-2xl flex flex-col gap-3 animate-fade-in my-3 relative overflow-hidden text-left">
+                  <div className="flex items-center gap-3 relative z-10">
+                    <div className="w-5 h-5 border-2 border-zinc-600 border-t-amber-400 rounded-full animate-spin shrink-0" />
+                    <div className="flex-1">
+                      <p className="text-xs sm:text-sm font-bold text-white tracking-wider leading-snug">
+                        {LOADING_STEPS[loadingStep % LOADING_STEPS.length]}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden relative z-10">
+                    <div 
+                      className="h-full bg-gradient-to-r from-amber-600 to-amber-400 transition-all duration-[3000ms] ease-out"
+                      style={{ width: `${Math.min(100, (loadingStep + 1) * 22)}%` }}
+                    />
+                  </div>
+
+                  <div className="text-[10px] text-zinc-400 leading-normal relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                    <span>
+                      {generatingMode === 'flux' 
+                        ? '⚡ ラフスケッチを高速生成中（数秒で完了）' 
+                        : '💎 超高精度で細部の織りまで描出中（約10〜15秒）'}
+                    </span>
+                    <span className="text-amber-400 font-bold animate-pulse">
+                      画面を閉じずにお待ちください
+                    </span>
                   </div>
                 </div>
               )}
@@ -974,7 +1000,7 @@ export default function ControlPanel({
                 </div>
               </div>
 
-              {/* ★ 【最重要主役CTA】妄想を現実に ボタン（深紅・反物SVG・カート下見） ★ */}
+              {/* 妄想を現実に ボタン */}
               <div>
                 <a 
                   href="#" 
@@ -982,7 +1008,6 @@ export default function ControlPanel({
                   className="block w-full py-4 mt-2 text-center bg-[#8b1e2a] hover:bg-[#721822] text-white text-[15px] font-black tracking-widest transition-all shadow-xl hover:shadow-2xl hover:scale-[1.01] rounded-sm border border-red-900"
                 >
                   <div className="flex items-center justify-center gap-2">
-                    {/* 反物ロールSVG */}
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-amber-300">
                       <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
                     </svg>
