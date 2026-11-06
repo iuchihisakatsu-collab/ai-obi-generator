@@ -1,4 +1,3 @@
-// app/page.tsx
 'use client';
 
 export const dynamic = 'force-dynamic';
@@ -120,7 +119,7 @@ function HomeContent() {
   const [mockupSubmitting, setMockupSubmitting] = useState<boolean>(false);
   
   const [isNoticeOpen, setIsNoticeOpen] = useState<boolean>(false);
-  const [isPolicyOpen, setIsPolicyOpen] = useState<boolean>(false); // ★ ポリシーモーダルの状態管理
+  const [isPolicyOpen, setIsPolicyOpen] = useState<boolean>(false);
 
   const [copiedPromptType, setCopiedPromptType] = useState<'seamless' | 'centered' | null>(null);
 
@@ -995,6 +994,29 @@ function HomeContent() {
                 <p className="text-[11px] sm:text-xs leading-relaxed text-zinc-600">
                   AIはあくまで「絵が描けない方・アイデアを広げたい方」のための補助ツールです。ご自身でイラストやデザインを描かれるクリエイター様向けの「完全オリジナルデータ入稿（AI非使用）」も、当店の主力サービスとして今後も大切に承ってまいります。
                 </p>
+              </div>
+            </div>
+            
+            {/* ★ ここに追加した note リンク ★ */}
+            <div className="px-5 sm:px-6 pb-2">
+              <div className="pt-4 border-t border-zinc-200 flex flex-col gap-2">
+                <p className="text-[10px] sm:text-[11px] text-zinc-500 leading-relaxed font-bold">
+                  💡 なぜこのツールを作ったのか？
+                </p>
+                <p className="text-[10px] text-zinc-500 leading-relaxed mb-1">
+                  AI活用に関する当店のスタンスや、クリエイター様への想い、そして過去の経緯につきましては、店主のnoteでも詳しくお話ししております。
+                </p>
+                <a
+                  href="https://note.com/gofukuyasan/n/nefe580fa50f4"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-[11px] font-bold text-zinc-800 hover:text-red-700 underline transition-colors"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line>
+                  </svg>
+                  note記事：ゴフクヤサンのAI活用とスタンスについて ＞
+                </a>
               </div>
             </div>
             
