@@ -76,6 +76,8 @@ interface ControlPanelProps {
   premiumCode: string;
   setPremiumCode: (val: string) => void;
   premiumStatusMsg: string;
+  
+  onOpenPolicy: () => void;
 }
 
 const TASTE_MODES = [
@@ -174,6 +176,7 @@ export default function ControlPanel({
   imageUrl, patternTitle, setPatternTitle, serialNumber,
   handleDownloadOriginal, handleOrderClick,
   premiumCode, setPremiumCode, premiumStatusMsg,
+  onOpenPolicy,
 }: ControlPanelProps) {
 
   const [analyzingPhoto, setAnalyzingPhoto] = useState(false);
@@ -744,17 +747,31 @@ export default function ControlPanel({
         <div className="space-y-4 mt-6">
           {creationMode === 'ai' && (
             <div className="pt-6 border-t border-zinc-200 space-y-3">
-              <label className="flex items-start gap-2.5 cursor-pointer select-none mb-2 group relative z-10">
-                <input 
-                  type="checkbox" 
-                  checked={agreed} 
-                  onChange={(e) => setAgreed(e.target.checked)} 
-                  className="mt-0.5 h-3.5 w-3.5 border-zinc-300 text-zinc-900 focus:ring-zinc-900 transition-colors cursor-pointer" 
-                />
-                <span className="text-[10px] text-zinc-500 leading-tight group-hover:text-zinc-800 transition-colors">
-                  生成図案は意匠のアイデアです。実際の生地制作時はスタッフが目視で柄のつなぎ目（送り）をきれいに調整することに同意します。
-                </span>
-              </label>
+              <div className="flex flex-col gap-2 mb-2">
+                <label className="flex items-start gap-2.5 cursor-pointer select-none group relative z-10">
+                  <input 
+                    type="checkbox" 
+                    checked={agreed} 
+                    onChange={(e) => setAgreed(e.target.checked)} 
+                    className="mt-0.5 h-3.5 w-3.5 border-zinc-300 text-zinc-900 focus:ring-zinc-900 transition-colors cursor-pointer" 
+                  />
+                  <span className="text-[10px] text-zinc-500 leading-tight group-hover:text-zinc-800 transition-colors">
+                    生成図案は意匠のアイデアです。実際の生地制作時はスタッフが目視で柄のつなぎ目（送り）をきれいに調整することに同意します。
+                  </span>
+                </label>
+                
+                {/* ★ 著作権・AIポリシー案内ボタン ★ */}
+                <button 
+                  type="button" 
+                  onClick={onOpenPolicy} 
+                  className="text-[10px] font-bold text-zinc-500 hover:text-zinc-900 underline text-left flex items-center gap-1 ml-6"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-700">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                  </svg>
+                  当店のAI・著作権ポリシーと安心への取り組み
+                </button>
+              </div>
               
               {errorMsg && (
                 <div className="p-3 bg-red-50 text-red-600 border border-red-200 text-xs font-bold shadow-sm">
