@@ -1,3 +1,4 @@
+// app/page.tsx
 'use client';
 
 export const dynamic = 'force-dynamic';
@@ -117,7 +118,9 @@ function HomeContent() {
   const [serialNumber, setSerialNumber] = useState<string>('KOMON-INIT');
   const [patternTitle, setPatternTitle] = useState<string>('月夜のピアノと黒猫');
   const [mockupSubmitting, setMockupSubmitting] = useState<boolean>(false);
+  
   const [isNoticeOpen, setIsNoticeOpen] = useState<boolean>(false);
+  const [isPolicyOpen, setIsPolicyOpen] = useState<boolean>(false); // ★ ポリシーモーダルの状態管理
 
   const [copiedPromptType, setCopiedPromptType] = useState<'seamless' | 'centered' | null>(null);
 
@@ -867,6 +870,17 @@ function HomeContent() {
 
               {imageUrl && !imageUrl.includes('sample_piano_cat') && (
                 <div className="border-t border-zinc-200 pt-4 flex flex-col gap-2">
+                  <button 
+                    type="button" 
+                    onClick={() => setIsPolicyOpen(true)} 
+                    className="text-[10px] font-bold text-zinc-500 hover:text-zinc-900 underline text-center flex items-center justify-center gap-1 mb-2"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-700">
+                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    </svg>
+                    当店のAI・著作権ポリシーと安心への取り組み
+                  </button>
+
                   <button
                     type="button"
                     onClick={handleDownloadOriginal}
@@ -922,12 +936,76 @@ function HomeContent() {
                 handleDownloadOriginal={handleDownloadOriginal} handleOrderClick={handleOrderClick}
                 premiumCode={premiumCode} setPremiumCode={setPremiumCode}
                 premiumStatusMsg={premiumStatusMsg}
+                onOpenPolicy={() => setIsPolicyOpen(true)}
               />
             </div>
           )}
 
         </div>
       </div>
+
+      {/* ★ AI・著作権ポリシー モーダル ★ */}
+      {isPolicyOpen && (
+        <div className="fixed inset-0 z-[99999] bg-zinc-950/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in" onClick={() => setIsPolicyOpen(false)}>
+          <div className="bg-white rounded-md shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto relative" onClick={e => e.stopPropagation()}>
+            <div className="bg-zinc-900 p-4 sticky top-0 z-10 flex justify-between items-center">
+              <h3 className="text-sm font-bold text-white tracking-wider flex items-center gap-2">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-400">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+                当店のAI・著作権ポリシーと安心への取り組み
+              </h3>
+              <button onClick={() => setIsPolicyOpen(false)} className="text-zinc-400 hover:text-white">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 6L6 18M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="p-5 sm:p-6 space-y-5 text-zinc-800">
+              <p className="text-[11px] sm:text-xs leading-relaxed text-zinc-600 mb-2">
+                「妄想きもの図案帳」をご利用いただきありがとうございます。クリエイターの皆様、そしてすべての利用者の皆様に安心してお使いいただけるよう、当店の明確なポリシーをお約束いたします。
+              </p>
+              
+              <div className="p-4 bg-zinc-50 border border-zinc-200 rounded-sm">
+                <h4 className="font-bold text-xs sm:text-sm text-zinc-900 mb-2 flex items-center gap-2">
+                  <span className="bg-zinc-900 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px]">1</span>
+                  AI学習への無断利用は一切行いません
+                </h4>
+                <p className="text-[11px] sm:text-xs leading-relaxed text-zinc-600">
+                  お預かりした画像や入力されたプロンプトが、AIの学習データとして無断で使われることは絶対にありません。当ツールが連携しているAIシステム（API）は、入力データがモデル学習に利用されないセキュアな設計となっております。クリエイター様の権利と大切な作品データを固く守ります。
+                </p>
+              </div>
+
+              <div className="p-4 bg-zinc-50 border border-zinc-200 rounded-sm">
+                <h4 className="font-bold text-xs sm:text-sm text-zinc-900 mb-2 flex items-center gap-2">
+                  <span className="bg-zinc-900 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px]">2</span>
+                  セーフティ機能と「人の目」による厳格なチェック
+                </h4>
+                <p className="text-[11px] sm:text-xs leading-relaxed text-zinc-600">
+                  システム内部で「NGワードブロック」および「AI側の公序良俗フィルター」が常に稼働しております。さらに、お仕立てへ進むデータはすべて、<strong>製作前に熟練スタッフが必ず目視確認</strong>いたします。既存のキャラクターや著名な作品など、第三者の著作権や商標権を侵害する恐れがある図案につきましては、厳格に製作をお断りさせていただきます。
+                </p>
+              </div>
+
+              <div className="p-4 bg-zinc-50 border border-zinc-200 rounded-sm">
+                <h4 className="font-bold text-xs sm:text-sm text-zinc-900 mb-2 flex items-center gap-2">
+                  <span className="bg-zinc-900 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px]">3</span>
+                  「完全オリジナルデータ」でのご入稿も引き続き大歓迎です
+                </h4>
+                <p className="text-[11px] sm:text-xs leading-relaxed text-zinc-600">
+                  AIはあくまで「絵が描けない方・アイデアを広げたい方」のための補助ツールです。ご自身でイラストやデザインを描かれるクリエイター様向けの「完全オリジナルデータ入稿（AI非使用）」も、当店の主力サービスとして今後も大切に承ってまいります。
+                </p>
+              </div>
+            </div>
+            
+            <div className="p-4 bg-zinc-100 border-t border-zinc-200 text-center rounded-b-md">
+              <button onClick={() => setIsPolicyOpen(false)} className="px-8 py-2.5 bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-bold rounded shadow-sm transition-colors">
+                確認して閉じる
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {CURRENT_NOTICE.enabled && (
         <div className="w-full max-w-7xl px-4 py-8 mt-12 flex justify-center border-t border-zinc-200">
