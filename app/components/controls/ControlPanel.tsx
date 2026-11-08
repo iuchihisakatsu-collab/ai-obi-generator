@@ -64,16 +64,16 @@ interface ControlPanelProps {
   imageUrl: string;
   blobUrl: string;
 
-  remainingSketches: number;
-  setRemainingSketches: React.Dispatch<React.SetStateAction<number>>;
-  hasUsedFreeOpenAi: boolean;
-  setHasUsedFreeOpenAi: React.Dispatch<React.SetStateAction<boolean>>;
-  hasUsedFreeToday: boolean;
-  setHasUsedFreeToday: React.Dispatch<React.SetStateAction<boolean>>;
+  remainingCount?: number;
+  remainingFlux?: number;
+  remainingOpenAI?: number;
+  remainingSketches?: number;
+  hasUsedFreeOpenAi?: boolean;
+  ticketRemaining?: number | null;
+  setTicketRemaining?: React.Dispatch<React.SetStateAction<number | null>>;
+
   premiumCode: string;
   setPremiumCode: (code: string) => void;
-  ticketRemaining: number | null;
-  setTicketRemaining: React.Dispatch<React.SetStateAction<number | null>>;
 
   onGenerate: (engine: 'flux' | 'openai', mode: 'free' | 'premium') => void;
   handleOrderClick: (e: MouseEvent<HTMLAnchorElement>) => void;
@@ -104,9 +104,8 @@ export default function ControlPanel(props: ControlPanelProps) {
     statusText, setStatusText,
     patternTitle, setPatternTitle,
     serialNumber, imageUrl, blobUrl,
-    remainingSketches, setRemainingSketches,
-    hasUsedFreeOpenAi, setHasUsedFreeOpenAi,
-    hasUsedFreeToday, setHasUsedFreeToday,
+    remainingFlux, remainingOpenAI, remainingCount, remainingSketches,
+    hasUsedFreeOpenAi,
     premiumCode, setPremiumCode,
     ticketRemaining, setTicketRemaining,
     onGenerate, handleOrderClick
@@ -121,6 +120,10 @@ export default function ControlPanel(props: ControlPanelProps) {
   const [analyzeError, setAnalyzeError] = useState('');
 
   const [colorHistory, setColorHistory] = useState<{ name: string; hex: string; isDark: boolean }[][]>([]);
+
+  // 回数表示の安全な計算（どちらのProps名でも確実に表示）
+  const effectiveRemainingFlux = remainingFlux ?? remainingSketches ?? 15;
+  const effectiveRemainingOpenAI = remainingOpenAI ?? remainingCount ?? (hasUsedFreeOpenAi ? 0 : 1);
 
   const sampleTags = ['市松', '幾何学', '桜', '金魚', '七宝', 'モダン', '花鳥風月', '波', '唐草', 'アールデコ'];
 
@@ -216,11 +219,11 @@ export default function ControlPanel(props: ControlPanelProps) {
 
       if (data.success) {
         setPremiumCode(code);
-        setTicketRemaining(data.remaining);
+        setTicketRemaining?.(data.remaining);
         localStorage.setItem('mousou_premium_code', code);
       } else {
         setTicketError(data.error || '無効なコードです');
-        setTicketRemaining(null);
+        setTicketRemaining?.(null);
       }
     } catch (err: any) {
       setTicketError('通信エラーが発生しました');
@@ -232,7 +235,7 @@ export default function ControlPanel(props: ControlPanelProps) {
   const handleClearTicket = () => {
     setPremiumCode('');
     setTicketInput('');
-    setTicketRemaining(null);
+    setTicketRemaining?.(null);
     setTicketError('');
     localStorage.removeItem('mousou_premium_code');
   };
@@ -528,7 +531,7 @@ export default function ControlPanel(props: ControlPanelProps) {
                   </div>
                 </div>
 
-                {/* 05. スタイルアクセント */}
+                {/* 05. スタイルアクセント（修正：額縁スクエアスカーフ） */}
                 <div>
                   <div className="flex justify-between items-baseline mb-2">
                     <label className="block text-xs font-bold text-zinc-800 tracking-wider">
@@ -605,97 +608,97 @@ export default function ControlPanel(props: ControlPanelProps) {
                     </span>
                   </div>
 
-              {itemType === 'scarf' ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setDensity('額縁スクエアパネル（正方形1枚絵）')}
-                    className={`py-2.5 px-3 border rounded-sm transition-all shadow-sm flex flex-col items-center justify-center text-center ${
-                      density.includes('額縁') || density.includes('スクエア')
-                        ? 'bg-zinc-900 text-white border-zinc-900 ring-1 ring-zinc-900'
-                        : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50'
-                    }`}
-                  >
-                    <span className="text-[11px] font-bold flex items-center gap-1">
-                      <span>🧣</span>
-                      <span>額縁スクエア柄（推奨）</span>
-                    </span>
-                    <span className="text-[8.5px] opacity-75 mt-0.5">額縁パネル・正方形1枚絵</span>
-                  </button>
+                  {itemType === 'scarf' ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setDensity('額縁スクエアパネル（正方形1枚絵）')}
+                        className={`py-2.5 px-3 border rounded-sm transition-all shadow-sm flex flex-col items-center justify-center text-center ${
+                          density.includes('額縁') || density.includes('スクエア')
+                            ? 'bg-zinc-900 text-white border-zinc-900 ring-1 ring-zinc-900'
+                            : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50'
+                        }`}
+                      >
+                        <span className="text-[11px] font-bold flex items-center gap-1">
+                          <span>🧣</span>
+                          <span>額縁スクエア柄（推奨）</span>
+                        </span>
+                        <span className="text-[8.5px] opacity-75 mt-0.5">額縁パネル・正方形1枚絵</span>
+                      </button>
 
-                  <button
-                    type="button"
-                    onClick={() => setDensity('四方柄（天地無用）')}
-                    className={`py-2.5 px-3 border rounded-sm transition-all shadow-sm flex flex-col items-center justify-center text-center ${
-                      density.includes('四方') || density.includes('天地無用')
-                        ? 'bg-zinc-900 text-white border-zinc-900 ring-1 ring-zinc-900'
-                        : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50'
-                    }`}
-                  >
-                    <span className="text-[11px] font-bold flex items-center gap-1">
-                      <span>🔄</span>
-                      <span>総柄リピート</span>
-                    </span>
-                    <span className="text-[8.5px] opacity-75 mt-0.5">天地無用・全面シームレス小紋</span>
-                  </button>
-                </div>
-              ) : itemType === 'kyobukuro' ? (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
-                  {[
-                    { id: '四方柄（天地無用）', label: '四方柄', sub: '天地無用・ランダム' },
-                    { id: 'お太鼓柄（ワンポイント主役パネル）', label: 'お太鼓柄', sub: '中央主役' },
-                    { id: '額縁スクエアパネル（正方形1枚絵）', label: '額縁パネル', sub: '正方形1枚絵' },
-                  ].map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => setDensity(item.id)}
-                      className={`py-2 px-2 text-center border rounded-sm transition-all shadow-sm flex flex-col items-center justify-center ${
-                        density.includes(item.label) 
-                          ? 'bg-zinc-900 text-white border-zinc-900 ring-1 ring-zinc-900' 
-                          : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50'
-                      }`}
-                    >
-                      <span className="text-[11px] font-black">{item.label}</span>
-                      <span className="text-[8px] opacity-75 mt-0.5">{item.sub}</span>
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setDensity('四方柄（天地無用）')}
-                    className={`py-2.5 px-3 border rounded-sm transition-all shadow-sm flex flex-col items-center justify-center text-center ${
-                      density.includes('四方') || density.includes('天地無用')
-                        ? 'bg-zinc-900 text-white border-zinc-900 ring-1 ring-zinc-900'
-                        : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50'
-                    }`}
-                  >
-                    <span className="text-[11px] font-bold flex items-center gap-1">
-                      <span>🔄</span>
-                      <span>四方柄（天地無用）</span>
-                    </span>
-                    <span className="text-[8.5px] opacity-75 mt-0.5">上下左右逆さま・着物向け</span>
-                  </button>
+                      <button
+                        type="button"
+                        onClick={() => setDensity('四方柄（天地無用）')}
+                        className={`py-2.5 px-3 border rounded-sm transition-all shadow-sm flex flex-col items-center justify-center text-center ${
+                          density.includes('四方') || density.includes('天地無用')
+                            ? 'bg-zinc-900 text-white border-zinc-900 ring-1 ring-zinc-900'
+                            : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50'
+                        }`}
+                      >
+                        <span className="text-[11px] font-bold flex items-center gap-1">
+                          <span>🔄</span>
+                          <span>総柄リピート</span>
+                        </span>
+                        <span className="text-[8.5px] opacity-75 mt-0.5">天地無用・全面シームレス小紋</span>
+                      </button>
+                    </div>
+                  ) : itemType === 'kyobukuro' ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
+                      {[
+                        { id: '四方柄（天地無用）', label: '四方柄', sub: '天地無用・ランダム' },
+                        { id: 'お太鼓柄（ワンポイント主役パネル）', label: 'お太鼓柄', sub: '中央主役' },
+                        { id: '額縁スクエアパネル（正方形1枚絵）', label: '額縁パネル', sub: '正方形1枚絵' },
+                      ].map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => setDensity(item.id)}
+                          className={`py-2 px-2 text-center border rounded-sm transition-all shadow-sm flex flex-col items-center justify-center ${
+                            density.includes(item.label) 
+                              ? 'bg-zinc-900 text-white border-zinc-900 ring-1 ring-zinc-900' 
+                              : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50'
+                          }`}
+                        >
+                          <span className="text-[11px] font-black">{item.label}</span>
+                          <span className="text-[8px] opacity-75 mt-0.5">{item.sub}</span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setDensity('四方柄（天地無用）')}
+                        className={`py-2.5 px-3 border rounded-sm transition-all shadow-sm flex flex-col items-center justify-center text-center ${
+                          density.includes('四方') || density.includes('天地無用')
+                            ? 'bg-zinc-900 text-white border-zinc-900 ring-1 ring-zinc-900'
+                            : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50'
+                        }`}
+                      >
+                        <span className="text-[11px] font-bold flex items-center gap-1">
+                          <span>🔄</span>
+                          <span>四方柄（天地無用）</span>
+                        </span>
+                        <span className="text-[8.5px] opacity-75 mt-0.5">上下左右逆さま・着物向け</span>
+                      </button>
 
-                  <button
-                    type="button"
-                    onClick={() => setDensity('一方向（上向き）')}
-                    className={`py-2.5 px-3 border rounded-sm transition-all shadow-sm flex flex-col items-center justify-center text-center ${
-                      density.includes('一方向') || density.includes('上向き')
-                        ? 'bg-zinc-900 text-white border-zinc-900 ring-1 ring-zinc-900'
-                        : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50'
-                    }`}
-                  >
-                    <span className="text-[11px] font-bold flex items-center gap-1">
-                      <span>⬆️</span>
-                      <span>一方向（上向き）</span>
-                    </span>
-                    <span className="text-[8.5px] opacity-75 mt-0.5">すべて頭が上・帯向け</span>
-                  </button>
-                </div>
-              )}
+                      <button
+                        type="button"
+                        onClick={() => setDensity('一方向（上向き）')}
+                        className={`py-2.5 px-3 border rounded-sm transition-all shadow-sm flex flex-col items-center justify-center text-center ${
+                          density.includes('一方向') || density.includes('上向き')
+                            ? 'bg-zinc-900 text-white border-zinc-900 ring-1 ring-zinc-900'
+                            : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50'
+                        }`}
+                      >
+                        <span className="text-[11px] font-bold flex items-center gap-1">
+                          <span>⬆️</span>
+                          <span>一方向（上向き）</span>
+                        </span>
+                        <span className="text-[8.5px] opacity-75 mt-0.5">すべて頭が上・帯向け</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* 08. 日本の伝統色パレット */}
@@ -886,7 +889,7 @@ export default function ControlPanel(props: ControlPanelProps) {
               </div>
             )}
 
-            {/* 生成ボタン群（常時3つ配置） */}
+            {/* 生成ボタン群（修正：確実に数字が表示される設計） */}
             <div className="pt-4 border-t border-zinc-200 space-y-3">
               {creationMode === 'ai' ? (
                 <>
@@ -894,40 +897,40 @@ export default function ControlPanel(props: ControlPanelProps) {
                   <button
                     type="button"
                     onClick={() => onGenerate('flux', 'free')}
-                    disabled={loading || remainingSketches <= 0}
+                    disabled={loading || effectiveRemainingFlux <= 0}
                     className={`w-full py-3.5 px-4 rounded-sm text-sm font-black tracking-widest transition-all shadow-md flex items-center justify-center gap-2 ${
-                      loading || remainingSketches <= 0
+                      loading || effectiveRemainingFlux <= 0
                         ? 'bg-zinc-200 text-zinc-400 border border-zinc-300 cursor-not-allowed shadow-none'
                         : 'bg-zinc-900 text-white hover:bg-zinc-800 hover:shadow-lg active:scale-[0.99] border border-zinc-950'
                     }`}
                   >
                     <span>⚡</span>
-                    <span>スケッチモードで試す (本日残り {remainingSketches}回)</span>
+                    <span>スケッチモードで試す (本日残り {effectiveRemainingFlux}回)</span>
                   </button>
 
                   {/* ボタン②：OpenAI（無料枠 / 日次1回） */}
                   <button
                     type="button"
                     onClick={() => onGenerate('openai', 'free')}
-                    disabled={loading || hasUsedFreeOpenAi}
+                    disabled={loading || effectiveRemainingOpenAI <= 0}
                     className={`w-full py-3 px-4 rounded-sm text-xs font-black tracking-widest transition-all shadow-sm flex items-center justify-center gap-2 border ${
-                      loading || hasUsedFreeOpenAi
+                      loading || effectiveRemainingOpenAI <= 0
                         ? 'bg-zinc-100 text-zinc-400 border-zinc-200 cursor-not-allowed'
                         : 'bg-white text-zinc-900 border-zinc-900 hover:bg-zinc-50 hover:shadow active:scale-[0.99]'
                     }`}
                   >
                     <span>🌟</span>
-                    <span>丁寧に作るモードで試す (本日無料 {hasUsedFreeOpenAi ? '0' : '1'}回)</span>
+                    <span>丁寧に作るモードで試す (本日無料 {effectiveRemainingOpenAI}回)</span>
                   </button>
 
-                  {/* ボタン③：チケットコード枠（常時配置） */}
+                  {/* ボタン③：チケットコード枠 */}
                   <div className="p-3 bg-zinc-50 border border-zinc-300 rounded-sm space-y-2">
                     <div className="flex justify-between items-center">
                       <span className="text-[10px] font-black text-zinc-800 flex items-center gap-1">
                         <span>🎟️</span>
                         <span>プレミアムチケットコードをお持ちの方</span>
                       </span>
-                      {ticketRemaining !== null && (
+                      {ticketRemaining !== null && ticketRemaining !== undefined && (
                         <span className="text-[10px] font-black text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-300">
                           残り {ticketRemaining} 回
                         </span>
@@ -940,10 +943,10 @@ export default function ControlPanel(props: ControlPanelProps) {
                         value={ticketInput}
                         onChange={(e) => setTicketInput(e.target.value.toUpperCase())}
                         placeholder="GFK-XXXX-XXXX"
-                        disabled={ticketRemaining !== null}
+                        disabled={ticketRemaining !== null && ticketRemaining !== undefined}
                         className="flex-1 px-3 py-1.5 border border-zinc-300 rounded-sm text-xs font-mono uppercase focus:outline-none focus:ring-1 focus:ring-zinc-900 bg-white"
                       />
-                      {ticketRemaining !== null ? (
+                      {ticketRemaining !== null && ticketRemaining !== undefined ? (
                         <button
                           type="button"
                           onClick={handleClearTicket}
@@ -967,9 +970,9 @@ export default function ControlPanel(props: ControlPanelProps) {
                     <button
                       type="button"
                       onClick={() => onGenerate('openai', 'premium')}
-                      disabled={loading || ticketRemaining === null || ticketRemaining <= 0}
+                      disabled={loading || ticketRemaining === null || ticketRemaining === undefined || ticketRemaining <= 0}
                       className={`w-full py-2.5 px-4 rounded-sm text-xs font-black tracking-widest transition-all shadow-sm flex items-center justify-center gap-1.5 border ${
-                        loading || ticketRemaining === null || ticketRemaining <= 0
+                        loading || ticketRemaining === null || ticketRemaining === undefined || ticketRemaining <= 0
                           ? 'bg-zinc-200 text-zinc-400 border-zinc-300 cursor-not-allowed shadow-none'
                           : 'bg-gradient-to-r from-amber-700 via-amber-800 to-amber-900 text-white border-amber-950 hover:brightness-110 shadow-md active:scale-[0.99]'
                       }`}
@@ -980,7 +983,6 @@ export default function ControlPanel(props: ControlPanelProps) {
                   </div>
                 </>
               ) : (
-                /* 幾何学モード：即時生成 */
                 <button
                   type="button"
                   onClick={() => onGenerate('flux', 'free')}
