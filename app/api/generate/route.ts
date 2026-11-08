@@ -1,4 +1,3 @@
-// app/api/generate/route.ts
 import { NextResponse } from 'next/server';
 import { put } from '@vercel/blob';
 import { kv } from '@vercel/kv';
@@ -177,8 +176,8 @@ export async function POST(req: Request) {
       negativeScalePrompt = 'giant single portrait, micro dot clutter, single focal hero';
     }
 
-    // 2. 柄の向き・天地（Direction / Orientation）の超強力な判定と強制
-    const isScarfMode = motif.includes('スカーフ') || motif.toLowerCase().includes('scarf');
+    // 2. 柄の向き・天地（Direction / Orientation）判定（スカーフ判定を最優先連動）
+    const isScarfMode = itemType === 'scarf' || density.includes('スカーフ') || motif.includes('スカーフ') || motif.toLowerCase().includes('scarf');
     const isOtaiko = density.includes('お太鼓柄');
     const isShiho = density.includes('四方') || density.includes('天地無用') || (!isScarfMode && !isOtaiko && (density.includes('四方') || itemType === 'kimono'));
     const isUpright = density.includes('一方向') || density.includes('上向き');
@@ -194,7 +193,6 @@ export async function POST(req: Request) {
       directionHeading = 'OTAIKO DRUM ACCENT PANEL';
       directionEnforcement = 'Non-seamless centered panel design with a single magnificent focal motif placed in upper center.';
     } else if (isShiho && !isUpright) {
-      // 四方柄（天地無用）
       directionHeading = 'OMNIDIRECTIONAL MULTI-DIRECTIONAL TOSSED PATTERN (CHIRA-SHI)';
       directionEnforcement = `CRITICAL MANDATORY ORIENTATION:
 Every motif MUST be randomly rotated and tossed in ALL possible angles (0°, 90°, 180°, 270°, and diagonals).
@@ -203,7 +201,6 @@ Do NOT draw animals or objects standing straight up.
 Tumble and scatter the motifs chaotically so the pattern looks identical whether viewed right-side-up, upside-down, or from the side. Zero top, zero bottom.`;
       negativeDirectionPrompt = 'all upright, all facing up, single direction, uniform orientation, upright standing animals, standing upright, vertically aligned, heads up only';
     } else {
-      // 一方向（上向き）
       directionHeading = 'STRICT ONE-DIRECTIONAL UPRIGHT REPEAT PATTERN';
       directionEnforcement = `CRITICAL MANDATORY ORIENTATION:
 All motifs MUST face straight UP towards the top edge. Perfect vertical upright alignment, bottom-to-top orientation. No inverted motifs.`;
@@ -215,7 +212,7 @@ All motifs MUST face straight UP towards the top edge. Perfect vertical upright 
     const colorInstruction = (color && color !== 'おまかせ') ? `Main Color Theme: ${color}.` : 'Harmonious mature color palette.';
 
     const enforcement = `【STRICT QUALITY & FORMAT ENFORCEMENT】
-Strictly MATURE, SOPHISTICATED, ARTISAN-CRAFTED high-end kimono textile aesthetic.
+Strictly MATURE, SOPHISTICATED, ARTISAN-CRAFTED high-end textile aesthetic.
 ABSOLUTELY NO kawaii, NO pastel, NO chibi, NO childish, NO fluffy, NO cartoon, NO anime, NO fairy tale, NO soft glowing gradient.
 Zero gradients, zero shadows. Top-down 2D flat orthogonal surface only. NO humans, NO mockups, NO 3D perspective.
 Negative constraints: ${negativeScalePrompt}, ${negativeDirectionPrompt}, sweet cute elements, childish doodle.`;
@@ -224,7 +221,7 @@ Negative constraints: ${negativeScalePrompt}, ${negativeDirectionPrompt}, sweet 
 ${directionEnforcement}
 ${scaleKeyword}
 
-Flat 2D continuous seamless textile pattern for Japanese kimono and obi fabric.
+Flat 2D continuous textile pattern design.
 
 【Motifs】
 ${englishMotif} (${cleanMotifForTranslation})
@@ -237,6 +234,7 @@ ${colorInstruction}
 
 ${enforcement}`;
 
+    // FLUX 生成処理
     if (isFlux && process.env.FAL_KEY) {
       const falResponse = await fetch('https://queue.fal.run/fal-ai/flux/schnell', {
         method: 'POST',
@@ -268,6 +266,7 @@ ${enforcement}`;
       }
     }
 
+    // OpenAI 高精細生成
     const response = await openai.images.generate({
       model: "gpt-image-2.5-sunburst",
       prompt: prompt,
