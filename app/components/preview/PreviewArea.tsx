@@ -1,7 +1,7 @@
 // app/components/preview/PreviewArea.tsx
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { TRADITIONAL_COLORS } from '../../lib/constants';
 
 export interface PreviewAreaProps {
@@ -9,7 +9,7 @@ export interface PreviewAreaProps {
   blobUrl: string;
   rotatedPatternUrl: string;
   serialNumber: string;
-  itemType: 'hanhaba' | 'kyobukuro' | 'kimono';
+  itemType: 'hanhaba' | 'kyobukuro' | 'kimono' | 'scarf';
   displayMode: 'mockup' | 'trim' | 'data';
   creationMode: 'ai' | 'geometric';
   bgSizeMm: number;
@@ -31,96 +31,11 @@ export interface PreviewAreaProps {
   mockupSubmitting: boolean;
   previewRef: React.RefObject<HTMLDivElement | null>;
   previewContainerRef: React.RefObject<HTMLDivElement | null>;
-  handleItemTypeChange: (type: 'hanhaba' | 'kyobukuro' | 'kimono') => void;
+  handleItemTypeChange: (type: 'hanhaba' | 'kyobukuro' | 'kimono' | 'scarf') => void;
   setDisplayMode: (mode: 'mockup' | 'trim' | 'data') => void;
-  handleDownloadMapping: () => Promise<void>;
+  handleDownloadMapping: () => void;
   UNIVERSAL_SCALE_FACTOR: number;
 }
-
-const Icons = {
-  Hanhaba: () => (
-    <svg className="w-4 h-4 stroke-current fill-none stroke-[1.5]" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M4 8h16M4 16h16M7 8v8M17 8v8" />
-    </svg>
-  ),
-  Kyobukuro: () => (
-    <svg className="w-4 h-4 stroke-current fill-none stroke-[1.5]" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="4" y="4" width="16" height="16" rx="1.5" />
-      <path d="M4 10h16M10 10v10" />
-    </svg>
-  ),
-  Kimono: () => (
-    <svg className="w-4 h-4 stroke-current fill-none stroke-[1.5]" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 7l9-3 9 3v4l-4 1v9H7v-9L3 11V7z" />
-      <path d="M9 4v17M15 4v17" />
-    </svg>
-  ),
-  Zoom: () => (
-    <svg className="w-3.5 h-3.5 stroke-current fill-none stroke-[1.75]" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="11" cy="11" r="7" />
-      <path d="M21 21l-4.35-4.35M11 8v6M8 11h6" />
-    </svg>
-  ),
-  Download: () => (
-    <svg className="w-3.5 h-3.5 stroke-current fill-none stroke-[1.75]" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-      <polyline points="7 10 12 15 17 10" />
-      <line x1="12" y1="15" x2="12" y2="3" />
-    </svg>
-  ),
-  Scissors: () => (
-    <svg className="w-3.5 h-3.5 stroke-current fill-none stroke-[1.5]" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="6" cy="6" r="3" />
-      <circle cx="6" cy="18" r="3" />
-      <line x1="20" y1="4" x2="8.12" y2="15.88" />
-      <line x1="14.47" y1="14.48" x2="20" y2="20" />
-      <line x1="8.12" y1="8.12" x2="12" y2="12" />
-    </svg>
-  ),
-  Grid: () => (
-    <svg className="w-3.5 h-3.5 stroke-current fill-none stroke-[1.5]" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="3" width="18" height="18" rx="1" />
-      <path d="M3 9h18M3 15h18M9 3v18M15 3v18" />
-    </svg>
-  ),
-  Tune: () => (
-    <svg className="w-3.5 h-3.5 stroke-current fill-none stroke-[1.5]" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6" />
-    </svg>
-  ),
-  Copy: () => (
-    <svg className="w-3.5 h-3.5 stroke-current fill-none stroke-[1.5]" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="9" y="9" width="13" height="13" rx="2" />
-      <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
-    </svg>
-  ),
-  ArrowUp: () => (
-    <svg className="w-4 h-4 stroke-current fill-none stroke-[2]" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 19V5M5 12l7-7 7 7" />
-    </svg>
-  ),
-  Close: () => (
-    <svg className="w-4 h-4 stroke-current fill-none stroke-[2]" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M18 6L6 18M6 6l12 12" />
-    </svg>
-  ),
-  Move: () => (
-    <svg className="w-3.5 h-3.5 stroke-current fill-none stroke-[2]" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="5 9 2 12 5 15" />
-      <polyline points="9 5 12 2 15 5" />
-      <polyline points="19 9 22 12 19 15" />
-      <polyline points="9 19 12 22 15 19" />
-      <line x1="2" y1="12" x2="22" y2="12" />
-      <line x1="12" y1="2" x2="12" y2="22" />
-    </svg>
-  ),
-  CheckCircle: () => (
-    <svg className="w-5 h-5 stroke-current fill-none stroke-[2]" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-      <polyline points="22 4 12 14.01 9 11.01" />
-    </svg>
-  ),
-};
 
 export default function PreviewArea(props: PreviewAreaProps) {
   const {
@@ -143,77 +58,8 @@ export default function PreviewArea(props: PreviewAreaProps) {
   const [activeFloatPalette, setActiveFloatPalette] = useState<'lining' | 'haneri' | 'obiage' | 'obi' | 'hara' | null>(null);
   const [isZoomModalOpen, setIsZoomModalOpen] = useState<boolean>(false);
   const [showTuningPanel, setShowTuningPanel] = useState<boolean>(false);
-  const [showDownloadToast, setShowDownloadToast] = useState(false);
 
-  const [isScrolledPast, setIsScrolledPast] = useState<boolean>(false);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      if (!previewRef.current) return;
-      const rect = previewRef.current.getBoundingClientRect();
-      setIsScrolledPast(rect.bottom < 60);
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    handleScroll();
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [previewRef]);
-
-  const scrollToTop = () => {
-    previewRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
-
-  const onDownloadClick = async () => {
-    try {
-      await handleDownloadMapping();
-      setShowDownloadToast(true);
-      setTimeout(() => setShowDownloadToast(false), 6000);
-    } catch (error) {
-      console.error("ダウンロード中にエラーが発生しました", error);
-    }
-  };
-
-  const [floatPos, setFloatPos] = useState({ x: -16, y: -24 });
-  const [isDragging, setIsDragging] = useState(false);
-  const dragRef = useRef<{ startX: number, startY: number, initialX: number, initialY: number, hasMoved: boolean }>({
-    startX: 0, startY: 0, initialX: 0, initialY: 0, hasMoved: false
-  });
-
-  const handlePointerDown = (e: React.PointerEvent) => {
-    setIsDragging(true);
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    dragRef.current = {
-      startX: e.clientX,
-      startY: e.clientY,
-      initialX: floatPos.x,
-      initialY: floatPos.y,
-      hasMoved: false,
-    };
-  };
-
-  const handlePointerMove = (e: React.PointerEvent) => {
-    if (!isDragging) return;
-    const dx = e.clientX - dragRef.current.startX;
-    const dy = e.clientY - dragRef.current.startY;
-    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
-      dragRef.current.hasMoved = true;
-    }
-    setFloatPos({
-      x: dragRef.current.initialX + dx,
-      y: dragRef.current.initialY + dy,
-    });
-  };
-
-  const handlePointerUp = (e: React.PointerEvent) => {
-    setIsDragging(false);
-    try {
-      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
-    } catch {}
-    if (!dragRef.current.hasMoved) {
-      setIsZoomModalOpen(true);
-    }
-  };
-
+  // 1. 半幅帯パーツ定義
   const [hanhabaOffsets, setHanhabaOffsets] = useState([
     { id: '01_a', name: 'Layer01_a（奥羽・右側）', file: 'hanhaba_Layer01_a.png', z: 10, rot: 1,   scale: 111, x: 69, y: 50 },
     { id: '01_b', name: 'Layer01_b（奥羽・左下）', file: 'hanhaba_Layer01_b.png', z: 15, rot: 3,   scale: 100, x: 33, y: 50 },
@@ -224,12 +70,14 @@ export default function PreviewArea(props: PreviewAreaProps) {
     { id: '06',   name: 'Layer06（手前垂れ・基準）',file: 'hanhaba_Layer06.png',   z: 60, rot: -93, scale: 107, x: 74, y: 43 },
   ]);
 
+  // 2. 京袋帯パーツ定義
   const [kyobukuroOffsets, setKyobukuroOffsets] = useState([
     { id: 'hara',  name: '前腹（胴回り）', file: 'kyoubukurohara.png', z: 30, rot: 90, scale: 85,  x: 50,   y: 50 },
     { id: 'tare',  name: '垂れ先',         file: 'kyoubukurotare.png', z: 40, rot: -1, scale: 100, x: 76.5, y: 47 },
     { id: 'taiko', name: 'お太鼓',         file: 'kyoubukurotakio.png', z: 50, rot: 1,  scale: 100, x: 75.5, y: 47 },
   ]);
 
+  // 3. 着物パーツ定義
   const [kimonoOffsets, setKimonoOffsets] = useState([
     { id: 'usiromigoro', name: '後ろ身頃',     file: 'usiromigoro_75.png',   z: 2,  rot: -15, scale: 100, x: 50,   y: 50 },
     { id: 'hidarisode2', name: '左袖（奥）',   file: 'hidarisode2_175.png',  z: 3,  rot: 85,  scale: 100, x: 49,   y: 50 },
@@ -280,7 +128,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
         `\n  ];`;
     }
     navigator.clipboard.writeText(code);
-    alert(`【${itemType === 'hanhaba' ? '半幅帯' : itemType === 'kyobukuro' ? '京袋帯' : '着物'}】の確定コードをコピーしました。`);
+    alert(`【${itemType === 'hanhaba' ? '半幅帯' : itemType === 'kyobukuro' ? '京袋帯' : itemType === 'kimono' ? '着物' : 'スカーフ'}】の確定コードをコピーしました！`);
   };
 
   if (!imageUrl) return null;
@@ -293,6 +141,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
 
   const v = '32';
 
+  // 半幅帯マッピング描画
   const renderHanhabaLayers = () => (
     <div className="relative w-full h-full overflow-hidden">
       {hanhabaOffsets.map((layer) => (
@@ -363,6 +212,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
     </div>
   );
 
+  // 京袋帯マッピング描画
   const renderKyobukuroLayers = () => (
     <div className="relative w-full h-full overflow-hidden">
       <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 10 }}>
@@ -448,6 +298,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
     </div>
   );
 
+  // 着物マッピング描画
   const renderKimonoLayers = () => (
     <div className="relative w-full h-full overflow-hidden">
       <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 1 }}>
@@ -568,246 +419,257 @@ export default function PreviewArea(props: PreviewAreaProps) {
     </div>
   );
 
+  // ★ 4. スカーフ（100×100cm）マッピング描画
+  const renderScarfPreview = () => (
+    <div className="relative w-full h-full flex items-center justify-center p-3">
+      {/* 100cmスクエア スカーフ本体 */}
+      <div 
+        className="relative w-full h-full rounded-[2px] shadow-2xl overflow-hidden border border-zinc-400/60"
+        style={{
+          boxShadow: '0 20px 35px -10px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(0,0,0,0.08), inset 0 0 16px rgba(0,0,0,0.12)'
+        }}
+      >
+        {/* 背景テクスチャ・図案 */}
+        <div
+          className="w-full h-full"
+          style={{
+            backgroundImage: `url(${effectivePatternUrl})`,
+            backgroundSize: '100% 100%',
+            backgroundPosition: 'center center',
+            backgroundRepeat: 'no-repeat',
+            backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff',
+          }}
+        />
+
+        {/* 熟練職人の三巻き縫製（ハンドロール）シミュレーション枠 */}
+        <div 
+          className="absolute inset-0 pointer-events-none border-[3px] border-black/15 shadow-inner" 
+          style={{
+            boxShadow: 'inset 0 0 4px rgba(0,0,0,0.25), inset 0 0 12px rgba(255,255,255,0.1)'
+          }}
+        />
+
+        {/* ウール生地のやわらかな陰影・ドレープ感 */}
+        <div
+          className="absolute inset-0 pointer-events-none opacity-25 mix-blend-multiply"
+          style={{
+            background: 'radial-gradient(ellipse at 30% 30%, rgba(255,255,255,0.4) 0%, rgba(0,0,0,0.2) 70%, rgba(0,0,0,0.4) 100%)',
+          }}
+        />
+      </div>
+    </div>
+  );
+
   const currentOffsets = itemType === 'hanhaba'
     ? hanhabaOffsets
     : itemType === 'kyobukuro'
       ? kyobukuroOffsets
       : kimonoOffsets;
 
-  const itemLabel = itemType === 'hanhaba' ? '半幅帯' : itemType === 'kyobukuro' ? '京袋帯' : '着物';
-
   return (
-    <div ref={previewRef} className="w-full lg:w-1/2 shrink-0 sticky top-2 z-30 lg:top-8 flex flex-col gap-3 relative">
-      
-      {/* 保存完了トースト */}
-      {showDownloadToast && (
-        <div className="absolute top-4 left-4 right-4 z-[9999] animate-fade-in flex justify-center">
-          <div className="bg-stone-900 text-white p-4 rounded-lg shadow-2xl flex items-start gap-3 border border-stone-700 max-w-sm">
-            <div className="text-stone-300 shrink-0 mt-0.5">
-              <Icons.CheckCircle />
-            </div>
-            <div className="flex-1">
-              <h4 className="text-[13px] font-bold tracking-wider mb-1">画像が保存されました！</h4>
-              <p className="text-[11px] text-stone-300 leading-relaxed font-medium">
-                SNS等でご自由にお楽しみください。<br/>
-                投稿の際に <span className="font-bold text-white">#妄想きもの図案帳</span> か <span className="font-bold text-white">#ゴフクヤサン</span> をつけていただけると嬉しいです！
-              </p>
-            </div>
-            <button 
-              onClick={() => setShowDownloadToast(false)}
-              className="text-stone-400 hover:text-white p-1 -mt-1 -mr-1"
-            >
-              <Icons.Close />
-            </button>
-          </div>
-        </div>
-      )}
-
-      <div className="bg-white border border-stone-200 rounded-lg shadow-sm overflow-hidden animate-fade-in">
+    <div ref={previewRef} className="w-full lg:w-1/2 shrink-0 sticky top-2 z-30 lg:top-8 flex flex-col gap-3">
+      <div className="bg-white border border-zinc-300 shadow-xl overflow-hidden animate-fade-in">
         
-        {/* タイトル ＆ アイテム切替タブ */}
-        <div className="p-3 sm:p-4 bg-stone-900 border-b border-stone-800 text-center">
-          <div className="mb-4 flex flex-col items-center">
-            <h1 className="text-xl sm:text-2xl font-bold text-white tracking-[0.25em] font-serif leading-none ml-2">
-              妄想きもの図案帳
-            </h1>
-            <p className="text-[11px] sm:text-xs text-stone-300 mt-2.5 font-medium tracking-wide">
-              スマホで世界に１枚だけの着物や帯が作れるアプリ
-            </p>
-          </div>
-
-          <div className="grid grid-cols-3 gap-1.5 bg-stone-950 p-1 rounded-md border border-stone-800">
+        {/* アイテム切替 */}
+        <div className="px-3 py-2 bg-zinc-900 text-white flex items-center justify-between">
+          <span className="text-[10px] font-bold text-zinc-400 tracking-wider">仕立てアイテム：</span>
+          <div className="flex gap-1">
             <button
               type="button"
               onClick={() => { handleItemTypeChange('hanhaba'); setActiveFloatPalette(null); }}
-              className={`h-11 flex items-center justify-center gap-2 rounded text-xs font-bold transition-all ${
-                itemType === 'hanhaba'
-                  ? 'bg-white text-stone-950 shadow-md scale-[1.01]'
-                  : 'text-stone-300 hover:text-white hover:bg-stone-800/60'
+              className={`px-3 py-1 text-[11px] font-black rounded transition-all ${
+                itemType === 'hanhaba' ? 'bg-white text-zinc-950 shadow' : 'bg-zinc-800 text-zinc-400 hover:text-white'
               }`}
             >
-              <Icons.Hanhaba />
-              <span>半幅帯</span>
+              半幅帯
             </button>
-
             <button
               type="button"
               onClick={() => { handleItemTypeChange('kyobukuro'); setActiveFloatPalette(null); }}
-              className={`h-11 flex items-center justify-center gap-2 rounded text-xs font-bold transition-all ${
-                itemType === 'kyobukuro'
-                  ? 'bg-white text-stone-950 shadow-md scale-[1.01]'
-                  : 'text-stone-300 hover:text-white hover:bg-stone-800/60'
+              className={`px-3 py-1 text-[11px] font-black rounded transition-all ${
+                itemType === 'kyobukuro' ? 'bg-white text-zinc-950 shadow' : 'bg-zinc-800 text-zinc-400 hover:text-white'
               }`}
             >
-              <Icons.Kyobukuro />
-              <span>京袋帯</span>
+              京袋帯
             </button>
-
             <button
               type="button"
               onClick={() => { handleItemTypeChange('kimono'); setActiveFloatPalette(null); }}
-              className={`h-11 flex items-center justify-center gap-2 rounded text-xs font-bold transition-all ${
-                itemType === 'kimono'
-                  ? 'bg-white text-stone-950 shadow-md scale-[1.01]'
-                  : 'text-stone-300 hover:text-white hover:bg-stone-800/60'
+              className={`px-3 py-1 text-[11px] font-black rounded transition-all ${
+                itemType === 'kimono' ? 'bg-white text-zinc-950 shadow' : 'bg-zinc-800 text-zinc-400 hover:text-white'
               }`}
             >
-              <Icons.Kimono />
-              <span>着物</span>
+              着物
+            </button>
+            <button
+              type="button"
+              onClick={() => { handleItemTypeChange('scarf'); setActiveFloatPalette(null); }}
+              className={`px-3 py-1 text-[11px] font-black rounded transition-all ${
+                itemType === 'scarf' ? 'bg-white text-zinc-950 shadow' : 'bg-zinc-800 text-zinc-400 hover:text-white'
+              }`}
+            >
+              スカーフ
             </button>
           </div>
         </div>
 
-        {/* ★ 表示モード切替（cm記号化＆短縮・スマホ1行固定） ★ */}
-        <div className="px-2 sm:px-3 py-2 border-b border-stone-200 bg-stone-50 flex gap-1.5">
+        {/* 表示タブ */}
+        <div className="px-3 py-2 border-b border-zinc-200 bg-zinc-100 flex gap-1.5 overflow-x-auto">
           <button
             type="button"
             onClick={() => setDisplayMode('mockup')}
-            className={`flex-1 h-9 flex items-center justify-center gap-1 px-1 sm:px-2 text-[11px] font-bold tracking-wide transition-all border rounded whitespace-nowrap overflow-hidden ${
-              displayMode === 'mockup'
-                ? 'bg-stone-900 text-white border-stone-900 shadow-sm'
-                : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-100'
+            className={`flex-1 px-3 py-1.5 text-[10px] sm:text-xs font-bold tracking-wider transition-all border rounded-sm ${
+              displayMode === 'mockup' ? 'bg-zinc-900 text-white border-zinc-900 shadow' : 'bg-white text-zinc-600 border-zinc-300'
             }`}
           >
-            <span>{itemLabel}シミュレーション</span>
+            {itemType === 'hanhaba' && '半幅帯マッピング'}
+            {itemType === 'kyobukuro' && '京袋帯マッピング'}
+            {itemType === 'kimono' && '着物マッピング'}
+            {itemType === 'scarf' && 'スカーフ全体図 (100×100)'}
           </button>
+
+          {itemType === 'kyobukuro' && (
+            <button
+              type="button"
+              onClick={() => setDisplayMode('trim')}
+              className={`flex-1 px-3 py-1.5 text-[10px] sm:text-xs font-bold tracking-wider transition-all border rounded-sm ${
+                displayMode === 'trim' ? 'bg-zinc-900 text-white border-zinc-900 shadow' : 'bg-white text-zinc-600 border-zinc-300'
+              }`}
+            >
+              34cm 裁断イメージ
+            </button>
+          )}
 
           <button
             type="button"
-            onClick={() => setDisplayMode(itemType === 'kyobukuro' ? 'trim' : 'data')}
-            className={`flex-1 h-9 flex items-center justify-center gap-1 px-1 sm:px-2 text-[11px] font-bold tracking-wide transition-all border rounded whitespace-nowrap overflow-hidden ${
-              (displayMode === 'data' || displayMode === 'trim')
-                ? 'bg-stone-900 text-white border-stone-900 shadow-sm'
-                : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-100'
+            onClick={() => setDisplayMode('data')}
+            className={`flex-1 px-3 py-1.5 text-[10px] sm:text-xs font-bold tracking-wider transition-all border rounded-sm ${
+              displayMode === 'data' ? 'bg-zinc-900 text-white border-zinc-900 shadow' : 'bg-white text-zinc-600 border-zinc-300'
             }`}
           >
-            {itemType === 'kyobukuro' ? (
-              <>
-                <Icons.Scissors />
-                <span>裁断イメージ (34cm幅)</span>
-              </>
-            ) : itemType === 'hanhaba' ? (
-              <>
-                <Icons.Grid />
-                <span>プリント原画 (18cm幅)</span>
-              </>
-            ) : (
-              <>
-                <Icons.Grid />
-                <span>反物データ (40cm幅)</span>
-              </>
-            )}
+            {itemType === 'hanhaba' ? '18cm プリントデータ' : itemType === 'scarf' ? '100cm 正方形データ' : '40cm 反物データ'}
           </button>
         </div>
 
-        {/* メイン描画エリア */}
-        <div className="bg-[#e4e4e7] flex flex-col items-center justify-center p-1 sm:p-4 relative min-h-[340px]">
+        {/* 描画エリア */}
+        <div className="bg-[#e4e4e7] flex flex-col items-center justify-center p-3 sm:p-5 relative shadow-inner min-h-[320px]">
           {displayMode === 'mockup' && (
             <div className="w-full flex flex-col items-center animate-fade-in relative">
               
-              <div className="relative w-full max-w-[420px] aspect-square bg-stone-100 shadow-md sm:rounded-sm">
+              {/* 全アイテム共通枠サイズ */}
+              <div className="relative mx-auto drop-shadow-xl w-[240px] sm:w-[360px] aspect-square">
                 
-                <div ref={previewContainerRef} className="w-full h-full relative overflow-hidden sm:rounded-sm">
+                {/* 1. マッピング画像（背面に描画） */}
+                <div ref={previewContainerRef} className="w-full h-full relative overflow-hidden">
                   {itemType === 'hanhaba' && renderHanhabaLayers()}
                   {itemType === 'kyobukuro' && renderKyobukuroLayers()}
                   {itemType === 'kimono' && renderKimonoLayers()}
+                  {itemType === 'scarf' && renderScarfPreview()}
                 </div>
 
-                <div className="absolute inset-0 pointer-events-none z-20">
-                  <div className="pointer-events-auto absolute top-2 left-2 flex flex-col sm:flex-row gap-1 bg-white/90 backdrop-blur-md p-1 rounded border border-stone-300/80 shadow-md">
-                    {itemType === 'kimono' ? (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() => setActiveFloatPalette(activeFloatPalette === 'haneri' ? null : 'haneri')}
-                          className={`flex items-center gap-1 px-1.5 py-1 text-[10px] font-bold rounded border transition-all ${
-                            activeFloatPalette === 'haneri' ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-800 border-stone-200 hover:bg-stone-100'
-                          }`}
-                        >
-                          <span className="w-2.5 h-2.5 rounded-full border border-stone-400 shrink-0 inline-block" style={{ backgroundColor: kimonoHaneriColor }} />
-                          <span>半衿</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setActiveFloatPalette(activeFloatPalette === 'obiage' ? null : 'obiage')}
-                          className={`flex items-center gap-1 px-1.5 py-1 text-[10px] font-bold rounded border transition-all ${
-                            activeFloatPalette === 'obiage' ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-800 border-stone-200 hover:bg-stone-100'
-                          }`}
-                        >
-                          <span className="w-2.5 h-2.5 rounded-full border border-stone-400 shrink-0 inline-block" style={{ backgroundColor: kimonoObiageColor }} />
-                          <span>帯揚</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setActiveFloatPalette(activeFloatPalette === 'obi' ? null : 'obi')}
-                          className={`flex items-center gap-1 px-1.5 py-1 text-[10px] font-bold rounded border transition-all ${
-                            activeFloatPalette === 'obi' ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-800 border-stone-200 hover:bg-stone-100'
-                          }`}
-                        >
-                          <span className="w-2.5 h-2.5 rounded-full border border-stone-400 shrink-0 inline-block" style={{ backgroundColor: kimonoObiColor }} />
-                          <span>帯{customObiUrl ? '(画)' : ''}</span>
-                        </button>
-                      </>
-                    ) : itemType === 'kyobukuro' ? (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() => setActiveFloatPalette(activeFloatPalette === 'lining' ? null : 'lining')}
-                          className={`flex items-center gap-1 px-2 py-1 text-[10px] font-bold rounded border transition-all ${
-                            activeFloatPalette === 'lining' ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-800 border-stone-200 hover:bg-stone-100'
-                          }`}
-                        >
-                          <span className="w-2.5 h-2.5 rounded-full border border-stone-400 shrink-0 inline-block" style={{ backgroundColor: obiLiningColor }} />
-                          <span>裏地</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setActiveFloatPalette(activeFloatPalette === 'hara' ? null : 'hara')}
-                          className={`flex items-center gap-1 px-2 py-1 text-[10px] font-bold rounded border transition-all ${
-                            activeFloatPalette === 'hara' ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-800 border-stone-200 hover:bg-stone-100'
-                          }`}
-                        >
-                          <span className="w-2.5 h-2.5 rounded-full border border-stone-400 shrink-0 inline-block" style={{ backgroundColor: obiLiningColor }} />
-                          <span>前腹{customHaraUrl ? '(画)' : ''}</span>
-                        </button>
-                      </>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => setActiveFloatPalette(activeFloatPalette === 'lining' ? null : 'lining')}
-                        className={`flex items-center gap-1 px-2 py-1 text-[10px] font-bold rounded border transition-all ${
-                          activeFloatPalette === 'lining' ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-800 border-stone-200 hover:bg-stone-100'
-                        }`}
-                      >
-                        <span className="w-2.5 h-2.5 rounded-full border border-stone-400 shrink-0 inline-block" style={{ backgroundColor: obiLiningColor }} />
-                        <span>裏地</span>
-                      </button>
-                    )}
-                  </div>
-
+                {/* 2. 最前面オーバーレイ層（z-[9999]） */}
+                <div className="absolute inset-0 pointer-events-none z-[9999]">
+                  
+                  {/* 拡大ボタン（右上） */}
                   <button
                     type="button"
                     onClick={() => setIsZoomModalOpen(true)}
-                    className="pointer-events-auto absolute top-2 right-2 flex items-center gap-1 bg-stone-950/85 text-white px-2.5 py-1.5 rounded-full text-[10px] font-bold shadow-md transition-all hover:bg-stone-900 active:scale-95 border border-white/20 backdrop-blur-sm"
+                    className="pointer-events-auto absolute top-2 right-2 flex items-center gap-1 bg-zinc-950 text-white px-2.5 py-1 rounded-full text-[10px] font-black shadow-2xl transition-transform hover:scale-105 active:scale-95 border border-white/30"
                   >
-                    <Icons.Zoom />
-                    <span>原寸拡大</span>
+                    <span>🔍</span>
+                    <span>拡大</span>
                   </button>
-                </div>
 
-                {activeFloatPalette && (
-                  <>
-                    <div 
-                      className="fixed inset-0 z-[9990] bg-black/25 backdrop-blur-[1px]"
-                      onClick={() => setActiveFloatPalette(null)}
-                    />
+                  {/* コーディネート・裏地・パーツ個別指定ボタンバー（左上：スカーフ以外の時に表示） */}
+                  {itemType !== 'scarf' && (
+                    <div className="pointer-events-auto absolute top-2 left-2 flex flex-wrap gap-1 bg-white/95 backdrop-blur-md p-1 rounded-sm border border-zinc-400 shadow-2xl">
+                      {itemType === 'kimono' ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => setActiveFloatPalette(activeFloatPalette === 'haneri' ? null : 'haneri')}
+                            className={`flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-sm border transition-all ${
+                              activeFloatPalette === 'haneri' ? 'bg-zinc-950 text-white border-zinc-950' : 'bg-white text-zinc-800 border-zinc-300 hover:bg-zinc-100'
+                            }`}
+                          >
+                            <span className="w-2.5 h-2.5 rounded-full border border-zinc-400 shrink-0 inline-block" style={{ backgroundColor: kimonoHaneriColor }} />
+                            <span>半衿</span>
+                          </button>
 
-                    <div className="pointer-events-auto absolute top-12 left-2 right-2 sm:right-auto sm:w-[340px] bg-white border-2 border-stone-900 p-3 rounded-md shadow-2xl animate-fade-in z-[9999]">
-                      <div className="flex justify-between items-center mb-2 pb-1.5 border-b border-stone-200">
-                        <span className="text-[11px] font-bold text-stone-900">
+                          <button
+                            type="button"
+                            onClick={() => setActiveFloatPalette(activeFloatPalette === 'obiage' ? null : 'obiage')}
+                            className={`flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-sm border transition-all ${
+                              activeFloatPalette === 'obiage' ? 'bg-zinc-950 text-white border-zinc-950' : 'bg-white text-zinc-800 border-zinc-300 hover:bg-zinc-100'
+                            }`}
+                          >
+                            <span className="w-2.5 h-2.5 rounded-full border border-zinc-400 shrink-0 inline-block" style={{ backgroundColor: kimonoObiageColor }} />
+                            <span>帯揚</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setActiveFloatPalette(activeFloatPalette === 'obi' ? null : 'obi')}
+                            className={`flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-sm border transition-all ${
+                              activeFloatPalette === 'obi' ? 'bg-zinc-950 text-white border-zinc-950' : 'bg-white text-zinc-800 border-zinc-300 hover:bg-zinc-100'
+                            }`}
+                          >
+                            <span className="w-2.5 h-2.5 rounded-full border border-zinc-400 shrink-0 inline-block" style={{ backgroundColor: kimonoObiColor }} />
+                            <span>帯{customObiUrl ? '(画像)' : ''}</span>
+                          </button>
+                        </>
+                      ) : itemType === 'kyobukuro' ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => setActiveFloatPalette(activeFloatPalette === 'lining' ? null : 'lining')}
+                            className={`flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-sm border transition-all ${
+                              activeFloatPalette === 'lining' ? 'bg-zinc-950 text-white border-zinc-950' : 'bg-white text-zinc-800 border-zinc-300 hover:bg-zinc-100'
+                            }`}
+                          >
+                            <span className="w-2.5 h-2.5 rounded-full border border-zinc-400 shrink-0 inline-block" style={{ backgroundColor: obiLiningColor }} />
+                            <span>裏地の色</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setActiveFloatPalette(activeFloatPalette === 'hara' ? null : 'hara')}
+                            className={`flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-sm border transition-all ${
+                              activeFloatPalette === 'hara' ? 'bg-zinc-950 text-white border-zinc-950' : 'bg-white text-zinc-800 border-zinc-300 hover:bg-zinc-100'
+                            }`}
+                          >
+                            <span className="w-2.5 h-2.5 rounded-full border border-zinc-400 shrink-0 inline-block" style={{ backgroundColor: obiLiningColor }} />
+                            <span>前腹{customHaraUrl ? '(画像)' : ''}</span>
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setActiveFloatPalette(activeFloatPalette === 'lining' ? null : 'lining')}
+                          className={`flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-sm border transition-all ${
+                            activeFloatPalette === 'lining' ? 'bg-zinc-950 text-white border-zinc-950' : 'bg-white text-zinc-800 border-zinc-300 hover:bg-zinc-100'
+                          }`}
+                        >
+                          <span className="w-2.5 h-2.5 rounded-full border border-zinc-400 shrink-0 inline-block" style={{ backgroundColor: obiLiningColor }} />
+                          <span>裏地の色</span>
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* スカーフ選択時の仕様バッジ（左上） */}
+                  {itemType === 'scarf' && (
+                    <div className="pointer-events-auto absolute top-2 left-2 flex items-center gap-1.5 bg-black/80 text-white px-2.5 py-1 rounded-sm text-[10px] font-bold shadow-md">
+                      <span>🧣</span>
+                      <span>100cm×100cm / ウール100%</span>
+                    </div>
+                  )}
+
+                  {/* 展開パレット */}
+                  {activeFloatPalette && (
+                    <div className="pointer-events-auto absolute top-10 left-2 right-2 bg-white border-2 border-zinc-900 p-2.5 rounded shadow-2xl animate-fade-in max-w-[340px]">
+                      <div className="flex justify-between items-center mb-1.5 pb-1 border-b border-zinc-200">
+                        <span className="text-[10px] font-black text-zinc-900">
                           {activeFloatPalette === 'lining' && '帯の裏地色を選択'}
                           {activeFloatPalette === 'haneri' && '半衿の色を選択'}
                           {activeFloatPalette === 'obiage' && '帯揚の色を選択'}
@@ -817,26 +679,26 @@ export default function PreviewArea(props: PreviewAreaProps) {
                         <button
                           type="button"
                           onClick={() => setActiveFloatPalette(null)}
-                          className="text-stone-400 hover:text-stone-900 p-0.5"
+                          className="text-[11px] font-black text-zinc-500 hover:text-zinc-950 px-1"
                         >
-                          <Icons.Close />
+                          ✕ 閉じる
                         </button>
                       </div>
 
                       {activeFloatPalette === 'hara' && (
                         <div className="flex flex-col gap-2">
-                          <p className="text-[10px] text-stone-500 leading-normal">
-                            太鼓柄と異なるデザインを前腹（お腹正面）に出したい場合に個別設定できます。
+                          <p className="text-[9px] text-zinc-500 leading-normal">
+                            太鼓柄と別のデザインを前腹（お腹正面）に出したい場合に画像を個別設定できます。（回転せずそのまま配置されます）
                           </p>
-                          <div className="flex gap-1.5">
+                          <div className="flex gap-1">
                             <button
                               type="button"
                               onClick={() => { setCustomHaraUrl?.(null); setActiveFloatPalette(null); }}
-                              className={`flex-1 py-1.5 text-[10px] font-bold rounded border ${!customHaraUrl ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-700'}`}
+                              className={`flex-1 py-1 text-[10px] font-bold rounded border ${!customHaraUrl ? 'bg-zinc-900 text-white' : 'bg-zinc-100 text-zinc-700'}`}
                             >
-                              太鼓柄と連動
+                              太鼓柄と連動（自動）
                             </button>
-                            <label className={`flex-1 py-1.5 text-[10px] font-bold text-center rounded border cursor-pointer ${customHaraUrl ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-700'}`}>
+                            <label className={`flex-1 py-1 text-[10px] font-bold text-center rounded border cursor-pointer ${customHaraUrl ? 'bg-zinc-900 text-white' : 'bg-zinc-100 text-zinc-700'}`}>
                               画像アップロード
                               <input type="file" accept="image/*" onChange={(e) => { handleCustomHaraUpload?.(e); setActiveFloatPalette(null); }} className="hidden" />
                             </label>
@@ -845,15 +707,15 @@ export default function PreviewArea(props: PreviewAreaProps) {
                       )}
 
                       {activeFloatPalette === 'obi' && (
-                        <div className="flex gap-1.5 mb-2 pb-1.5 border-b border-stone-100">
+                        <div className="flex gap-1 mb-2 pb-1 border-b border-zinc-100">
                           <button
                             type="button"
                             onClick={() => setCustomObiUrl?.(null)}
-                            className={`flex-1 py-1.5 text-[10px] font-bold rounded border ${!customObiUrl ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-700'}`}
+                            className={`flex-1 py-1 text-[10px] font-bold rounded border ${!customObiUrl ? 'bg-zinc-900 text-white' : 'bg-zinc-100 text-zinc-700'}`}
                           >
                             伝統色無地
                           </button>
-                          <label className={`flex-1 py-1.5 text-[10px] font-bold text-center rounded border cursor-pointer ${customObiUrl ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-700'}`}>
+                          <label className={`flex-1 py-1 text-[10px] font-bold text-center rounded border cursor-pointer ${customObiUrl ? 'bg-zinc-900 text-white' : 'bg-zinc-100 text-zinc-700'}`}>
                             画像アップロード
                             <input type="file" accept="image/*" onChange={(e) => { handleCustomObiUpload?.(e); setActiveFloatPalette(null); }} className="hidden" />
                           </label>
@@ -861,7 +723,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
                       )}
 
                       {!(activeFloatPalette === 'hara' || (activeFloatPalette === 'obi' && customObiUrl)) && (
-                        <div className="max-h-[180px] overflow-y-auto pr-1 grid grid-cols-4 sm:grid-cols-6 gap-1">
+                        <div className="max-h-[150px] overflow-y-auto pr-1 grid grid-cols-4 sm:grid-cols-6 gap-1">
                           {TRADITIONAL_COLORS.map((col) => (
                             <button
                               key={col.name}
@@ -876,10 +738,10 @@ export default function PreviewArea(props: PreviewAreaProps) {
                                 }
                                 setActiveFloatPalette(null);
                               }}
-                              className="relative h-8 p-1 flex flex-col justify-end text-left border border-stone-200 rounded shadow-sm hover:scale-95 transition-transform"
+                              className="relative h-8 p-0.5 flex flex-col justify-end text-left border border-zinc-300 rounded-sm shadow-sm hover:scale-95 transition-transform"
                               style={{ backgroundColor: col.hex }}
                             >
-                              <span className={`text-[8px] font-bold truncate leading-none ${col.isDark ? 'text-white' : 'text-stone-900'}`}>
+                              <span className={`text-[7px] font-bold truncate leading-none ${col.isDark ? 'text-white' : 'text-zinc-900'}`}>
                                 {col.name.split(' ')[0]}
                               </span>
                             </button>
@@ -887,32 +749,31 @@ export default function PreviewArea(props: PreviewAreaProps) {
                         </div>
                       )}
                     </div>
-                  </>
-                )}
+                  )}
+                </div>
               </div>
 
-              {/* 保存ボタン */}
-              <div className="mt-4">
+              {/* マッピング画像保存ボタン */}
+              <div className="mt-3">
                 <button
                   type="button"
-                  onClick={onDownloadClick}
+                  onClick={handleDownloadMapping}
                   disabled={mockupSubmitting}
-                  className={`h-9 px-4 text-xs font-bold tracking-wider rounded shadow transition-all flex items-center gap-2 ${
-                    mockupSubmitting ? 'bg-stone-300 text-stone-500 cursor-not-allowed' : 'bg-stone-900 text-white hover:bg-stone-800 active:scale-95'
+                  className={`px-3 py-1.5 text-[10px] sm:text-xs font-bold tracking-wider rounded-sm shadow-sm transition-colors ${
+                    mockupSubmitting ? 'bg-zinc-400 text-zinc-100 cursor-not-allowed' : 'bg-zinc-900 text-white hover:bg-zinc-800'
                   }`}
                 >
-                  <Icons.Download />
-                  <span>{mockupSubmitting ? '画像を作成中...' : 'プレビュー画像を保存'}</span>
+                  {mockupSubmitting ? '画像を作成中...' : '↓ マッピング画像を保存'}
                 </button>
               </div>
 
             </div>
           )}
 
-          {/* 京袋帯 34cm 裁断イメージ */}
+          {/* トリム表示（京袋帯 34cm 裁断イメージ） */}
           {displayMode === 'trim' && itemType === 'kyobukuro' && (
-            <div className="w-full flex flex-col items-center animate-fade-in py-2">
-              <div className="relative w-full max-w-[340px] border border-stone-300 bg-white shadow-md overflow-hidden rounded-sm" style={{ aspectRatio: '34 / 40' }}>
+            <div className="w-full flex flex-col items-center animate-fade-in">
+              <div className="relative w-[272px] sm:w-[340px] mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden" style={{ aspectRatio: '34 / 40' }}>
                 <div
                   className="absolute inset-0"
                   style={{
@@ -924,15 +785,14 @@ export default function PreviewArea(props: PreviewAreaProps) {
                   }}
                 />
               </div>
-              <p className="mt-2 text-[10px] text-stone-500">※幅34cmの仕立て幅にトリミングされたイメージです。</p>
             </div>
           )}
 
-          {/* 反物・プリント原画データ */}
+          {/* 反物・プリントデータ表示 */}
           {displayMode === 'data' && (
-            <div className="flex flex-col items-center w-full animate-fade-in py-2">
+            <div className="flex flex-col items-center w-full animate-fade-in">
               {itemType === 'hanhaba' ? (
-                <div className="relative mx-auto border border-stone-300 bg-white shadow-md overflow-hidden rounded-sm" style={{ width: '216px', height: '480px' }}>
+                <div className="relative mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden" style={{ width: '216px', height: '480px' }}>
                   <div
                     className="absolute inset-0"
                     style={{
@@ -944,8 +804,21 @@ export default function PreviewArea(props: PreviewAreaProps) {
                     }}
                   />
                 </div>
+              ) : itemType === 'scarf' ? (
+                <div className="relative w-[260px] sm:w-[400px] aspect-square mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden">
+                  <div
+                    className="absolute inset-0"
+                    style={{
+                      backgroundImage: `url(${effectivePatternUrl})`,
+                      backgroundSize: '100% 100%',
+                      backgroundPosition: 'center',
+                      backgroundRepeat: 'no-repeat',
+                      backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff',
+                    }}
+                  />
+                </div>
               ) : (
-                <div className="relative w-full max-w-[380px] aspect-square mx-auto border border-stone-300 bg-white shadow-md overflow-hidden rounded-sm">
+                <div className="relative w-[260px] sm:w-[400px] aspect-square mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden">
                   <div
                     className="absolute inset-0"
                     style={{
@@ -958,206 +831,145 @@ export default function PreviewArea(props: PreviewAreaProps) {
                   />
                 </div>
               )}
-              <p className="mt-2 text-[10px] text-stone-500">※新潟十日町ファクトリー（デジタル捺染機モナリザ）へ送信される正方形原画データです。</p>
             </div>
           )}
         </div>
       </div>
 
-      {/* 工房用 柄あわせ微調整ツール */}
-      <div className="text-right">
-        <button
-          type="button"
-          onClick={() => setShowTuningPanel(!showTuningPanel)}
-          className="text-[11px] text-stone-400 hover:text-stone-700 tracking-wider inline-flex items-center gap-1.5 transition-colors"
-        >
-          <Icons.Tune />
-          <span>{showTuningPanel ? '調整パネルを閉じる' : '工房用：柄あわせ微調整'}</span>
-        </button>
+      {/* 工房スタッフ専用：柄あわせ調整ツール（帯・着物時のみ表示） */}
+      {itemType !== 'scarf' && (
+        <div className="mt-2 text-right">
+          <button
+            type="button"
+            onClick={() => setShowTuningPanel(!showTuningPanel)}
+            className="text-[10px] text-zinc-400 hover:text-zinc-600 tracking-wider inline-flex items-center gap-1"
+          >
+            {showTuningPanel ? '✕ 閉じる' : '柄あわせ調整'}
+          </button>
 
-        {showTuningPanel && (
-          <div className="mt-2 bg-white border border-stone-900 rounded-lg p-4 shadow-xl text-left animate-fade-in">
-            <div className="mb-3 pb-2 border-b border-stone-200">
-              <h4 className="text-xs font-bold text-stone-900 mb-1 flex items-center gap-1.5">
-                <Icons.Tune />
-                <span>柄あわせ調整シミュレーター（{itemLabel}）</span>
-              </h4>
-              <p className="text-[10px] text-stone-500 leading-normal">
-                生地を裁断する前に柄の繋がりを確認・微調整するためのシミュレーターです。お客様が操作されても注文データには影響しません。
-              </p>
-            </div>
+          {showTuningPanel && (
+            <div className="mt-2 bg-white border-2 border-zinc-900 rounded p-4 shadow-2xl text-left animate-fade-in">
+              <div className="mb-3 pb-2 border-b border-zinc-200">
+                <h4 className="text-xs font-black text-zinc-900 mb-1 flex items-center gap-1.5">
+                  <span>🛠️</span>
+                  <span>
+                    工房スタッフ専用：柄あわせ調整ツール（{itemType === 'hanhaba' ? '半幅帯' : itemType === 'kyobukuro' ? '京袋帯' : '着物'}）
+                  </span>
+                </h4>
+                <p className="text-[9px] text-zinc-500 leading-normal">
+                  生地を裁断する前に、帯や着物の柄（送り）が美しく繋がるかを確認・微調整するためのシミュレーターです。お客様が操作されても注文データには影響しません。
+                </p>
+              </div>
 
-            <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
-              {currentOffsets.map((layer, idx) => (
-                <div key={layer.id} className="p-3 bg-stone-50 border border-stone-200 rounded">
-                  <div className="flex justify-between items-center mb-2 pb-1 border-b border-stone-200">
-                    <span className="text-[11px] font-bold text-stone-800">{layer.name}</span>
-                    <span className="font-mono text-stone-400 text-[10px]">{layer.file}</span>
+              <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-zinc-300">
+                {currentOffsets.map((layer, idx) => (
+                  <div key={layer.id} className="p-3 bg-zinc-50 border border-zinc-300 rounded shadow-sm">
+                    <div className="flex justify-between items-center mb-2 pb-1 border-b border-zinc-200">
+                      <span className="text-[11px] font-black text-zinc-800">{layer.name}</span>
+                      <span className="font-mono text-zinc-400 text-[9px]">{layer.file}</span>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                      <div>
+                        <div className="flex justify-between text-[9px] text-zinc-600 mb-1">
+                          <span>X（横位置）</span>
+                          <span className="font-mono font-bold text-zinc-900">{layer.x}%</span>
+                        </div>
+                        <input
+                          type="range" min="0" max="100" step="0.5"
+                          value={layer.x}
+                          onChange={(e) => handleOffsetChange(idx, 'x', Number(e.target.value))}
+                          className="w-full accent-zinc-900 cursor-pointer h-1 bg-zinc-300 rounded"
+                        />
+                      </div>
+
+                      <div>
+                        <div className="flex justify-between text-[9px] text-zinc-600 mb-1">
+                          <span>Y（縦位置）</span>
+                          <span className="font-mono font-bold text-zinc-900">{layer.y}%</span>
+                        </div>
+                        <input
+                          type="range" min="0" max="100" step="0.5"
+                          value={layer.y}
+                          onChange={(e) => handleOffsetChange(idx, 'y', Number(e.target.value))}
+                          className="w-full accent-zinc-900 cursor-pointer h-1 bg-zinc-300 rounded"
+                        />
+                      </div>
+
+                      <div>
+                        <div className="flex justify-between text-[9px] text-zinc-600 mb-1">
+                          <span>角度（rot）</span>
+                          <span className="font-mono font-bold text-zinc-900">{layer.rot}°</span>
+                        </div>
+                        <input
+                          type="range" min="-180" max="180" step="1"
+                          value={layer.rot}
+                          onChange={(e) => handleOffsetChange(idx, 'rot', Number(e.target.value))}
+                          className="w-full accent-zinc-900 cursor-pointer h-1 bg-zinc-300 rounded"
+                        />
+                      </div>
+
+                      <div>
+                        <div className="flex justify-between text-[9px] text-zinc-600 mb-1">
+                          <span>倍率（scale）</span>
+                          <span className="font-mono font-bold text-zinc-900">{layer.scale}%</span>
+                        </div>
+                        <input
+                          type="range" min="50" max="150" step="1"
+                          value={layer.scale}
+                          onChange={(e) => handleOffsetChange(idx, 'scale', Number(e.target.value))}
+                          className="w-full accent-zinc-900 cursor-pointer h-1 bg-zinc-300 rounded"
+                        />
+                      </div>
+                    </div>
                   </div>
-                  
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-                    <div>
-                      <div className="flex justify-between text-[10px] text-stone-600 mb-1">
-                        <span>X（横位置）</span>
-                        <span className="font-mono font-bold text-stone-900">{layer.x}%</span>
-                      </div>
-                      <input
-                        type="range" min="0" max="100" step="0.5"
-                        value={layer.x}
-                        onChange={(e) => handleOffsetChange(idx, 'x', Number(e.target.value))}
-                        className="w-full accent-stone-900 cursor-pointer h-1.5 bg-stone-200 rounded"
-                      />
-                    </div>
+                ))}
+              </div>
 
-                    <div>
-                      <div className="flex justify-between text-[10px] text-stone-600 mb-1">
-                        <span>Y（縦位置）</span>
-                        <span className="font-mono font-bold text-stone-900">{layer.y}%</span>
-                      </div>
-                      <input
-                        type="range" min="0" max="100" step="0.5"
-                        value={layer.y}
-                        onChange={(e) => handleOffsetChange(idx, 'y', Number(e.target.value))}
-                        className="w-full accent-stone-900 cursor-pointer h-1.5 bg-stone-200 rounded"
-                      />
-                    </div>
-
-                    <div>
-                      <div className="flex justify-between text-[10px] text-stone-600 mb-1">
-                        <span>角度（rot）</span>
-                        <span className="font-mono font-bold text-stone-900">{layer.rot}°</span>
-                      </div>
-                      <input
-                        type="range" min="-180" max="180" step="1"
-                        value={layer.rot}
-                        onChange={(e) => handleOffsetChange(idx, 'rot', Number(e.target.value))}
-                        className="w-full accent-stone-900 cursor-pointer h-1.5 bg-stone-200 rounded"
-                      />
-                    </div>
-
-                    <div>
-                      <div className="flex justify-between text-[10px] text-stone-600 mb-1">
-                        <span>倍率（scale）</span>
-                        <span className="font-mono font-bold text-stone-900">{layer.scale}%</span>
-                      </div>
-                      <input
-                        type="range" min="50" max="150" step="1"
-                        value={layer.scale}
-                        onChange={(e) => handleOffsetChange(idx, 'scale', Number(e.target.value))}
-                        className="w-full accent-stone-900 cursor-pointer h-1.5 bg-stone-200 rounded"
-                      />
-                    </div>
-                  </div>
-                </div>
-              ))}
+              <div className="pt-3 mt-2 border-t border-zinc-200">
+                <button
+                  type="button"
+                  onClick={handleCopyCode}
+                  className="w-full py-2 bg-zinc-900 hover:bg-zinc-800 text-white text-[11px] font-bold rounded shadow transition-colors flex items-center justify-center gap-1.5"
+                >
+                  <span>📋</span>
+                  <span>【{itemType === 'hanhaba' ? '半幅帯' : itemType === 'kyobukuro' ? '京袋帯' : '着物'}】の確定数値をコピー</span>
+                </button>
+              </div>
             </div>
+          )}
+        </div>
+      )}
 
-            <div className="pt-3 mt-2 border-t border-stone-200">
-              <button
-                type="button"
-                onClick={handleCopyCode}
-                className="w-full py-2 bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold rounded transition-colors flex items-center justify-center gap-2"
-              >
-                <Icons.Copy />
-                <span>【{itemLabel}】の確定数値をコピー</span>
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* 原寸拡大モーダル */}
+      {/* 全画面拡大モーダル */}
       {isZoomModalOpen && (
         <div 
           style={{ zIndex: 99999 }}
-          className="fixed inset-0 bg-stone-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in"
+          className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in"
           onClick={() => setIsZoomModalOpen(false)}
         >
           <div 
-            className="relative bg-white p-4 sm:p-6 rounded-lg max-w-[95vw] max-h-[95vh] overflow-auto shadow-2xl flex flex-col items-center border border-stone-200"
+            className="relative bg-white p-4 sm:p-6 rounded-lg max-w-[95vw] max-h-[95vh] overflow-auto shadow-2xl flex flex-col items-center border border-zinc-300"
             onClick={(e) => e.stopPropagation()}
           >
             <button
               type="button"
               onClick={() => setIsZoomModalOpen(false)}
-              className="absolute top-3 right-3 text-stone-400 hover:text-stone-950 w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center transition-colors"
+              className="absolute top-3 right-3 text-zinc-500 hover:text-zinc-950 text-base font-black w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center"
             >
-              <Icons.Close />
+              ✕
             </button>
-            <h3 className="text-xs sm:text-sm font-bold text-stone-900 mb-4 tracking-wider">
-              【原寸拡大プレビュー】{itemLabel}
+            <h3 className="text-xs sm:text-sm font-black text-zinc-900 mb-4 tracking-widest">
+              【原寸拡大プレビュー】{itemType === 'hanhaba' ? '半幅帯' : itemType === 'kyobukuro' ? '京袋帯' : itemType === 'kimono' ? '着物' : 'スカーフ (100×100cm)'}
             </h3>
-            <div className="w-[300px] sm:w-[500px] lg:w-[600px] aspect-square bg-[#e4e4e7] relative overflow-hidden shadow-inner border border-stone-300 rounded">
+            <div className="w-[300px] sm:w-[500px] lg:w-[600px] aspect-square bg-[#e4e4e7] relative overflow-hidden shadow-inner border border-zinc-300">
               {itemType === 'hanhaba' && renderHanhabaLayers()}
               {itemType === 'kyobukuro' && renderKyobukuroLayers()}
               {itemType === 'kimono' && renderKimonoLayers()}
+              {itemType === 'scarf' && renderScarfPreview()}
             </div>
           </div>
         </div>
-      )}
-
-      {/* ドラッグ可能な丸型プレビュー */}
-      {isScrolledPast && (
-        <>
-          {isDragging && <div className="fixed inset-0 z-[9990] cursor-grabbing" />}
-          
-          <div 
-            className="fixed z-[9999] flex flex-col items-center gap-2.5 animate-fade-in"
-            style={{ 
-              bottom: '24px', 
-              right: '16px',
-              transform: `translate(${floatPos.x + 16}px, ${floatPos.y + 24}px)`,
-              touchAction: 'none'
-            }}
-          >
-            <div className="relative group touch-none">
-              <button
-                type="button"
-                onPointerDown={handlePointerDown}
-                onPointerMove={handlePointerMove}
-                onPointerUp={handlePointerUp}
-                onPointerCancel={handlePointerUp}
-                className={`relative w-40 h-40 sm:w-48 sm:h-48 rounded-full overflow-hidden border-4 border-white shadow-2xl bg-stone-900 transition-transform ${
-                  isDragging ? 'scale-105 cursor-grabbing' : 'hover:scale-[1.02] cursor-grab'
-                }`}
-                title="ドラッグで移動 / タップで拡大"
-              >
-                {creationMode === 'geometric' ? (
-                  <div
-                    className="w-full h-full pointer-events-none"
-                    style={{
-                      backgroundImage: `url(${effectivePatternUrl})`,
-                      backgroundSize: `${Math.max(12, (bgSizeMm / 300) * 100)}% auto`,
-                      backgroundRepeat: 'repeat',
-                      backgroundPosition: 'center center',
-                      backgroundColor: geoBgColor,
-                    }}
-                  />
-                ) : (
-                  <img src={effectivePatternUrl} alt="現在の図案" className="w-full h-full object-cover pointer-events-none" />
-                )}
-                
-                <div className="absolute inset-0 bg-black/35 flex flex-col items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Icons.Zoom />
-                  <span className="text-[10px] font-bold mt-1.5 tracking-widest drop-shadow-md">タップで拡大</span>
-                </div>
-              </button>
-              
-              <div className="absolute bottom-1 right-2 w-7 h-7 bg-white rounded-full shadow-lg border border-stone-300 flex items-center justify-center text-stone-600 pointer-events-none">
-                <Icons.Move />
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={scrollToTop}
-              className="w-9 h-9 rounded-full bg-white text-stone-900 border border-stone-300 shadow-xl flex items-center justify-center hover:bg-stone-50 active:scale-95 transition-transform"
-              title="プレビューへ戻る"
-            >
-              <Icons.ArrowUp />
-            </button>
-          </div>
-        </>
       )}
     </div>
   );
