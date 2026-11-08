@@ -1,3 +1,4 @@
+// app/api/generate/route.ts
 import { NextResponse } from 'next/server';
 import { put } from '@vercel/blob';
 import { kv } from '@vercel/kv';
@@ -66,7 +67,7 @@ const TASTE_PROMPTS: Record<string, string> = {
 
 const STYLE_PROMPTS: Record<string, string> = {
   none: '',
-  scarf: 'Premium luxury European silk scarf aesthetic. Vivid harmonious colors, extremely intricate decorative details.',
+  scarf: 'Premium luxury European square silk scarf aesthetic. Vivid harmonious colors, extremely intricate decorative border details.',
   galle: 'Inspired by Émile Gallé Art Nouveau cameo glass: poetic botanical naturalism, layered translucent textures resembling etched glass.',
   organic: 'Poetic organic textile design, handcrafted block print texture, gentle warm wabi-sabi imperfections.',
   toile: 'Traditional French Toile de Jouy textile, delicate monochromatic line-drawn pastoral scenes.',
@@ -176,8 +177,8 @@ export async function POST(req: Request) {
       negativeScalePrompt = 'giant single portrait, micro dot clutter, single focal hero';
     }
 
-    // 2. 柄の向き・天地（Direction / Orientation）判定（スカーフ判定を最優先連動）
-    const isScarfMode = itemType === 'scarf' || density.includes('スカーフ') || motif.includes('スカーフ') || motif.toLowerCase().includes('scarf');
+    // 2. 柄の向き・天地（Direction / Orientation）判定
+    const isScarfMode = itemType === 'scarf' || density.includes('スカーフ') || density.includes('額縁') || motif.includes('スカーフ') || motif.toLowerCase().includes('scarf');
     const isOtaiko = density.includes('お太鼓柄');
     const isShiho = density.includes('四方') || density.includes('天地無用') || (!isScarfMode && !isOtaiko && (density.includes('四方') || itemType === 'kimono'));
     const isUpright = density.includes('一方向') || density.includes('上向き');
@@ -187,8 +188,8 @@ export async function POST(req: Request) {
     let negativeDirectionPrompt = '';
 
     if (isScarfMode) {
-      directionHeading = 'LUXURY SILK SCARF (CARRÉ) FRAMED COMPOSITION';
-      directionEnforcement = 'Perfect square framed composition with solid outer margin and central ornate medallion. DO NOT tile.';
+      directionHeading = 'LUXURY SQUARE SCARF FRAMED PANEL COMPOSITION';
+      directionEnforcement = 'Perfect square framed composition with solid outer margin border and central ornate decorative medallion. DO NOT tile.';
     } else if (isOtaiko) {
       directionHeading = 'OTAIKO DRUM ACCENT PANEL';
       directionEnforcement = 'Non-seamless centered panel design with a single magnificent focal motif placed in upper center.';
@@ -209,7 +210,11 @@ All motifs MUST face straight UP towards the top edge. Perfect vertical upright 
 
     const tasteDetail = TASTE_PROMPTS[tasteMode] || TASTE_PROMPTS['katazome'];
     const styleDetail = STYLE_PROMPTS[aiStyle] || '';
-    const colorInstruction = (color && color !== 'おまかせ') ? `Main Color Theme: ${color}.` : 'Harmonious mature color palette.';
+
+    // ★ コロさん指摘対策：選んだ色を確実に着物の「地色（メイン背景色）」にする強化プロンプト
+    const colorInstruction = (color && color !== 'おまかせ') 
+      ? `CRITICAL MANDATORY COLOR RULE: The primary background / ground color (地色) of the fabric MUST BE dyed in ${color}. Ensure the base textile surface is predominantly ${color}, with the motifs harmoniously composed on top of this ${color} ground color.` 
+      : 'Harmonious mature kimono color palette.';
 
     const enforcement = `【STRICT QUALITY & FORMAT ENFORCEMENT】
 Strictly MATURE, SOPHISTICATED, ARTISAN-CRAFTED high-end textile aesthetic.
@@ -229,7 +234,7 @@ ${englishMotif} (${cleanMotifForTranslation})
 【Taste & Technique】
 ${tasteDetail}
 ${styleDetail ? `【Style Accent】\n${styleDetail}\n` : ''}
-【Color】
+【Color & Ground Dye】
 ${colorInstruction}
 
 ${enforcement}`;
