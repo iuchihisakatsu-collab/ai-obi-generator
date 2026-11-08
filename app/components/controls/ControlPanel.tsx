@@ -302,7 +302,7 @@ export default function ControlPanel(props: ControlPanelProps) {
 
   useEffect(() => {
     if (!density) {
-      if (itemType === 'scarf') setDensity('スカーフ柄（額縁スクエアパネル）');
+      if (itemType === 'scarf') setDensity('額縁スクエアパネル（正方形1枚絵）');
       else if (itemType === 'kimono') setDensity('四方柄（天地無用）');
       else if (itemType === 'hanhaba') setDensity('一方向（上向き）');
       else setDensity('総柄（小紋タイプ）');
@@ -539,7 +539,7 @@ export default function ControlPanel(props: ControlPanelProps) {
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
                     {[
                       { id: 'none', label: 'なし（基本）' },
-                      { id: 'scarf', label: 'カレ・額縁スカーフ' },
+                      { id: 'scarf', label: '額縁スクエアスカーフ' },
                       { id: 'galle', label: 'ガレ風被せガラス' },
                       { id: 'organic', label: 'ポエティック有機' },
                       { id: 'toile', label: 'トワルドジュイ' },
@@ -601,101 +601,101 @@ export default function ControlPanel(props: ControlPanelProps) {
                       07. 柄の向き（天地）
                     </label>
                     <span className="text-[10px] text-zinc-500">
-                      {density.includes('スカーフ') ? '🧣 カレ額縁パネル構図' : density.includes('四方') ? '🔄 上下左右ランダム（着物推奨）' : '⬆️ 上向き整列（帯推奨）'}
+                      {density.includes('額縁') || density.includes('スクエア') ? '🧣 額縁スクエアパネル構図' : density.includes('四方') ? '🔄 上下左右ランダム（着物推奨）' : '⬆️ 上向き整列（帯推奨）'}
                     </span>
                   </div>
 
-                  {itemType === 'scarf' ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setDensity('スカーフ柄（額縁スクエアパネル）')}
-                        className={`py-2.5 px-3 border rounded-sm transition-all shadow-sm flex flex-col items-center justify-center text-center ${
-                          density.includes('スカーフ')
-                            ? 'bg-zinc-900 text-white border-zinc-900 ring-1 ring-zinc-900'
-                            : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50'
-                        }`}
-                      >
-                        <span className="text-[11px] font-bold flex items-center gap-1">
-                          <span>🧣</span>
-                          <span>スカーフ柄（推奨）</span>
-                        </span>
-                        <span className="text-[8.5px] opacity-75 mt-0.5">Carré 額縁スクエアパネル・1枚絵</span>
-                      </button>
+              {itemType === 'scarf' ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setDensity('額縁スクエアパネル（正方形1枚絵）')}
+                    className={`py-2.5 px-3 border rounded-sm transition-all shadow-sm flex flex-col items-center justify-center text-center ${
+                      density.includes('額縁') || density.includes('スクエア')
+                        ? 'bg-zinc-900 text-white border-zinc-900 ring-1 ring-zinc-900'
+                        : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50'
+                    }`}
+                  >
+                    <span className="text-[11px] font-bold flex items-center gap-1">
+                      <span>🧣</span>
+                      <span>額縁スクエア柄（推奨）</span>
+                    </span>
+                    <span className="text-[8.5px] opacity-75 mt-0.5">額縁パネル・正方形1枚絵</span>
+                  </button>
 
-                      <button
-                        type="button"
-                        onClick={() => setDensity('四方柄（天地無用）')}
-                        className={`py-2.5 px-3 border rounded-sm transition-all shadow-sm flex flex-col items-center justify-center text-center ${
-                          density.includes('四方') || density.includes('天地無用')
-                            ? 'bg-zinc-900 text-white border-zinc-900 ring-1 ring-zinc-900'
-                            : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50'
-                        }`}
-                      >
-                        <span className="text-[11px] font-bold flex items-center gap-1">
-                          <span>🔄</span>
-                          <span>総柄リピート</span>
-                        </span>
-                        <span className="text-[8.5px] opacity-75 mt-0.5">天地無用・全面シームレス小紋</span>
-                      </button>
-                    </div>
-                  ) : itemType === 'kyobukuro' ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
-                      {[
-                        { id: '四方柄（天地無用）', label: '四方柄', sub: '天地無用・ランダム' },
-                        { id: 'お太鼓柄（ワンポイント主役パネル）', label: 'お太鼓柄', sub: '中央主役' },
-                        { id: 'スカーフ柄（額縁スクエアパネル）', label: 'スカーフ柄', sub: 'Carré額縁' },
-                      ].map((item) => (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => setDensity(item.id)}
-                          className={`py-2 px-2 text-center border rounded-sm transition-all shadow-sm flex flex-col items-center justify-center ${
-                            density.includes(item.label) 
-                              ? 'bg-zinc-900 text-white border-zinc-900 ring-1 ring-zinc-900' 
-                              : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50'
-                          }`}
-                        >
-                          <span className="text-[11px] font-black">{item.label}</span>
-                          <span className="text-[8px] opacity-75 mt-0.5">{item.sub}</span>
-                        </button>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setDensity('四方柄（天地無用）')}
-                        className={`py-2.5 px-3 border rounded-sm transition-all shadow-sm flex flex-col items-center justify-center text-center ${
-                          density.includes('四方') || density.includes('天地無用')
-                            ? 'bg-zinc-900 text-white border-zinc-900 ring-1 ring-zinc-900'
-                            : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50'
-                        }`}
-                      >
-                        <span className="text-[11px] font-bold flex items-center gap-1">
-                          <span>🔄</span>
-                          <span>四方柄（天地無用）</span>
-                        </span>
-                        <span className="text-[8.5px] opacity-75 mt-0.5">上下左右逆さま・着物向け</span>
-                      </button>
+                  <button
+                    type="button"
+                    onClick={() => setDensity('四方柄（天地無用）')}
+                    className={`py-2.5 px-3 border rounded-sm transition-all shadow-sm flex flex-col items-center justify-center text-center ${
+                      density.includes('四方') || density.includes('天地無用')
+                        ? 'bg-zinc-900 text-white border-zinc-900 ring-1 ring-zinc-900'
+                        : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50'
+                    }`}
+                  >
+                    <span className="text-[11px] font-bold flex items-center gap-1">
+                      <span>🔄</span>
+                      <span>総柄リピート</span>
+                    </span>
+                    <span className="text-[8.5px] opacity-75 mt-0.5">天地無用・全面シームレス小紋</span>
+                  </button>
+                </div>
+              ) : itemType === 'kyobukuro' ? (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
+                  {[
+                    { id: '四方柄（天地無用）', label: '四方柄', sub: '天地無用・ランダム' },
+                    { id: 'お太鼓柄（ワンポイント主役パネル）', label: 'お太鼓柄', sub: '中央主役' },
+                    { id: '額縁スクエアパネル（正方形1枚絵）', label: '額縁パネル', sub: '正方形1枚絵' },
+                  ].map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setDensity(item.id)}
+                      className={`py-2 px-2 text-center border rounded-sm transition-all shadow-sm flex flex-col items-center justify-center ${
+                        density.includes(item.label) 
+                          ? 'bg-zinc-900 text-white border-zinc-900 ring-1 ring-zinc-900' 
+                          : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50'
+                      }`}
+                    >
+                      <span className="text-[11px] font-black">{item.label}</span>
+                      <span className="text-[8px] opacity-75 mt-0.5">{item.sub}</span>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setDensity('四方柄（天地無用）')}
+                    className={`py-2.5 px-3 border rounded-sm transition-all shadow-sm flex flex-col items-center justify-center text-center ${
+                      density.includes('四方') || density.includes('天地無用')
+                        ? 'bg-zinc-900 text-white border-zinc-900 ring-1 ring-zinc-900'
+                        : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50'
+                    }`}
+                  >
+                    <span className="text-[11px] font-bold flex items-center gap-1">
+                      <span>🔄</span>
+                      <span>四方柄（天地無用）</span>
+                    </span>
+                    <span className="text-[8.5px] opacity-75 mt-0.5">上下左右逆さま・着物向け</span>
+                  </button>
 
-                      <button
-                        type="button"
-                        onClick={() => setDensity('一方向（上向き）')}
-                        className={`py-2.5 px-3 border rounded-sm transition-all shadow-sm flex flex-col items-center justify-center text-center ${
-                          density.includes('一方向') || density.includes('上向き')
-                            ? 'bg-zinc-900 text-white border-zinc-900 ring-1 ring-zinc-900'
-                            : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50'
-                        }`}
-                      >
-                        <span className="text-[11px] font-bold flex items-center gap-1">
-                          <span>⬆️</span>
-                          <span>一方向（上向き）</span>
-                        </span>
-                        <span className="text-[8.5px] opacity-75 mt-0.5">すべて頭が上・帯向け</span>
-                      </button>
-                    </div>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => setDensity('一方向（上向き）')}
+                    className={`py-2.5 px-3 border rounded-sm transition-all shadow-sm flex flex-col items-center justify-center text-center ${
+                      density.includes('一方向') || density.includes('上向き')
+                        ? 'bg-zinc-900 text-white border-zinc-900 ring-1 ring-zinc-900'
+                        : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50'
+                    }`}
+                  >
+                    <span className="text-[11px] font-bold flex items-center gap-1">
+                      <span>⬆️</span>
+                      <span>一方向（上向き）</span>
+                    </span>
+                    <span className="text-[8.5px] opacity-75 mt-0.5">すべて頭が上・帯向け</span>
+                  </button>
+                </div>
+              )}
                 </div>
 
                 {/* 08. 日本の伝統色パレット */}
