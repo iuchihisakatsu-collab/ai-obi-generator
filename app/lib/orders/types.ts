@@ -6,7 +6,7 @@ export interface OrderPayload {
   title: string;
   serialNumber: string;
   imageUrl: string;
-  itemType: 'hanhaba' | 'kyobukuro' | 'kimono';
+  itemType: 'hanhaba' | 'kyobukuro' | 'kimono' | 'scarf';
   creationMode: 'ai' | 'geometric';
   vendor?: string;
   designFee?: number;
