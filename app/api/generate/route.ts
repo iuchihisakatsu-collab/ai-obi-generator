@@ -127,7 +127,7 @@ export async function POST(req: Request) {
         const fluxKey = `usage:flux:${ip}:${today}`;
         const fluxCount = (await kv.get<number>(fluxKey)) || 0;
         if (fluxCount >= 15) {
-          return NextResponse.json({ error: '本日の無料スケッチ（FLUX）枠（15回）を使い切りました。明日またお試しください。' }, { status: 429 });
+          return NextResponse.json({ error: '本日の気まぐれスケッチ枠（15回）を使い切りました。明日またお試しください。' }, { status: 429 });
         }
         await kv.incr(fluxKey);
         await kv.expire(fluxKey, 86400);
@@ -136,13 +136,13 @@ export async function POST(req: Request) {
         const freeKey = `usage:openaifree:${ip}:${today}`;
         const freeCount = (await kv.get<number>(freeKey)) || 0;
         if (freeCount >= 1) {
-          return NextResponse.json({ error: '本日の「丁寧に作る（無料枠）」はすでに利用済みです。続きはチケットコードをご利用ください。' }, { status: 429 });
+          return NextResponse.json({ error: '本日の「本気デザイン（無料枠）」はすでに利用済みです。続きはチケットコードをご利用ください。' }, { status: 429 });
         }
         await kv.incr(freeKey);
         await kv.expire(freeKey, 86400);
 
       } else {
-        return NextResponse.json({ error: '不正なエンジン指定です。' }, { status: 400 });
+        return NextResponse.json({ error: '不正な指定です。' }, { status: 400 });
       }
     }
 
@@ -211,7 +211,7 @@ All motifs MUST face straight UP towards the top edge. Perfect vertical upright 
     const tasteDetail = TASTE_PROMPTS[tasteMode] || TASTE_PROMPTS['katazome'];
     const styleDetail = STYLE_PROMPTS[aiStyle] || '';
 
-    // ★ コロさん指摘対策：選んだ色を確実に着物の「地色（メイン背景色）」にする強化プロンプト
+    // ★ コロさん指摘対策：選んだ色を確実に着物の「地色（メイン背景色）」にする強力ロジック
     const colorInstruction = (color && color !== 'おまかせ') 
       ? `CRITICAL MANDATORY COLOR RULE: The primary background / ground color (地色) of the fabric MUST BE dyed in ${color}. Ensure the base textile surface is predominantly ${color}, with the motifs harmoniously composed on top of this ${color} ground color.` 
       : 'Harmonious mature kimono color palette.';
@@ -239,7 +239,7 @@ ${colorInstruction}
 
 ${enforcement}`;
 
-    // FLUX 生成処理
+    // 気まぐれスケッチ（FLUX schnell）生成処理
     if (isFlux && process.env.FAL_KEY) {
       const falResponse = await fetch('https://queue.fal.run/fal-ai/flux/schnell', {
         method: 'POST',
@@ -271,7 +271,7 @@ ${enforcement}`;
       }
     }
 
-    // OpenAI 高精細生成
+    // 本気デザイン（OpenAI 高精度描出）
     const response = await openai.images.generate({
       model: "gpt-image-2.5-sunburst",
       prompt: prompt,
