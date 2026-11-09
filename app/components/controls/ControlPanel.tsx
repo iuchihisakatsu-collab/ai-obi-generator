@@ -88,11 +88,11 @@ const TASTE_MODES = [
 ];
 
 const LOADING_STEPS = [
-  '思い描いた意匠から、図案の骨格を練り上げています...',
-  'モチーフの配置と四方への回転角度を計算しています...',
-  '染めと織りの質感をピクセル単位で緻密に描き込んでいます...',
-  '反物全体のバランスと発色を整えています...',
-  '最終仕上げ中。まもなく図案帖に仕上がります...',
+  '入力されたテーマから、図案の骨格を組み立てています...',
+  'モチーフの配置と角度を計算しています...',
+  '色と質感をピクセル単位で緻密に描き込んでいます...',
+  '全体のバランスと発色を整えています...',
+  '最終仕上げ中。まもなく完成します...',
 ];
 
 const RECIPES = [
@@ -320,7 +320,7 @@ export default function ControlPanel({
                 <label className="block text-xs font-bold text-zinc-900 tracking-wider">
                   02. 図案のテイスト（甘さをおさえた大人仕様）
                 </label>
-                <span className="text-[9px] text-zinc-400">職人技法の風合い</span>
+                <span className="text-[9px] text-zinc-400">染織の風合い</span>
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
@@ -347,7 +347,7 @@ export default function ControlPanel({
               </div>
             </div>
 
-            {/* 03. 地色（ベースカラー）★ コロさんの不満を解消 */}
+            {/* 03. 地色（ベースカラー）★ コロさんの不満を完全解消 */}
             <div className="pt-4 border-t border-zinc-100 relative">
               <div className="flex justify-between items-baseline mb-2">
                 <div>
@@ -424,16 +424,16 @@ export default function ControlPanel({
                   04. 何を描く？（モチーフ）
                 </label>
 
-                <label className="cursor-pointer inline-flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded text-[11px] font-bold shadow-sm transition-all active:scale-95">
-                  <span>✨</span>
-                  <span>{analyzingPhoto ? '写真の色・柄をAI解析中...' : '📷 写真から自動入力'}</span>
+                <label className="cursor-pointer inline-flex items-center gap-1.5 px-2.5 py-1 bg-zinc-900 hover:bg-zinc-800 text-white rounded text-[11px] font-bold shadow-sm transition-all active:scale-95">
+                  <span>📷</span>
+                  <span>{analyzingPhoto ? '写真の色・柄を解析中...' : '写真から自動入力'}</span>
                   <input type="file" accept="image/*" onChange={handlePhotoUploadAndExtract} disabled={analyzingPhoto || loading} className="hidden" />
                 </label>
               </div>
 
               <div className="flex justify-between items-center mb-1">
                 <p className="text-[10px] text-zinc-400">
-                  好きな単語を入力するか、上のレシピや写真からセットできます。
+                  好きな言葉を入力するか、上のレシピや写真からセットできます。
                 </p>
                 {motif && (
                   <button onClick={() => setMotif('')} className="text-[10px] font-bold text-zinc-400 hover:text-zinc-800 tracking-widest uppercase transition-colors shrink-0 ml-2">Clear</button>
@@ -450,7 +450,7 @@ export default function ControlPanel({
             {/* 05. 雰囲気・画材をトッピング（巨匠もタグとして統合） */}
             <div className="pt-4 border-t border-zinc-100">
               <label className="block text-xs font-bold text-zinc-900 tracking-wider mb-3">
-                05. 雰囲気・画材・巨匠の流儀をトッピング（複数選択OK）
+                05. 雰囲気・画材・様式をトッピング（複数選択OK）
               </label>
               
               <div className="space-y-4">
@@ -780,10 +780,10 @@ export default function ControlPanel({
           />
         </div>
 
-        {/* 3つの生成ボタン */}
+        {/* 3つのボタン（気まぐれスケッチ ＆ 本気デザイン ＆ チケット利用） */}
         <div className="space-y-4 mt-6">
           {creationMode === 'ai' && (
-            <div className="pt-6 border-t border-zinc-200 space-y-3">
+            <div className="pt-6 border-t border-zinc-200 space-y-4">
               <div className="flex flex-col gap-2 mb-2">
                 <label className="flex items-start gap-2.5 cursor-pointer select-none group relative z-10">
                   <input 
@@ -793,7 +793,7 @@ export default function ControlPanel({
                     className="mt-0.5 h-3.5 w-3.5 border-zinc-300 text-zinc-900 focus:ring-zinc-900 transition-colors cursor-pointer" 
                   />
                   <span className="text-[10px] text-zinc-500 leading-tight group-hover:text-zinc-800 transition-colors">
-                    生成図案は意匠のアイデアです。実際の生地制作時はスタッフが目視で柄のつなぎ目（送り）をきれいに調整することに同意します。
+                    作成された図案は意匠のアイデアです。実際の生地制作時はスタッフが目視で柄のつなぎ目（送り）をきれいに調整することに同意します。
                   </span>
                 </label>
                 
@@ -805,7 +805,7 @@ export default function ControlPanel({
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-700">
                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
                   </svg>
-                  当店のAI・著作権ポリシーと安心への取り組み
+                  当店の著作権ポリシーと安心への取り組み
                 </button>
               </div>
               
@@ -815,8 +815,8 @@ export default function ControlPanel({
                 </div>
               )}
 
-              {/* ボタン①：スケッチモード（確実に残り回数を表示） */}
-              <div>
+              {/* ボタン①：気まぐれスケッチ（練習用） */}
+              <div className="space-y-1">
                 <button 
                   type="button" 
                   onClick={() => handleGenerate('flux')} 
@@ -828,19 +828,22 @@ export default function ControlPanel({
                   }`}
                 >
                   {loading && (generatingMode === 'flux' || loadingEngine === 'flux') ? (
-                    <span>スケッチを作成中...</span>
+                    <span>スケッチを描画中...</span>
                   ) : (
                     <span>
                       {effectiveRemainingFlux <= 0
-                        ? '本日のスケッチ枠は終了しました'
-                        : `スケッチモードで試す (本日残り ${effectiveRemainingFlux}回)`}
+                        ? '本日の気まぐれスケッチ枠は終了しました'
+                        : `🎨 気まぐれスケッチ（本日残り ${effectiveRemainingFlux}回）`}
                     </span>
                   )}
                 </button>
+                <p className="text-[9.5px] text-zinc-500 leading-relaxed px-1">
+                  ※海外の描画エンジンによる気まぐれなラフスケッチです。色や形が言うことを聞かない暴走も含めて、まずは使い方に慣れたり、偶然の面白い出会いを楽しむテスト用にお使いください。
+                </p>
               </div>
 
-              {/* ボタン②：丁寧に作るモード（無料枠） */}
-              <div>
+              {/* ボタン②：本気デザイン（本番・高精度） */}
+              <div className="space-y-1 pt-1">
                 <button 
                   type="button" 
                   onClick={() => handleGenerate('openai_free')} 
@@ -848,22 +851,25 @@ export default function ControlPanel({
                   className={`w-full py-3.5 px-4 font-bold text-xs sm:text-sm tracking-wider transition-all duration-200 flex items-center justify-center gap-2 shadow-sm rounded-sm relative z-10 ${
                     effectiveRemainingOpenAI <= 0 
                       ? 'bg-zinc-100 text-zinc-400 border border-zinc-200 cursor-not-allowed' 
-                      : 'bg-zinc-950 text-white hover:bg-zinc-800 disabled:opacity-50'
+                      : 'bg-zinc-950 text-white hover:bg-zinc-800 disabled:opacity-50 border border-zinc-900 shadow-md'
                   }`}
                 >
                   {loading && (generatingMode === 'openai_free' || (loadingEngine === 'openai' && !premiumCode)) ? (
-                    <span>丁寧に作成中...</span>
+                    <span>本気デザインを描出中...</span>
                   ) : (
                     <span>
                       {effectiveRemainingOpenAI <= 0 
                         ? '本日の無料枠は終了しました' 
-                        : '丁寧に作るモードで試す (本日無料 1回)'}
+                        : `🔥 本気デザイン（スケッチの50倍賢いエンジン / 本日無料 ${effectiveRemainingOpenAI}回）`}
                     </span>
                   )}
                 </button>
+                <p className="text-[9.5px] text-zinc-500 leading-relaxed px-1">
+                  ※言葉のニュアンス、選んだ生地の地色、構図のバランスをきっちり計算して高精度に描き出します。ここぞという本命の図案づくりにどうぞ。
+                </p>
               </div>
 
-              {/* 無料枠終了時の案内吹き出し */}
+              {/* 無料枠終了時の案内 */}
               {effectiveRemainingOpenAI <= 0 && !premiumCode && (
                 <div className="p-3 bg-amber-50/80 border border-amber-200 rounded-sm text-left animate-fade-in">
                   <div className="flex items-center gap-1.5 text-amber-900 font-bold text-[11px] mb-1">
@@ -871,41 +877,63 @@ export default function ControlPanel({
                     <span>もっと納得いくまで試したい方へ</span>
                   </div>
                   <p className="text-[10px] text-zinc-600 leading-relaxed">
-                    チケット（1,100円）なら<strong>たっぷり50回</strong>高精度生成をお試しいただけます。<br />
-                    帯や着物をお仕立ての際、<strong className="text-amber-950">チケット代は全額ポイント還元（実質0円）</strong>されます！
+                    チケットなら<strong>たっぷり50回</strong>本気デザインをお試しいただけます。<br />
+                    帯や着物・スカーフをお仕立ての際、<strong className="text-amber-950">チケット代は全額ポイント還元（実質0円）</strong>されます！
                   </p>
                 </div>
               )}
 
-              {/* ボタン③：チケットコードで丁寧に作る */}
-              <div className="p-3.5 bg-zinc-50 border border-zinc-200 rounded-sm space-y-2.5 relative z-10">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+              {/* ボタン③：チケットコード利用 ＆ 入手ルート（インスタ無料 / 購入） */}
+              <div className="p-4 bg-zinc-50 border border-zinc-200 rounded-sm space-y-3 relative z-10">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 pb-2 border-b border-zinc-200">
                   <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-bold text-zinc-800">
-                      チケットコード利用
+                    <span className="text-xs font-black text-zinc-900 flex items-center gap-1">
+                      <span>🎟️</span>
+                      <span>本気デザイン用チケットコード</span>
                     </span>
                     {ticketRemaining !== null && ticketRemaining !== undefined && (
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 bg-green-100 text-green-800 rounded">
+                      <span className="text-[10px] font-bold px-2 py-0.5 bg-green-100 text-green-800 rounded">
                         残数: {ticketRemaining}回
                       </span>
                     )}
                   </div>
+                </div>
+
+                {/* 2大入手ルート案内（インスタ無料GET / 50回購入） */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <a
-                    href="https://store.gofukuyasan.com/view/item/000000007311"
+                    href="https://www.instagram.com/gofukuyasan/"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-[10px] font-bold text-red-700 bg-red-50 hover:bg-red-100 px-2 py-0.5 rounded border border-red-200 transition-colors"
+                    className="p-2.5 bg-white hover:bg-zinc-100 border border-zinc-300 rounded text-left transition-all shadow-sm flex flex-col justify-between group"
                   >
-                    <span>🎟️ チケットを購入（50回分・1回22円）</span>
-                    <span className="text-[8px] text-zinc-500 underline font-normal">詳細 ＞</span>
+                    <span className="text-[11px] font-bold text-zinc-900 flex items-center justify-between">
+                      <span>📸 インスタで無料コードをもらう</span>
+                      <span className="text-[10px] text-zinc-400 group-hover:text-zinc-900">＞</span>
+                    </span>
+                    <span className="text-[9px] text-zinc-500 mt-1 leading-normal">
+                      公式インスタ（@gofukuyasan）の投稿にカタカナで「<strong>チケット</strong>」とコメントまたはDMすると自動で届きます。
+                    </span>
+                  </a>
+
+                  <a
+                    href="https://store.gofukuyasan.com/view/item/000000007300"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2.5 bg-white hover:bg-zinc-100 border border-zinc-300 rounded text-left transition-all shadow-sm flex flex-col justify-between group"
+                  >
+                    <span className="text-[11px] font-bold text-zinc-900 flex items-center justify-between">
+                      <span>🛒 50回チケットを購入する</span>
+                      <span className="text-[10px] text-zinc-400 group-hover:text-zinc-900">＞</span>
+                    </span>
+                    <span className="text-[9px] text-zinc-500 mt-1 leading-normal">
+                      50回分 1,100円（1回22円）。ご注文時に<strong>1,100円分全額ポイント還元（実質0円）</strong>されます。
+                    </span>
                   </a>
                 </div>
 
-                <p className="text-[9.5px] text-zinc-500 leading-tight">
-                  ※お仕立てご注文時に<strong className="text-zinc-800">1,100円分を全額ポイント還元（実質0円）</strong>いたします。
-                </p>
-
-                <div className="flex gap-2">
+                {/* コード入力欄と生成ボタン */}
+                <div className="flex gap-2 pt-1">
                   <input
                     type="text"
                     value={premiumCode}
@@ -918,7 +946,7 @@ export default function ControlPanel({
                         }
                       }
                     }}
-                    placeholder="例：GFK-XXXX-XXXX"
+                    placeholder="コードを入力 (例: GFK-XXXX-XXXX)"
                     className="flex-1 border border-zinc-300 p-2 text-xs bg-white font-mono rounded-sm focus:border-zinc-900 focus:outline-none"
                     disabled={loading}
                   />
@@ -926,15 +954,13 @@ export default function ControlPanel({
                     type="button"
                     onClick={() => handleGenerate('openai_premium')}
                     disabled={loading || !premiumCode.trim()}
-                    className="px-3.5 py-2.5 bg-gradient-to-r from-zinc-900 to-zinc-950 hover:from-black hover:to-zinc-900 disabled:from-zinc-200 disabled:to-zinc-200 disabled:text-zinc-400 text-white text-xs font-bold rounded-sm shadow-md transition-all whitespace-nowrap min-w-[180px] text-center flex items-center justify-center gap-1.5 border border-amber-500/40"
+                    className="px-3.5 py-2 bg-zinc-900 hover:bg-black disabled:bg-zinc-300 disabled:text-zinc-400 text-white text-xs font-bold rounded-sm shadow-md transition-all whitespace-nowrap min-w-[170px] text-center flex items-center justify-center gap-1.5"
                   >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0">
-                      <path d="M2 19H22V21H2V19ZM2 5L7 11L12 3L17 11L22 5V17H2V5Z" fill="#fbbf24"/>
-                    </svg>
+                    <span>🔥</span>
                     <span>
                       {loading && (generatingMode === 'openai_premium' || (loadingEngine === 'openai' && premiumCode))
-                        ? '高精度生成中...'
-                        : 'チケットで丁寧に作る'}
+                        ? '本気描出中...'
+                        : 'チケットで本気デザイン'}
                     </span>
                   </button>
                 </div>
@@ -975,8 +1001,8 @@ export default function ControlPanel({
                   <div className="text-[10px] text-zinc-400 leading-normal relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                     <span>
                       {generatingMode === 'flux' 
-                        ? '⚡ ラフスケッチを高速生成中（数秒で完了）' 
-                        : '💎 超高精度で細部の織りまで描出中（約10〜15秒）'}
+                        ? '⚡ 気まぐれスケッチを描画中（数秒で完了）' 
+                        : '💎 本気デザインを高精度で描出中（約10〜15秒）'}
                     </span>
                     <span className="text-amber-400 font-bold animate-pulse">
                       画面を閉じずにお待ちください
