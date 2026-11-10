@@ -311,11 +311,9 @@ export default function ControlPanel({
   const primaryMotif = motif.trim() ? motif.split('、')[0].split(' ')[0] : '';
   const makeshopSearchUrl = primaryMotif ? `https://store.gofukuyasan.com/view/search?search_keyword=${encodeURIComponent(primaryMotif)}` : 'https://store.gofukuyasan.com/';
 
-  // 回数表示の安全な計算
   const effectiveRemainingFlux = remainingFlux ?? 15;
   const effectiveRemainingOpenAI = remainingOpenAI ?? remainingCount ?? 1;
 
-  // コードが入力されているか判定
   const hasValidCode = Boolean(premiumCode && premiumCode.trim().length > 0);
   const isInstagramCode = premiumCode.trim().toUpperCase().startsWith('IG-');
   const isPaidTicketCode = premiumCode.trim().toUpperCase().startsWith('GFK-');
@@ -325,9 +323,7 @@ export default function ControlPanel({
       
       <div className="space-y-5">
 
-        {/* ======================================================== */}
-        {/* 🎟️ 最上部：チケット・クーポン入力バー（最優先ファーストビュー） */}
-        {/* ======================================================== */}
+        {/* 🎟️ 最上部：チケット・クーポン入力バー */}
         {creationMode === 'ai' && (
           <div className="bg-zinc-50 border border-zinc-200 rounded p-3 text-left">
             {hasValidCode ? (
@@ -428,7 +424,7 @@ export default function ControlPanel({
                         rel="noopener noreferrer"
                         className="hover:underline flex items-center gap-0.5"
                       >
-                        <span>📸 インスタで無料コードをもらう (DMで「チケット」)</span>
+                        <span>📸 インスタで無料コードをもらう（最新投稿に「チケット」とコメント）</span>
                         <span>＞</span>
                       </a>
                       <a
@@ -457,10 +453,6 @@ export default function ControlPanel({
 
         {creationMode === 'ai' ? (
           <>
-            {/* ======================================================== */}
-            {/* 【ステップ1：これだけで作れる（常時表示エリア）】            */}
-            {/* ======================================================== */}
-
             {/* 01. 何を描く？（モチーフ入力） */}
             <div className="space-y-2">
               <div className="flex justify-between items-center">
@@ -554,12 +546,8 @@ export default function ControlPanel({
               </div>
             )}
 
-            {/* ======================================================== */}
-            {/* 生成ボタンエリア（コード適用状態に応じて最適表示）        */}
-            {/* ======================================================== */}
+            {/* 生成ボタンエリア */}
             <div className="space-y-2 pt-1">
-              
-              {/* パターンA：チケットコード適用中（本気デザインを最優先） */}
               {hasValidCode && (
                 <div className="space-y-1">
                   <button 
@@ -581,7 +569,6 @@ export default function ControlPanel({
                 </div>
               )}
 
-              {/* パターンB：チケット未適用時（無料枠ボタン） */}
               {!hasValidCode && (
                 <div className="space-y-1">
                   <button 
@@ -610,7 +597,6 @@ export default function ControlPanel({
                 </div>
               )}
 
-              {/* サブボタン：気まぐれスケッチ（15回/日） */}
               <div>
                 <button 
                   type="button" 
@@ -637,7 +623,6 @@ export default function ControlPanel({
                 </p>
               </div>
 
-              {/* チケットの入手案内（未適用時のみ） */}
               {!hasValidCode && effectiveRemainingOpenAI <= 0 && (
                 <div className="p-3 bg-amber-50/80 border border-amber-200 rounded text-left animate-fade-in mt-2">
                   <div className="flex items-center justify-between mb-1">
@@ -661,7 +646,7 @@ export default function ControlPanel({
                       className="p-2 bg-white border border-amber-200 rounded text-center hover:bg-amber-100/50 transition-colors"
                     >
                       <span className="text-[10px] font-bold text-zinc-900 block">📸 インスタで無料GET</span>
-                      <span className="text-[8.5px] text-zinc-500 block mt-0.5">DMで「チケット」と送信</span>
+                      <span className="text-[8.5px] text-zinc-500 block mt-0.5">最新投稿に「チケット」とコメント</span>
                     </a>
                     <a
                       href="https://store.gofukuyasan.com/view/item/000000007300"
@@ -676,7 +661,6 @@ export default function ControlPanel({
                 </div>
               )}
 
-              {/* ステータスメッセージ */}
               {premiumStatusMsg && (
                 <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded flex items-center gap-2 animate-fade-in text-left">
                   <span className="w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 text-[10px] font-black">
@@ -689,7 +673,7 @@ export default function ControlPanel({
               )}
             </div>
 
-            {/* ローディングアニメーション */}
+            {/* ローディング */}
             {loading && (
               <div className="p-4 bg-zinc-900 border border-zinc-800 rounded shadow-2xl flex flex-col gap-2.5 animate-fade-in my-3 text-left">
                 <div className="flex items-center gap-2.5">
@@ -713,9 +697,7 @@ export default function ControlPanel({
               </div>
             )}
 
-            {/* ======================================================== */}
-            {/* 【ステップ2：こだわり設定（アコーディオンで美しく収納）】 */}
-            {/* ======================================================== */}
+            {/* こだわり設定（アコーディオン） */}
             <div className="pt-3 border-t border-zinc-200">
               <button
                 type="button"
@@ -1039,9 +1021,7 @@ export default function ControlPanel({
             </div>
           </>
         ) : (
-          /* ======================================================== */
-          /* 幾何学モード（色無地・縞・水玉・格子）                     */
-          /* ======================================================== */
+          /* 幾何学モード */
           <div className="space-y-5 animate-fade-in text-left">
             <div className={`grid ${geoPatternType === 'plain' ? 'grid-cols-1' : 'grid-cols-2'} gap-3`}>
               <div>
@@ -1196,16 +1176,13 @@ export default function ControlPanel({
           </div>
         )}
 
-        {/* ======================================================== */}
-        {/* 【ステップ3：生成完了後の作品表示エリア】                 */}
-        {/* ======================================================== */}
+        {/* 生成完了後の作品表示エリア */}
         {imageUrl && !imageUrl.includes('sample_piano_cat') && !imageUrl.includes('sample_cafe') && !imageUrl.includes('sample_antique') && !imageUrl.includes('sample_hokusai_cat') && (
           <div className="pt-6 mt-6 border-t-2 border-zinc-950 space-y-4 animate-fade-in bg-zinc-50 -mx-4 sm:-mx-7 lg:-mx-8 px-4 sm:px-7 lg:px-8 pb-6">
             <h3 className="text-center font-bold text-sm tracking-widest text-zinc-900 pt-2">
               ✨ あなただけの作品が完成しました
             </h3>
 
-            {/* こだわり調整への誘導ボタン */}
             {creationMode === 'ai' && (
               <button
                 type="button"
@@ -1235,7 +1212,7 @@ export default function ControlPanel({
                 </p>
               </div>
 
-              {/* SNSシェアボタン */}
+              {/* SNSシェア */}
               <div className="pt-2 pb-1 border-t border-zinc-200">
                 <p className="text-[10px] font-bold text-zinc-500 tracking-wider uppercase mb-1.5 text-center">この作品をSNSでお披露目する</p>
                 
@@ -1280,7 +1257,7 @@ export default function ControlPanel({
                 </div>
               </div>
 
-              {/* 妄想を現実に ボタン */}
+              {/* 妄想を現実に */}
               <div>
                 <a 
                   href="#" 
