@@ -17,7 +17,6 @@ export default function GalleryPage() {
   const [loading, setLoading] = useState(true);
   const [selectedItem, setSelectedItem] = useState<GalleryItem | null>(null);
 
-  // ページを開いた時に、Vercel KV（データベース）から画像一覧を取得
   useEffect(() => {
     fetch('/api/gallery')
       .then(res => res.json())
@@ -28,134 +27,133 @@ export default function GalleryPage() {
         setLoading(false);
       })
       .catch(err => {
-        console.error('ギャラリー取得エラー:', err);
+        console.error('Fetch error:', err);
         setLoading(false);
       });
   }, []);
 
-  // X（Twitter）へのシェア機能
   const handleShareX = (item: GalleryItem) => {
-    const authorText = item.author && item.author !== '名無しさん' ? `\n👤 by ${item.author}` : '';
-    const shareText = `🎨 『${item.title}』${authorText}\n\nあなたもAIでオリジナルの着物図案を作ってみませんか？👇\n#妄想きもの図案帳 #ゴフクヤサン`;
-    const shareUrl = 'https://design.gofukuyasan.com/gallery'; // シェア時の飛び先はギャラリー
+    const authorText = item.author && item.author !== '名無しさん' ? ` / by ${item.author}` : '';
+    const shareText = `「${item.title}」${authorText}\n\n#妄想きもの図案帳\n`;
+    const shareUrl = 'https://design.gofukuyasan.com/gallery';
     const xUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
     window.open(xUrl, '_blank', 'noopener,noreferrer');
   };
 
   return (
-    <div className="min-h-screen bg-[#f4f4f5] text-zinc-900 font-sans pb-12">
+    <div className="min-h-screen bg-white text-zinc-900 font-sans selection:bg-zinc-900 selection:text-white">
       
-      {/* 🌟 ヘッダー */}
-      <div className="w-full bg-zinc-900 text-white p-4 text-center shadow-md sticky top-0 z-40 flex items-center justify-between px-4 sm:px-8">
-        <a href="/" className="text-zinc-400 hover:text-white text-xs font-bold transition-colors flex items-center gap-1">
-          <span>←</span> <span className="hidden sm:inline">作成画面に戻る</span>
+      {/* Header */}
+      <header className="w-full flex items-center justify-between px-6 py-6 sm:px-12 border-b border-zinc-100">
+        <a href="/" className="text-xs tracking-widest text-zinc-400 hover:text-zinc-900 transition-colors uppercase">
+          Back to Generator
         </a>
-        <h1 className="text-sm sm:text-base font-black tracking-widest">みんなの図案ギャラリー</h1>
-        <div className="w-20"></div> {/* 中央揃え用のスペーサー */}
-      </div>
+        <div className="text-xs tracking-[0.3em] font-light">GOFUKUYASAN</div>
+        <div className="w-24"></div>
+      </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 sm:mt-12">
-        <div className="text-center mb-8 sm:mb-12">
-          <h2 className="text-xl sm:text-2xl lg:text-3xl font-black text-zinc-900 mb-3 tracking-wider">
-            みんなの妄想が、ここに。
-          </h2>
-          <p className="text-xs sm:text-sm text-zinc-500 font-medium">
-            AIを使って生み出された、世界に一つだけの着物・帯図案コレクション。
+      <main className="max-w-[1600px] mx-auto px-6 sm:px-12 pb-32">
+        <div className="py-24 sm:py-32 text-center">
+          <h1 className="text-3xl sm:text-5xl tracking-[0.2em] font-light text-zinc-900 mb-6">
+            GALLERY
+          </h1>
+          <p className="text-xs text-zinc-400 tracking-widest uppercase">
+            Archive of Imagined Designs
           </p>
         </div>
 
-        {/* 🌟 ローディング表示 */}
         {loading ? (
-          <div className="flex justify-center items-center py-20">
-            <div className="w-10 h-10 border-4 border-zinc-200 border-t-zinc-900 rounded-full animate-spin"></div>
+          <div className="flex justify-center items-center py-32">
+            <div className="w-px h-12 bg-zinc-200 animate-pulse"></div>
           </div>
         ) : items.length === 0 ? (
-          <div className="text-center py-32 text-zinc-500 text-sm font-bold bg-white border border-zinc-200 rounded-sm shadow-sm">
-            <span className="text-3xl block mb-4">🖼️</span>
-            まだ作品がありません。最初の図案を飾ってみませんか？
+          <div className="text-center py-32 text-zinc-400 text-xs tracking-widest uppercase">
+            No works found.
           </div>
         ) : (
-          /* 🌟 グリッドレイアウト（画像を隙間なく並べる） */
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6 animate-fade-in">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-16 animate-fade-in">
             {items.map((item, index) => (
               <div 
                 key={item.id || index} 
-                className="relative group cursor-pointer aspect-square bg-zinc-100 rounded-sm overflow-hidden shadow-sm hover:shadow-xl transition-all"
+                className="group cursor-pointer flex flex-col gap-4"
                 onClick={() => setSelectedItem(item)}
               >
-                {/* 40cm角の元画像をトリミングして配置 */}
-                <img 
-                  src={item.imageUrl} 
-                  alt={item.title} 
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
-                  loading="lazy" 
-                />
-                
-                {/* マウスホバー時のキャプション演出（スマホではタップで拡大表示へ） */}
-                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-center items-center text-white p-4 text-center">
-                  <p className="text-sm font-black mb-1.5 line-clamp-2 leading-snug tracking-wider">
-                    『{item.title}』
-                  </p>
+                <div className="relative aspect-square overflow-hidden bg-zinc-50">
+                  <img 
+                    src={item.imageUrl} 
+                    alt={item.title} 
+                    className="w-full h-full object-cover transition-transform duration-[2000ms] ease-out group-hover:scale-105" 
+                    loading="lazy" 
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-700 ease-out"></div>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <h3 className="text-sm font-medium text-zinc-900 tracking-wider truncate">
+                    {item.title}
+                  </h3>
                   {item.author && item.author !== '名無しさん' && (
-                    <p className="text-[10px] text-zinc-300 font-medium">by {item.author}</p>
+                    <p className="text-[10px] text-zinc-400 tracking-widest uppercase">
+                      by {item.author}
+                    </p>
                   )}
-                  <span className="mt-4 px-3 py-1.5 bg-white text-zinc-900 text-[10px] font-bold rounded-full shadow-lg">
-                    拡大して見る 🔍
-                  </span>
                 </div>
               </div>
             ))}
           </div>
         )}
-      </div>
+      </main>
 
-      {/* 🌟 拡大表示＆シェア用モーダル */}
+      {/* Modal */}
       {selectedItem && (
         <div 
-          className="fixed inset-0 z-[99999] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
+          className="fixed inset-0 z-50 bg-white/95 backdrop-blur-sm flex items-center justify-center p-6 sm:p-12 transition-opacity duration-500 animate-fade-in"
           onClick={() => setSelectedItem(null)}
         >
+          <button 
+            onClick={() => setSelectedItem(null)}
+            className="absolute top-8 right-8 text-xs tracking-widest text-zinc-400 hover:text-zinc-900 transition-colors uppercase z-10"
+          >
+            Close
+          </button>
+
           <div 
-            className="max-w-xl w-full bg-white rounded-sm overflow-hidden shadow-2xl relative"
+            className="max-w-6xl w-full flex flex-col lg:flex-row gap-12 lg:gap-24 items-center"
             onClick={e => e.stopPropagation()}
           >
-            {/* 閉じるボタン */}
-            <button 
-              onClick={() => setSelectedItem(null)}
-              className="absolute top-3 right-3 w-8 h-8 bg-black/50 hover:bg-black text-white rounded-full flex items-center justify-center transition-colors z-10"
-            >
-              ✕
-            </button>
-
-            {/* 大画像 */}
-            <div className="relative aspect-square bg-zinc-100">
-              <img src={selectedItem.imageUrl} alt={selectedItem.title} className="w-full h-full object-cover" />
+            <div className="w-full lg:w-3/5 aspect-square bg-zinc-50 overflow-hidden shadow-2xl">
+              <img 
+                src={selectedItem.imageUrl} 
+                alt={selectedItem.title} 
+                className="w-full h-full object-cover" 
+              />
             </div>
 
-            {/* 作品情報とシェアボタン */}
-            <div className="p-5 sm:p-7 text-center space-y-4">
-              <div>
-                <h3 className="text-lg sm:text-xl font-black text-zinc-900 mb-1.5 tracking-widest">
-                  『{selectedItem.title}』
-                </h3>
-                {selectedItem.author && selectedItem.author !== '名無しさん' && (
-                  <p className="text-xs text-zinc-500 font-bold">👤 {selectedItem.author}</p>
-                )}
-              </div>
+            <div className="w-full lg:w-2/5 flex flex-col justify-center text-left">
+              <h2 className="text-2xl sm:text-4xl font-light tracking-wider text-zinc-900 mb-4 leading-snug">
+                {selectedItem.title}
+              </h2>
+              {selectedItem.author && selectedItem.author !== '名無しさん' && (
+                <p className="text-xs text-zinc-400 tracking-widest uppercase mb-12">
+                  by {selectedItem.author}
+                </p>
+              )}
               
-              <div className="pt-4 border-t border-zinc-100 flex flex-col items-center justify-center gap-2">
+              <div className="flex flex-col gap-4 w-full sm:w-2/3 lg:w-full">
                 <button 
                   onClick={() => handleShareX(selectedItem)}
-                  className="w-full sm:w-auto px-8 py-3 bg-zinc-950 hover:bg-black text-white text-xs font-bold rounded-sm shadow-md transition-all flex items-center justify-center gap-2 hover:scale-[1.02]"
+                  className="w-full py-4 border border-zinc-900 text-zinc-900 hover:bg-zinc-900 hover:text-white text-xs tracking-widest uppercase transition-colors duration-300"
                 >
-                  <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-                  </svg>
-                  この作品を 𝕏（Twitter）で自慢する
+                  Share on X
                 </button>
-                <p className="text-[10px] text-zinc-400 mt-1">
-                  ※URLとハッシュタグが自動でセットされます
-                </p>
+                
+                <div className="mt-8 pt-8 border-t border-zinc-200">
+                  <a 
+                    href={`mailto:info@gofukuyasan.com?subject=ギャラリー画像の削除依頼&body=以下の画像の削除をお願いします。%0D%0AID: ${selectedItem.id}%0D%0Aタイトル: ${selectedItem.title}`}
+                    className="text-[10px] text-zinc-400 hover:text-zinc-900 tracking-wider transition-colors underline"
+                  >
+                    投稿の削除を依頼する
+                  </a>
+                </div>
               </div>
             </div>
           </div>
