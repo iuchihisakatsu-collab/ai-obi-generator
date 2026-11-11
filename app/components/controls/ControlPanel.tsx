@@ -187,11 +187,45 @@ export default function ControlPanel({
 
   const currentTaste = tasteMode || 'katazome';
 
+  const [publishToGallery, setPublishToGallery] = useState(false);
+  const [galleryAuthor, setGalleryAuthor] = useState('');
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [publishSuccess, setPublishSuccess] = useState(false);
+
   useEffect(() => {
     if (premiumCode) {
       setInputCodeValue(premiumCode);
     }
   }, [premiumCode]);
+
+  const handlePublishToGallery = async () => {
+    if (!imageUrl) return;
+    setIsPublishing(true);
+    try {
+      const res = await fetch('/api/gallery', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageUrl: imageUrl, // 40cm角の元データ
+          title: patternTitle,
+          author: galleryAuthor,
+          itemType: itemType,
+          scale: patternScale,
+          density: density,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setPublishSuccess(true);
+      } else {
+        alert('エラーが発生しました: ' + (data.error || '不明なエラー'));
+      }
+    } catch (err) {
+      alert('通信エラーが発生しました。');
+    } finally {
+      setIsPublishing(false);
+    }
+  };
 
   const handleApplyCode = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -1198,6 +1232,71 @@ export default function ControlPanel({
             )}
 
             <div className="space-y-3">
+              {/* 🌟 ギャラリー公開フォーム */}
+              <div className="bg-white border border-zinc-200 p-4 shadow-sm rounded">
+                <p className="text-[11px] font-black text-zinc-900 mb-2 flex items-center gap-1.5">
+                  <span className="text-sm">🌟</span>
+                  <span>あなたの図案をみんなのギャラリーに飾りませんか？</span>
+                </p>
+                <div className="space-y-3">
+                  {publishSuccess ? (
+                    <div className="p-3 bg-emerald-50 border border-emerald-200 rounded text-center animate-fade-in">
+                      <p className="text-xs font-bold text-emerald-900 mb-1">🎉 ギャラリーに展示されました！</p>
+                      <p className="text-[10px] text-emerald-700">素敵な作品をありがとうございます。</p>
+                    </div>
+                  ) : (
+                    <>
+                      <div>
+                        <label className="block text-[10px] font-bold text-zinc-700 mb-1">作品名（任意）</label>
+                        <input
+                          type="text"
+                          className="w-full border border-zinc-300 p-2 bg-zinc-50 text-xs focus:outline-none focus:border-zinc-900 focus:bg-white rounded"
+                          placeholder="作品名"
+                          value={patternTitle}
+                          onChange={(e) => setPatternTitle(e.target.value)}
+                          disabled={isPublishing}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-zinc-700 mb-1">Instagram/Xのアカウント名（任意）</label>
+                        <input
+                          type="text"
+                          className="w-full border border-zinc-300 p-2 bg-zinc-50 text-xs focus:outline-none focus:border-zinc-900 focus:bg-white rounded"
+                          placeholder="例: @shirone_ga"
+                          value={galleryAuthor}
+                          onChange={(e) => setGalleryAuthor(e.target.value)}
+                          disabled={isPublishing}
+                        />
+                      </div>
+                      <label className="flex items-start gap-2 cursor-pointer select-none mt-2">
+                        <input 
+                          type="checkbox" 
+                          checked={publishToGallery} 
+                          onChange={(e) => setPublishToGallery(e.target.checked)} 
+                          className="mt-0.5 h-3.5 w-3.5 border-zinc-300 text-zinc-900 focus:ring-zinc-900 transition-colors cursor-pointer shrink-0" 
+                          disabled={isPublishing}
+                        />
+                        <span className="text-[9.5px] text-zinc-600 leading-tight">
+                          ギャラリーへの掲載と、ゴフクヤサン公式SNSでの紹介（リポスト・投稿）に同意する
+                        </span>
+                      </label>
+                      <button 
+                        type="button" 
+                        onClick={handlePublishToGallery}
+                        disabled={!publishToGallery || isPublishing}
+                        className={`w-full py-2.5 text-[11px] font-bold transition-all rounded shadow-sm flex items-center justify-center gap-1.5 ${
+                          !publishToGallery 
+                            ? 'bg-zinc-100 text-zinc-400 border border-zinc-200 cursor-not-allowed'
+                            : 'bg-zinc-900 hover:bg-black text-white border border-zinc-950 active:scale-[0.99]'
+                        }`}
+                      >
+                        {isPublishing ? '保存しています...' : 'ギャラリーに公開して保存する'}
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+
               <div>
                 <button 
                   type="button" 
