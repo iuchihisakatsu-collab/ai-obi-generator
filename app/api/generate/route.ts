@@ -15,7 +15,12 @@ const GAS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbxaG8AFwsNy3tTrQ
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
-    const code = (searchParams.get('code') || '').trim().toUpperCase();
+    let code = (searchParams.get('code') || '').trim().toUpperCase();
+
+    // SNSで拡散済みの「X-」から始まるコードを、裏側で「IG-X-」として処理するための特別対応
+    if (code.startsWith('X-')) {
+      code = 'IG-' + code;
+    }
 
     if (!code) {
       return NextResponse.json({ success: false, error: 'コードが未入力です' }, { status: 400 });
@@ -67,7 +72,7 @@ const TASTE_PROMPTS: Record<string, string> = {
 
 const STYLE_PROMPTS: Record<string, string> = {
   none: '',
-  scarf: 'Premium luxury European square silk scarf aesthetic. Vivid harmonious colors, extremely intricate decorative border details.',
+  scarf: 'Premium luxury European silk scarf aesthetic. Vivid harmonious colors, extremely intricate decorative details.',
   galle: 'Inspired by Émile Gallé Art Nouveau cameo glass: poetic botanical naturalism, layered translucent textures resembling etched glass.',
   organic: 'Poetic organic textile design, handcrafted block print texture, gentle warm wabi-sabi imperfections.',
   toile: 'Traditional French Toile de Jouy textile, delicate monochromatic line-drawn pastoral scenes.',
@@ -99,7 +104,13 @@ export async function POST(req: Request) {
     const isFlux = !isPremium && engine === 'flux';
     const isOpenAiFree = !isPremium && (engine === 'openai_free' || engine === 'openai');
 
-    const code = (premiumCode || '').trim().toUpperCase();
+    let code = (premiumCode || '').trim().toUpperCase();
+    
+    // SNSで拡散済みの「X-」から始まるコードを、裏側で「IG-X-」として処理するための特別対応
+    if (code.startsWith('X-')) {
+      code = 'IG-' + code;
+    }
+
     if (isPremium) {
       if (!code) {
         return NextResponse.json({ error: 'プレミアムチケットのシリアルコードを入力してください。' }, { status: 400 });
@@ -127,7 +138,7 @@ export async function POST(req: Request) {
         const fluxKey = `usage:flux:${ip}:${today}`;
         const fluxCount = (await kv.get<number>(fluxKey)) || 0;
         if (fluxCount >= 15) {
-          return NextResponse.json({ error: '本日の気まぐれスケッチ枠（15回）を使い切りました。明日またお試しください。' }, { status: 429 });
+          return NextResponse.json({ error: '本日の無料スケッチ（FLUX）枠（15回）を使い切りました。明日またお試しください。' }, { status: 429 });
         }
         await kv.incr(fluxKey);
         await kv.expire(fluxKey, 86400);
@@ -136,13 +147,13 @@ export async function POST(req: Request) {
         const freeKey = `usage:openaifree:${ip}:${today}`;
         const freeCount = (await kv.get<number>(freeKey)) || 0;
         if (freeCount >= 1) {
-          return NextResponse.json({ error: '本日の「本気デザイン（無料枠）」はすでに利用済みです。続きはチケットコードをご利用ください。' }, { status: 429 });
+          return NextResponse.json({ error: '本日の「丁寧に作る（無料枠）」はすでに利用済みです。続きはチケットコードをご利用ください。' }, { status: 429 });
         }
         await kv.incr(freeKey);
         await kv.expire(freeKey, 86400);
 
       } else {
-        return NextResponse.json({ error: '不正な指定です。' }, { status: 400 });
+        return NextResponse.json({ error: '不正なエンジン指定です。' }, { status: 400 });
       }
     }
 
@@ -177,23 +188,24 @@ export async function POST(req: Request) {
       negativeScalePrompt = 'giant single portrait, micro dot clutter, single focal hero';
     }
 
-    // 2. 柄の向き・天地（Direction / Orientation）判定
-    const isScarfMode = itemType === 'scarf' || density.includes('スカーフ') || density.includes('額縁') || motif.includes('スカーフ') || motif.toLowerCase().includes('scarf');
-    const isOtaiko = density.includes('お太鼓柄');
-    const isShiho = density.includes('四方') || density.includes('天地無用') || (!isScarfMode && !isOtaiko && (density.includes('四方') || itemType === 'kimono'));
-    const isUpright = density.includes('一方向') || density.includes('上向き');
+    // 2. 柄の向き・天地（Direction / Orientation）の超強力な判定と強制
+    const isScarfMode = motif.includes('スカーフ') || motif.toLowerCase().includes('scarf');
+    const isOtaiko = density.includes('お太鼓柄') || density.includes('CENTERED');
+    const isShiho = density.includes('四方') || density.includes('ALL-OVER') || density.includes('天地無用') || (!isScarfMode && !isOtaiko && (density.includes('四方') || itemType === 'kimono'));
+    const isUpright = density.includes('一方向') || density.includes('UPWARD') || density.includes('上向き');
 
     let directionHeading = '';
     let directionEnforcement = '';
     let negativeDirectionPrompt = '';
 
     if (isScarfMode) {
-      directionHeading = 'LUXURY SQUARE SCARF FRAMED PANEL COMPOSITION';
-      directionEnforcement = 'Perfect square framed composition with solid outer margin border and central ornate decorative medallion. DO NOT tile.';
+      directionHeading = 'LUXURY SILK SCARF (CARRÉ) FRAMED COMPOSITION';
+      directionEnforcement = 'Perfect square framed composition with solid outer margin and central ornate medallion. DO NOT tile.';
     } else if (isOtaiko) {
       directionHeading = 'OTAIKO DRUM ACCENT PANEL';
       directionEnforcement = 'Non-seamless centered panel design with a single magnificent focal motif placed in upper center.';
     } else if (isShiho && !isUpright) {
+      // ★ 四方柄（天地無用）：AIの直立バイアスを完全に破壊する強烈な指示
       directionHeading = 'OMNIDIRECTIONAL MULTI-DIRECTIONAL TOSSED PATTERN (CHIRA-SHI)';
       directionEnforcement = `CRITICAL MANDATORY ORIENTATION:
 Every motif MUST be randomly rotated and tossed in ALL possible angles (0°, 90°, 180°, 270°, and diagonals).
@@ -202,6 +214,7 @@ Do NOT draw animals or objects standing straight up.
 Tumble and scatter the motifs chaotically so the pattern looks identical whether viewed right-side-up, upside-down, or from the side. Zero top, zero bottom.`;
       negativeDirectionPrompt = 'all upright, all facing up, single direction, uniform orientation, upright standing animals, standing upright, vertically aligned, heads up only';
     } else {
+      // ★ 一方向（上向き）
       directionHeading = 'STRICT ONE-DIRECTIONAL UPRIGHT REPEAT PATTERN';
       directionEnforcement = `CRITICAL MANDATORY ORIENTATION:
 All motifs MUST face straight UP towards the top edge. Perfect vertical upright alignment, bottom-to-top orientation. No inverted motifs.`;
@@ -210,23 +223,20 @@ All motifs MUST face straight UP towards the top edge. Perfect vertical upright 
 
     const tasteDetail = TASTE_PROMPTS[tasteMode] || TASTE_PROMPTS['katazome'];
     const styleDetail = STYLE_PROMPTS[aiStyle] || '';
-
-    // ★ コロさん指摘対策：選んだ色を確実に着物の「地色（メイン背景色）」にする強力ロジック
-    const colorInstruction = (color && color !== 'おまかせ') 
-      ? `CRITICAL MANDATORY COLOR RULE: The primary background / ground color (地色) of the fabric MUST BE dyed in ${color}. Ensure the base textile surface is predominantly ${color}, with the motifs harmoniously composed on top of this ${color} ground color.` 
-      : 'Harmonious mature kimono color palette.';
+    const colorInstruction = (color && color !== 'おまかせ') ? `Main Color Theme: ${color}.` : 'Harmonious mature color palette.';
 
     const enforcement = `【STRICT QUALITY & FORMAT ENFORCEMENT】
-Strictly MATURE, SOPHISTICATED, ARTISAN-CRAFTED high-end textile aesthetic.
+Strictly MATURE, SOPHISTICATED, ARTISAN-CRAFTED high-end kimono textile aesthetic.
 ABSOLUTELY NO kawaii, NO pastel, NO chibi, NO childish, NO fluffy, NO cartoon, NO anime, NO fairy tale, NO soft glowing gradient.
 Zero gradients, zero shadows. Top-down 2D flat orthogonal surface only. NO humans, NO mockups, NO 3D perspective.
 Negative constraints: ${negativeScalePrompt}, ${negativeDirectionPrompt}, sweet cute elements, childish doodle.`;
 
+    // FLUXが最も忠実に従うよう、先頭に「向き」と「サイズ」をドカンと配置
     const prompt = `[${directionHeading}]
 ${directionEnforcement}
 ${scaleKeyword}
 
-Flat 2D continuous textile pattern design.
+Flat 2D continuous seamless textile pattern for Japanese kimono and obi fabric.
 
 【Motifs】
 ${englishMotif} (${cleanMotifForTranslation})
@@ -234,12 +244,12 @@ ${englishMotif} (${cleanMotifForTranslation})
 【Taste & Technique】
 ${tasteDetail}
 ${styleDetail ? `【Style Accent】\n${styleDetail}\n` : ''}
-【Color & Ground Dye】
+【Color】
 ${colorInstruction}
 
 ${enforcement}`;
 
-    // 気まぐれスケッチ（FLUX schnell）生成処理
+    // FLUX 生成処理
     if (isFlux && process.env.FAL_KEY) {
       const falResponse = await fetch('https://queue.fal.run/fal-ai/flux/schnell', {
         method: 'POST',
@@ -271,7 +281,7 @@ ${enforcement}`;
       }
     }
 
-    // 本気デザイン（OpenAI 高精度描出）
+    // OpenAI 高精細生成
     const response = await openai.images.generate({
       model: "gpt-image-2.5-sunburst",
       prompt: prompt,
