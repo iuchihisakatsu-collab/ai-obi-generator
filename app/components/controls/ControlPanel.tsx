@@ -206,7 +206,7 @@ export default function ControlPanel({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          imageUrl: imageUrl, // 40cm角の元データ
+          imageUrl: imageUrl, 
           title: patternTitle,
           author: galleryAuthor,
           itemType: itemType,
