@@ -1,1106 +1,164 @@
-// app/page.tsx
+// app/gallery/page.tsx
 'use client';
 
-export const dynamic = 'force-dynamic';
+import { useEffect, useState } from 'react';
 
-import { useState, useEffect, type MouseEvent, useCallback, Suspense, useRef } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { 
-  generateStripeSvg, generateDotSvg, generateGridSvg, 
-  generateGinghamSvg, generateCheckerSvg, svgToHighResPng, 
-  type StripeDirection, type DotLayout 
-} from './utils/geometricPatterns';
-import { TRADITIONAL_COLORS, FORBIDDEN_WORDS, UNIVERSAL_SCALE_FACTOR } from './lib/constants';
-import { CURRENT_NOTICE } from './lib/noticeConfig';
-import NoticeModal from './components/NoticeModal';
-import PreviewArea from './components/preview/PreviewArea';
-import ControlPanel from './components/controls/ControlPanel';
-import { PlatformType, submitOrder } from './lib/orders';
-import { renderTiledGeometricPng } from './lib/production/canvasRenderer';
-
-const MAX_FLUX_PER_DAY = 15;
-const MAX_OPENAI_PER_DAY = 1;
-
-function getTodayJST(): string {
-  const parts = new Intl.DateTimeFormat('ja-JP', { timeZone: 'Asia/Tokyo', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date());
-  return `${parts.find(p => p.type === 'year')?.value}-${parts.find(p => p.type === 'month')?.value}-${parts.find(p => p.type === 'day')?.value}`;
+interface GalleryItem {
+  id: string;
+  imageUrl: string;
+  title: string;
+  author: string;
+  itemType: string;
+  createdAt: string;
 }
 
-function getColorNameFromHex(hex: string): string {
-  const found = TRADITIONAL_COLORS.find(c => c.hex.toLowerCase() === hex.toLowerCase());
-  return found ? found.name.split(' ')[0] : '';
-}
-
-async function rotateImage90Degrees(imageUrl: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = img.naturalHeight;
-      canvas.height = img.naturalWidth;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        reject(new Error('Canvas context failed'));
-        return;
-      }
-      ctx.translate(canvas.width / 2, canvas.height / 2);
-      ctx.rotate((90 * Math.PI) / 180);
-      ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
-      resolve(canvas.toDataURL('image/png'));
-    };
-    img.onerror = (e) => reject(e);
-    img.src = imageUrl;
-  });
-}
-
-function HomeContent() {
-  const searchParams = useSearchParams();
-  const [platform, setPlatform] = useState<PlatformType>((searchParams.get('platform') as PlatformType) || 'makeshop');
-  const [designFee, setDesignFee] = useState<number>(1000);
-
-  const [creationMode, setCreationMode] = useState<'ai' | 'geometric' | 'upload'>('ai');
-  const [itemType, setItemType] = useState<'hanhaba' | 'kyobukuro' | 'kimono' | 'scarf'>('hanhaba');
-  const [displayMode, setDisplayMode] = useState<'mockup' | 'trim' | 'data'>('mockup');
-  
-  const [aiStyle, setAiStyle] = useState<string>('none');
-  const [tasteMode, setTasteMode] = useState<string>('katazome');
-  const [selectedArtist, setSelectedArtist] = useState<string>('none');
-
-  const [motif, setMotif] = useState<string>('黒猫、ピアノの鍵盤、月、椿');
-  const [motif2, setMotif2] = useState<string>('');
-  const [selectedTags, setSelectedTags] = useState<string[]>(['大正ロマン', '水彩画']);
-  
-  const [patternScale, setPatternScale] = useState<'small' | 'medium' | 'large'>('medium');
-
-  const [selectedColors, setSelectedColors] = useState<typeof TRADITIONAL_COLORS>([]);
-  const [showColorPalette, setShowColorPalette] = useState<boolean>(false);
-  const [density, setDensity] = useState<string>('一方向リピート（上向き総柄・18cm最適化）');
-
-  const [geoPatternType, setGeoPatternType] = useState<'plain' | 'stripe' | 'dot' | 'grid' | 'gingham' | 'checker'>('plain');
-  const [stripeDir, setStripeDir] = useState<StripeDirection>('vertical');
-  const [dotLayout, setDotLayout] = useState<DotLayout>('staggered');
-  const [dotRadius, setDotRadius] = useState<number>(5);
-  const [gapWidth, setGapWidth] = useState<number>(10);
-  const [lineWidth, setLineWidth] = useState<number>(5);
-  const [geoBgColor, setGeoBgColor] = useState<string>('#fffffc');
-  const [geoPatternColor, setGeoPatternColor] = useState<string>('#161616');
-  const [showGeoPaletteFor, setShowGeoPaletteFor] = useState<'bg' | 'pattern' | null>(null);
-  const [bgSizeMm, setBgSizeMm] = useState<number>(100);
-
-  const [obiLiningColor, setObiLiningColor] = useState<string>('#dcdddd');
-  const [kimonoHaneriColor, setKimonoHaneriColor] = useState<string>('#ffffff');
-  const [kimonoObiageColor, setKimonoObiageColor] = useState<string>('#c82a36');
-  const [kimonoObiColor, setKimonoObiColor] = useState<string>('#1a1a1a');
-  
-  const [customObiUrl, setCustomObiUrl] = useState<string | null>(null);
-  const [customHaraUrl, setCustomHaraUrl] = useState<string | null>(null);
-
-  const [agreed, setAgreed] = useState<boolean>(false);
-  const [errorMsg, setErrorMsg] = useState<string>('');
-  const [uploadingImage, setUploadingImage] = useState<boolean>(false);
-  const [analyzingImage, setAnalyzingImage] = useState<boolean>(false);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [generatingMode, setGeneratingMode] = useState<'flux' | 'openai_free' | 'openai_premium' | null>(null);
-  const [loadingStep, setLoadingStep] = useState<number>(0);
-
-  const [remainingFlux, setRemainingFlux] = useState<number>(MAX_FLUX_PER_DAY);
-  const [remainingOpenAI, setRemainingOpenAI] = useState<number>(MAX_OPENAI_PER_DAY);
-  const [ticketRemaining, setTicketRemaining] = useState<number | null>(null);
-
-  const [premiumCode, setPremiumCode] = useState<string>('');
-  const [premiumStatusMsg, setPremiumStatusMsg] = useState<string>('');
-
-  const [imageUrl, setImageUrl] = useState<string>('/sample_piano_cat.png');
-  const [blobUrl, setBlobUrl] = useState<string>('/sample_piano_cat.png');
-  
-  const [rotatedPatternUrl, setRotatedPatternUrl] = useState<string>('');
-  const [serialNumber, setSerialNumber] = useState<string>('KOMON-INIT');
-  const [patternTitle, setPatternTitle] = useState<string>('月夜のピアノと黒猫');
-  const [mockupSubmitting, setMockupSubmitting] = useState<boolean>(false);
-  
-  const [isNoticeOpen, setIsNoticeOpen] = useState<boolean>(false);
-  const [isPolicyOpen, setIsPolicyOpen] = useState<boolean>(false);
-
-  const [copiedPromptType, setCopiedPromptType] = useState<'seamless' | 'centered' | 'scarf' | null>(null);
-
-  const previewRef = useRef<HTMLDivElement>(null);
-  const previewContainerRef = useRef<HTMLDivElement>(null);
+export default function GalleryPage() {
+  const [items, setItems] = useState<GalleryItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedItem, setSelectedItem] = useState<GalleryItem | null>(null);
 
   useEffect(() => {
-    const initialColors = TRADITIONAL_COLORS.filter(c => ['漆黒', '真紅'].includes(c.name.split(' ')[0]));
-    setSelectedColors(initialColors);
+    fetch('/api/gallery')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.items) {
+          setItems(data.items);
+        }
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error('Fetch error:', err);
+        setLoading(false);
+      });
   }, []);
 
-  useEffect(() => {
-    const savedCode = localStorage.getItem('komon_premium_code');
-    if (savedCode) {
-      setPremiumCode(savedCode);
-    }
-  }, []);
-
-  // コードが空になったらステータスメッセージと残数表示もリセット
-  const handleSetPremiumCode = (newCode: string) => {
-    setPremiumCode(newCode);
-    if (!newCode.trim()) {
-      setPremiumStatusMsg('');
-      setTicketRemaining(null);
-    }
+  const handleShareX = (item: GalleryItem) => {
+    const authorText = item.author && item.author !== '名無しさん' ? ` / by ${item.author}` : '';
+    const shareText = `「${item.title}」${authorText}\n\n#妄想きもの図案帳\n`;
+    const shareUrl = 'https://design.gofukuyasan.com/gallery';
+    const xUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
+    window.open(xUrl, '_blank', 'noopener,noreferrer');
   };
-
-  useEffect(() => {
-    const today = getTodayJST();
-    const storedDate = localStorage.getItem('komon_usage_date');
-    if (storedDate !== today) {
-      localStorage.setItem('komon_usage_date', today);
-      localStorage.setItem('komon_count_flux', '0');
-      localStorage.setItem('komon_count_openai', '0');
-      setRemainingFlux(MAX_FLUX_PER_DAY);
-      setRemainingOpenAI(MAX_OPENAI_PER_DAY);
-    } else {
-      const usedFlux = parseInt(localStorage.getItem('komon_count_flux') || '0', 10);
-      const usedOpenAI = parseInt(localStorage.getItem('komon_count_openai') || '0', 10);
-      setRemainingFlux(Math.max(0, MAX_FLUX_PER_DAY - usedFlux));
-      setRemainingOpenAI(Math.max(0, MAX_OPENAI_PER_DAY - usedOpenAI));
-    }
-
-    if (CURRENT_NOTICE.enabled && localStorage.getItem('last_dismissed_notice_id') !== CURRENT_NOTICE.id) {
-      setIsNoticeOpen(true);
-    }
-  }, []);
-
-  const handleCloseNotice = () => {
-    setIsNoticeOpen(false);
-    if (CURRENT_NOTICE?.id) {
-      localStorage.setItem('last_dismissed_notice_id', CURRENT_NOTICE.id);
-    }
-  };
-
-  useEffect(() => {
-    if (motif.trim() === 'ぷっぴ') {
-      localStorage.setItem('komon_count_flux', '0');
-      localStorage.setItem('komon_count_openai', '0');
-      setRemainingFlux(MAX_FLUX_PER_DAY);
-      setRemainingOpenAI(MAX_OPENAI_PER_DAY);
-      setMotif('');
-      alert('【管理者モード】本日の生成回数を全回復しました。');
-    }
-  }, [motif]);
-
-  useEffect(() => {
-    const src = blobUrl || imageUrl;
-    if (!src) {
-      setRotatedPatternUrl('');
-      return;
-    }
-
-    if (creationMode !== 'geometric' && itemType === 'hanhaba') {
-      rotateImage90Degrees(src)
-        .then((rotated) => setRotatedPatternUrl(rotated))
-        .catch((err) => {
-          console.error('画像90度回転に失敗:', err);
-          setRotatedPatternUrl(src);
-        });
-    } else {
-      setRotatedPatternUrl(src);
-    }
-  }, [blobUrl, imageUrl, creationMode, itemType]);
-
-  const updateGeometricPattern = useCallback(async () => {
-    if (creationMode !== 'geometric') return;
-
-    let svgString = '';
-    let tileSize = 0;
-    const period = lineWidth + gapWidth;
-    const dotPitch = (dotRadius * 2) + gapWidth;
-
-    if (geoPatternType === 'plain') {
-      svgString = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100" height="100" fill="${geoBgColor}"/></svg>`;
-      tileSize = 100;
-    } else if (geoPatternType === 'stripe') {
-      svgString = generateStripeSvg({ direction: stripeDir, lineWidth, gap: gapWidth, bgColor: geoBgColor, stripeColor: geoPatternColor });
-      tileSize = stripeDir === 'diagonal' ? period * 2 : period;
-    } else if (geoPatternType === 'dot') {
-      svgString = generateDotSvg({ layout: dotLayout, radius: dotRadius, gap: gapWidth, bgColor: geoBgColor, dotColor: geoPatternColor });
-      tileSize = dotPitch; 
-    } else if (geoPatternType === 'grid') {
-      svgString = generateGridSvg({ lineWidth, gap: gapWidth, bgColor: geoBgColor, gridColor: geoPatternColor });
-      tileSize = period;
-    } else if (geoPatternType === 'gingham') {
-      svgString = generateGinghamSvg({ lineWidth, gap: gapWidth, bgColor: geoBgColor, checkColor: geoPatternColor });
-      tileSize = period;
-    } else if (geoPatternType === 'checker') {
-      svgString = generateCheckerSvg({ blockSize: lineWidth, bgColor: geoBgColor, checkColor: geoPatternColor });
-      tileSize = lineWidth * 2;
-    }
-
-    setBgSizeMm(tileSize);
-    const svgDataUrl = `data:image/svg+xml;utf8,${encodeURIComponent(svgString)}`;
-    setImageUrl(svgDataUrl);
-    setRotatedPatternUrl('');
-
-    try {
-      const tiledPng = await renderTiledGeometricPng(svgDataUrl, tileSize, geoBgColor, 400, 2400);
-      setBlobUrl(tiledPng);
-    } catch {
-      try {
-        const fallbackPng = await svgToHighResPng(svgString, 2400);
-        setBlobUrl(fallbackPng);
-      } catch {
-        setBlobUrl(svgDataUrl);
-      }
-    }
-
-    const bgName = getColorNameFromHex(geoBgColor);
-    const patName = getColorNameFromHex(geoPatternColor);
-    let baseName = '無題';
-    if (geoPatternType === 'plain') baseName = '色無地';
-    if (geoPatternType === 'stripe') baseName = '万筋縞';
-    if (geoPatternType === 'dot') baseName = '千鳥水玉';
-    if (geoPatternType === 'grid') baseName = '格子柄';
-    if (geoPatternType === 'gingham') baseName = '吟風';
-    if (geoPatternType === 'checker') baseName = '市松模様';
-
-    let autoTitle = baseName;
-    if (geoPatternType === 'plain') {
-      autoTitle = bgName ? `${bgName}の色無地` : '色無地';
-    } else {
-      const mainColor = patName || bgName;
-      autoTitle = mainColor ? `${mainColor}の${baseName}` : baseName;
-    }
-    setPatternTitle(autoTitle);
-
-  }, [creationMode, geoPatternType, lineWidth, gapWidth, geoPatternColor, geoBgColor, stripeDir, dotRadius, dotLayout]);
-
-  useEffect(() => {
-    if (creationMode === 'geometric') updateGeometricPattern();
-  }, [creationMode, updateGeometricPattern]);
-
-  const handleColorToggle = (colorObj: typeof TRADITIONAL_COLORS[0]) => {
-    if (selectedColors.some(c => c.hex === colorObj.hex)) {
-      setSelectedColors(selectedColors.filter(c => c.hex !== colorObj.hex));
-    } else {
-      if (selectedColors.length >= 3) { setErrorMsg('選択できる色は最大3色までです'); return; }
-      setSelectedColors([...selectedColors, colorObj]);
-      setErrorMsg('');
-    }
-  };
-
-  const handleCustomObiUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = async () => {
-      const base64 = reader.result as string;
-      setCustomObiUrl(base64);
-      try {
-        const uploadRes = await fetch('/api/upload-blob', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ base64Data: base64, filename: `custom_obi_${Date.now()}.png` }),
-        });
-        const uploadData = await uploadRes.json();
-        if (uploadData.url) setCustomObiUrl(uploadData.url);
-      } catch (err) {
-        console.warn('帯画像のアップロード失敗:', err);
-      }
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleCustomHaraUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = async () => {
-      const base64 = reader.result as string;
-      setCustomHaraUrl(base64);
-      try {
-        const uploadRes = await fetch('/api/upload-blob', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ base64Data: base64, filename: `custom_hara_${Date.now()}.png` }),
-        });
-        const uploadData = await uploadRes.json();
-        if (uploadData.url) setCustomHaraUrl(uploadData.url);
-      } catch (err) {
-        console.warn('前腹画像のアップロード失敗:', err);
-      }
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleUserImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setErrorMsg('');
-    setUploadingImage(true);
-
-    const cleanFileName = file.name.replace(/\.[^/.]+$/, '');
-    const newSerial = `USER-${Math.floor(1000 + Math.random() * 9000)}`;
-    setPatternTitle(cleanFileName ? `${cleanFileName}（持ち込み）` : '持ち込み図案');
-    setSerialNumber(newSerial);
-
-    const reader = new FileReader();
-    reader.onloadend = async () => {
-      const base64Data = reader.result as string;
-      setImageUrl(base64Data);
-      setRotatedPatternUrl('');
-
-      try {
-        const uploadRes = await fetch('/api/upload-blob', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ base64Data: base64Data, filename: `${newSerial}_original.png` }),
-        });
-        const uploadData = await uploadRes.json();
-        if (uploadData.url) {
-          setBlobUrl(uploadData.url);
-          setImageUrl(uploadData.url);
-        } else {
-          setBlobUrl(base64Data);
-        }
-      } catch (uploadErr) {
-        console.error('Blob upload error:', uploadErr);
-        setBlobUrl(base64Data);
-      } finally {
-        setUploadingImage(false);
-      }
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleExtractPrompt = async () => {
-    const targetImg = blobUrl || imageUrl;
-    if (!targetImg) return;
-
-    setAnalyzingImage(true);
-    setErrorMsg('');
-
-    try {
-      const res = await fetch('/api/analyze-image', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageUrl: targetImg }),
-      });
-
-      const result = await res.json();
-      if (!res.ok || !result.success) {
-        throw new Error(result.error || '画像の解析に失敗しました');
-      }
-
-      const { prompt, motif: extractedMotif, color, texture } = result.data;
-      const combinedPrompt = prompt || `${extractedMotif}。配色：${color}。タッチ：${texture}`;
-
-      setMotif(combinedPrompt);
-      setCreationMode('ai');
-      
-      alert('写真から色・柄のエッセンスを抽出しました！「AI妄想モード」で生成をお試しください。');
-    } catch (err: any) {
-      console.error(err);
-      setErrorMsg(err.message || '写真の解析中にエラーが発生しました');
-    } finally {
-      setAnalyzingImage(false);
-    }
-  };
-
-  const handleCopyPrompt = (text: string, type: 'seamless' | 'centered' | 'scarf') => {
-    navigator.clipboard.writeText(text);
-    setCopiedPromptType(type);
-    setTimeout(() => setCopiedPromptType(null), 2000);
-  };
-
-  const handleGenerate = async (engineType: 'flux' | 'openai_free' | 'openai_premium') => {
-    if (loading) return;
-
-    if (creationMode === 'ai' && !agreed) {
-      setErrorMsg('生成図案の利用に関する確認事項への同意が必要です。');
-      return;
-    }
-
-    if (engineType === 'flux' && remainingFlux <= 0) {
-      setErrorMsg('本日のスケッチ作成上限に達しました。');
-      return;
-    }
-    if (engineType === 'openai_free' && remainingOpenAI <= 0) {
-      setErrorMsg('本日の無料枠は終了しました。');
-      return;
-    }
-
-    setErrorMsg('');
-    setPremiumStatusMsg('');
-    if (creationMode === 'ai' && !motif.trim()) { setErrorMsg('描きたいモチーフを入力してください。'); return; }
-    for (const forbidden of FORBIDDEN_WORDS) {
-      if (motif.includes(forbidden)) { setErrorMsg(`禁止ワード「${forbidden}」が含まれています。`); return; }
-    }
-
-    if (engineType === 'openai_premium' && !premiumCode.trim()) {
-      setErrorMsg('チケットコードを入力してください。');
-      return;
-    }
-
-    if (engineType === 'openai_premium' && premiumCode.trim()) {
-      localStorage.setItem('komon_premium_code', premiumCode.trim());
-    }
-
-    const actualEngine = engineType === 'flux' ? 'flux' : 'openai';
-    setLoading(true);
-    setGeneratingMode(engineType);
-    setLoadingStep(0);
-
-    const startTime = Date.now();
-    const stepTimer = setInterval(() => setLoadingStep(prev => (prev + 1) % 5), 4000);
-
-    try {
-      const colorNames = selectedColors.map(c => getColorNameFromHex(c.hex)).join('、');
-      
-      const tagPrompt = selectedTags.length > 0 ? `。雰囲気・タッチ：${selectedTags.join('、')}` : '';
-
-      const scalePromptMap = {
-        small: '。柄の大きさ：細かい小紋調、小さなリピート柄 (tiny delicate repeating motifs, dense micro-pattern)',
-        medium: '。柄の大きさ：標準的なサイズ (medium-scale repeating motifs)',
-        large: '。柄の大きさ：大胆な大柄 (large bold prominent motifs, oversized pattern elements)',
-      };
-      const scalePrompt = scalePromptMap[patternScale];
-      
-      const res = await fetch('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          motif: motif.trim() + tagPrompt + scalePrompt, 
-          motif2: motif2.trim(), 
-          color: colorNames || 'おまかせ', 
-          density, 
-          itemType, 
-          aiStyle: 'none',
-          tasteMode,
-          artist: selectedArtist, 
-          engine: actualEngine, 
-          paymentMode: engineType === 'openai_premium' ? 'premium' : 'free',
-          premiumCode: engineType === 'openai_premium' ? premiumCode.trim() : undefined,
-          ticketCode: engineType === 'openai_premium' ? premiumCode.trim() : undefined,
-          code: engineType === 'openai_premium' ? premiumCode.trim() : undefined,
-          useTicket: engineType === 'openai_premium',
-          patternScale: patternScale
-        })
-      });
-      const data = await res.json();
-      if (!res.ok || data.error) throw new Error(data.error || '画像生成に失敗しました');
-
-      const elapsedTime = Date.now() - startTime;
-      const MIN_WAIT_MS = actualEngine === 'openai' ? 5000 : 2500;
-      if (elapsedTime < MIN_WAIT_MS) {
-        await new Promise((resolve) => setTimeout(resolve, MIN_WAIT_MS - elapsedTime));
-      }
-
-      setImageUrl(data.imageUrl);
-      setBlobUrl(data.blobUrl);
-      
-      const newSerial = `KOMON-${Math.floor(1000 + Math.random() * 9000)}`;
-      setSerialNumber(newSerial);
-
-      const colorPrefix = selectedColors.length > 0 ? `${getColorNameFromHex(selectedColors[0].hex)}の` : '';
-      setPatternTitle(motif.trim() ? `${colorPrefix}${motif.trim().split('、')[0]}小紋` : '無題の小紋');
-
-      if (engineType === 'openai_premium') {
-        const remaining = data.ticketRemaining ?? data.remaining ?? data.remainingCount ?? null;
-        if (typeof remaining === 'number') {
-          setTicketRemaining(remaining);
-          setPremiumStatusMsg(`チケットを消費して生成しました（残り ${remaining} 回）`);
-        } else {
-          setPremiumStatusMsg('チケットを消費して高精度生成しました！');
-        }
-      } else if (engineType === 'openai_free') {
-        const used = parseInt(localStorage.getItem('komon_count_openai') || '0', 10) + 1;
-        localStorage.setItem('komon_count_openai', used.toString());
-        setRemainingOpenAI(Math.max(0, MAX_OPENAI_PER_DAY - used));
-      } else if (engineType === 'flux') {
-        const used = parseInt(localStorage.getItem('komon_count_flux') || '0', 10) + 1;
-        localStorage.setItem('komon_count_flux', used.toString());
-        setRemainingFlux(Math.max(0, MAX_FLUX_PER_DAY - used));
-      }
-
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    } catch (err: any) {
-      setErrorMsg(err.message || '通信エラーが発生しました');
-    } finally {
-      clearInterval(stepTimer);
-      setLoading(false);
-      setGeneratingMode(null);
-    }
-  };
-
-  const handleDownloadOriginal = async () => {
-    try {
-      let downloadUrl = blobUrl || imageUrl;
-      if (creationMode === 'geometric' && imageUrl) {
-        downloadUrl = await renderTiledGeometricPng(imageUrl, bgSizeMm, geoBgColor, 400, 2400);
-      }
-      const response = await fetch(downloadUrl);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${serialNumber || 'komon'}_original.png`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-    } catch { 
-      window.open(blobUrl || imageUrl, '_blank', 'noopener,noreferrer');
-    }
-  };
-
-  const handleDownloadMapping = async () => {
-    if (!previewContainerRef.current) return;
-    try {
-      setMockupSubmitting(true);
-      if (!(window as any).htmlToImage) {
-        await new Promise<void>((resolve, reject) => {
-          const script = document.createElement('script');
-          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.11/html-to-image.min.js';
-          script.onload = () => resolve();
-          script.onerror = () => reject(new Error('スクリプトの読み込みに失敗しました'));
-          document.head.appendChild(script);
-        });
-      }
-
-      const htmlToImage = (window as any).htmlToImage;
-      const dataUrl = await htmlToImage.toPng(previewContainerRef.current, {
-        cacheBust: true,
-        pixelRatio: 2,
-      });
-
-      const a = document.createElement('a');
-      a.href = dataUrl;
-      a.download = `${serialNumber || 'mapping'}_${itemType}_mockup.png`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-
-    } catch (e) {
-      console.error('マッピング保存エラー:', e);
-      alert('マッピング画像の保存に失敗しました。');
-    } finally {
-      setMockupSubmitting(false);
-    }
-  };
-
-  const handleOrderClick = async (e: MouseEvent<HTMLButtonElement | HTMLAnchorElement>) => {
-    e.preventDefault();
-    try {
-      let finalImg = blobUrl || imageUrl;
-      const validSerial = serialNumber || (creationMode === 'geometric' ? `GEO-${Math.floor(1000 + Math.random() * 9000)}` : `KOMON-${Math.floor(1000 + Math.random() * 9000)}`);
-      
-      if (!serialNumber) setSerialNumber(validSerial);
-
-      if (finalImg && finalImg.startsWith('data:')) {
-        const uploadRes = await fetch('/api/upload-blob', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ base64Data: finalImg, filename: `${validSerial}_${itemType}.png` }),
-        });
-        const uploadData = await uploadRes.json();
-        if (uploadData.url) {
-          finalImg = uploadData.url;
-        } else {
-          throw new Error('画像データのアップロードに失敗しました。');
-        }
-      }
-
-      if (itemType === 'kyobukuro' && customHaraUrl) {
-        finalImg = `${finalImg}, ${customHaraUrl}`;
-      }
-
-      const finalTitle = patternTitle.trim() || '（無題）';
-
-      try {
-        await fetch('/api/send-email', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ imageUrl: finalImg, komonId: validSerial, title: finalTitle }),
-        });
-      } catch (mailErr) {
-        console.warn('工房へのメール送信に失敗しました:', mailErr);
-      }
-
-      const result = await submitOrder(platform, {
-        title: finalTitle,
-        serialNumber: validSerial,
-        imageUrl: finalImg,
-        itemType,
-        creationMode: creationMode === 'geometric' ? 'geometric' : 'ai',
-        vendor: 'Printag Creator',
-        designFee,
-      });
-
-      if (result.message) alert(result.message);
-
-      if (platform === 'makeshop') {
-        let targetOrderUrl = 'https://store.gofukuyasan.com/view/item/000000007300';
-        if (itemType === 'kimono') {
-          targetOrderUrl = 'https://store.gofukuyasan.com/view/item/000000007312';
-        }
-        const orderTitle = itemType === 'scarf' ? `【スカーフ】${finalTitle}` : finalTitle;
-        const cleanOrderUrl = `${targetOrderUrl}?komon_id=${encodeURIComponent(validSerial)}&title=${encodeURIComponent(orderTitle)}&image_url=${encodeURIComponent(finalImg)}&item_type=${encodeURIComponent(itemType)}`;
-        window.location.href = cleanOrderUrl;
-      } else if (result.redirectUrl) {
-        window.location.href = result.redirectUrl;
-      }
-
-    } catch (err: any) {
-      console.error(err);
-      setErrorMsg(err.message || '注文画面への遷移中にエラーが発生しました');
-    }
-  };
-
-  const PROMPT_SEAMLESS = 'seamless textile pattern, small delicate repeat pattern, authentic traditional Japanese komon motif, flat 2D vector, clean silhouettes, top-down view, NO perspective, NO shadows, NO gradients, NO mockup, NO clothing, NO humans, high-resolution print data';
-  const PROMPT_CENTERED = 'centered ornate medallion composition, single large focal motif in center, non-seamless placement print, traditional Japanese kimono aesthetic, flat 2D, top-down view, NO perspective, NO shadows, NO mockup, NO clothing, NO humans, high-resolution print data';
-  const PROMPT_SCARF = 'luxury silk scarf square panel, perfect square framed composition, central ornate medallion, solid outer border margin, high-end European aesthetic, flat top-down 2D, NO tiling, NO humans, high resolution digital printing';
 
   return (
-    <div className="min-h-screen bg-[#f4f4f5] text-zinc-900 flex flex-col items-center justify-start font-sans lg:p-8">
+    <div className="min-h-screen bg-white text-zinc-900 font-sans selection:bg-zinc-900 selection:text-white">
       
-      {/* ギャラリーへのリンクヘッダー */}
-      <div className="w-full bg-zinc-900 text-white p-2.5 text-center shadow-md z-50 mb-4 sm:mb-6 lg:mb-8 sticky top-0 flex items-center justify-center gap-3">
-        <span className="text-[10px] sm:text-xs font-bold tracking-widest text-zinc-200">
-          Archive of Imagined Designs.
-        </span>
-        <a 
-          href="/gallery" 
-          target="_blank"
-          rel="noopener noreferrer"
-          className="px-4 py-1.5 bg-white text-zinc-900 text-[10px] sm:text-xs font-black rounded-full hover:scale-105 hover:bg-zinc-100 transition-transform shadow-sm flex items-center gap-1.5"
-        >
-          <span></span>
-          <span>GALLERY</span>
+      {/* Header */}
+      <header className="w-full flex items-center justify-between px-6 py-6 sm:px-12 border-b border-zinc-100">
+        <a href="/" className="text-xs tracking-widest text-zinc-400 hover:text-zinc-900 transition-colors uppercase">
+          Back to Generator
         </a>
-      </div>
+        <div className="text-xs tracking-[0.3em] font-light">GOFUKUYASAN</div>
+        <div className="w-24"></div>
+      </header>
 
-      <div className="w-full max-w-[1536px] flex flex-col lg:flex-row lg:gap-8 items-start justify-center">
-        
-        {/* 左側：プレビューエリア */}
-        <div className="w-full lg:w-[55%] shrink-0">
-          <PreviewArea
-            imageUrl={imageUrl} blobUrl={blobUrl} rotatedPatternUrl={rotatedPatternUrl}
-            serialNumber={serialNumber} itemType={itemType} displayMode={displayMode}
-            creationMode={creationMode === 'geometric' ? 'geometric' : 'ai'} bgSizeMm={bgSizeMm}
-            geoBgColor={geoBgColor}
-            obiLiningColor={obiLiningColor}
-            setObiLiningColor={setObiLiningColor}
-            kimonoHaneriColor={kimonoHaneriColor}
-            setKimonoHaneriColor={setKimonoHaneriColor}
-            kimonoObiageColor={kimonoObiageColor}
-            setKimonoObiageColor={setKimonoObiageColor}
-            kimonoObiColor={kimonoObiColor}
-            setKimonoObiColor={setKimonoObiColor}
-            customObiUrl={customObiUrl}
-            setCustomObiUrl={setCustomObiUrl}
-            handleCustomObiUpload={handleCustomObiUpload}
-            customHaraUrl={customHaraUrl}
-            setCustomHaraUrl={setCustomHaraUrl}
-            handleCustomHaraUpload={handleCustomHaraUpload}
-            mockupSubmitting={mockupSubmitting} previewRef={previewRef} previewContainerRef={previewContainerRef}
-            handleItemTypeChange={setItemType} setDisplayMode={setDisplayMode}
-            handleDownloadMapping={handleDownloadMapping} UNIVERSAL_SCALE_FACTOR={UNIVERSAL_SCALE_FACTOR}
-          />
+      <main className="max-w-[1600px] mx-auto px-6 sm:px-12 pb-32">
+        <div className="py-24 sm:py-32 text-center">
+          <h1 className="text-3xl sm:text-5xl tracking-[0.2em] font-light text-zinc-900 mb-6">
+            GALLERY
+          </h1>
+          <p className="text-xs text-zinc-400 tracking-widest uppercase">
+            Archive of Imagined Designs
+          </p>
         </div>
 
-        {/* 右側：モード切替タブ ＆ 操作パネル */}
-        <div className="w-full lg:w-[45%] flex flex-col gap-3">
-          
-          {/* モード切替タブ（AI妄想モードを左端・第1優先に配置） */}
-          <div className="bg-white border border-zinc-300 shadow-sm p-1.5 flex gap-1 rounded-sm mt-2 lg:mt-8">
-            <button
-              type="button"
-              onClick={() => setCreationMode('ai')}
-              className={`flex-1 py-2 text-[9px] sm:text-xs font-bold rounded transition-all ${
-                creationMode === 'ai' ? 'bg-zinc-900 text-white shadow' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
-              }`}
-            >
-               テーマから図案をつくる
-            </button>
-            <button
-              type="button"
-              onClick={() => setCreationMode('geometric')}
-              className={`flex-1 py-2 text-[9px] sm:text-xs font-bold rounded transition-all ${
-                creationMode === 'geometric' ? 'bg-zinc-900 text-white shadow' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
-              }`}
-            >
-              色無地・格子・縞・水玉
-            </button>
-            <button
-              type="button"
-              onClick={() => setCreationMode('upload')}
-              className={`flex-1 py-2 text-[9px] sm:text-xs font-bold rounded transition-all ${
-                creationMode === 'upload' ? 'bg-zinc-900 text-white shadow' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
-              }`}
-            >
-               手持ちの画像で作る
-            </button>
+        {loading ? (
+          <div className="flex justify-center items-center py-32">
+            <div className="w-px h-12 bg-zinc-200 animate-pulse"></div>
           </div>
-
-          {creationMode === 'upload' ? (
-            <div className="bg-white border border-zinc-300 shadow-xl p-5 flex flex-col gap-5 animate-fade-in rounded-sm text-left">
-              <div>
-                <h2 className="text-sm font-black text-zinc-900 tracking-wider mb-1">【自作・外部AI画像の持ち込み】</h2>
-                <p className="text-[11px] text-zinc-500 leading-relaxed">
-                  Midjourneyやお持ちの画像生成AI、手描きイラストの画像をアップロードして原寸でマッピングシミュレーションできます。
-                </p>
-              </div>
-
-              <div className="border-2 border-dashed border-zinc-300 rounded p-6 bg-zinc-50 hover:bg-zinc-100/80 transition-colors flex flex-col items-center justify-center text-center">
-                <label className="cursor-pointer flex flex-col items-center justify-center w-full">
-                  <span className="text-2xl mb-2"></span>
-                  <span className="text-xs font-bold text-zinc-800 mb-1">
-                    {uploadingImage ? '画像をアップロード中...' : 'メイン図案を選択、またはドラッグ＆ドロップ'}
-                  </span>
-                  <span className="text-[10px] text-zinc-500">推奨形式：正方形 (1:1) / PNG または JPEG</span>
-                  <input
-                    type="file"
-                    accept="image/png, image/jpeg, image/webp"
-                    onChange={handleUserImageUpload}
-                    disabled={uploadingImage}
-                    className="hidden"
+        ) : items.length === 0 ? (
+          <div className="text-center py-32 text-zinc-400 text-xs tracking-widest uppercase">
+            No works found.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-16 animate-fade-in">
+            {items.map((item, index) => (
+              <div 
+                key={item.id || index} 
+                className="group cursor-pointer flex flex-col gap-4"
+                onClick={() => setSelectedItem(item)}
+              >
+                <div className="relative aspect-square overflow-hidden bg-zinc-50">
+                  <img 
+                    src={item.imageUrl} 
+                    alt={item.title} 
+                    className="w-full h-full object-cover transition-transform duration-[2000ms] ease-out group-hover:scale-105" 
+                    loading="lazy" 
                   />
-                </label>
-              </div>
-
-              {errorMsg && (
-                <div className="p-3 bg-red-50 text-red-600 border border-red-200 text-xs font-bold rounded">
-                  {errorMsg}
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-700 ease-out"></div>
                 </div>
-              )}
-
-              {imageUrl && !imageUrl.includes('sample_piano_cat') && (
-                <div className="flex flex-col gap-3">
-                  <div className="p-3 bg-zinc-100 border border-zinc-200 rounded flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <img src={imageUrl} alt="" className="w-10 h-10 object-cover rounded border border-zinc-300" />
-                      <div>
-                        <p className="text-xs font-bold text-zinc-900 truncate max-w-[200px]">{patternTitle}</p>
-                        <p className="text-[10px] font-mono text-zinc-500">{serialNumber}</p>
-                      </div>
-                    </div>
-                    <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded">プレビュー反映中</span>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={handleExtractPrompt}
-                    disabled={analyzingImage || uploadingImage}
-                    className="w-full py-3 px-4 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white text-xs font-bold rounded shadow transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                  >
-                    <span></span>
-                    <span>
-                      {analyzingImage 
-                        ? '写真の色・柄をAI解析中...' 
-                        : 'この写真からプロンプトを抽出して「AI妄想」へ送る'}
-                    </span>
-                  </button>
-                  <p className="text-[9px] text-zinc-400 text-center -mt-1.5">
-                    ※写真から配色・タッチ・模様の特徴だけを抽出し、図案づくりモードで新しく図案化できます
-                  </p>
-                </div>
-              )}
-
-              {itemType === 'kyobukuro' && (
-                <div className="p-3 bg-zinc-50 border border-zinc-200 rounded flex flex-col gap-2">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-[11px] font-bold text-zinc-800">京袋帯：前腹（お腹正面）の個別画像</span>
-                      <p className="text-[9px] text-zinc-500">太鼓と別の柄を合わせたい場合のみ設定</p>
-                    </div>
-                    {customHaraUrl && (
-                      <button
-                        type="button"
-                        onClick={() => setCustomHaraUrl(null)}
-                        className="text-[9px] text-red-600 underline font-bold"
-                      >
-                        解除
-                      </button>
-                    )}
-                  </div>
-                  <label className="py-2 text-[10px] font-bold text-center rounded border border-zinc-300 bg-white hover:bg-zinc-100 cursor-pointer transition-colors block">
-                    {customHaraUrl ? '前腹の画像を変更する' : '＋ 前腹の個別画像をアップロード'}
-                    <input type="file" accept="image/*" onChange={handleCustomHaraUpload} className="hidden" />
-                  </label>
-                </div>
-              )}
-
-              {itemType === 'kimono' && (
-                <div className="p-3 bg-zinc-50 border border-zinc-200 rounded flex flex-col gap-2">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-[11px] font-bold text-zinc-800">着物：帯の個別画像</span>
-                      <p className="text-[9px] text-zinc-500">自作の帯柄をコーディネートに重ねたい場合のみ設定</p>
-                    </div>
-                    {customObiUrl && (
-                      <button
-                        type="button"
-                        onClick={() => setCustomObiUrl(null)}
-                        className="text-[9px] text-red-600 underline font-bold"
-                      >
-                        解除
-                      </button>
-                    )}
-                  </div>
-                  <label className="py-2 text-[10px] font-bold text-center rounded border border-zinc-300 bg-white hover:bg-zinc-100 cursor-pointer transition-colors block">
-                    {customObiUrl ? '帯の画像を変更する' : '＋ 帯の個別画像をアップロード'}
-                    <input type="file" accept="image/*" onChange={handleCustomObiUpload} className="hidden" />
-                  </label>
-                </div>
-              )}
-
-              <div className="border-t border-zinc-200 pt-4 flex flex-col gap-3">
-                <div>
-                  <h3 className="text-xs font-black text-zinc-900 mb-1">【外部AI生成用・末尾プロンプト】</h3>
-                  <p className="text-[10px] text-zinc-500">
-                    Midjourney等で思い通りの帯・着物データを作る際、プロンプトの末尾に足して出力してください。
-                  </p>
-                </div>
-
-                <div className="p-3 bg-zinc-50 border border-zinc-200 rounded flex flex-col gap-1.5">
-                  <div className="flex justify-between items-center">
-                    <span className="text-[11px] font-bold text-zinc-800">小紋・総柄（半幅帯・着物向け：リピート柄）</span>
-                    <button
-                      type="button"
-                      onClick={() => handleCopyPrompt(PROMPT_SEAMLESS, 'seamless')}
-                      className={`text-[10px] font-bold px-2.5 py-1 rounded transition-colors ${
-                        copiedPromptType === 'seamless' ? 'bg-emerald-600 text-white' : 'bg-zinc-900 text-white hover:bg-zinc-800'
-                      }`}
-                    >
-                      {copiedPromptType === 'seamless' ? ' コピー完了！' : ' コピー'}
-                    </button>
-                  </div>
-                  <code className="text-[10px] font-mono bg-white p-2 rounded border border-zinc-200 text-zinc-700 break-all select-all">
-                    {PROMPT_SEAMLESS}
-                  </code>
-                </div>
-
-                <div className="p-3 bg-zinc-50 border border-zinc-200 rounded flex flex-col gap-1.5">
-                  <div className="flex justify-between items-center">
-                    <span className="text-[11px] font-bold text-zinc-800">お太鼓・絵羽（京袋帯向け：センター主役）</span>
-                    <button
-                      type="button"
-                      onClick={() => handleCopyPrompt(PROMPT_CENTERED, 'centered')}
-                      className={`text-[10px] font-bold px-2.5 py-1 rounded transition-colors ${
-                        copiedPromptType === 'centered' ? 'bg-emerald-600 text-white' : 'bg-zinc-900 text-white hover:bg-zinc-800'
-                      }`}
-                    >
-                      {copiedPromptType === 'centered' ? ' コピー完了！' : ' コピー'}
-                    </button>
-                  </div>
-                  <code className="text-[10px] font-mono bg-white p-2 rounded border border-zinc-200 text-zinc-700 break-all select-all">
-                    {PROMPT_CENTERED}
-                  </code>
-                </div>
-
-                <div className="p-3 bg-zinc-50 border border-zinc-200 rounded flex flex-col gap-1.5">
-                  <div className="flex justify-between items-center">
-                    <span className="text-[11px] font-bold text-zinc-800">スカーフ柄（100cmウールスカーフ向け：額縁スクエア構図）</span>
-                    <button
-                      type="button"
-                      onClick={() => handleCopyPrompt(PROMPT_SCARF, 'scarf')}
-                      className={`text-[10px] font-bold px-2.5 py-1 rounded transition-colors ${
-                        copiedPromptType === 'scarf' ? 'bg-emerald-600 text-white' : 'bg-zinc-900 text-white hover:bg-zinc-800'
-                      }`}
-                    >
-                      {copiedPromptType === 'scarf' ? ' コピー完了！' : ' コピー'}
-                    </button>
-                  </div>
-                  <code className="text-[10px] font-mono bg-white p-2 rounded border border-zinc-200 text-zinc-700 break-all select-all">
-                    {PROMPT_SCARF}
-                  </code>
+                <div className="flex flex-col gap-1">
+                  <h3 className="text-sm font-medium text-zinc-900 tracking-wider truncate">
+                    {item.title}
+                  </h3>
+                  {item.author && item.author !== '名無しさん' && (
+                    <p className="text-[10px] text-zinc-400 tracking-widest uppercase">
+                      by {item.author}
+                    </p>
+                  )}
                 </div>
               </div>
+            ))}
+          </div>
+        )}
+      </main>
 
-              {imageUrl && !imageUrl.includes('sample_piano_cat') && (
-                <div className="border-t border-zinc-200 pt-4 flex flex-col gap-2">
-                  <button 
-                    type="button" 
-                    onClick={() => setIsPolicyOpen(true)} 
-                    className="text-[10px] font-bold text-zinc-500 hover:text-zinc-900 underline text-center flex items-center justify-center gap-1 mb-2"
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-700">
-                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                    </svg>
-                    当店のAI・著作権ポリシーと安心への取り組み
-                  </button>
+      {/* Modal */}
+      {selectedItem && (
+        <div 
+          className="fixed inset-0 z-50 bg-white/95 backdrop-blur-sm flex items-center justify-center p-6 sm:p-12 transition-opacity duration-500 animate-fade-in"
+          onClick={() => setSelectedItem(null)}
+        >
+          <button 
+            onClick={() => setSelectedItem(null)}
+            className="absolute top-8 right-8 text-xs tracking-widest text-zinc-400 hover:text-zinc-900 transition-colors uppercase z-10"
+          >
+            Close
+          </button>
 
-                  <button
-                    type="button"
-                    onClick={handleDownloadOriginal}
-                    className="w-full py-2.5 text-xs font-bold text-zinc-800 bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 rounded transition-colors"
-                  >
-                    ↓ アップロード原寸画像を保存
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleOrderClick}
-                    disabled={uploadingImage}
-                    className="w-full py-3 text-center text-xs font-black text-white bg-zinc-900 hover:bg-zinc-800 rounded shadow-md transition-colors disabled:opacity-50"
-                  >
-                    {uploadingImage ? '画像を準備中...' : 'この持ち込み画像で仕立てる（注文へ）'}
-                  </button>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="w-full [&>div]:!w-full [&>div]:!max-w-none">
-              <ControlPanel
-                creationMode={creationMode} setCreationMode={setCreationMode}
-                itemType={itemType} setItemType={setItemType}
-                aiStyle={aiStyle} setAiStyle={setAiStyle}
-                tasteMode={tasteMode} setTasteMode={setTasteMode}
-                selectedArtist={selectedArtist} setSelectedArtist={setSelectedArtist}
-                motif={motif} setMotif={setMotif}
-                motif2={motif2} setMotif2={setMotif2}
-                
-                selectedTags={selectedTags} setSelectedTags={setSelectedTags}
-                setImageUrl={setImageUrl} setBlobUrl={setBlobUrl}
-                patternScale={patternScale} setPatternScale={setPatternScale}
-                
-                selectedColors={selectedColors} setSelectedColors={setSelectedColors} handleColorToggle={handleColorToggle}
-                showColorPalette={showColorPalette} setShowColorPalette={setShowColorPalette}
-                density={density} setDensity={setDensity}
-                geoPatternType={geoPatternType} setGeoPatternType={setGeoPatternType}
-                stripeDir={stripeDir} setStripeDir={setStripeDir} dotLayout={dotLayout} setDotLayout={setDotLayout}
-                dotRadius={dotRadius} setDotRadius={setDotRadius} gapWidth={gapWidth} setGapWidth={setGapWidth}
-                lineWidth={lineWidth} setLineWidth={setLineWidth} geoBgColor={geoBgColor} setGeoBgColor={setGeoBgColor}
-                geoPatternColor={geoPatternColor} setGeoPatternColor={setGeoPatternColor}
-                showGeoPaletteFor={showGeoPaletteFor} setShowGeoPaletteFor={setShowGeoPaletteFor}
-                agreed={agreed} setAgreed={setAgreed} errorMsg={errorMsg}
-                loading={loading}
-                generatingMode={generatingMode}
-                remainingCount={remainingOpenAI}
-                remainingFlux={remainingFlux}
-                remainingOpenAI={remainingOpenAI}
-                ticketRemaining={ticketRemaining}
-                loadingStep={loadingStep}
-                handleGenerate={handleGenerate} imageUrl={imageUrl} patternTitle={patternTitle} setPatternTitle={setPatternTitle}
-                serialNumber={serialNumber}
-                handleDownloadOriginal={handleDownloadOriginal} handleOrderClick={handleOrderClick}
-                premiumCode={premiumCode} setPremiumCode={handleSetPremiumCode}
-                premiumStatusMsg={premiumStatusMsg}
-                onOpenPolicy={() => setIsPolicyOpen(true)}
+          <div 
+            className="max-w-6xl w-full flex flex-col lg:flex-row gap-12 lg:gap-24 items-center"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="w-full lg:w-3/5 aspect-square bg-zinc-50 overflow-hidden shadow-2xl">
+              <img 
+                src={selectedItem.imageUrl} 
+                alt={selectedItem.title} 
+                className="w-full h-full object-cover" 
               />
             </div>
-          )}
 
-        </div>
-      </div>
-
-      {/* ★ AI・著作権ポリシー モーダル ★ */}
-      {isPolicyOpen && (
-        <div className="fixed inset-0 z-[99999] bg-zinc-950/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in" onClick={() => setIsPolicyOpen(false)}>
-          <div className="bg-white rounded-md shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto relative text-left" onClick={e => e.stopPropagation()}>
-            <div className="bg-zinc-900 p-4 sticky top-0 z-10 flex justify-between items-center">
-              <h3 className="text-sm font-bold text-white tracking-wider flex items-center gap-2">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-400">
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                </svg>
-                当店のAI・著作権ポリシーと安心への取り組み
-              </h3>
-              <button onClick={() => setIsPolicyOpen(false)} className="text-zinc-400 hover:text-white">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M18 6L6 18M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            
-            <div className="p-5 sm:p-6 space-y-5 text-zinc-800">
-              <p className="text-[11px] sm:text-xs leading-relaxed text-zinc-600 mb-2">
-                「妄想きもの図案帳」をご利用いただきありがとうございます。クリエイターの皆様、そしてすべての利用者の皆様に安心してお使いいただけるよう、当店の明確なポリシーをお約束いたします。
-              </p>
+            <div className="w-full lg:w-2/5 flex flex-col justify-center text-left">
+              <h2 className="text-2xl sm:text-4xl font-light tracking-wider text-zinc-900 mb-4 leading-snug">
+                {selectedItem.title}
+              </h2>
+              {selectedItem.author && selectedItem.author !== '名無しさん' && (
+                <p className="text-xs text-zinc-400 tracking-widest uppercase mb-12">
+                  by {selectedItem.author}
+                </p>
+              )}
               
-              <div className="p-4 bg-zinc-50 border border-zinc-200 rounded-sm">
-                <h4 className="font-bold text-xs sm:text-sm text-zinc-900 mb-2 flex items-center gap-2">
-                  <span className="bg-zinc-900 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px]">1</span>
-                  AI学習への無断利用は一切行いません
-                </h4>
-                <p className="text-[11px] sm:text-xs leading-relaxed text-zinc-600">
-                  お預かりした画像や入力されたプロンプトが、AIの学習データとして無断で使われることは絶対にありません。当ツールが連携しているAIシステム（API）は、入力データがモデル学習に利用されないセキュアな設計となっております。クリエイター様の権利と大切な作品データを固く守ります。
-                </p>
-              </div>
-
-              <div className="p-4 bg-zinc-50 border border-zinc-200 rounded-sm">
-                <h4 className="font-bold text-xs sm:text-sm text-zinc-900 mb-2 flex items-center gap-2">
-                  <span className="bg-zinc-900 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px]">2</span>
-                  セーフティ機能と「人の目」による厳格なチェック
-                </h4>
-                <p className="text-[11px] sm:text-xs leading-relaxed text-zinc-600">
-                  システム内部で「NGワードブロック」および「AI側の公序良俗フィルター」が常に稼働しております。さらに、お仕立てへ進むデータはすべて、<strong>製作前に熟練スタッフが必ず目視確認</strong>いたします。既存のキャラクターや著名な作品など、第三者の著作権や商標権を侵害する恐れがある図案につきましては、厳格に製作をお断りさせていただきます。
-                </p>
-              </div>
-
-              <div className="p-4 bg-zinc-50 border border-zinc-200 rounded-sm">
-                <h4 className="font-bold text-xs sm:text-sm text-zinc-900 mb-2 flex items-center gap-2">
-                  <span className="bg-zinc-900 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px]">3</span>
-                  「完全オリジナルデータ」でのご入稿も引き続き大歓迎です
-                </h4>
-                <p className="text-[11px] sm:text-xs leading-relaxed text-zinc-600">
-                  AIはあくまで「絵が描けない方・アイデアを広げたい方」のための補助ツールです。ご自身でイラストやデザインを描かれるクリエイター様向けの「完全オリジナルデータ入稿（AI非使用）」も、当店の主力サービスとして今後も大切に承ってまいります。
-                </p>
-              </div>
-            </div>
-            
-            <div className="px-5 sm:px-6 pb-2">
-              <div className="pt-4 border-t border-zinc-200 flex flex-col gap-2">
-                <p className="text-[10px] sm:text-[11px] text-zinc-500 leading-relaxed font-bold">
-                   なぜこのツールを作ったのか？
-                </p>
-                <p className="text-[10px] text-zinc-500 leading-relaxed mb-1">
-                  AI活用に関する当店のスタンスや、クリエイター様への想い、そして過去の経緯につきましては、店主のnoteでも詳しくお話ししております。
-                </p>
-                <a
-                  href="https://note.com/gofukuyasan/n/nefe580fa50f4"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-[11px] font-bold text-zinc-800 hover:text-red-700 underline transition-colors"
+              <div className="flex flex-col gap-4 w-full sm:w-2/3 lg:w-full">
+                <button 
+                  onClick={() => handleShareX(selectedItem)}
+                  className="w-full py-4 border border-zinc-900 text-zinc-900 hover:bg-zinc-900 hover:text-white text-xs tracking-widest uppercase transition-colors duration-300"
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line>
-                  </svg>
-                  note記事：ゴフクヤサンのAI活用とスタンスについて ＞
-                </a>
+                  Share on X
+                </button>
+                
+                <div className="mt-8 pt-8 border-t border-zinc-200">
+                  <a 
+                    href={`mailto:info@gofukuyasan.com?subject=ギャラリー画像の削除依頼&body=以下の画像の削除をお願いします。%0D%0AID: ${selectedItem.id}%0D%0Aタイトル: ${selectedItem.title}`}
+                    className="text-[10px] text-zinc-400 hover:text-zinc-900 tracking-wider transition-colors underline"
+                  >
+                    投稿の削除を依頼する
+                  </a>
+                </div>
               </div>
-            </div>
-            
-            <div className="p-4 bg-zinc-100 border-t border-zinc-200 text-center rounded-b-md">
-              <button onClick={() => setIsPolicyOpen(false)} className="px-8 py-2.5 bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-bold rounded shadow-sm transition-colors">
-                確認して閉じる
-              </button>
             </div>
           </div>
         </div>
       )}
-
-      {CURRENT_NOTICE.enabled && (
-        <div className="w-full max-w-7xl px-4 py-8 mt-12 flex justify-center border-t border-zinc-200">
-          <button
-            type="button"
-            onClick={() => setIsNoticeOpen(true)}
-            className="text-xs font-bold text-zinc-500 hover:text-zinc-950 underline transition-colors"
-          >
-            {CURRENT_NOTICE.category}を確認する
-          </button>
-        </div>
-      )}
-      <NoticeModal
-        isOpen={isNoticeOpen}
-        onClose={handleCloseNotice}
-        onGoToGeometric={() => { handleCloseNotice(); setCreationMode('geometric'); }}
-      />
     </div>
-  );
-}
-
-export default function Home() {
-  return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[#f4f4f5]"><p className="text-zinc-400 text-sm font-bold tracking-widest">LOADING...</p></div>}>
-      <HomeContent />
-    </Suspense>
   );
 }
