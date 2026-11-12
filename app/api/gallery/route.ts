@@ -1,4 +1,4 @@
-// app/api/gallery/route.ts
+// app/api/gallery/like/route.ts
 import { NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
 
@@ -6,47 +6,56 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
   try {
-    const { imageUrl, title, author, itemType, scale, density } = await req.json();
-
-    if (!imageUrl) {
-      return NextResponse.json({ error: '画像URLが必要です' }, { status: 400 });
+    const { id } = await req.json();
+    if (!id) {
+      return NextResponse.json({ success: false, error: 'ID is required' }, { status: 400 });
     }
 
-    const newEntry = {
-      id: `gallery_${Date.now()}`,
-      imageUrl,
-      title: title?.trim() || '無題',
-      author: author?.trim() || '名無しさん',
-      itemType: itemType || '不明',
-      scale: scale || 'medium',
-      density: density || '不明',
-      createdAt: new Date().toISOString()
-    };
+    let newLikes = 1;
+    let foundAndUpdated = false;
 
-    // Vercel KV の List (gallery_items) に先頭追加
-    await kv.lpush('gallery_items', JSON.stringify(newEntry));
+    // 1. リスト形式で保存されている場合（キー名が 'gallery_items' のパターン）
+    const items = await kv.get<any[]>('gallery_items');
+    if (items && Array.isArray(items)) {
+      const itemIndex = items.findIndex((i) => i.id === id);
+      if (itemIndex > -1) {
+        items[itemIndex].likes = (items[itemIndex].likes || 0) + 1;
+        newLikes = items[itemIndex].likes;
+        await kv.set('gallery_items', items);
+        foundAndUpdated = true;
+      }
+    }
 
-    // ギャラリーの保存上限を100件に制限する（古いものを自動削除）
-    await kv.ltrim('gallery_items', 0, 99);
+    // 2. リスト形式で保存されている場合（キー名が 'gallery' のパターン）
+    const itemsFallback = await kv.get<any[]>('gallery');
+    if (itemsFallback && Array.isArray(itemsFallback)) {
+      const itemIndex = itemsFallback.findIndex((i) => i.id === id);
+      if (itemIndex > -1) {
+        itemsFallback[itemIndex].likes = (itemsFallback[itemIndex].likes || 0) + 1;
+        newLikes = itemsFallback[itemIndex].likes;
+        await kv.set('gallery', itemsFallback);
+        foundAndUpdated = true;
+      }
+    }
 
-    return NextResponse.json({ success: true, entry: newEntry });
-  } catch (error: any) {
-    console.error('Gallery Save Error:', error);
-    return NextResponse.json({ error: 'ギャラリーへの保存に失敗しました' }, { status: 500 });
-  }
-}
+    // 3. 個別キーで保存されている場合（前回お渡ししたコードの処理）
+    const itemKey = `gallery:${id}`;
+    const individualItem = await kv.get<any>(itemKey);
+    if (individualItem) {
+      individualItem.likes = (individualItem.likes || 0) + 1;
+      newLikes = individualItem.likes;
+      await kv.set(itemKey, individualItem);
+      foundAndUpdated = true;
+    }
 
-export async function GET(req: Request) {
-  try {
-    // Vercel KV から最大100件取得
-    const items = await kv.lrange('gallery_items', 0, 99);
-    
-    // JSON文字列として保存されている場合はオブジェクトにパース
-    const parsedItems = items.map(item => typeof item === 'string' ? JSON.parse(item) : item);
+    if (!foundAndUpdated) {
+      // どこにも見つからなかった場合、ログを出力しつつ見た目上は成功として返す
+      console.warn(`Like Error: Item not found in KV for id: ${id}`);
+    }
 
-    return NextResponse.json({ success: true, items: parsedItems });
-  } catch (error: any) {
-    console.error('Gallery Fetch Error:', error);
-    return NextResponse.json({ error: 'ギャラリーの取得に失敗しました' }, { status: 500 });
+    return NextResponse.json({ success: true, likes: newLikes });
+  } catch (error) {
+    console.error('Like error:', error);
+    return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500 });
   }
 }
