@@ -6,11 +6,18 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    // ギャラリーの画像一覧をデータベースから取得する（データは消えていません）
-    const items = await kv.get('gallery_items') || [];
+    // 過去のデータがどちらの名前で保存されていても確実に救出するため、両方取得します
+    const items1 = (await kv.get('gallery')) || [];
+    const items2 = (await kv.get('gallery_items')) || [];
     
-    // 日付の新しい順に並び替えて返す
-    const sortedItems = (items as any[]).sort((a, b) => {
+    // 両方のリストを合体させる
+    let allItems = [...(items1 as any[]), ...(items2 as any[])];
+
+    // 重複を排除する（安全対策）
+    const uniqueItems = Array.from(new Map(allItems.map(item => [item.id, item])).values());
+    
+    // 日付の新しい順に並び替え
+    const sortedItems = uniqueItems.sort((a, b) => {
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
 
@@ -35,21 +42,29 @@ export async function POST(req: Request) {
       imageUrl,
       title: title || '無題の小紋',
       author: author || '名無しさん',
-      note: note || '', // クリエイターのひとことを保存
-      likes: 0, // いいねの初期値
+      note: note || '',
+      likes: 0,
       itemType: itemType || 'hanhaba',
       scale: scale || 'medium',
       density: density || '',
       createdAt: new Date().toISOString(),
     };
 
-    // 既存のリストを取得して、先頭に新しいアイテムを追加
-    const existingItems: any[] = (await kv.get('gallery_items')) || [];
-    existingItems.unshift(newItem);
+    // 保存先を統一するため、これまでのデータをすべて合体させる
+    const existingItems1: any[] = (await kv.get('gallery')) || [];
+    const existingItems2: any[] = (await kv.get('gallery_items')) || [];
+    
+    let mergedItems = [...existingItems1, ...existingItems2];
+    const uniqueMerged = Array.from(new Map(mergedItems.map(item => [item.id, item])).values());
+    
+    // 先頭に新しい投稿を追加
+    uniqueMerged.unshift(newItem);
 
-    // 最大300件（または任意の件数）を保持して保存
-    const limitedItems = existingItems.slice(0, 300);
-    await kv.set('gallery_items', limitedItems);
+    // 最大300件を保持
+    const limitedItems = uniqueMerged.slice(0, 300);
+    
+    // 今後は 'gallery' というキー名に統一して保存
+    await kv.set('gallery', limitedItems);
 
     return NextResponse.json({ success: true, item: newItem });
   } catch (error) {
