@@ -394,8 +394,6 @@ function HomeContent() {
 
       setMotif(combinedPrompt);
       setCreationMode('ai');
-      
-      alert('写真から色・柄のエッセンスを抽出しました！「AI妄想モード」で生成をお試しください。');
     } catch (err: any) {
       console.error(err);
       setErrorMsg(err.message || '写真の解析中にエラーが発生しました');
@@ -506,9 +504,9 @@ function HomeContent() {
         const remaining = data.ticketRemaining ?? data.remaining ?? data.remainingCount ?? null;
         if (typeof remaining === 'number') {
           setTicketRemaining(remaining);
-          setPremiumStatusMsg(`チケットを消費して生成しました（残り ${remaining} 回）`);
+          setPremiumStatusMsg(`PREMIUM APPLIED（REMAINING: ${remaining}）`);
         } else {
-          setPremiumStatusMsg('チケットを消費して高精度生成しました！');
+          setPremiumStatusMsg('PREMIUM TICKET APPLIED');
         }
       } else if (engineType === 'openai_free') {
         const used = parseInt(localStorage.getItem('komon_count_openai') || '0', 10) + 1;
@@ -580,7 +578,6 @@ function HomeContent() {
 
     } catch (e) {
       console.error('マッピング保存エラー:', e);
-      alert('マッピング画像の保存に失敗しました。');
     } finally {
       setMockupSubmitting(false);
     }
@@ -654,32 +651,22 @@ function HomeContent() {
     }
   };
 
-  const PROMPT_SEAMLESS = 'seamless textile pattern, small delicate repeat pattern, authentic traditional Japanese komon motif, flat 2D vector, clean silhouettes, top-down view, NO perspective, NO shadows, NO gradients, NO mockup, NO clothing, NO humans, high-resolution print data';
-  const PROMPT_CENTERED = 'centered ornate medallion composition, single large focal motif in center, non-seamless placement print, traditional Japanese kimono aesthetic, flat 2D, top-down view, NO perspective, NO shadows, NO mockup, NO clothing, NO humans, high-resolution print data';
-  const PROMPT_SCARF = 'luxury silk scarf square panel, perfect square framed composition, central ornate medallion, solid outer border margin, high-end European aesthetic, flat top-down 2D, NO tiling, NO humans, high resolution digital printing';
-
   return (
     <div className="min-h-screen bg-[#f4f4f5] text-zinc-900 flex flex-col items-center justify-start font-sans lg:p-8">
       
-      {/* 🌟 ギャラリーへのリンクヘッダー */}
-      <div className="w-full bg-zinc-900 text-white p-2.5 text-center shadow-md z-50 mb-4 sm:mb-6 lg:mb-8 sticky top-0 flex items-center justify-center gap-3">
-        <span className="text-[10px] sm:text-xs font-bold tracking-widest text-zinc-200">
-          みんなの妄想が形に。
-        </span>
-        <a 
-          href="/gallery" 
-          target="_blank"
-          rel="noopener noreferrer"
-          className="px-4 py-1.5 bg-white text-zinc-900 text-[10px] sm:text-xs font-black rounded-full hover:scale-105 hover:bg-zinc-100 transition-transform shadow-sm flex items-center gap-1.5"
-        >
-          <span>🖼️</span>
-          <span>みんなのギャラリーを見る</span>
-        </a>
-      </div>
+      {/* GALLERY FAB (Floating Action Button) */}
+      <a 
+        href="/gallery" 
+        target="_blank"
+        rel="noopener noreferrer"
+        className="fixed bottom-6 right-6 sm:bottom-10 sm:right-10 z-[99] bg-zinc-900 text-white px-6 py-4 shadow-2xl hover:bg-black hover:-translate-y-1 transition-all flex items-center justify-center border border-zinc-700"
+      >
+        <span className="text-[10px] sm:text-[11px] font-bold tracking-[0.2em] uppercase">GALLERY</span>
+      </a>
 
       <div className="w-full max-w-[1536px] flex flex-col lg:flex-row lg:gap-8 items-start justify-center">
         
-        {/* 左側：プレビューエリア */}
+        {/* PREVIEW AREA */}
         <div className="w-full lg:w-[55%] shrink-0">
           <PreviewArea
             imageUrl={imageUrl} blobUrl={blobUrl} rotatedPatternUrl={rotatedPatternUrl}
@@ -706,56 +693,55 @@ function HomeContent() {
           />
         </div>
 
-        {/* 右側：モード切替タブ ＆ 操作パネル */}
+        {/* CONTROLS */}
         <div className="w-full lg:w-[45%] flex flex-col gap-3">
           
-          {/* モード切替タブ（AI妄想モードを左端・第1優先に配置） */}
-          <div className="bg-white border border-zinc-300 shadow-sm p-1.5 flex gap-1 rounded-sm mt-2 lg:mt-8">
+          {/* TABS */}
+          <div className="bg-white border border-zinc-200 p-1 flex gap-1 mt-2 lg:mt-0">
             <button
               type="button"
               onClick={() => setCreationMode('ai')}
-              className={`flex-1 py-2 text-[9px] sm:text-xs font-bold rounded transition-all ${
-                creationMode === 'ai' ? 'bg-zinc-900 text-white shadow' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
+              className={`flex-1 py-3 text-[9px] sm:text-[10px] font-bold tracking-widest uppercase transition-all ${
+                creationMode === 'ai' ? 'bg-zinc-900 text-white' : 'bg-transparent text-zinc-500 hover:bg-zinc-50'
               }`}
             >
-              ✨ テーマから図案をつくる
+              AI GENERATION / テーマから生成
             </button>
             <button
               type="button"
               onClick={() => setCreationMode('geometric')}
-              className={`flex-1 py-2 text-[9px] sm:text-xs font-bold rounded transition-all ${
-                creationMode === 'geometric' ? 'bg-zinc-900 text-white shadow' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
+              className={`flex-1 py-3 text-[9px] sm:text-[10px] font-bold tracking-widest uppercase transition-all ${
+                creationMode === 'geometric' ? 'bg-zinc-900 text-white' : 'bg-transparent text-zinc-500 hover:bg-zinc-50'
               }`}
             >
-              色無地・格子・縞・水玉
+              GEOMETRIC / 幾何学・無地
             </button>
             <button
               type="button"
               onClick={() => setCreationMode('upload')}
-              className={`flex-1 py-2 text-[9px] sm:text-xs font-bold rounded transition-all ${
-                creationMode === 'upload' ? 'bg-zinc-900 text-white shadow' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
+              className={`flex-1 py-3 text-[9px] sm:text-[10px] font-bold tracking-widest uppercase transition-all ${
+                creationMode === 'upload' ? 'bg-zinc-900 text-white' : 'bg-transparent text-zinc-500 hover:bg-zinc-50'
               }`}
             >
-              📁 手持ちの画像で作る
+              UPLOAD IMAGE / 画像持ち込み
             </button>
           </div>
 
           {creationMode === 'upload' ? (
-            <div className="bg-white border border-zinc-300 shadow-xl p-5 flex flex-col gap-5 animate-fade-in rounded-sm text-left">
+            <div className="bg-white border border-zinc-200 p-6 sm:p-8 flex flex-col gap-6 animate-fade-in text-left">
               <div>
-                <h2 className="text-sm font-black text-zinc-900 tracking-wider mb-1">【自作・外部AI画像の持ち込み】</h2>
-                <p className="text-[11px] text-zinc-500 leading-relaxed">
+                <h2 className="text-xs font-bold text-zinc-900 tracking-[0.2em] mb-2 uppercase">IMPORT EXTERNAL DESIGN</h2>
+                <p className="text-[11px] text-zinc-500 leading-relaxed font-light">
                   Midjourneyやお持ちの画像生成AI、手描きイラストの画像をアップロードして原寸でマッピングシミュレーションできます。
                 </p>
               </div>
 
-              <div className="border-2 border-dashed border-zinc-300 rounded p-6 bg-zinc-50 hover:bg-zinc-100/80 transition-colors flex flex-col items-center justify-center text-center">
+              <div className="border border-dashed border-zinc-300 p-8 bg-zinc-50 hover:bg-zinc-100 transition-colors flex flex-col items-center justify-center text-center">
                 <label className="cursor-pointer flex flex-col items-center justify-center w-full">
-                  <span className="text-2xl mb-2">📤</span>
-                  <span className="text-xs font-bold text-zinc-800 mb-1">
-                    {uploadingImage ? '画像をアップロード中...' : 'メイン図案を選択、またはドラッグ＆ドロップ'}
+                  <span className="text-[11px] font-bold text-zinc-900 tracking-widest uppercase mb-2">
+                    {uploadingImage ? 'UPLOADING...' : 'SELECT OR DROP IMAGE'}
                   </span>
-                  <span className="text-[10px] text-zinc-500">推奨形式：正方形 (1:1) / PNG または JPEG</span>
+                  <span className="text-[10px] text-zinc-400">Recommended: Square (1:1) / PNG or JPEG</span>
                   <input
                     type="file"
                     accept="image/png, image/jpeg, image/webp"
@@ -767,181 +753,169 @@ function HomeContent() {
               </div>
 
               {errorMsg && (
-                <div className="p-3 bg-red-50 text-red-600 border border-red-200 text-xs font-bold rounded">
+                <div className="p-3 bg-zinc-50 text-red-600 border border-zinc-200 text-xs font-bold">
                   {errorMsg}
                 </div>
               )}
 
               {imageUrl && !imageUrl.includes('sample_piano_cat') && (
                 <div className="flex flex-col gap-3">
-                  <div className="p-3 bg-zinc-100 border border-zinc-200 rounded flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <img src={imageUrl} alt="" className="w-10 h-10 object-cover rounded border border-zinc-300" />
+                  <div className="p-4 bg-zinc-50 border border-zinc-200 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <img src={imageUrl} alt="" className="w-12 h-12 object-cover border border-zinc-200" />
                       <div>
-                        <p className="text-xs font-bold text-zinc-900 truncate max-w-[200px]">{patternTitle}</p>
-                        <p className="text-[10px] font-mono text-zinc-500">{serialNumber}</p>
+                        <p className="text-xs font-bold text-zinc-900 tracking-wider truncate max-w-[200px]">{patternTitle}</p>
+                        <p className="text-[9px] font-mono text-zinc-400 mt-0.5">{serialNumber}</p>
                       </div>
                     </div>
-                    <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded">プレビュー反映中</span>
+                    <span className="text-[9px] border border-zinc-900 text-zinc-900 font-bold px-2 py-1 uppercase tracking-widest">PREVIEWING</span>
                   </div>
 
                   <button
                     type="button"
                     onClick={handleExtractPrompt}
                     disabled={analyzingImage || uploadingImage}
-                    className="w-full py-3 px-4 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white text-xs font-bold rounded shadow transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                    className="w-full py-3 px-4 border border-zinc-900 text-zinc-900 hover:bg-zinc-900 hover:text-white text-xs font-bold tracking-widest uppercase transition-colors disabled:opacity-50"
                   >
-                    <span>✨</span>
-                    <span>
-                      {analyzingImage 
-                        ? '写真の色・柄をAI解析中...' 
-                        : 'この写真からプロンプトを抽出して「AI妄想」へ送る'}
-                    </span>
+                    {analyzingImage 
+                      ? 'ANALYZING IMAGE...' 
+                      : 'EXTRACT PROMPT FOR AI GENERATION'}
                   </button>
-                  <p className="text-[9px] text-zinc-400 text-center -mt-1.5">
+                  <p className="text-[9px] text-zinc-400 text-center">
                     ※写真から配色・タッチ・模様の特徴だけを抽出し、図案づくりモードで新しく図案化できます
                   </p>
                 </div>
               )}
 
               {itemType === 'kyobukuro' && (
-                <div className="p-3 bg-zinc-50 border border-zinc-200 rounded flex flex-col gap-2">
+                <div className="p-4 bg-zinc-50 border border-zinc-200 flex flex-col gap-3">
                   <div className="flex items-center justify-between">
                     <div>
-                      <span className="text-[11px] font-bold text-zinc-800">京袋帯：前腹（お腹正面）の個別画像</span>
-                      <p className="text-[9px] text-zinc-500">太鼓と別の柄を合わせたい場合のみ設定</p>
+                      <span className="text-[10px] font-bold text-zinc-900 tracking-widest uppercase">京袋帯：前腹（お腹正面）の個別画像</span>
+                      <p className="text-[9px] text-zinc-500 mt-0.5">太鼓と別の柄を合わせたい場合のみ設定</p>
                     </div>
                     {customHaraUrl && (
                       <button
                         type="button"
                         onClick={() => setCustomHaraUrl(null)}
-                        className="text-[9px] text-red-600 underline font-bold"
+                        className="text-[9px] text-zinc-400 hover:text-zinc-900 transition-colors uppercase tracking-widest"
                       >
-                        解除
+                        REMOVE
                       </button>
                     )}
                   </div>
-                  <label className="py-2 text-[10px] font-bold text-center rounded border border-zinc-300 bg-white hover:bg-zinc-100 cursor-pointer transition-colors block">
-                    {customHaraUrl ? '前腹の画像を変更する' : '＋ 前腹の個別画像をアップロード'}
+                  <label className="py-2.5 text-[10px] font-bold text-center border border-zinc-300 bg-white hover:bg-zinc-100 cursor-pointer transition-colors block uppercase tracking-widest">
+                    {customHaraUrl ? 'CHANGE IMAGE' : 'UPLOAD FRONT IMAGE'}
                     <input type="file" accept="image/*" onChange={handleCustomHaraUpload} className="hidden" />
                   </label>
                 </div>
               )}
 
               {itemType === 'kimono' && (
-                <div className="p-3 bg-zinc-50 border border-zinc-200 rounded flex flex-col gap-2">
+                <div className="p-4 bg-zinc-50 border border-zinc-200 flex flex-col gap-3">
                   <div className="flex items-center justify-between">
                     <div>
-                      <span className="text-[11px] font-bold text-zinc-800">着物：帯の個別画像</span>
-                      <p className="text-[9px] text-zinc-500">自作の帯柄をコーディネートに重ねたい場合のみ設定</p>
+                      <span className="text-[10px] font-bold text-zinc-900 tracking-widest uppercase">着物：帯の個別画像</span>
+                      <p className="text-[9px] text-zinc-500 mt-0.5">自作の帯柄をコーディネートに重ねたい場合のみ設定</p>
                     </div>
                     {customObiUrl && (
                       <button
                         type="button"
                         onClick={() => setCustomObiUrl(null)}
-                        className="text-[9px] text-red-600 underline font-bold"
+                        className="text-[9px] text-zinc-400 hover:text-zinc-900 transition-colors uppercase tracking-widest"
                       >
-                        解除
+                        REMOVE
                       </button>
                     )}
                   </div>
-                  <label className="py-2 text-[10px] font-bold text-center rounded border border-zinc-300 bg-white hover:bg-zinc-100 cursor-pointer transition-colors block">
-                    {customObiUrl ? '帯の画像を変更する' : '＋ 帯の個別画像をアップロード'}
+                  <label className="py-2.5 text-[10px] font-bold text-center border border-zinc-300 bg-white hover:bg-zinc-100 cursor-pointer transition-colors block uppercase tracking-widest">
+                    {customObiUrl ? 'CHANGE IMAGE' : 'UPLOAD OBI IMAGE'}
                     <input type="file" accept="image/*" onChange={handleCustomObiUpload} className="hidden" />
                   </label>
                 </div>
               )}
 
-              <div className="border-t border-zinc-200 pt-4 flex flex-col gap-3">
+              <div className="border-t border-zinc-200 pt-6 flex flex-col gap-4">
                 <div>
-                  <h3 className="text-xs font-black text-zinc-900 mb-1">【外部AI生成用・末尾プロンプト】</h3>
-                  <p className="text-[10px] text-zinc-500">
+                  <h3 className="text-[11px] font-bold text-zinc-900 tracking-widest uppercase mb-1">PROMPTS FOR EXTERNAL AI</h3>
+                  <p className="text-[10px] text-zinc-500 font-light">
                     Midjourney等で思い通りの帯・着物データを作る際、プロンプトの末尾に足して出力してください。
                   </p>
                 </div>
 
-                <div className="p-3 bg-zinc-50 border border-zinc-200 rounded flex flex-col gap-1.5">
-                  <div className="flex justify-between items-center">
-                    <span className="text-[11px] font-bold text-zinc-800">小紋・総柄（半幅帯・着物向け：リピート柄）</span>
+                <div className="p-4 bg-zinc-50 border border-zinc-200 flex flex-col gap-2">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-[10px] font-bold text-zinc-900 tracking-widest uppercase">SEAMLESS REPEAT (Komon)</span>
                     <button
                       type="button"
                       onClick={() => handleCopyPrompt(PROMPT_SEAMLESS, 'seamless')}
-                      className={`text-[10px] font-bold px-2.5 py-1 rounded transition-colors ${
-                        copiedPromptType === 'seamless' ? 'bg-emerald-600 text-white' : 'bg-zinc-900 text-white hover:bg-zinc-800'
-                      }`}
+                      className="text-[9px] font-bold tracking-widest uppercase text-zinc-500 hover:text-zinc-900 transition-colors"
                     >
-                      {copiedPromptType === 'seamless' ? '✓ コピー完了！' : '📋 コピー'}
+                      {copiedPromptType === 'seamless' ? 'COPIED' : 'COPY'}
                     </button>
                   </div>
-                  <code className="text-[10px] font-mono bg-white p-2 rounded border border-zinc-200 text-zinc-700 break-all select-all">
+                  <code className="text-[9px] font-mono bg-white p-3 border border-zinc-200 text-zinc-600 break-all select-all block">
                     {PROMPT_SEAMLESS}
                   </code>
                 </div>
 
-                <div className="p-3 bg-zinc-50 border border-zinc-200 rounded flex flex-col gap-1.5">
-                  <div className="flex justify-between items-center">
-                    <span className="text-[11px] font-bold text-zinc-800">お太鼓・絵羽（京袋帯向け：センター主役）</span>
+                <div className="p-4 bg-zinc-50 border border-zinc-200 flex flex-col gap-2">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-[10px] font-bold text-zinc-900 tracking-widest uppercase">CENTERED FOCAL (Kyobukuro)</span>
                     <button
                       type="button"
                       onClick={() => handleCopyPrompt(PROMPT_CENTERED, 'centered')}
-                      className={`text-[10px] font-bold px-2.5 py-1 rounded transition-colors ${
-                        copiedPromptType === 'centered' ? 'bg-emerald-600 text-white' : 'bg-zinc-900 text-white hover:bg-zinc-800'
-                      }`}
+                      className="text-[9px] font-bold tracking-widest uppercase text-zinc-500 hover:text-zinc-900 transition-colors"
                     >
-                      {copiedPromptType === 'centered' ? '✓ コピー完了！' : '📋 コピー'}
+                      {copiedPromptType === 'centered' ? 'COPIED' : 'COPY'}
                     </button>
                   </div>
-                  <code className="text-[10px] font-mono bg-white p-2 rounded border border-zinc-200 text-zinc-700 break-all select-all">
+                  <code className="text-[9px] font-mono bg-white p-3 border border-zinc-200 text-zinc-600 break-all select-all block">
                     {PROMPT_CENTERED}
                   </code>
                 </div>
 
-                <div className="p-3 bg-zinc-50 border border-zinc-200 rounded flex flex-col gap-1.5">
-                  <div className="flex justify-between items-center">
-                    <span className="text-[11px] font-bold text-zinc-800">スカーフ柄（100cmウールスカーフ向け：額縁スクエア構図）</span>
+                <div className="p-4 bg-zinc-50 border border-zinc-200 flex flex-col gap-2">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-[10px] font-bold text-zinc-900 tracking-widest uppercase">SQUARE FRAME (Scarf)</span>
                     <button
                       type="button"
                       onClick={() => handleCopyPrompt(PROMPT_SCARF, 'scarf')}
-                      className={`text-[10px] font-bold px-2.5 py-1 rounded transition-colors ${
-                        copiedPromptType === 'scarf' ? 'bg-emerald-600 text-white' : 'bg-zinc-900 text-white hover:bg-zinc-800'
-                      }`}
+                      className="text-[9px] font-bold tracking-widest uppercase text-zinc-500 hover:text-zinc-900 transition-colors"
                     >
-                      {copiedPromptType === 'scarf' ? '✓ コピー完了！' : '📋 コピー'}
+                      {copiedPromptType === 'scarf' ? 'COPIED' : 'COPY'}
                     </button>
                   </div>
-                  <code className="text-[10px] font-mono bg-white p-2 rounded border border-zinc-200 text-zinc-700 break-all select-all">
+                  <code className="text-[9px] font-mono bg-white p-3 border border-zinc-200 text-zinc-600 break-all select-all block">
                     {PROMPT_SCARF}
                   </code>
                 </div>
               </div>
 
               {imageUrl && !imageUrl.includes('sample_piano_cat') && (
-                <div className="border-t border-zinc-200 pt-4 flex flex-col gap-2">
+                <div className="border-t border-zinc-200 pt-6 flex flex-col gap-3">
                   <button 
                     type="button" 
                     onClick={() => setIsPolicyOpen(true)} 
-                    className="text-[10px] font-bold text-zinc-500 hover:text-zinc-900 underline text-center flex items-center justify-center gap-1 mb-2"
+                    className="text-[9px] tracking-widest uppercase font-bold text-zinc-400 hover:text-zinc-900 transition-colors text-center mb-4"
                   >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-700">
-                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                    </svg>
-                    当店のAI・著作権ポリシーと安心への取り組み
+                    POLICY & SAFETY
                   </button>
 
                   <button
                     type="button"
                     onClick={handleDownloadOriginal}
-                    className="w-full py-2.5 text-xs font-bold text-zinc-800 bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 rounded transition-colors"
+                    className="w-full py-3 text-[10px] font-bold tracking-widest uppercase text-zinc-900 border border-zinc-900 hover:bg-zinc-50 transition-colors"
                   >
-                    ↓ アップロード原寸画像を保存
+                    DOWNLOAD IMAGE
                   </button>
                   <button
                     type="button"
                     onClick={handleOrderClick}
                     disabled={uploadingImage}
-                    className="w-full py-3 text-center text-xs font-black text-white bg-zinc-900 hover:bg-zinc-800 rounded shadow-md transition-colors disabled:opacity-50"
+                    className="w-full py-3.5 text-center text-[11px] tracking-widest font-black text-white bg-zinc-900 hover:bg-zinc-800 transition-colors disabled:opacity-50"
                   >
-                    {uploadingImage ? '画像を準備中...' : 'この持ち込み画像で仕立てる（注文へ）'}
+                    {uploadingImage ? 'PROCESSING...' : 'ORDER WITH THIS IMAGE'}
                   </button>
                 </div>
               )}
@@ -991,99 +965,65 @@ function HomeContent() {
         </div>
       </div>
 
-      {/* ★ AI・著作権ポリシー モーダル ★ */}
+      {/* POLICY MODAL */}
       {isPolicyOpen && (
-        <div className="fixed inset-0 z-[99999] bg-zinc-950/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in" onClick={() => setIsPolicyOpen(false)}>
-          <div className="bg-white rounded-md shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto relative text-left" onClick={e => e.stopPropagation()}>
-            <div className="bg-zinc-900 p-4 sticky top-0 z-10 flex justify-between items-center">
-              <h3 className="text-sm font-bold text-white tracking-wider flex items-center gap-2">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-400">
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                </svg>
-                当店のAI・著作権ポリシーと安心への取り組み
+        <div className="fixed inset-0 z-[99999] bg-white/95 backdrop-blur-sm flex items-center justify-center p-6 animate-fade-in" onClick={() => setIsPolicyOpen(false)}>
+          <div className="bg-white border border-zinc-200 w-full max-w-2xl max-h-[90vh] overflow-y-auto relative text-left shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="p-6 border-b border-zinc-100 flex justify-between items-center">
+              <h3 className="text-[11px] font-bold text-zinc-900 tracking-[0.2em] uppercase">
+                POLICY & SAFETY
               </h3>
-              <button onClick={() => setIsPolicyOpen(false)} className="text-zinc-400 hover:text-white">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M18 6L6 18M6 6l12 12" />
-                </svg>
+              <button onClick={() => setIsPolicyOpen(false)} className="text-zinc-400 hover:text-zinc-900 text-xs tracking-widest uppercase">
+                CLOSE
               </button>
             </div>
             
-            <div className="p-5 sm:p-6 space-y-5 text-zinc-800">
-              <p className="text-[11px] sm:text-xs leading-relaxed text-zinc-600 mb-2">
+            <div className="p-8 space-y-8 text-zinc-800">
+              <p className="text-[11px] sm:text-xs leading-relaxed text-zinc-500 font-light">
                 「妄想きもの図案帳」をご利用いただきありがとうございます。クリエイターの皆様、そしてすべての利用者の皆様に安心してお使いいただけるよう、当店の明確なポリシーをお約束いたします。
               </p>
               
-              <div className="p-4 bg-zinc-50 border border-zinc-200 rounded-sm">
-                <h4 className="font-bold text-xs sm:text-sm text-zinc-900 mb-2 flex items-center gap-2">
-                  <span className="bg-zinc-900 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px]">1</span>
-                  AI学習への無断利用は一切行いません
-                </h4>
-                <p className="text-[11px] sm:text-xs leading-relaxed text-zinc-600">
-                  お預かりした画像や入力されたプロンプトが、AIの学習データとして無断で使われることは絶対にありません。当ツールが連携しているAIシステム（API）は、入力データがモデル学習に利用されないセキュアな設計となっております。クリエイター様の権利と大切な作品データを固く守ります。
-                </p>
-              </div>
+              <div className="space-y-6">
+                <div>
+                  <h4 className="font-bold text-xs text-zinc-900 mb-2 tracking-widest uppercase">
+                    01. No Training on User Data
+                  </h4>
+                  <p className="text-[11px] sm:text-xs leading-relaxed text-zinc-500 font-light">
+                    お預かりした画像や入力されたプロンプトが、AIの学習データとして無断で使われることは絶対にありません。当ツールが連携しているAIシステム（API）は、入力データがモデル学習に利用されないセキュアな設計となっております。
+                  </p>
+                </div>
 
-              <div className="p-4 bg-zinc-50 border border-zinc-200 rounded-sm">
-                <h4 className="font-bold text-xs sm:text-sm text-zinc-900 mb-2 flex items-center gap-2">
-                  <span className="bg-zinc-900 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px]">2</span>
-                  セーフティ機能と「人の目」による厳格なチェック
-                </h4>
-                <p className="text-[11px] sm:text-xs leading-relaxed text-zinc-600">
-                  システム内部で「NGワードブロック」および「AI側の公序良俗フィルター」が常に稼働しております。さらに、お仕立てへ進むデータはすべて、<strong>製作前に熟練スタッフが必ず目視確認</strong>いたします。既存のキャラクターや著名な作品など、第三者の著作権や商標権を侵害する恐れがある図案につきましては、厳格に製作をお断りさせていただきます。
-                </p>
-              </div>
+                <div>
+                  <h4 className="font-bold text-xs text-zinc-900 mb-2 tracking-widest uppercase">
+                    02. Strict Safety Moderation
+                  </h4>
+                  <p className="text-[11px] sm:text-xs leading-relaxed text-zinc-500 font-light">
+                    システム内部で「NGワードブロック」および「AI側の公序良俗フィルター」が常に稼働しております。さらに、お仕立てへ進むデータはすべて、製作前に熟練スタッフが必ず目視確認いたします。著作権や商標権を侵害する恐れがある図案につきましては、厳格に製作をお断りさせていただきます。
+                  </p>
+                </div>
 
-              <div className="p-4 bg-zinc-50 border border-zinc-200 rounded-sm">
-                <h4 className="font-bold text-xs sm:text-sm text-zinc-900 mb-2 flex items-center gap-2">
-                  <span className="bg-zinc-900 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px]">3</span>
-                  「完全オリジナルデータ」でのご入稿も引き続き大歓迎です
-                </h4>
-                <p className="text-[11px] sm:text-xs leading-relaxed text-zinc-600">
-                  AIはあくまで「絵が描けない方・アイデアを広げたい方」のための補助ツールです。ご自身でイラストやデザインを描かれるクリエイター様向けの「完全オリジナルデータ入稿（AI非使用）」も、当店の主力サービスとして今後も大切に承ってまいります。
-                </p>
+                <div>
+                  <h4 className="font-bold text-xs text-zinc-900 mb-2 tracking-widest uppercase">
+                    03. Original Designs Welcome
+                  </h4>
+                  <p className="text-[11px] sm:text-xs leading-relaxed text-zinc-500 font-light">
+                    AIはあくまで「絵が描けない方・アイデアを広げたい方」のための補助ツールです。ご自身でイラストやデザインを描かれるクリエイター様向けの「完全オリジナルデータ入稿（AI非使用）」も、当店の主力サービスとして今後も大切に承ってまいります。
+                  </p>
+                </div>
               </div>
-            </div>
-            
-            <div className="px-5 sm:px-6 pb-2">
-              <div className="pt-4 border-t border-zinc-200 flex flex-col gap-2">
-                <p className="text-[10px] sm:text-[11px] text-zinc-500 leading-relaxed font-bold">
-                  💡 なぜこのツールを作ったのか？
-                </p>
-                <p className="text-[10px] text-zinc-500 leading-relaxed mb-1">
-                  AI活用に関する当店のスタンスや、クリエイター様への想い、そして過去の経緯につきましては、店主のnoteでも詳しくお話ししております。
-                </p>
-                <a
-                  href="https://note.com/gofukuyasan/n/nefe580fa50f4"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-[11px] font-bold text-zinc-800 hover:text-red-700 underline transition-colors"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line>
-                  </svg>
-                  note記事：ゴフクヤサンのAI活用とスタンスについて ＞
-                </a>
-              </div>
-            </div>
-            
-            <div className="p-4 bg-zinc-100 border-t border-zinc-200 text-center rounded-b-md">
-              <button onClick={() => setIsPolicyOpen(false)} className="px-8 py-2.5 bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-bold rounded shadow-sm transition-colors">
-                確認して閉じる
-              </button>
             </div>
           </div>
         </div>
       )}
 
       {CURRENT_NOTICE.enabled && (
-        <div className="w-full max-w-7xl px-4 py-8 mt-12 flex justify-center border-t border-zinc-200">
+        <div className="w-full max-w-7xl px-4 py-12 mt-12 flex justify-center border-t border-zinc-100">
           <button
             type="button"
             onClick={() => setIsNoticeOpen(true)}
-            className="text-xs font-bold text-zinc-500 hover:text-zinc-950 underline transition-colors"
+            className="text-[10px] font-bold text-zinc-400 hover:text-zinc-900 tracking-widest uppercase transition-colors"
           >
-            {CURRENT_NOTICE.category}を確認する
+            SYSTEM UPDATE
           </button>
         </div>
       )}
@@ -1098,7 +1038,7 @@ function HomeContent() {
 
 export default function Home() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[#f4f4f5]"><p className="text-zinc-400 text-sm font-bold tracking-widest">LOADING...</p></div>}>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-white"><p className="text-zinc-400 text-xs font-light tracking-[0.2em] uppercase">Loading</p></div>}>
       <HomeContent />
     </Suspense>
   );
