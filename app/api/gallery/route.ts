@@ -1,61 +1,59 @@
-// app/api/gallery/like/route.ts
+// app/api/gallery/route.ts
 import { NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
 
 export const dynamic = 'force-dynamic';
 
+export async function GET() {
+  try {
+    // ギャラリーの画像一覧をデータベースから取得する（データは消えていません）
+    const items = await kv.get('gallery_items') || [];
+    
+    // 日付の新しい順に並び替えて返す
+    const sortedItems = (items as any[]).sort((a, b) => {
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+
+    return NextResponse.json({ success: true, items: sortedItems });
+  } catch (error) {
+    console.error('Gallery GET Error:', error);
+    return NextResponse.json({ success: false, error: 'ギャラリーの取得に失敗しました' }, { status: 500 });
+  }
+}
+
 export async function POST(req: Request) {
   try {
-    const { id } = await req.json();
-    if (!id) {
-      return NextResponse.json({ success: false, error: 'ID is required' }, { status: 400 });
+    const body = await req.json();
+    const { imageUrl, title, author, note, itemType, scale, density } = body;
+
+    if (!imageUrl) {
+      return NextResponse.json({ error: '画像URLがありません' }, { status: 400 });
     }
 
-    let newLikes = 1;
-    let foundAndUpdated = false;
+    const newItem = {
+      id: `gal_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      imageUrl,
+      title: title || '無題の小紋',
+      author: author || '名無しさん',
+      note: note || '', // クリエイターのひとことを保存
+      likes: 0, // いいねの初期値
+      itemType: itemType || 'hanhaba',
+      scale: scale || 'medium',
+      density: density || '',
+      createdAt: new Date().toISOString(),
+    };
 
-    // 1. リスト形式で保存されている場合（キー名が 'gallery_items' のパターン）
-    const items = await kv.get<any[]>('gallery_items');
-    if (items && Array.isArray(items)) {
-      const itemIndex = items.findIndex((i) => i.id === id);
-      if (itemIndex > -1) {
-        items[itemIndex].likes = (items[itemIndex].likes || 0) + 1;
-        newLikes = items[itemIndex].likes;
-        await kv.set('gallery_items', items);
-        foundAndUpdated = true;
-      }
-    }
+    // 既存のリストを取得して、先頭に新しいアイテムを追加
+    const existingItems: any[] = (await kv.get('gallery_items')) || [];
+    existingItems.unshift(newItem);
 
-    // 2. リスト形式で保存されている場合（キー名が 'gallery' のパターン）
-    const itemsFallback = await kv.get<any[]>('gallery');
-    if (itemsFallback && Array.isArray(itemsFallback)) {
-      const itemIndex = itemsFallback.findIndex((i) => i.id === id);
-      if (itemIndex > -1) {
-        itemsFallback[itemIndex].likes = (itemsFallback[itemIndex].likes || 0) + 1;
-        newLikes = itemsFallback[itemIndex].likes;
-        await kv.set('gallery', itemsFallback);
-        foundAndUpdated = true;
-      }
-    }
+    // 最大300件（または任意の件数）を保持して保存
+    const limitedItems = existingItems.slice(0, 300);
+    await kv.set('gallery_items', limitedItems);
 
-    // 3. 個別キーで保存されている場合（前回お渡ししたコードの処理）
-    const itemKey = `gallery:${id}`;
-    const individualItem = await kv.get<any>(itemKey);
-    if (individualItem) {
-      individualItem.likes = (individualItem.likes || 0) + 1;
-      newLikes = individualItem.likes;
-      await kv.set(itemKey, individualItem);
-      foundAndUpdated = true;
-    }
-
-    if (!foundAndUpdated) {
-      // どこにも見つからなかった場合、ログを出力しつつ見た目上は成功として返す
-      console.warn(`Like Error: Item not found in KV for id: ${id}`);
-    }
-
-    return NextResponse.json({ success: true, likes: newLikes });
+    return NextResponse.json({ success: true, item: newItem });
   } catch (error) {
-    console.error('Like error:', error);
-    return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500 });
+    console.error('Gallery POST Error:', error);
+    return NextResponse.json({ success: false, error: 'ギャラリーへの保存に失敗しました' }, { status: 500 });
   }
 }
