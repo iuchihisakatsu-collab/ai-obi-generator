@@ -2,14 +2,13 @@
 'use client';
 
 import React, { useState } from 'react';
-import { TRADITIONAL_COLORS } from '../../lib/constants';
 
 export interface PreviewAreaProps {
   imageUrl: string;
   blobUrl: string;
   rotatedPatternUrl: string;
   serialNumber: string;
-  itemType: 'hanhaba' | 'kyobukuro' | 'kimono' | 'scarf' | 'tote'; // ★ 'tote' を追加
+  itemType: 'hanhaba' | 'kyobukuro' | 'kimono' | 'scarf' | 'tote';
   displayMode: 'mockup' | 'trim' | 'data';
   creationMode: 'ai' | 'geometric';
   bgSizeMm: number;
@@ -31,7 +30,7 @@ export interface PreviewAreaProps {
   mockupSubmitting: boolean;
   previewRef: React.RefObject<HTMLDivElement | null>;
   previewContainerRef: React.RefObject<HTMLDivElement | null>;
-  handleItemTypeChange: (type: 'hanhaba' | 'kyobukuro' | 'kimono' | 'scarf' | 'tote') => void; // ★ 'tote' を追加
+  handleItemTypeChange: (type: 'hanhaba' | 'kyobukuro' | 'kimono' | 'scarf' | 'tote') => void;
   setDisplayMode: (mode: 'mockup' | 'trim' | 'data') => void;
   handleDownloadMapping: () => void;
   UNIVERSAL_SCALE_FACTOR: number;
@@ -92,18 +91,18 @@ export default function PreviewArea(props: PreviewAreaProps) {
 
   // ★ 4. トートバッグ調整用ステート
   const [toteOffsets, setToteOffsets] = useState([
-    { id: 'tote_body', name: 'トートバッグ本体', file: 'トートバッグマッピング本番.jpg', z: 10, rot: 0, scale: 100, x: 50, y: 50 }
+    { id: 'tote_body', name: 'トートバッグ本体', file: 'tote_body.png', z: 10, rot: 0, scale: 100, x: 50, y: 50 }
   ]);
 
   const handleOffsetChange = (index: number, axis: 'x' | 'y' | 'rot' | 'scale', value: number) => {
     if (itemType === 'hanhaba') {
-      setHanhabaOffsets(prev => { const next = [...prev]; next[index] = { ...next[index], [axis]: value }; return next; });
+      setHanhabaOffsets((prev) => { const next = [...prev]; next[index] = { ...next[index], [axis]: value }; return next; });
     } else if (itemType === 'kyobukuro') {
-      setKyobukuroOffsets(prev => { const next = [...prev]; next[index] = { ...next[index], [axis]: value }; return next; });
+      setKyobukuroOffsets((prev) => { const next = [...prev]; next[index] = { ...next[index], [axis]: value }; return next; });
     } else if (itemType === 'kimono') {
-      setKimonoOffsets(prev => { const next = [...prev]; next[index] = { ...next[index], [axis]: value }; return next; });
+      setKimonoOffsets((prev) => { const next = [...prev]; next[index] = { ...next[index], [axis]: value }; return next; });
     } else if (itemType === 'tote') {
-      setToteOffsets(prev => { const next = [...prev]; next[index] = { ...next[index], [axis]: value }; return next; });
+      setToteOffsets((prev) => { const next = [...prev]; next[index] = { ...next[index], [axis]: value }; return next; });
     }
   };
 
@@ -127,8 +126,6 @@ export default function PreviewArea(props: PreviewAreaProps) {
   const effectivePatternUrl = creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl);
   const baseScale = creationMode === 'geometric' ? bgSizeMm * UNIVERSAL_SCALE_FACTOR : 400 * UNIVERSAL_SCALE_FACTOR;
   const v = '32';
-
-  // --- 省略せずに完全な描画関数 ---
 
   const renderHanhabaLayers = () => (
     <div className="relative w-full h-full overflow-hidden">
@@ -208,17 +205,11 @@ export default function PreviewArea(props: PreviewAreaProps) {
     const part = toteOffsets[0];
     return (
       <div className="relative w-full h-full flex items-center justify-center p-3 bg-white">
-        {/* 背景となるモックアップ画像 */}
-        <div className="absolute inset-0 z-0">
-          <img src={`/${part.file}?v=${v}`} alt="Tote Mockup" className="w-full h-full object-contain" />
-        </div>
-        
-        {/* 柄を乗せる層（乗算モードでシワを活かす） */}
+        {/* 1. 柄が乗る本体（マスク処理） */}
         <div 
           className="absolute inset-0 pointer-events-none" 
           style={{ 
             zIndex: part.z, 
-            mixBlendMode: 'multiply',
             maskImage: `url('/${part.file}?v=${v}')`,
             WebkitMaskImage: `url('/${part.file}?v=${v}')`,
             maskSize: 'contain',
@@ -248,9 +239,41 @@ export default function PreviewArea(props: PreviewAreaProps) {
           />
         </div>
 
+        {/* 2. 持ち手（マスク＋色塗り）※プレビュー画面では仮で「裏地の色」を利用してテスト可能 */}
+        <div 
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            zIndex: 20,
+            maskImage: `url('/tote_handle.png?v=${v}')`,
+            WebkitMaskImage: `url('/tote_handle.png?v=${v}')`,
+            maskSize: 'contain',
+            WebkitMaskSize: 'contain',
+            maskRepeat: 'no-repeat',
+            WebkitMaskRepeat: 'no-repeat',
+            maskPosition: 'center',
+            WebkitMaskPosition: 'center',
+          }}
+        >
+           <div className="w-full h-full transition-colors duration-300" style={{ backgroundColor: obiLiningColor || '#e4e4e7' }} />
+        </div>
+
+        {/* 3. シワ・陰影（乗算） */}
+        <div 
+          className="absolute inset-0 pointer-events-none" 
+          style={{ 
+            zIndex: 30, 
+            backgroundImage: `url('/tote_shadow.png?v=${v}')`,
+            backgroundSize: 'contain',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+            mixBlendMode: 'multiply',
+            opacity: 0.9,
+          }}
+        />
+
         {/* 持ち手部分はプロにおまかせのテキスト */}
-        <div className="absolute bottom-4 w-full text-center z-20 pointer-events-none">
-          <span className="text-[10px] bg-black/70 text-white px-3 py-1.5 rounded-full tracking-widest shadow-md">
+        <div className="absolute bottom-4 w-full text-center z-40 pointer-events-none">
+          <span className="text-[9px] bg-black/70 text-white px-3 py-1.5 rounded-full tracking-widest shadow-md">
             ※実際の持ち手の色は柄に合わせてお任せとなります
           </span>
         </div>
@@ -312,6 +335,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
             >
               スカーフ
             </button>
+            {/* ★ トートバッグ追加 */}
             <button
               type="button"
               onClick={() => { handleItemTypeChange('tote'); setActiveFloatPalette(null); }}
@@ -359,7 +383,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
               displayMode === 'data' ? 'bg-zinc-900 text-white border-zinc-900 shadow' : 'bg-white text-zinc-600 border-zinc-300'
             }`}
           >
-            {itemType === 'hanhaba' ? '18cm プリントデータ' : itemType === 'scarf' ? '100cm 正方形データ' : itemType === 'tote' ? '36cm 角プリントデータ' : '40cm 反物データ'}
+            {itemType === 'hanhaba' ? '18cm プリントデータ' : itemType === 'scarf' ? '100cm 正方形データ' : itemType === 'tote' ? '36cm角 データ' : '40cm 反物データ'}
           </button>
         </div>
 
@@ -368,6 +392,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
           {displayMode === 'mockup' && (
             <div className="w-full flex flex-col items-center animate-fade-in relative">
               
+              {/* 全アイテム共通枠サイズ */}
               <div className="relative mx-auto drop-shadow-xl w-[240px] sm:w-[360px] aspect-square">
                 
                 <div ref={previewContainerRef} className="w-full h-full relative overflow-hidden">
@@ -466,16 +491,27 @@ export default function PreviewArea(props: PreviewAreaProps) {
                     </div>
                   )}
 
-                  {/* パレット表示 */}
+                  {/* トートバッグ時の持ち手カラーテスト用ボタン */}
+                  {itemType === 'tote' && (
+                    <div className="pointer-events-auto absolute top-2 left-2 flex flex-wrap gap-1 bg-white/95 backdrop-blur-md p-1 rounded-sm border border-zinc-400 shadow-2xl">
+                      <button
+                        type="button"
+                        onClick={() => setActiveFloatPalette(activeFloatPalette === 'lining' ? null : 'lining')}
+                        className={`flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-sm border transition-all ${
+                          activeFloatPalette === 'lining' ? 'bg-zinc-950 text-white border-zinc-950' : 'bg-white text-zinc-800 border-zinc-300 hover:bg-zinc-100'
+                        }`}
+                      >
+                        <span className="w-2.5 h-2.5 rounded-full border border-zinc-400 shrink-0 inline-block" style={{ backgroundColor: obiLiningColor }} />
+                        <span>持ち手の色（テスト用）</span>
+                      </button>
+                    </div>
+                  )}
+
                   {activeFloatPalette && (
                     <div className="pointer-events-auto absolute top-10 left-2 right-2 bg-white border-2 border-zinc-900 p-2.5 rounded shadow-2xl animate-fade-in max-w-[340px]">
                       <div className="flex justify-between items-center mb-1.5 pb-1 border-b border-zinc-200">
                         <span className="text-[10px] font-black text-zinc-900">
-                          {activeFloatPalette === 'lining' && '帯の裏地色を選択'}
-                          {activeFloatPalette === 'haneri' && '半衿の色を選択'}
-                          {activeFloatPalette === 'obiage' && '帯揚の色を選択'}
-                          {activeFloatPalette === 'obi' && '着物の帯を指定'}
-                          {activeFloatPalette === 'hara' && '京袋帯の前腹（胴回り）を指定'}
+                          {activeFloatPalette === 'lining' && itemType === 'tote' ? '持ち手カラーをテスト' : '色を選択'}
                         </span>
                         <button type="button" onClick={() => setActiveFloatPalette(null)} className="text-[11px] font-black text-zinc-500 hover:text-zinc-950 px-1">✕ 閉じる</button>
                       </div>
@@ -573,7 +609,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
         </div>
       </div>
 
-      {/* 工房スタッフ専用：柄あわせ調整ツール（帯・着物・トート時のみ表示） */}
+      {/* 工房スタッフ専用：柄あわせ調整ツール */}
       {itemType !== 'scarf' && (
         <div className="mt-2 text-right">
           <button
