@@ -9,7 +9,7 @@ export interface PreviewAreaProps {
   blobUrl: string;
   rotatedPatternUrl: string;
   serialNumber: string;
-  itemType: 'hanhaba' | 'kyobukuro' | 'kimono' | 'scarf';
+  itemType: 'hanhaba' | 'kyobukuro' | 'kimono' | 'scarf' | 'tote'; // ★ 'tote' を追加
   displayMode: 'mockup' | 'trim' | 'data';
   creationMode: 'ai' | 'geometric';
   bgSizeMm: number;
@@ -31,7 +31,7 @@ export interface PreviewAreaProps {
   mockupSubmitting: boolean;
   previewRef: React.RefObject<HTMLDivElement | null>;
   previewContainerRef: React.RefObject<HTMLDivElement | null>;
-  handleItemTypeChange: (type: 'hanhaba' | 'kyobukuro' | 'kimono' | 'scarf') => void;
+  handleItemTypeChange: (type: 'hanhaba' | 'kyobukuro' | 'kimono' | 'scarf' | 'tote') => void; // ★ 'tote' を追加
   setDisplayMode: (mode: 'mockup' | 'trim' | 'data') => void;
   handleDownloadMapping: () => void;
   UNIVERSAL_SCALE_FACTOR: number;
@@ -90,227 +90,135 @@ export default function PreviewArea(props: PreviewAreaProps) {
     { id: 'hidarieri',   name: '左衿',         file: 'hidarieri_117.png',    z: 10, rot: 31,  scale: 100, x: 52,   y: 50 },
   ]);
 
+  // ★ 4. トートバッグ調整用ステート
+  const [toteOffsets, setToteOffsets] = useState([
+    { id: 'tote_body', name: 'トートバッグ本体', file: 'トートバッグマッピング本番.jpg', z: 10, rot: 0, scale: 100, x: 50, y: 50 }
+  ]);
+
   const handleOffsetChange = (index: number, axis: 'x' | 'y' | 'rot' | 'scale', value: number) => {
     if (itemType === 'hanhaba') {
-      setHanhabaOffsets((prev) => {
-        const next = [...prev];
-        next[index] = { ...next[index], [axis]: value };
-        return next;
-      });
+      setHanhabaOffsets(prev => { const next = [...prev]; next[index] = { ...next[index], [axis]: value }; return next; });
     } else if (itemType === 'kyobukuro') {
-      setKyobukuroOffsets((prev) => {
-        const next = [...prev];
-        next[index] = { ...next[index], [axis]: value };
-        return next;
-      });
+      setKyobukuroOffsets(prev => { const next = [...prev]; next[index] = { ...next[index], [axis]: value }; return next; });
     } else if (itemType === 'kimono') {
-      setKimonoOffsets((prev) => {
-        const next = [...prev];
-        next[index] = { ...next[index], [axis]: value };
-        return next;
-      });
+      setKimonoOffsets(prev => { const next = [...prev]; next[index] = { ...next[index], [axis]: value }; return next; });
+    } else if (itemType === 'tote') {
+      setToteOffsets(prev => { const next = [...prev]; next[index] = { ...next[index], [axis]: value }; return next; });
     }
   };
 
   const handleCopyCode = () => {
     let code = '';
     if (itemType === 'hanhaba') {
-      code = `  const hanhabaLayers = [\n` +
-        hanhabaOffsets.map((l) => `    { id: '${l.id}', file: '${l.file}', z: ${l.z}, rot: ${l.rot}, scale: ${l.scale}, bgX: '${l.x}%', bgY: '${l.y}%' },`).join('\n') +
-        `\n  ];`;
+      code = `  const hanhabaLayers = [\n` + hanhabaOffsets.map((l) => `    { id: '${l.id}', file: '${l.file}', z: ${l.z}, rot: ${l.rot}, scale: ${l.scale}, bgX: '${l.x}%', bgY: '${l.y}%' },`).join('\n') + `\n  ];`;
     } else if (itemType === 'kyobukuro') {
-      code = `  const kyobukuroLayers = [\n` +
-        kyobukuroOffsets.map((l) => `    { id: '${l.id}', file: '${l.file}', z: ${l.z}, rot: ${l.rot}, scale: ${l.scale}, bgX: '${l.x}%', bgY: '${l.y}%' },`).join('\n') +
-        `\n  ];`;
+      code = `  const kyobukuroLayers = [\n` + kyobukuroOffsets.map((l) => `    { id: '${l.id}', file: '${l.file}', z: ${l.z}, rot: ${l.rot}, scale: ${l.scale}, bgX: '${l.x}%', bgY: '${l.y}%' },`).join('\n') + `\n  ];`;
     } else if (itemType === 'kimono') {
-      code = `  const kimonoParts = [\n` +
-        kimonoOffsets.map((l) => `    { id: '${l.id}', file: '${l.file}', z: ${l.z}, rot: ${l.rot}, scale: ${l.scale}, bgX: '${l.x}%', bgY: '${l.y}%' },`).join('\n') +
-        `\n  ];`;
+      code = `  const kimonoParts = [\n` + kimonoOffsets.map((l) => `    { id: '${l.id}', file: '${l.file}', z: ${l.z}, rot: ${l.rot}, scale: ${l.scale}, bgX: '${l.x}%', bgY: '${l.y}%' },`).join('\n') + `\n  ];`;
+    } else if (itemType === 'tote') {
+      code = `  const toteOffsets = [\n` + toteOffsets.map((l) => `    { id: '${l.id}', file: '${l.file}', z: ${l.z}, rot: ${l.rot}, scale: ${l.scale}, bgX: '${l.x}%', bgY: '${l.y}%' },`).join('\n') + `\n  ];`;
     }
     navigator.clipboard.writeText(code);
-    alert(`【${itemType === 'hanhaba' ? '半幅帯' : itemType === 'kyobukuro' ? '京袋帯' : itemType === 'kimono' ? '着物' : 'スカーフ'}】の確定コードをコピーしました！`);
+    alert(`【${itemType === 'hanhaba' ? '半幅帯' : itemType === 'kyobukuro' ? '京袋帯' : itemType === 'kimono' ? '着物' : itemType === 'tote' ? 'トートバッグ' : 'スカーフ'}】の確定コードをコピーしました！`);
   };
 
   if (!imageUrl) return null;
 
   const effectivePatternUrl = creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl);
-
-  const baseScale = creationMode === 'geometric'
-    ? bgSizeMm * UNIVERSAL_SCALE_FACTOR
-    : 400 * UNIVERSAL_SCALE_FACTOR;
-
+  const baseScale = creationMode === 'geometric' ? bgSizeMm * UNIVERSAL_SCALE_FACTOR : 400 * UNIVERSAL_SCALE_FACTOR;
   const v = '32';
 
-  // 半幅帯マッピング描画
+  // --- 省略せずに完全な描画関数 ---
+
   const renderHanhabaLayers = () => (
     <div className="relative w-full h-full overflow-hidden">
       {hanhabaOffsets.map((layer) => (
-        <div
-          key={layer.id}
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            zIndex: layer.z,
-            maskImage: `url('/${layer.file}?v=${v}')`,
-            WebkitMaskImage: `url('/${layer.file}?v=${v}')`,
-            maskSize: 'contain',
-            WebkitMaskSize: 'contain',
-            maskRepeat: 'no-repeat',
-            WebkitMaskRepeat: 'no-repeat',
-            maskPosition: 'center',
-            WebkitMaskPosition: 'center',
-          }}
-        >
-          <div
-            style={{
-              position: 'absolute',
-              top: '-25%',
-              left: '-25%',
-              width: '150%',
-              height: '150%',
-              backgroundImage: `url(${effectivePatternUrl})`,
-              backgroundSize: `${baseScale * (layer.scale / 100)}% auto`,
-              backgroundRepeat: 'repeat',
-              backgroundPosition: `${layer.x}% ${layer.y}%`,
-              transform: `rotate(${layer.rot}deg)`,
-              transformOrigin: 'center center',
-              backgroundColor: creationMode === 'geometric' ? geoBgColor : 'transparent',
-              transition: 'background-position 0.05s ease-out, transform 0.05s ease-out, background-size 0.05s ease-out',
-            }}
-          />
+        <div key={layer.id} className="absolute inset-0 pointer-events-none" style={{ zIndex: layer.z, maskImage: `url('/${layer.file}?v=${v}')`, WebkitMaskImage: `url('/${layer.file}?v=${v}')`, maskSize: 'contain', WebkitMaskSize: 'contain', maskRepeat: 'no-repeat', WebkitMaskRepeat: 'no-repeat', maskPosition: 'center', WebkitMaskPosition: 'center' }}>
+          <div style={{ position: 'absolute', top: '-25%', left: '-25%', width: '150%', height: '150%', backgroundImage: `url(${effectivePatternUrl})`, backgroundSize: `${baseScale * (layer.scale / 100)}% auto`, backgroundRepeat: 'repeat', backgroundPosition: `${layer.x}% ${layer.y}%`, transform: `rotate(${layer.rot}deg)`, transformOrigin: 'center center', backgroundColor: creationMode === 'geometric' ? geoBgColor : 'transparent', transition: 'background-position 0.05s ease-out, transform 0.05s ease-out, background-size 0.05s ease-out' }} />
         </div>
       ))}
-
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          zIndex: 65,
-          maskImage: `url('/hanhaba_Layer07.png?v=${v}')`,
-          WebkitMaskImage: `url('/hanhaba_Layer07.png?v=${v}')`,
-          maskSize: 'contain',
-          WebkitMaskSize: 'contain',
-          maskRepeat: 'no-repeat',
-          WebkitMaskRepeat: 'no-repeat',
-          maskPosition: 'center',
-          WebkitMaskPosition: 'center',
-        }}
-      >
+      <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 65, maskImage: `url('/hanhaba_Layer07.png?v=${v}')`, WebkitMaskImage: `url('/hanhaba_Layer07.png?v=${v}')`, maskSize: 'contain', WebkitMaskSize: 'contain', maskRepeat: 'no-repeat', WebkitMaskRepeat: 'no-repeat', maskPosition: 'center', WebkitMaskPosition: 'center' }}>
         <div className="w-full h-full" style={{ backgroundColor: obiLiningColor }} />
       </div>
-
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          zIndex: 70,
-          backgroundImage: `url('/hanhaba_Layer_kage.png?v=${v}')`,
-          backgroundSize: 'contain',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
-          mixBlendMode: 'multiply',
-          opacity: 0.5,
-        }}
-      />
+      <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 70, backgroundImage: `url('/hanhaba_Layer_kage.png?v=${v}')`, backgroundSize: 'contain', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', mixBlendMode: 'multiply', opacity: 0.5 }} />
     </div>
   );
 
-  // 京袋帯マッピング描画
   const renderKyobukuroLayers = () => (
     <div className="relative w-full h-full overflow-hidden">
       <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 10 }}>
         <img src={`/kyoubukurogrand.png?v=${v}`} alt="" className="w-full h-full object-contain" />
       </div>
-
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          zIndex: 20,
-          maskImage: `url('/kyoubukurouraji.png?v=${v}')`,
-          WebkitMaskImage: `url('/kyoubukurouraji.png?v=${v}')`,
-          maskSize: 'contain',
-          WebkitMaskSize: 'contain',
-          maskRepeat: 'no-repeat',
-          WebkitMaskRepeat: 'no-repeat',
-          maskPosition: 'center',
-          WebkitMaskPosition: 'center',
-        }}
-      >
+      <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 20, maskImage: `url('/kyoubukurouraji.png?v=${v}')`, WebkitMaskImage: `url('/kyoubukurouraji.png?v=${v}')`, maskSize: 'contain', WebkitMaskSize: 'contain', maskRepeat: 'no-repeat', WebkitMaskRepeat: 'no-repeat', maskPosition: 'center', WebkitMaskPosition: 'center' }}>
         <div className="w-full h-full" style={{ backgroundColor: obiLiningColor }} />
       </div>
-
       {kyobukuroOffsets.map((layer) => {
         const isHara = layer.id === 'hara';
         const useIndividualHara = isHara && !!customHaraUrl;
-        
         const layerPatternUrl = useIndividualHara ? customHaraUrl : effectivePatternUrl;
         const layerRot = useIndividualHara ? 0 : layer.rot;
         const layerBgPos = useIndividualHara ? 'center center' : `${layer.x}% ${layer.y}%`;
         const layerBgSize = useIndividualHara ? 'cover' : `${baseScale * (layer.scale / 100)}% auto`;
         const layerRepeat = useIndividualHara ? 'no-repeat' : 'repeat';
-
         return (
-          <div
-            key={layer.id}
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              zIndex: layer.z,
-              maskImage: `url('/${layer.file}?v=${v}')`,
-              WebkitMaskImage: `url('/${layer.file}?v=${v}')`,
-              maskSize: 'contain',
-              WebkitMaskSize: 'contain',
-              maskRepeat: 'no-repeat',
-              WebkitMaskRepeat: 'no-repeat',
-              maskPosition: 'center',
-              WebkitMaskPosition: 'center',
-            }}
-          >
-            <div
-              style={{
-                position: 'absolute',
-                top: '-25%',
-                left: '-25%',
-                width: '150%',
-                height: '150%',
-                backgroundImage: `url(${layerPatternUrl})`,
-                backgroundSize: layerBgSize,
-                backgroundRepeat: layerRepeat,
-                backgroundPosition: layerBgPos,
-                transform: `rotate(${layerRot}deg)`,
-                transformOrigin: 'center center',
-                backgroundColor: (!useIndividualHara && creationMode === 'geometric') ? geoBgColor : 'transparent',
-                transition: 'background-position 0.05s ease-out, transform 0.05s ease-out, background-size 0.05s ease-out',
-              }}
-            />
+          <div key={layer.id} className="absolute inset-0 pointer-events-none" style={{ zIndex: layer.z, maskImage: `url('/${layer.file}?v=${v}')`, WebkitMaskImage: `url('/${layer.file}?v=${v}')`, maskSize: 'contain', WebkitMaskSize: 'contain', maskRepeat: 'no-repeat', WebkitMaskRepeat: 'no-repeat', maskPosition: 'center', WebkitMaskPosition: 'center' }}>
+            <div style={{ position: 'absolute', top: '-25%', left: '-25%', width: '150%', height: '150%', backgroundImage: `url(${layerPatternUrl})`, backgroundSize: layerBgSize, backgroundRepeat: layerRepeat, backgroundPosition: layerBgPos, transform: `rotate(${layerRot}deg)`, transformOrigin: 'center center', backgroundColor: (!useIndividualHara && creationMode === 'geometric') ? geoBgColor : 'transparent', transition: 'background-position 0.05s ease-out, transform 0.05s ease-out, background-size 0.05s ease-out' }} />
           </div>
         );
       })}
-
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          zIndex: 60,
-          backgroundImage: `url('/kyoubukuromask.png?v=${v}')`,
-          backgroundSize: 'contain',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
-          mixBlendMode: 'multiply',
-          opacity: 0.5,
-        }}
-      />
+      <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 60, backgroundImage: `url('/kyoubukuromask.png?v=${v}')`, backgroundSize: 'contain', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', mixBlendMode: 'multiply', opacity: 0.5 }} />
     </div>
   );
 
-  // 着物マッピング描画
   const renderKimonoLayers = () => (
     <div className="relative w-full h-full overflow-hidden">
       <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 1 }}>
         <img src={`/haikei.png?v=${v}`} alt="" className="w-full h-full object-contain" />
       </div>
-
       {kimonoOffsets.map((part) => (
-        <div
-          key={part.id}
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            zIndex: part.z,
+        <div key={part.id} className="absolute inset-0 pointer-events-none" style={{ zIndex: part.z, maskImage: `url('/${part.file}?v=${v}')`, WebkitMaskImage: `url('/${part.file}?v=${v}')`, maskSize: 'contain', WebkitMaskSize: 'contain', maskRepeat: 'no-repeat', WebkitMaskRepeat: 'no-repeat', maskPosition: 'center', WebkitMaskPosition: 'center' }}>
+          <div style={{ position: 'absolute', top: '-25%', left: '-25%', width: '150%', height: '150%', backgroundImage: `url(${effectivePatternUrl})`, backgroundSize: `${baseScale * (part.scale / 100)}% auto`, backgroundRepeat: 'repeat', backgroundPosition: `${part.x}% ${part.y}%`, transform: `rotate(${part.rot}deg)`, transformOrigin: 'center center', backgroundColor: creationMode === 'geometric' ? geoBgColor : 'transparent', transition: 'background-position 0.05s ease-out, transform 0.05s ease-out, background-size 0.05s ease-out' }} />
+        </div>
+      ))}
+      <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 11, maskImage: `url('/haneri.png?v=${v}')`, WebkitMaskImage: `url('/haneri.png?v=${v}')`, maskSize: 'contain', WebkitMaskSize: 'contain', maskRepeat: 'no-repeat', WebkitMaskRepeat: 'no-repeat', maskPosition: 'center', WebkitMaskPosition: 'center' }}>
+        <div className="w-full h-full" style={{ backgroundColor: kimonoHaneriColor }} />
+      </div>
+      <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 12, maskImage: `url('/obiage.png?v=${v}')`, WebkitMaskImage: `url('/obiage.png?v=${v}')`, maskSize: 'contain', WebkitMaskSize: 'contain', maskRepeat: 'no-repeat', WebkitMaskRepeat: 'no-repeat', maskPosition: 'center', WebkitMaskPosition: 'center' }}>
+        <div className="w-full h-full" style={{ backgroundColor: kimonoObiageColor }} />
+      </div>
+      <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 13, maskImage: `url('/obi_2.png?v=${v}')`, WebkitMaskImage: `url('/obi_2.png?v=${v}')`, maskSize: 'contain', WebkitMaskSize: 'contain', maskRepeat: 'no-repeat', WebkitMaskRepeat: 'no-repeat', maskPosition: 'center', WebkitMaskPosition: 'center' }}>
+        {customObiUrl ? <div className="w-full h-full" style={{ backgroundImage: `url(${customObiUrl})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }} /> : <div className="w-full h-full" style={{ backgroundColor: kimonoObiColor }} />}
+      </div>
+      <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 14, backgroundImage: `url('/jyouzan.png?v=${v}')`, backgroundSize: 'contain', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', mixBlendMode: 'multiply', opacity: 0.5 }} />
+    </div>
+  );
+
+  const renderScarfPreview = () => (
+    <div className="relative w-full h-full flex items-center justify-center p-3">
+      <div className="relative w-full h-full rounded-[2px] shadow-2xl overflow-hidden border border-zinc-400/60" style={{ boxShadow: '0 20px 35px -10px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(0,0,0,0.08), inset 0 0 16px rgba(0,0,0,0.12)' }}>
+        <div className="w-full h-full" style={{ backgroundImage: `url(${effectivePatternUrl})`, backgroundSize: '100% 100%', backgroundPosition: 'center center', backgroundRepeat: 'no-repeat', backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff' }} />
+        <div className="absolute inset-0 pointer-events-none border-[3px] border-black/15 shadow-inner" style={{ boxShadow: 'inset 0 0 4px rgba(0,0,0,0.25), inset 0 0 12px rgba(255,255,255,0.1)' }} />
+        <div className="absolute inset-0 pointer-events-none opacity-25 mix-blend-multiply" style={{ background: 'radial-gradient(ellipse at 30% 30%, rgba(255,255,255,0.4) 0%, rgba(0,0,0,0.2) 70%, rgba(0,0,0,0.4) 100%)' }} />
+      </div>
+    </div>
+  );
+
+  // ★ 5. トートバッグマッピング描画
+  const renderTotePreview = () => {
+    const part = toteOffsets[0];
+    return (
+      <div className="relative w-full h-full flex items-center justify-center p-3 bg-white">
+        {/* 背景となるモックアップ画像 */}
+        <div className="absolute inset-0 z-0">
+          <img src={`/${part.file}?v=${v}`} alt="Tote Mockup" className="w-full h-full object-contain" />
+        </div>
+        
+        {/* 柄を乗せる層（乗算モードでシワを活かす） */}
+        <div 
+          className="absolute inset-0 pointer-events-none" 
+          style={{ 
+            zIndex: part.z, 
+            mixBlendMode: 'multiply',
             maskImage: `url('/${part.file}?v=${v}')`,
             WebkitMaskImage: `url('/${part.file}?v=${v}')`,
             maskSize: 'contain',
@@ -339,132 +247,26 @@ export default function PreviewArea(props: PreviewAreaProps) {
             }}
           />
         </div>
-      ))}
 
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          zIndex: 11,
-          maskImage: `url('/haneri.png?v=${v}')`,
-          WebkitMaskImage: `url('/haneri.png?v=${v}')`,
-          maskSize: 'contain',
-          WebkitMaskSize: 'contain',
-          maskRepeat: 'no-repeat',
-          WebkitMaskRepeat: 'no-repeat',
-          maskPosition: 'center',
-          WebkitMaskPosition: 'center',
-        }}
-      >
-        <div className="w-full h-full" style={{ backgroundColor: kimonoHaneriColor }} />
+        {/* 持ち手部分はプロにおまかせのテキスト */}
+        <div className="absolute bottom-4 w-full text-center z-20 pointer-events-none">
+          <span className="text-[10px] bg-black/70 text-white px-3 py-1.5 rounded-full tracking-widest shadow-md">
+            ※実際の持ち手の色は柄に合わせてお任せとなります
+          </span>
+        </div>
       </div>
-
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          zIndex: 12,
-          maskImage: `url('/obiage.png?v=${v}')`,
-          WebkitMaskImage: `url('/obiage.png?v=${v}')`,
-          maskSize: 'contain',
-          WebkitMaskSize: 'contain',
-          maskRepeat: 'no-repeat',
-          WebkitMaskRepeat: 'no-repeat',
-          maskPosition: 'center',
-          WebkitMaskPosition: 'center',
-        }}
-      >
-        <div className="w-full h-full" style={{ backgroundColor: kimonoObiageColor }} />
-      </div>
-
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          zIndex: 13,
-          maskImage: `url('/obi_2.png?v=${v}')`,
-          WebkitMaskImage: `url('/obi_2.png?v=${v}')`,
-          maskSize: 'contain',
-          WebkitMaskSize: 'contain',
-          maskRepeat: 'no-repeat',
-          WebkitMaskRepeat: 'no-repeat',
-          maskPosition: 'center',
-          WebkitMaskPosition: 'center',
-        }}
-      >
-        {customObiUrl ? (
-          <div
-            className="w-full h-full"
-            style={{
-              backgroundImage: `url(${customObiUrl})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              backgroundRepeat: 'no-repeat',
-            }}
-          />
-        ) : (
-          <div className="w-full h-full" style={{ backgroundColor: kimonoObiColor }} />
-        )}
-      </div>
-
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          zIndex: 14,
-          backgroundImage: `url('/jyouzan.png?v=${v}')`,
-          backgroundSize: 'contain',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
-          mixBlendMode: 'multiply',
-          opacity: 0.5,
-        }}
-      />
-    </div>
-  );
-
-  // ★ 4. スカーフ（100×100cm）マッピング描画
-  const renderScarfPreview = () => (
-    <div className="relative w-full h-full flex items-center justify-center p-3">
-      {/* 100cmスクエア スカーフ本体 */}
-      <div 
-        className="relative w-full h-full rounded-[2px] shadow-2xl overflow-hidden border border-zinc-400/60"
-        style={{
-          boxShadow: '0 20px 35px -10px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(0,0,0,0.08), inset 0 0 16px rgba(0,0,0,0.12)'
-        }}
-      >
-        {/* 背景テクスチャ・図案 */}
-        <div
-          className="w-full h-full"
-          style={{
-            backgroundImage: `url(${effectivePatternUrl})`,
-            backgroundSize: '100% 100%',
-            backgroundPosition: 'center center',
-            backgroundRepeat: 'no-repeat',
-            backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff',
-          }}
-        />
-
-        {/* 熟練職人の三巻き縫製（ハンドロール）シミュレーション枠 */}
-        <div 
-          className="absolute inset-0 pointer-events-none border-[3px] border-black/15 shadow-inner" 
-          style={{
-            boxShadow: 'inset 0 0 4px rgba(0,0,0,0.25), inset 0 0 12px rgba(255,255,255,0.1)'
-          }}
-        />
-
-        {/* ウール生地のやわらかな陰影・ドレープ感 */}
-        <div
-          className="absolute inset-0 pointer-events-none opacity-25 mix-blend-multiply"
-          style={{
-            background: 'radial-gradient(ellipse at 30% 30%, rgba(255,255,255,0.4) 0%, rgba(0,0,0,0.2) 70%, rgba(0,0,0,0.4) 100%)',
-          }}
-        />
-      </div>
-    </div>
-  );
+    );
+  };
 
   const currentOffsets = itemType === 'hanhaba'
     ? hanhabaOffsets
     : itemType === 'kyobukuro'
       ? kyobukuroOffsets
-      : kimonoOffsets;
+      : itemType === 'kimono'
+        ? kimonoOffsets
+        : itemType === 'tote'
+          ? toteOffsets
+          : [];
 
   return (
     <div ref={previewRef} className="w-full lg:w-1/2 shrink-0 sticky top-2 z-30 lg:top-8 flex flex-col gap-3">
@@ -473,11 +275,11 @@ export default function PreviewArea(props: PreviewAreaProps) {
         {/* アイテム切替 */}
         <div className="px-3 py-2 bg-zinc-900 text-white flex items-center justify-between">
           <span className="text-[10px] font-bold text-zinc-400 tracking-wider">仕立てアイテム：</span>
-          <div className="flex gap-1">
+          <div className="flex gap-1 overflow-x-auto no-scrollbar">
             <button
               type="button"
               onClick={() => { handleItemTypeChange('hanhaba'); setActiveFloatPalette(null); }}
-              className={`px-3 py-1 text-[11px] font-black rounded transition-all ${
+              className={`px-3 py-1 text-[11px] font-black rounded transition-all whitespace-nowrap ${
                 itemType === 'hanhaba' ? 'bg-white text-zinc-950 shadow' : 'bg-zinc-800 text-zinc-400 hover:text-white'
               }`}
             >
@@ -486,7 +288,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
             <button
               type="button"
               onClick={() => { handleItemTypeChange('kyobukuro'); setActiveFloatPalette(null); }}
-              className={`px-3 py-1 text-[11px] font-black rounded transition-all ${
+              className={`px-3 py-1 text-[11px] font-black rounded transition-all whitespace-nowrap ${
                 itemType === 'kyobukuro' ? 'bg-white text-zinc-950 shadow' : 'bg-zinc-800 text-zinc-400 hover:text-white'
               }`}
             >
@@ -495,7 +297,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
             <button
               type="button"
               onClick={() => { handleItemTypeChange('kimono'); setActiveFloatPalette(null); }}
-              className={`px-3 py-1 text-[11px] font-black rounded transition-all ${
+              className={`px-3 py-1 text-[11px] font-black rounded transition-all whitespace-nowrap ${
                 itemType === 'kimono' ? 'bg-white text-zinc-950 shadow' : 'bg-zinc-800 text-zinc-400 hover:text-white'
               }`}
             >
@@ -504,11 +306,20 @@ export default function PreviewArea(props: PreviewAreaProps) {
             <button
               type="button"
               onClick={() => { handleItemTypeChange('scarf'); setActiveFloatPalette(null); }}
-              className={`px-3 py-1 text-[11px] font-black rounded transition-all ${
+              className={`px-3 py-1 text-[11px] font-black rounded transition-all whitespace-nowrap ${
                 itemType === 'scarf' ? 'bg-white text-zinc-950 shadow' : 'bg-zinc-800 text-zinc-400 hover:text-white'
               }`}
             >
               スカーフ
+            </button>
+            <button
+              type="button"
+              onClick={() => { handleItemTypeChange('tote'); setActiveFloatPalette(null); }}
+              className={`px-3 py-1 text-[11px] font-black rounded transition-all whitespace-nowrap ${
+                itemType === 'tote' ? 'bg-white text-zinc-950 shadow' : 'bg-zinc-800 text-zinc-400 hover:text-white'
+              }`}
+            >
+              トートバッグ
             </button>
           </div>
         </div>
@@ -518,7 +329,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
           <button
             type="button"
             onClick={() => setDisplayMode('mockup')}
-            className={`flex-1 px-3 py-1.5 text-[10px] sm:text-xs font-bold tracking-wider transition-all border rounded-sm ${
+            className={`flex-1 px-3 py-1.5 text-[10px] sm:text-xs font-bold tracking-wider transition-all border rounded-sm whitespace-nowrap ${
               displayMode === 'mockup' ? 'bg-zinc-900 text-white border-zinc-900 shadow' : 'bg-white text-zinc-600 border-zinc-300'
             }`}
           >
@@ -526,13 +337,14 @@ export default function PreviewArea(props: PreviewAreaProps) {
             {itemType === 'kyobukuro' && '京袋帯マッピング'}
             {itemType === 'kimono' && '着物マッピング'}
             {itemType === 'scarf' && 'スカーフ全体図 (100×100)'}
+            {itemType === 'tote' && 'トートバッグマッピング'}
           </button>
 
           {itemType === 'kyobukuro' && (
             <button
               type="button"
               onClick={() => setDisplayMode('trim')}
-              className={`flex-1 px-3 py-1.5 text-[10px] sm:text-xs font-bold tracking-wider transition-all border rounded-sm ${
+              className={`flex-1 px-3 py-1.5 text-[10px] sm:text-xs font-bold tracking-wider transition-all border rounded-sm whitespace-nowrap ${
                 displayMode === 'trim' ? 'bg-zinc-900 text-white border-zinc-900 shadow' : 'bg-white text-zinc-600 border-zinc-300'
               }`}
             >
@@ -543,11 +355,11 @@ export default function PreviewArea(props: PreviewAreaProps) {
           <button
             type="button"
             onClick={() => setDisplayMode('data')}
-            className={`flex-1 px-3 py-1.5 text-[10px] sm:text-xs font-bold tracking-wider transition-all border rounded-sm ${
+            className={`flex-1 px-3 py-1.5 text-[10px] sm:text-xs font-bold tracking-wider transition-all border rounded-sm whitespace-nowrap ${
               displayMode === 'data' ? 'bg-zinc-900 text-white border-zinc-900 shadow' : 'bg-white text-zinc-600 border-zinc-300'
             }`}
           >
-            {itemType === 'hanhaba' ? '18cm プリントデータ' : itemType === 'scarf' ? '100cm 正方形データ' : '40cm 反物データ'}
+            {itemType === 'hanhaba' ? '18cm プリントデータ' : itemType === 'scarf' ? '100cm 正方形データ' : itemType === 'tote' ? '36cm 角プリントデータ' : '40cm 反物データ'}
           </button>
         </div>
 
@@ -556,21 +368,18 @@ export default function PreviewArea(props: PreviewAreaProps) {
           {displayMode === 'mockup' && (
             <div className="w-full flex flex-col items-center animate-fade-in relative">
               
-              {/* 全アイテム共通枠サイズ */}
               <div className="relative mx-auto drop-shadow-xl w-[240px] sm:w-[360px] aspect-square">
                 
-                {/* 1. マッピング画像（背面に描画） */}
                 <div ref={previewContainerRef} className="w-full h-full relative overflow-hidden">
                   {itemType === 'hanhaba' && renderHanhabaLayers()}
                   {itemType === 'kyobukuro' && renderKyobukuroLayers()}
                   {itemType === 'kimono' && renderKimonoLayers()}
                   {itemType === 'scarf' && renderScarfPreview()}
+                  {itemType === 'tote' && renderTotePreview()}
                 </div>
 
-                {/* 2. 最前面オーバーレイ層（z-[9999]） */}
                 <div className="absolute inset-0 pointer-events-none z-[9999]">
                   
-                  {/* 拡大ボタン（右上） */}
                   <button
                     type="button"
                     onClick={() => setIsZoomModalOpen(true)}
@@ -580,8 +389,8 @@ export default function PreviewArea(props: PreviewAreaProps) {
                     <span>拡大</span>
                   </button>
 
-                  {/* コーディネート・裏地・パーツ個別指定ボタンバー（左上：スカーフ以外の時に表示） */}
-                  {itemType !== 'scarf' && (
+                  {/* スカーフ・トート以外の時に表示 */}
+                  {itemType !== 'scarf' && itemType !== 'tote' && (
                     <div className="pointer-events-auto absolute top-2 left-2 flex flex-wrap gap-1 bg-white/95 backdrop-blur-md p-1 rounded-sm border border-zinc-400 shadow-2xl">
                       {itemType === 'kimono' ? (
                         <>
@@ -657,15 +466,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
                     </div>
                   )}
 
-                  {/* スカーフ選択時の仕様バッジ（左上） */}
-                  {itemType === 'scarf' && (
-                    <div className="pointer-events-auto absolute top-2 left-2 flex items-center gap-1.5 bg-black/80 text-white px-2.5 py-1 rounded-sm text-[10px] font-bold shadow-md">
-                      <span>🧣</span>
-                      <span>100cm×100cm / ウール100%</span>
-                    </div>
-                  )}
-
-                  {/* 展開パレット */}
+                  {/* パレット表示 */}
                   {activeFloatPalette && (
                     <div className="pointer-events-auto absolute top-10 left-2 right-2 bg-white border-2 border-zinc-900 p-2.5 rounded shadow-2xl animate-fade-in max-w-[340px]">
                       <div className="flex justify-between items-center mb-1.5 pb-1 border-b border-zinc-200">
@@ -676,49 +477,22 @@ export default function PreviewArea(props: PreviewAreaProps) {
                           {activeFloatPalette === 'obi' && '着物の帯を指定'}
                           {activeFloatPalette === 'hara' && '京袋帯の前腹（胴回り）を指定'}
                         </span>
-                        <button
-                          type="button"
-                          onClick={() => setActiveFloatPalette(null)}
-                          className="text-[11px] font-black text-zinc-500 hover:text-zinc-950 px-1"
-                        >
-                          ✕ 閉じる
-                        </button>
+                        <button type="button" onClick={() => setActiveFloatPalette(null)} className="text-[11px] font-black text-zinc-500 hover:text-zinc-950 px-1">✕ 閉じる</button>
                       </div>
 
                       {activeFloatPalette === 'hara' && (
                         <div className="flex flex-col gap-2">
-                          <p className="text-[9px] text-zinc-500 leading-normal">
-                            太鼓柄と別のデザインを前腹（お腹正面）に出したい場合に画像を個別設定できます。（回転せずそのまま配置されます）
-                          </p>
                           <div className="flex gap-1">
-                            <button
-                              type="button"
-                              onClick={() => { setCustomHaraUrl?.(null); setActiveFloatPalette(null); }}
-                              className={`flex-1 py-1 text-[10px] font-bold rounded border ${!customHaraUrl ? 'bg-zinc-900 text-white' : 'bg-zinc-100 text-zinc-700'}`}
-                            >
-                              太鼓柄と連動（自動）
-                            </button>
-                            <label className={`flex-1 py-1 text-[10px] font-bold text-center rounded border cursor-pointer ${customHaraUrl ? 'bg-zinc-900 text-white' : 'bg-zinc-100 text-zinc-700'}`}>
-                              画像アップロード
-                              <input type="file" accept="image/*" onChange={(e) => { handleCustomHaraUpload?.(e); setActiveFloatPalette(null); }} className="hidden" />
-                            </label>
+                            <button type="button" onClick={() => { setCustomHaraUrl?.(null); setActiveFloatPalette(null); }} className={`flex-1 py-1 text-[10px] font-bold rounded border ${!customHaraUrl ? 'bg-zinc-900 text-white' : 'bg-zinc-100 text-zinc-700'}`}>連動（自動）</button>
+                            <label className={`flex-1 py-1 text-[10px] font-bold text-center rounded border cursor-pointer ${customHaraUrl ? 'bg-zinc-900 text-white' : 'bg-zinc-100 text-zinc-700'}`}>画像UP<input type="file" accept="image/*" onChange={(e) => { handleCustomHaraUpload?.(e); setActiveFloatPalette(null); }} className="hidden" /></label>
                           </div>
                         </div>
                       )}
 
                       {activeFloatPalette === 'obi' && (
                         <div className="flex gap-1 mb-2 pb-1 border-b border-zinc-100">
-                          <button
-                            type="button"
-                            onClick={() => setCustomObiUrl?.(null)}
-                            className={`flex-1 py-1 text-[10px] font-bold rounded border ${!customObiUrl ? 'bg-zinc-900 text-white' : 'bg-zinc-100 text-zinc-700'}`}
-                          >
-                            伝統色無地
-                          </button>
-                          <label className={`flex-1 py-1 text-[10px] font-bold text-center rounded border cursor-pointer ${customObiUrl ? 'bg-zinc-900 text-white' : 'bg-zinc-100 text-zinc-700'}`}>
-                            画像アップロード
-                            <input type="file" accept="image/*" onChange={(e) => { handleCustomObiUpload?.(e); setActiveFloatPalette(null); }} className="hidden" />
-                          </label>
+                          <button type="button" onClick={() => setCustomObiUrl?.(null)} className={`flex-1 py-1 text-[10px] font-bold rounded border ${!customObiUrl ? 'bg-zinc-900 text-white' : 'bg-zinc-100 text-zinc-700'}`}>伝統色無地</button>
+                          <label className={`flex-1 py-1 text-[10px] font-bold text-center rounded border cursor-pointer ${customObiUrl ? 'bg-zinc-900 text-white' : 'bg-zinc-100 text-zinc-700'}`}>画像UP<input type="file" accept="image/*" onChange={(e) => { handleCustomObiUpload?.(e); setActiveFloatPalette(null); }} className="hidden" /></label>
                         </div>
                       )}
 
@@ -732,18 +506,13 @@ export default function PreviewArea(props: PreviewAreaProps) {
                                 if (activeFloatPalette === 'lining') setObiLiningColor(col.hex);
                                 if (activeFloatPalette === 'haneri') setKimonoHaneriColor(col.hex);
                                 if (activeFloatPalette === 'obiage') setKimonoObiageColor(col.hex);
-                                if (activeFloatPalette === 'obi') {
-                                  setKimonoObiColor(col.hex);
-                                  setCustomObiUrl?.(null);
-                                }
+                                if (activeFloatPalette === 'obi') { setKimonoObiColor(col.hex); setCustomObiUrl?.(null); }
                                 setActiveFloatPalette(null);
                               }}
                               className="relative h-8 p-0.5 flex flex-col justify-end text-left border border-zinc-300 rounded-sm shadow-sm hover:scale-95 transition-transform"
                               style={{ backgroundColor: col.hex }}
                             >
-                              <span className={`text-[7px] font-bold truncate leading-none ${col.isDark ? 'text-white' : 'text-zinc-900'}`}>
-                                {col.name.split(' ')[0]}
-                              </span>
+                              <span className={`text-[7px] font-bold truncate leading-none ${col.isDark ? 'text-white' : 'text-zinc-900'}`}>{col.name.split(' ')[0]}</span>
                             </button>
                           ))}
                         </div>
@@ -770,20 +539,11 @@ export default function PreviewArea(props: PreviewAreaProps) {
             </div>
           )}
 
-          {/* トリム表示（京袋帯 34cm 裁断イメージ） */}
+          {/* トリム表示（京袋帯） */}
           {displayMode === 'trim' && itemType === 'kyobukuro' && (
             <div className="w-full flex flex-col items-center animate-fade-in">
               <div className="relative w-[272px] sm:w-[340px] mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden" style={{ aspectRatio: '34 / 40' }}>
-                <div
-                  className="absolute inset-0"
-                  style={{
-                    backgroundImage: `url(${effectivePatternUrl})`,
-                    backgroundSize: creationMode === 'geometric' ? `${(bgSizeMm / 340) * 100}% auto` : `${(400 / 340) * 100}% auto`,
-                    backgroundPosition: 'center center',
-                    backgroundRepeat: 'repeat',
-                    backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff',
-                  }}
-                />
+                <div className="absolute inset-0" style={{ backgroundImage: `url(${effectivePatternUrl})`, backgroundSize: creationMode === 'geometric' ? `${(bgSizeMm / 340) * 100}% auto` : `${(400 / 340) * 100}% auto`, backgroundPosition: 'center center', backgroundRepeat: 'repeat', backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff' }} />
               </div>
             </div>
           )}
@@ -793,42 +553,19 @@ export default function PreviewArea(props: PreviewAreaProps) {
             <div className="flex flex-col items-center w-full animate-fade-in">
               {itemType === 'hanhaba' ? (
                 <div className="relative mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden" style={{ width: '216px', height: '480px' }}>
-                  <div
-                    className="absolute inset-0"
-                    style={{
-                      backgroundImage: `url(${effectivePatternUrl})`,
-                      backgroundSize: creationMode === 'geometric' ? `${(bgSizeMm / 180) * 100}% auto` : `${(400 / 180) * 100}% auto`,
-                      backgroundPosition: 'center top',
-                      backgroundRepeat: 'repeat',
-                      backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff',
-                    }}
-                  />
+                  <div className="absolute inset-0" style={{ backgroundImage: `url(${effectivePatternUrl})`, backgroundSize: creationMode === 'geometric' ? `${(bgSizeMm / 180) * 100}% auto` : `${(400 / 180) * 100}% auto`, backgroundPosition: 'center top', backgroundRepeat: 'repeat', backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff' }} />
                 </div>
               ) : itemType === 'scarf' ? (
                 <div className="relative w-[260px] sm:w-[400px] aspect-square mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden">
-                  <div
-                    className="absolute inset-0"
-                    style={{
-                      backgroundImage: `url(${effectivePatternUrl})`,
-                      backgroundSize: '100% 100%',
-                      backgroundPosition: 'center',
-                      backgroundRepeat: 'no-repeat',
-                      backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff',
-                    }}
-                  />
+                  <div className="absolute inset-0" style={{ backgroundImage: `url(${effectivePatternUrl})`, backgroundSize: '100% 100%', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff' }} />
+                </div>
+              ) : itemType === 'tote' ? (
+                <div className="relative w-[260px] sm:w-[400px] aspect-square mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden">
+                  <div className="absolute inset-0" style={{ backgroundImage: `url(${effectivePatternUrl})`, backgroundSize: creationMode === 'geometric' ? `${(bgSizeMm / 360) * 100}% auto` : `${(400 / 360) * 100}% auto`, backgroundPosition: 'center', backgroundRepeat: 'repeat', backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff' }} />
                 </div>
               ) : (
                 <div className="relative w-[260px] sm:w-[400px] aspect-square mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden">
-                  <div
-                    className="absolute inset-0"
-                    style={{
-                      backgroundImage: `url(${effectivePatternUrl})`,
-                      backgroundSize: creationMode === 'geometric' ? `${(bgSizeMm / 400) * 100}% auto` : '100% auto',
-                      backgroundPosition: 'center',
-                      backgroundRepeat: 'repeat',
-                      backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff',
-                    }}
-                  />
+                  <div className="absolute inset-0" style={{ backgroundImage: `url(${effectivePatternUrl})`, backgroundSize: creationMode === 'geometric' ? `${(bgSizeMm / 400) * 100}% auto` : '100% auto', backgroundPosition: 'center', backgroundRepeat: 'repeat', backgroundColor: creationMode === 'geometric' ? geoBgColor : '#fff' }} />
                 </div>
               )}
             </div>
@@ -836,7 +573,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
         </div>
       </div>
 
-      {/* 工房スタッフ専用：柄あわせ調整ツール（帯・着物時のみ表示） */}
+      {/* 工房スタッフ専用：柄あわせ調整ツール（帯・着物・トート時のみ表示） */}
       {itemType !== 'scarf' && (
         <div className="mt-2 text-right">
           <button
@@ -853,11 +590,11 @@ export default function PreviewArea(props: PreviewAreaProps) {
                 <h4 className="text-xs font-black text-zinc-900 mb-1 flex items-center gap-1.5">
                   <span>🛠️</span>
                   <span>
-                    工房スタッフ専用：柄あわせ調整ツール（{itemType === 'hanhaba' ? '半幅帯' : itemType === 'kyobukuro' ? '京袋帯' : '着物'}）
+                    工房スタッフ専用：柄あわせ調整ツール（{itemType === 'hanhaba' ? '半幅帯' : itemType === 'kyobukuro' ? '京袋帯' : itemType === 'kimono' ? '着物' : 'トートバッグ'}）
                   </span>
                 </h4>
                 <p className="text-[9px] text-zinc-500 leading-normal">
-                  生地を裁断する前に、帯や着物の柄（送り）が美しく繋がるかを確認・微調整するためのシミュレーターです。お客様が操作されても注文データには影響しません。
+                  生地を裁断する前に、柄（送り）が美しく繋がるかを確認・微調整するためのシミュレーターです。
                 </p>
               </div>
 
@@ -933,7 +670,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
                   className="w-full py-2 bg-zinc-900 hover:bg-zinc-800 text-white text-[11px] font-bold rounded shadow transition-colors flex items-center justify-center gap-1.5"
                 >
                   <span>📋</span>
-                  <span>【{itemType === 'hanhaba' ? '半幅帯' : itemType === 'kyobukuro' ? '京袋帯' : '着物'}】の確定数値をコピー</span>
+                  <span>【{itemType === 'hanhaba' ? '半幅帯' : itemType === 'kyobukuro' ? '京袋帯' : itemType === 'kimono' ? '着物' : 'トートバッグ'}】の確定数値をコピー</span>
                 </button>
               </div>
             </div>
@@ -948,25 +685,17 @@ export default function PreviewArea(props: PreviewAreaProps) {
           className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in"
           onClick={() => setIsZoomModalOpen(false)}
         >
-          <div 
-            className="relative bg-white p-4 sm:p-6 rounded-lg max-w-[95vw] max-h-[95vh] overflow-auto shadow-2xl flex flex-col items-center border border-zinc-300"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              type="button"
-              onClick={() => setIsZoomModalOpen(false)}
-              className="absolute top-3 right-3 text-zinc-500 hover:text-zinc-950 text-base font-black w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center"
-            >
-              ✕
-            </button>
+          <div className="relative bg-white p-4 sm:p-6 rounded-lg max-w-[95vw] max-h-[95vh] overflow-auto shadow-2xl flex flex-col items-center border border-zinc-300" onClick={(e) => e.stopPropagation()}>
+            <button type="button" onClick={() => setIsZoomModalOpen(false)} className="absolute top-3 right-3 text-zinc-500 hover:text-zinc-950 text-base font-black w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center">✕</button>
             <h3 className="text-xs sm:text-sm font-black text-zinc-900 mb-4 tracking-widest">
-              【原寸拡大プレビュー】{itemType === 'hanhaba' ? '半幅帯' : itemType === 'kyobukuro' ? '京袋帯' : itemType === 'kimono' ? '着物' : 'スカーフ (100×100cm)'}
+              【原寸拡大プレビュー】{itemType === 'hanhaba' ? '半幅帯' : itemType === 'kyobukuro' ? '京袋帯' : itemType === 'kimono' ? '着物' : itemType === 'tote' ? 'トートバッグ' : 'スカーフ (100×100cm)'}
             </h3>
             <div className="w-[300px] sm:w-[500px] lg:w-[600px] aspect-square bg-[#e4e4e7] relative overflow-hidden shadow-inner border border-zinc-300">
               {itemType === 'hanhaba' && renderHanhabaLayers()}
               {itemType === 'kyobukuro' && renderKyobukuroLayers()}
               {itemType === 'kimono' && renderKimonoLayers()}
               {itemType === 'scarf' && renderScarfPreview()}
+              {itemType === 'tote' && renderTotePreview()}
             </div>
           </div>
         </div>
