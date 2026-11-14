@@ -7,8 +7,9 @@ import { TRADITIONAL_COLORS } from '../../lib/constants';
 interface ControlPanelProps {
   creationMode: 'ai' | 'geometric';
   setCreationMode: (mode: 'ai' | 'geometric') => void;
-  itemType: 'hanhaba' | 'kyobukuro' | 'kimono' | 'scarf';
-  setItemType: (type: 'hanhaba' | 'kyobukuro' | 'kimono' | 'scarf') => void;
+  // ★ ここに 'tote' を追加しました
+  itemType: 'hanhaba' | 'kyobukuro' | 'kimono' | 'scarf' | 'tote';
+  setItemType: (type: 'hanhaba' | 'kyobukuro' | 'kimono' | 'scarf' | 'tote') => void;
   
   aiStyle: string;
   setAiStyle: (val: string) => void;
@@ -189,7 +190,7 @@ export default function ControlPanel({
 
   const [publishToGallery, setPublishToGallery] = useState(false);
   const [galleryAuthor, setGalleryAuthor] = useState('');
-  const [galleryNote, setGalleryNote] = useState(''); // NEW: クリエイターのひとこと
+  const [galleryNote, setGalleryNote] = useState(''); 
   const [isPublishing, setIsPublishing] = useState(false);
   const [publishSuccess, setPublishSuccess] = useState(false);
 
@@ -210,7 +211,7 @@ export default function ControlPanel({
           imageUrl: imageUrl, 
           title: patternTitle,
           author: galleryAuthor,
-          note: galleryNote, // NEW: APIへ送信
+          note: galleryNote, 
           itemType: itemType,
           scale: patternScale,
           density: density,
@@ -1321,7 +1322,9 @@ export default function ControlPanel({
                     <span className="text-[11px] font-bold tracking-[0.2em] uppercase">
                       {itemType === 'scarf' 
                         ? 'ORDER AS WOOL SCARF / スカーフにお仕立て' 
-                        : 'ORDER AS KIMONO OR OBI / 着物・帯にお仕立て'}
+                        : itemType === 'tote'
+                          ? 'ORDER TOTE BAG KIT / トートバッグキット'
+                          : 'ORDER AS KIMONO OR OBI / 着物・帯にお仕立て'}
                     </span>
                     <span className="text-[9px] font-light tracking-widest opacity-80">
                       実質0円対象 / ポイント還元
