@@ -88,14 +88,6 @@ const TASTE_MODES = [
   { id: 'mode', title: '辛口・モード', desc: '幾何学・バウハウス・ソリッド' },
 ];
 
-const LOADING_STEPS = [
-  '入力されたテーマから、図案の骨格を組み立てています...',
-  'モチーフの配置と角度を計算しています...',
-  '色と質感をピクセル単位で緻密に描き込んでいます...',
-  '全体のバランスと発色を整えています...',
-  '最終仕上げ中。まもなく完成します...',
-];
-
 const RECIPES = [
   {
     id: 'piano_cat',
@@ -207,7 +199,7 @@ export default function ControlPanel({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          imageUrl: imageUrl, // 40cm角の元データ
+          imageUrl: imageUrl,
           title: patternTitle,
           author: galleryAuthor,
           itemType: itemType,
@@ -300,11 +292,26 @@ export default function ControlPanel({
   };
 
   useEffect(() => {
-    if (!density) {
-      if (itemType === 'scarf') setDensity('額縁スクエアパネル（正方形1枚絵）');
-      else if (itemType === 'kimono') setDensity('四方柄（天地無用）');
-      else if (itemType === 'hanhaba') setDensity('一方向（上向き）');
-      else setDensity('総柄（小紋タイプ）');
+    if (itemType === 'scarf') {
+      if (!density.includes('額縁') && !density.includes('スクエア') && !density.includes('四方')) {
+        setDensity('額縁スクエアパネル（正方形1枚絵）');
+      }
+    } else if (itemType === 'kimono') {
+      if (density.includes('お太鼓') || density.includes('ワンポイント') || density.includes('額縁') || density.includes('スクエア')) {
+        setDensity('四方柄（天地無用）');
+      }
+    } else if (itemType === 'hanhaba' || itemType === 'textile') {
+      if (density.includes('お太鼓') || density.includes('ワンポイント') || density.includes('額縁') || density.includes('スクエア')) {
+        setDensity('一方向（上向き）');
+      }
+    } else if (itemType === 'kyobukuro') {
+      if (density.includes('ワンポイント柄（中央主役）')) {
+        setDensity('お太鼓柄（ワンポイント主役パネル）');
+      }
+    } else if (itemType === 'tote') {
+      if (density.includes('お太鼓柄（ワンポイント主役パネル）')) {
+        setDensity('ワンポイント柄（中央主役）');
+      }
     }
   }, [itemType, density, setDensity]);
 
@@ -352,6 +359,39 @@ export default function ControlPanel({
   const hasValidCode = Boolean(premiumCode && premiumCode.trim().length > 0);
   const isInstagramCode = premiumCode.trim().toUpperCase().startsWith('IG-');
   const isPaidTicketCode = premiumCode.trim().toUpperCase().startsWith('GFK-');
+
+  // 現在の選択内容を日本語でわかりやすく可視化（内部の英語プロンプトは一切露出しない）
+  const currentTasteObj = TASTE_MODES.find((t) => t.id === currentTaste) || TASTE_MODES[0];
+  const baseColorObj = selectedColors.length > 0 ? selectedColors[0] : null;
+  const baseColorName = baseColorObj ? baseColorObj.name.split(' ')[0] : '';
+  const accentColorNames = selectedColors.slice(1).map((c) => c.name.split(' ')[0]);
+  const scaleLabelMap: Record<'small' | 'medium' | 'large', string> = {
+    small: '細かい（小紋調）',
+    medium: '普通（標準）',
+    large: '大きい（大胆）',
+  };
+  const currentScaleLabel = scaleLabelMap[patternScale];
+
+  const getShortDensityLabel = () => {
+    if (density.includes('ワンポイント')) return 'ワンポイント柄（中央主役）';
+    if (density.includes('お太鼓')) return 'お太鼓柄（中央主役）';
+    if (density.includes('額縁') || density.includes('スクエア')) return '額縁スクエア柄';
+    if (density.includes('四方') || density.includes('天地無用')) return '四方柄（天地無用）';
+    return '一方向（上向き）';
+  };
+  const currentDensityLabel = getShortDensityLabel();
+
+  const shortMotifText = motif.trim()
+    ? (motif.trim().length > 24 ? `${motif.trim().slice(0, 24)}…` : motif.trim())
+    : 'おまかせ図案';
+
+  const liveLoadingSteps = [
+    `「${shortMotifText}」のモチーフから、図案の骨格を組み立てています...`,
+    `「${currentTasteObj.title}」の風合いで、${currentDensityLabel}・サイズ${currentScaleLabel.split('（')[0]}の配置を計算しています...`,
+    `${baseColorName ? `地色「${baseColorName}」をベースに、` : ''}色と質感をピクセル単位で緻密に描き込んでいます...`,
+    `${selectedTags.length > 0 ? `「${selectedTags.slice(0, 3).join('・')}」の雰囲気を織り込みながら、` : ''}全体のバランスと発色を整えています...`,
+    `最終仕上げ中。まもなく「${shortMotifText}」の図案が完成します...`,
+  ];
 
   return (
     <div className="w-full bg-white border border-zinc-200 p-4 sm:p-7 lg:p-8 shrink-0 shadow-sm z-10 relative rounded-sm">
@@ -520,6 +560,115 @@ export default function ControlPanel({
                     クリア
                   </button>
                 )}
+              </div>
+
+              {/* 現在のオーダー設定（選択中バッジ ＋ 日本語オーダー指示文） */}
+              <div className="p-3 bg-zinc-50 border border-zinc-200 rounded-sm space-y-2 text-left">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black text-zinc-800 flex items-center gap-1">
+                    <span>📋</span>
+                    <span>現在のAIオーダー設定（反映内容）</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setIsAdvancedOpen(!isAdvancedOpen)}
+                    className="text-[10px] font-bold text-zinc-600 hover:text-zinc-950 underline"
+                  >
+                    {isAdvancedOpen ? '設定を閉じる ▲' : '細かく変更する ▼'}
+                  </button>
+                </div>
+
+                {/* 選択中バッジ一覧 */}
+                <div className="flex flex-wrap gap-1.5 items-center">
+                  {/* 地色バッジ */}
+                  <span
+                    className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-xs border border-zinc-300 shadow-2xs"
+                    style={
+                      baseColorObj
+                        ? { backgroundColor: baseColorObj.hex, color: baseColorObj.isDark ? '#fff' : '#18181b' }
+                        : { backgroundColor: '#ffffff', color: '#3f3f46' }
+                    }
+                  >
+                    <span>地色: {baseColorName || 'おまかせ'}</span>
+                    {baseColorObj && (
+                      <button
+                        type="button"
+                        onClick={() => handleColorToggle(baseColorObj)}
+                        className="opacity-75 hover:opacity-100 ml-0.5"
+                        title="地色を解除"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </span>
+
+                  {/* 差し色バッジ */}
+                  {selectedColors.slice(1).map((col) => (
+                    <span
+                      key={col.name}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-xs border border-zinc-300 shadow-2xs"
+                      style={{ backgroundColor: col.hex, color: col.isDark ? '#fff' : '#18181b' }}
+                    >
+                      <span>差し色: {col.name.split(' ')[0]}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleColorToggle(col)}
+                        className="opacity-75 hover:opacity-100 ml-0.5"
+                        title="差し色を解除"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+
+                  {/* テイストバッジ */}
+                  <span className="inline-flex items-center px-2 py-0.5 text-[10px] font-bold bg-zinc-900 text-white rounded-xs">
+                    {currentTasteObj.title}
+                  </span>
+
+                  {/* 配置・向きバッジ */}
+                  <span className="inline-flex items-center px-2 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-950 border border-amber-300 rounded-xs">
+                    {currentDensityLabel}
+                  </span>
+
+                  {/* サイズバッジ */}
+                  <span className="inline-flex items-center px-2 py-0.5 text-[10px] font-bold bg-white text-zinc-800 border border-zinc-300 rounded-xs">
+                    サイズ: {currentScaleLabel.split('（')[0]}
+                  </span>
+
+                  {/* 雰囲気・画材タグバッジ */}
+                  {selectedTags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold bg-white text-zinc-700 border border-zinc-300 rounded-xs"
+                    >
+                      <span>#{tag}</span>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedTags(selectedTags.filter((t) => t !== tag))}
+                        className="text-zinc-400 hover:text-zinc-900 ml-0.5"
+                        title="タグを解除"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+
+                {/* 日本語オーダー指示文（自動組み立てプレビュー） */}
+                <p className="text-[10.5px] text-zinc-600 leading-relaxed bg-white p-2.5 rounded-xs border border-zinc-200/80">
+                  「<strong className="text-zinc-900">{motif.trim() || '（モチーフ未入力）'}</strong>」をモチーフに、
+                  地色は「<strong className="text-zinc-900">{baseColorName || 'おまかせ'}</strong>」
+                  {accentColorNames.length > 0 && (
+                    <>（差し色：<strong className="text-zinc-900">{accentColorNames.join('・')}</strong>）</>
+                  )}
+                  、テイストは「<strong className="text-zinc-900">{currentTasteObj.title}</strong>」
+                  {selectedTags.length > 0 && (
+                    <>、雰囲気・画材は「<strong className="text-zinc-900">{selectedTags.join('・')}</strong>」</>
+                  )}
+                  、柄の大きさは「<strong className="text-zinc-900">{currentScaleLabel}</strong>」
+                  、配置は「<strong className="text-zinc-900">{currentDensityLabel}</strong>」で図案を作成します。
+                </p>
               </div>
             </div>
 
@@ -708,14 +857,29 @@ export default function ControlPanel({
               )}
             </div>
 
-            {/* ローディング */}
+            {/* ローディング（選択設定の実況中継付き） */}
             {loading && (
               <div className="p-4 bg-zinc-900 border border-zinc-800 rounded shadow-2xl flex flex-col gap-2.5 animate-fade-in my-3 text-left">
                 <div className="flex items-center gap-2.5">
                   <div className="w-4 h-4 border-2 border-zinc-600 border-t-amber-400 rounded-full animate-spin shrink-0" />
                   <p className="text-xs font-bold text-white tracking-wide">
-                    {LOADING_STEPS[loadingStep % LOADING_STEPS.length]}
+                    {liveLoadingSteps[loadingStep % liveLoadingSteps.length]}
                   </p>
+                </div>
+
+                <div className="flex flex-wrap gap-1">
+                  <span className="text-[9px] px-1.5 py-0.5 bg-zinc-800 text-amber-300 rounded-xs font-bold">
+                    {currentTasteObj.title}
+                  </span>
+                  <span className="text-[9px] px-1.5 py-0.5 bg-zinc-800 text-zinc-200 rounded-xs font-bold">
+                    {currentDensityLabel}
+                  </span>
+                  <span className="text-[9px] px-1.5 py-0.5 bg-zinc-800 text-zinc-200 rounded-xs font-bold">
+                    地色: {baseColorName || 'おまかせ'}
+                  </span>
+                  <span className="text-[9px] px-1.5 py-0.5 bg-zinc-800 text-zinc-200 rounded-xs font-bold">
+                    サイズ: {currentScaleLabel.split('（')[0]}
+                  </span>
                 </div>
 
                 <div className="w-full h-1 bg-zinc-800 rounded-full overflow-hidden">
@@ -936,10 +1100,18 @@ export default function ControlPanel({
                   <div className="pt-3 border-t border-zinc-100">
                     <div className="flex justify-between items-baseline mb-1.5">
                       <label className="block text-xs font-bold text-zinc-800 tracking-wider">
-                        柄の向き（天地）
+                        柄の向き・配置
                       </label>
                       <span className="text-[9.5px] text-zinc-500">
-                        {density.includes('額縁') || density.includes('スクエア') ? '🧣 額縁スクエア構図' : density.includes('四方') ? '🔄 上下左右ランダム（着物推奨）' : '⬆️ 上向き整列（帯推奨）'}
+                        {density.includes('ワンポイント')
+                          ? '🎯 中央ワンポイント主役'
+                          : density.includes('お太鼓')
+                            ? '🎯 お太鼓ワンポイント主役'
+                            : density.includes('額縁') || density.includes('スクエア')
+                              ? '🧣 額縁スクエア構図'
+                              : density.includes('四方')
+                                ? '🔄 上下左右ランダム（着物推奨）'
+                                : '⬆️ 上向き整列（帯推奨）'}
                       </span>
                     </div>
 
@@ -983,6 +1155,28 @@ export default function ControlPanel({
                           { id: '四方柄（天地無用）', label: '四方柄', sub: '天地無用・ランダム' },
                           { id: 'お太鼓柄（ワンポイント主役パネル）', label: 'お太鼓柄', sub: '中央主役' },
                           { id: '額縁スクエアパネル（正方形1枚絵）', label: '額縁パネル', sub: '正方形1枚絵' },
+                        ].map((item) => (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => setDensity(item.id)}
+                            className={`py-1.5 px-2 text-center border rounded-sm transition-all shadow-xs flex flex-col items-center justify-center ${
+                              density.includes(item.label) 
+                                ? 'bg-zinc-900 text-white border-zinc-900 ring-1 ring-zinc-900' 
+                                : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50'
+                            }`}
+                          >
+                            <span className="text-[10.5px] font-black">{item.label}</span>
+                            <span className="text-[8px] opacity-75 mt-0.5">{item.sub}</span>
+                          </button>
+                        ))}
+                      </div>
+                    ) : itemType === 'tote' ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
+                        {[
+                          { id: '四方柄（天地無用）', label: '四方柄', sub: '天地無用・総柄' },
+                          { id: '一方向（上向き）', label: '一方向', sub: 'すべて頭が上' },
+                          { id: 'ワンポイント柄（中央主役）', label: 'ワンポイント柄', sub: '中央に主役1点' },
                         ].map((item) => (
                           <button
                             key={item.id}
