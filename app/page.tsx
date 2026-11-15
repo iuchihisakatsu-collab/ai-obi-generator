@@ -489,6 +489,7 @@ function HomeContent() {
           itemType, 
           aiStyle: 'none',
           tasteMode,
+          tags: selectedTags,
           artist: selectedArtist, 
           engine: actualEngine, 
           paymentMode: engineType === 'openai_premium' ? 'premium' : 'free',
