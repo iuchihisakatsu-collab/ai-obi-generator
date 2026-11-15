@@ -13,13 +13,17 @@ import {
 import { TRADITIONAL_COLORS, FORBIDDEN_WORDS, UNIVERSAL_SCALE_FACTOR } from './lib/constants';
 import { CURRENT_NOTICE } from './lib/noticeConfig';
 import NoticeModal from './components/NoticeModal';
-import PreviewArea from './components/preview/PreviewArea';
+import PreviewArea, { type ItemType } from './components/preview/PreviewArea';
 import ControlPanel from './components/controls/ControlPanel';
 import { PlatformType, submitOrder } from './lib/orders';
 import { renderTiledGeometricPng } from './lib/production/canvasRenderer';
 
 const MAX_FLUX_PER_DAY = 15;
 const MAX_OPENAI_PER_DAY = 1;
+
+const PROMPT_SEAMLESS = 'seamless repeating textile pattern, flat lay top-down view, even lighting, high resolution, print ready --tile';
+const PROMPT_CENTERED = 'centered single focal motif on clean background, symmetrical composition, traditional Japanese textile art style, high resolution';
+const PROMPT_SCARF = 'square silk scarf design with decorative ornate border frame, symmetrical layout, high fashion textile art, high resolution';
 
 function getTodayJST(): string {
   const parts = new Intl.DateTimeFormat('ja-JP', { timeZone: 'Asia/Tokyo', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date());
@@ -60,7 +64,7 @@ function HomeContent() {
   const [designFee, setDesignFee] = useState<number>(1000);
 
   const [creationMode, setCreationMode] = useState<'ai' | 'geometric' | 'upload'>('ai');
-  const [itemType, setItemType] = useState<'hanhaba' | 'kyobukuro' | 'kimono' | 'scarf' | 'tote' | 'textile'>('hanhaba');
+  const [itemType, setItemType] = useState<ItemType>('hanhaba');
   const [displayMode, setDisplayMode] = useState<'mockup' | 'trim' | 'data'>('mockup');
   
   const [aiStyle, setAiStyle] = useState<string>('none');
@@ -92,6 +96,7 @@ function HomeContent() {
   const [kimonoHaneriColor, setKimonoHaneriColor] = useState<string>('#ffffff');
   const [kimonoObiageColor, setKimonoObiageColor] = useState<string>('#c82a36');
   const [kimonoObiColor, setKimonoObiColor] = useState<string>('#1a1a1a');
+  const [toteHandleColor, setToteHandleColor] = useState<string>('pattern');
   
   const [customObiUrl, setCustomObiUrl] = useState<string | null>(null);
   const [customHaraUrl, setCustomHaraUrl] = useState<string | null>(null);
@@ -611,18 +616,33 @@ function HomeContent() {
 
       const finalTitle = patternTitle.trim() || '（無題）';
 
+      // トートバッグ持ち手カラーの日本語ラベル生成
+      const handleColorObj = TRADITIONAL_COLORS.find((c) => c.hex.toLowerCase() === toteHandleColor.toLowerCase());
+      const handleColorLabel = toteHandleColor === 'pattern'
+        ? '共布(同じ柄)'
+        : (handleColorObj ? `${handleColorObj.name.split(' ')[0]}(${toteHandleColor})` : toteHandleColor);
+
+      let orderTitle = finalTitle;
+      if (itemType === 'scarf') orderTitle = `【スカーフ】${finalTitle}`;
+      if (itemType === 'tote') orderTitle = `【トートキット｜持ち手:${handleColorLabel}】${finalTitle}`;
+
       try {
         await fetch('/api/send-email', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ imageUrl: finalImg, komonId: validSerial, title: finalTitle }),
+          body: JSON.stringify({
+            imageUrl: finalImg,
+            komonId: validSerial,
+            title: orderTitle,
+            handleColor: itemType === 'tote' ? handleColorLabel : undefined,
+          }),
         });
       } catch (mailErr) {
         console.warn('工房へのメール送信に失敗しました:', mailErr);
       }
 
       const result = await submitOrder(platform, {
-        title: finalTitle,
+        title: orderTitle,
         serialNumber: validSerial,
         imageUrl: finalImg,
         itemType: itemType as any,
@@ -637,9 +657,12 @@ function HomeContent() {
         let targetOrderUrl = 'https://store.gofukuyasan.com/view/item/000000007300';
         if (itemType === 'kimono') {
           targetOrderUrl = 'https://store.gofukuyasan.com/view/item/000000007312';
+        } else if (itemType === 'tote') {
+          targetOrderUrl = 'https://store.gofukuyasan.com/view/item/000000007356';
         }
-        const orderTitle = itemType === 'scarf' ? `【スカーフ】${finalTitle}` : finalTitle;
-        const cleanOrderUrl = `${targetOrderUrl}?komon_id=${encodeURIComponent(validSerial)}&title=${encodeURIComponent(orderTitle)}&image_url=${encodeURIComponent(finalImg)}&item_type=${encodeURIComponent(itemType)}`;
+        
+        const handleParam = itemType === 'tote' ? `&handle_color=${encodeURIComponent(handleColorLabel)}` : '';
+        const cleanOrderUrl = `${targetOrderUrl}?komon_id=${encodeURIComponent(validSerial)}&title=${encodeURIComponent(orderTitle)}&image_url=${encodeURIComponent(finalImg)}&item_type=${encodeURIComponent(itemType)}${handleParam}`;
         window.location.href = cleanOrderUrl;
       } else if (result.redirectUrl) {
         window.location.href = result.redirectUrl;
@@ -661,7 +684,7 @@ function HomeContent() {
         rel="noopener noreferrer"
         className="fixed bottom-6 right-6 sm:bottom-10 sm:right-10 z-[99] bg-zinc-900 text-white px-6 py-4 shadow-2xl hover:bg-black hover:-translate-y-1 transition-all flex items-center justify-center border border-zinc-700"
       >
-        <span className="text-[10px] sm:text-[11px] font-bold tracking-[0.2em] uppercase">GALLERY</span>
+        <span className="text-[10px] sm:text-[11px] font-bold tracking-[0.2em] uppercase">VIEW GALLERY</span>
       </a>
 
       <div className="w-full max-w-[1536px] flex flex-col lg:flex-row lg:gap-8 items-start justify-center">
@@ -681,6 +704,8 @@ function HomeContent() {
             setKimonoObiageColor={setKimonoObiageColor}
             kimonoObiColor={kimonoObiColor}
             setKimonoObiColor={setKimonoObiColor}
+            toteHandleColor={toteHandleColor}
+            setToteHandleColor={setToteHandleColor}
             customObiUrl={customObiUrl}
             setCustomObiUrl={setCustomObiUrl}
             handleCustomObiUpload={handleCustomObiUpload}
