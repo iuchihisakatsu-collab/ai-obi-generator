@@ -133,23 +133,23 @@ const RECIPES = [
 
 const TAG_CATEGORIES = [
   {
-    category: '🎨 和の美術・古典様式',
+    category: '和の美術・古典様式',
     tags: ['浮世絵', '鳥獣戯画風', '狩野派・障壁画', '光琳・琳派', '若冲風', '北斎風', '広重風', '江戸小紋', '有職文様', '更紗（バティック）', '夢二浪漫', '大正ロマン', '昭和レトロ', '和モダン']
   },
   {
-    category: '🏛️ 西洋・工芸様式',
+    category: '西洋・工芸様式',
     tags: ['モリス風', 'ガレ風', 'ミュシャ風', 'アール・ヌーヴォー', 'アール・デコ', 'トワルドジュイ', '北欧風', 'アンティーク']
   },
   {
-    category: '🖌️ 墨絵・染織・画材技法',
+    category: '墨絵・染織・画材技法',
     tags: ['墨絵・水墨画', '墨線画（白描）', '友禅ぼかし', '江戸型染め', '絞り染め・辻が花風', 'ろうけつ染め', '日本画・岩絵具', '蒔絵・漆芸風', '木版画', '銅版画・エッチング', '水彩画', 'ペン画', '切り絵・影絵', 'ステンドグラス', 'リソグラフ風', '西陣織・金襴風', '刺繍風']
   },
   {
-    category: '🌸 人気モチーフ',
+    category: '人気モチーフ',
     tags: ['猫', '兎', '鳥', '金魚・鯉', '蝶', '椿', '桜', '菊', '薔薇', '百合', '鍵盤', '幾何学', '波・雲']
   },
   {
-    category: '🌈 配色・トーン',
+    category: '配色・トーン',
     tags: ['くすみカラー', 'パステル', 'ビビッド', '渋め・粋', 'セピア', 'モノトーン', '金銀彩アクセント']
   }
 ];
@@ -410,7 +410,7 @@ export default function ControlPanel({
       
       <div className="space-y-5">
 
-        {/* 🎟️ 最上部：チケット・クーポン入力バー */}
+        {/* 最上部：チケット・クーポン入力バー */}
         {creationMode === 'ai' && (
           <div className="bg-zinc-50 border border-zinc-200 rounded p-3 text-left">
             {hasValidCode ? (
@@ -419,7 +419,7 @@ export default function ControlPanel({
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                   <div>
                     <span className="text-[11px] font-black text-emerald-900 flex items-center gap-1.5">
-                      <span>✨</span>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
                       <span>
                         {isInstagramCode 
                           ? 'Instagram特典コード適用中' 
@@ -463,7 +463,7 @@ export default function ControlPanel({
                       onClick={() => setShowCodeInput(true)}
                       className="text-left flex items-center gap-1.5 group w-full"
                     >
-                      <span className="text-xs">🎟️</span>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></svg>
                       <span className="text-[11px] font-bold text-zinc-800 group-hover:text-zinc-950 group-hover:underline">
                         Instagramクーポン・チケットをお持ちの方はこちら
                       </span>
@@ -474,7 +474,7 @@ export default function ControlPanel({
                   <div className="space-y-2 animate-fade-in">
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] font-bold text-zinc-900 flex items-center gap-1">
-                        <span>🎟️</span>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></svg>
                         <span>コードを入力してください</span>
                       </span>
                       <button
@@ -482,7 +482,7 @@ export default function ControlPanel({
                         onClick={() => setShowCodeInput(false)}
                         className="text-[10px] text-zinc-400 hover:text-zinc-700"
                       >
-                        ✕ 閉じる
+                        閉じる
                       </button>
                     </div>
 
@@ -511,7 +511,7 @@ export default function ControlPanel({
                         rel="noopener noreferrer"
                         className="hover:underline flex items-center gap-0.5"
                       >
-                        <span>📸 インスタで無料コードをもらう（最新投稿に「チケット」とコメント）</span>
+                        <span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 inline mr-1"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>インスタで無料コードをもらう（最新投稿に「チケット」とコメント）</span>
                         <span>＞</span>
                       </a>
                       <a
@@ -520,7 +520,7 @@ export default function ControlPanel({
                         rel="noopener noreferrer"
                         className="hover:underline flex items-center gap-0.5"
                       >
-                        <span>🛒 50回チケット購入</span>
+                        <span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 inline mr-1"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>50回チケット購入</span>
                         <span>＞</span>
                       </a>
                     </div>
@@ -531,7 +531,7 @@ export default function ControlPanel({
 
             {codeAppliedSuccess && (
               <div className="mt-2 p-2 bg-emerald-100 text-emerald-900 text-[10px] font-bold rounded animate-fade-in flex items-center gap-1.5">
-                <span>✓</span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><polyline points="20 6 9 17 4 12"/></svg>
                 <span>コードを適用しました！下の生成ボタンから本気デザインをお試しいただけます。</span>
               </div>
             )}
@@ -548,7 +548,7 @@ export default function ControlPanel({
                 </label>
 
                 <label className="cursor-pointer inline-flex items-center gap-1.5 px-2.5 py-1 bg-zinc-900 hover:bg-zinc-800 text-white rounded text-[10.5px] font-bold shadow-sm transition-all active:scale-95">
-                  <span>📷</span>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
                   <span>{analyzingPhoto ? '解析中...' : '写真から自動入力'}</span>
                   <input type="file" accept="image/*" onChange={handlePhotoUploadAndExtract} disabled={analyzingPhoto || loading} className="hidden" />
                 </label>
@@ -578,7 +578,7 @@ export default function ControlPanel({
               <div className="p-3 bg-zinc-50 border border-zinc-200 rounded-sm space-y-2 text-left">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-black text-zinc-800 flex items-center gap-1">
-                    <span>📋</span>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
                     <span>現在のAIオーダー設定（反映内容）</span>
                   </span>
                   <button
@@ -688,7 +688,7 @@ export default function ControlPanel({
             <div>
               <div className="flex justify-between items-baseline mb-1.5">
                 <span className="text-[10px] font-bold text-zinc-500">
-                  💡 アイデアに迷ったら（作例をワンタップでセット）：
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 inline mr-1"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>アイデアに迷ったら（作例をワンタップでセット）：
                 </span>
               </div>
               
@@ -752,7 +752,7 @@ export default function ControlPanel({
                     disabled={loading} 
                     className="w-full py-3.5 px-4 font-black text-xs sm:text-sm tracking-wider bg-zinc-950 hover:bg-black text-white rounded shadow-md transition-all flex items-center justify-center gap-2 border border-zinc-900 active:scale-[0.99] disabled:opacity-50"
                   >
-                    <span>🔥</span>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
                     <span>
                       {loading && (generatingMode === 'openai_premium' || (loadingEngine === 'openai' && premiumCode))
                         ? '本気デザインを描出中...'
@@ -783,7 +783,7 @@ export default function ControlPanel({
                       <span>
                         {effectiveRemainingOpenAI <= 0 
                           ? '本日の無料本気デザイン枠は終了しました' 
-                          : `🔥 本気デザインでつくる（本日無料 ${effectiveRemainingOpenAI}回）`}
+                          : `本気デザインでつくる（本日無料 ${effectiveRemainingOpenAI}回）`}
                       </span>
                     )}
                   </button>
@@ -810,7 +810,7 @@ export default function ControlPanel({
                     <span>
                       {effectiveRemainingFlux <= 0
                         ? '本日のスケッチ枠は終了しました'
-                        : `🎨 気まぐれスケッチで試す（本日残り ${effectiveRemainingFlux}回）`}
+                        : `気まぐれスケッチで試す（本日残り ${effectiveRemainingFlux}回）`}
                     </span>
                   )}
                 </button>
@@ -823,7 +823,7 @@ export default function ControlPanel({
                 <div className="p-3 bg-amber-50/80 border border-amber-200 rounded text-left animate-fade-in mt-2">
                   <div className="flex items-center justify-between mb-1">
                     <span className="font-bold text-[11px] text-amber-950 flex items-center gap-1">
-                      <span>💡</span>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 inline mr-1"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
                       <span>もっと試したい方へ</span>
                     </span>
                     <button
@@ -841,7 +841,7 @@ export default function ControlPanel({
                       rel="noopener noreferrer"
                       className="p-2 bg-white border border-amber-200 rounded text-center hover:bg-amber-100/50 transition-colors"
                     >
-                      <span className="text-[10px] font-bold text-zinc-900 block">📸 インスタで無料GET</span>
+                      <span className="text-[10px] font-bold text-zinc-900 block"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 inline mr-1"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>インスタで無料GET</span>
                       <span className="text-[8.5px] text-zinc-500 block mt-0.5">最新投稿に「チケット」とコメント</span>
                     </a>
                     <a
@@ -850,7 +850,7 @@ export default function ControlPanel({
                       rel="noopener noreferrer"
                       className="p-2 bg-white border border-amber-200 rounded text-center hover:bg-amber-100/50 transition-colors"
                     >
-                      <span className="text-[10px] font-bold text-zinc-900 block">🛒 50回チケット購入</span>
+                      <span className="text-[10px] font-bold text-zinc-900 block"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 inline mr-1"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>50回チケット購入</span>
                       <span className="text-[8.5px] text-zinc-500 block mt-0.5">注文時全額ポイント還元</span>
                     </a>
                   </div>
@@ -860,7 +860,7 @@ export default function ControlPanel({
               {premiumStatusMsg && (
                 <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded flex items-center gap-2 animate-fade-in text-left">
                   <span className="w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 text-[10px] font-black">
-                    ✓
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><polyline points="20 6 9 17 4 12"/></svg>
                   </span>
                   <p className="text-xs font-bold text-emerald-900">
                     {premiumStatusMsg}
@@ -902,7 +902,7 @@ export default function ControlPanel({
                 </div>
 
                 <div className="text-[9.5px] text-zinc-400 flex justify-between items-center">
-                  <span>{generatingMode === 'flux' ? '⚡ スケッチを描画中' : '💎 高精度で描出中（約10〜15秒）'}</span>
+                  <span>{generatingMode === 'flux' ? 'スケッチを描画中' : '高精度で描出中（約10〜15秒）'}</span>
                   <span className="text-amber-400 font-bold animate-pulse">画面を閉じずにお待ちください</span>
                 </div>
               </div>
@@ -916,7 +916,7 @@ export default function ControlPanel({
                 className="w-full py-2.5 px-3 bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 rounded text-left transition-all flex items-center justify-between group"
               >
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-zinc-700">🎨</span>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>
                   <span className="text-xs font-bold text-zinc-800 group-hover:text-zinc-950">
                     もっと細かく設定する（色・テイスト・サイズ・向き）
                   </span>
@@ -974,7 +974,7 @@ export default function ControlPanel({
                         <label className="block text-xs font-bold text-zinc-900 tracking-wider">
                           地色（ベースカラー）
                         </label>
-                        <p className="text-[9.5px] text-amber-900 font-bold">★選んだ色が布地全体の背景（地色）になります</p>
+                        <p className="text-[9.5px] text-amber-900 font-bold">選んだ色が布地全体の背景（地色）になります</p>
                       </div>
                       <button 
                         type="button" 
@@ -1027,7 +1027,7 @@ export default function ControlPanel({
                               >
                                 <span className={`text-[8.5px] font-bold truncate leading-tight flex items-center justify-between ${col.isDark ? 'text-white' : 'text-zinc-900'}`}>
                                   {col.name.split(' ')[0]}
-                                  {isSelected && <span>✓</span>}
+                                  {isSelected && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><polyline points="20 6 9 17 4 12"/></svg>}
                                 </span>
                               </button>
                             );
@@ -1116,13 +1116,13 @@ export default function ControlPanel({
                       </label>
                       <span className="text-[9.5px] text-zinc-500">
                         {density.includes('ワンポイント')
-                          ? '🎯 中央ワンポイント主役'
+                          ? '中央ワンポイント主役'
                           : density.includes('お太鼓')
-                            ? '🎯 お太鼓ワンポイント主役'
+                            ? 'お太鼓ワンポイント主役'
                             : density.includes('額縁') || density.includes('スクエア')
-                              ? '🧣 額縁スクエア構図'
+                              ? '額縁スクエア構図'
                               : density.includes('四方')
-                                ? '🔄 上下左右ランダム（着物推奨）'
+                                ? '上下左右ランダム（着物推奨）'
                                 : '⬆️ 上向き整列（帯推奨）'}
                       </span>
                     </div>
@@ -1139,7 +1139,6 @@ export default function ControlPanel({
                           }`}
                         >
                           <span className="text-[10.5px] font-bold flex items-center gap-1">
-                            <span>🧣</span>
                             <span>額縁スクエア柄（推奨）</span>
                           </span>
                           <span className="text-[8px] opacity-75 mt-0.5">額縁パネル・正方形1枚絵</span>
@@ -1155,7 +1154,6 @@ export default function ControlPanel({
                           }`}
                         >
                           <span className="text-[10.5px] font-bold flex items-center gap-1">
-                            <span>🔄</span>
                             <span>総柄リピート</span>
                           </span>
                           <span className="text-[8px] opacity-75 mt-0.5">天地無用・全面シームレス小紋</span>
@@ -1217,7 +1215,6 @@ export default function ControlPanel({
                           }`}
                         >
                           <span className="text-[10.5px] font-bold flex items-center gap-1">
-                            <span>🔄</span>
                             <span>四方柄（天地無用）</span>
                           </span>
                           <span className="text-[8px] opacity-75 mt-0.5">上下左右逆さま・着物向け</span>
@@ -1421,7 +1418,7 @@ export default function ControlPanel({
         {imageUrl && (
           <div className="pt-6 mt-6 border-t-2 border-zinc-950 space-y-4 animate-fade-in bg-zinc-50 -mx-4 sm:-mx-7 lg:-mx-8 px-4 sm:px-7 lg:px-8 pb-6">
             <h3 className="text-center font-bold text-sm tracking-widest text-zinc-900 pt-2">
-              ✨ この図案でお仕立て・保存・シェア
+              この図案でお仕立て・保存・シェア
             </h3>
 
             {/* 妄想を現実に */}
@@ -1470,22 +1467,36 @@ export default function ControlPanel({
                 }}
                 className="w-full py-2.5 px-3 bg-white hover:bg-zinc-100 border border-zinc-300 rounded text-xs font-bold text-zinc-800 flex items-center justify-center gap-1.5 shadow-xs transition-colors"
               >
-                <span>🎨</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>
                 <span>色やサイズを変えてもう一度作る（こだわり設定を開く）</span>
               </button>
             )}
 
             <div className="space-y-3">
-              {/* 🌟 ギャラリー公開フォーム */}
-              <div className="bg-white border border-zinc-200 p-4 shadow-sm rounded">
-                <p className="text-[11px] font-black text-zinc-900 mb-2 flex items-center gap-1.5">
-                  <span className="text-sm">🌟</span>
-                  <span>あなたの図案をみんなのギャラリーに飾りませんか？</span>
-                </p>
+              {/* GALLERY 公開・閲覧導線 */}
+              <div className="bg-white border border-zinc-200 p-4 shadow-sm rounded space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-[11px] font-black text-zinc-900 flex items-center gap-1.5">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                    <span>GALLERY に作品を展示する</span>
+                  </p>
+                  <a
+                    href="/gallery"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-[10px] font-bold tracking-[0.18em] text-zinc-700 hover:text-zinc-950 border-b border-zinc-400 hover:border-zinc-950 pb-0.5 uppercase transition-colors"
+                  >
+                    <span>GALLERY</span>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M7 17L17 7" />
+                      <path d="M7 7h10v10" />
+                    </svg>
+                  </a>
+                </div>
                 <div className="space-y-3">
                   {publishSuccess ? (
                     <div className="p-3 bg-emerald-50 border border-emerald-200 rounded text-center animate-fade-in">
-                      <p className="text-xs font-bold text-emerald-900 mb-1">🎉 ギャラリーに展示されました！</p>
+                      <p className="text-xs font-bold text-emerald-900 mb-1">GALLERY に展示されました。</p>
                       <p className="text-[10px] text-emerald-700">素敵な作品をありがとうございます。</p>
                     </div>
                   ) : (
@@ -1551,7 +1562,7 @@ export default function ControlPanel({
                   この作品の原画データ（40cm角）を手元に残す
                 </button>
                 <p className="text-[9.5px] text-zinc-500 text-center leading-normal mt-1">
-                  💡 気に入った柄は保存しておけば、あとからいつでも注文できます。
+                  気に入った柄は保存しておけば、あとからいつでも注文できます。
                 </p>
               </div>
 
@@ -1584,11 +1595,11 @@ export default function ControlPanel({
                     <span className="text-[8.5px] font-bold mt-1 tracking-tighter">Instagram</span>
                   </button>
 
-                  <button type="button" onClick={shareToPinterest} className="flex flex-col items-center justify-center py-2 px-1 bg-white border border-zinc-300 rounded hover:bg-zinc-950 hover:text-white hover:border-zinc-950 transition-all shadow-xs group" title="Pinterestにピン留め">
-                    <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" className="transition-transform group-hover:scale-110">
-                      <path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.162-.105-.949-.199-2.403.041-3.439.219-.937 1.406-5.957s-.359-.72-.359-1.781c0-1.663.967-2.911 2.168-2.911 1.024 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738a.36.36 0 0 1 .083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.631-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146 1.124.347 2.317.535 3.554.535 6.627 0 12.004-5.367 12.004-11.987C24.02 5.367 18.644 0 12.017 0z"/>
+                  <button type="button" onClick={shareToPinterest} className="flex flex-col items-center justify-center py-2 px-1 bg-white border border-zinc-300 rounded text-[#E60023] hover:bg-[#E60023] hover:text-white hover:border-[#E60023] transition-all shadow-xs group" title="Pinterestにピン留め">
+                    <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" className="transition-transform group-hover:scale-110">
+                      <path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.162-.105-.949-.199-2.403.041-3.439.219-.937 1.406-5.957 1.406-5.957s-.359-.72-.359-1.781c0-1.663.967-2.911 2.168-2.911 1.024 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738a.36.36 0 0 1 .083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.631-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146 1.124.347 2.317.535 3.554.535 6.627 0 12.004-5.367 12.004-11.987C24.02 5.367 18.644 0 12.017 0z"/>
                     </svg>
-                    <span className="text-[8.5px] font-bold mt-1 tracking-tighter">Pinterest</span>
+                    <span className="text-[8.5px] font-bold mt-1 tracking-tighter text-zinc-800 group-hover:text-white">Pinterest</span>
                   </button>
 
                   <button type="button" onClick={shareToFacebook} className="flex flex-col items-center justify-center py-2 px-1 bg-white border border-zinc-300 rounded hover:bg-zinc-950 hover:text-white hover:border-zinc-950 transition-all shadow-xs group" title="Facebookでシェア">
