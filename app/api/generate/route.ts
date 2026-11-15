@@ -82,6 +82,68 @@ const STYLE_PROMPTS: Record<string, string> = {
   yuzen: 'Add subtle Kyoto Yuzen traditional elegance, soft delicate watercolor transitions.'
 };
 
+const TAG_STYLE_DICTIONARY: Record<string, string> = {
+  // 和の美術・古典様式
+  '浮世絵': 'Authentic Edo-period Japanese Ukiyo-e woodblock print style, crisp sumi ink key-block outlines, Prussian blue (bero-ai) and traditional mineral pigments, subtle hand-printed bokashi shading on textured washi paper.',
+  '鳥獣戯画風': 'Choju-jinbutsu-giga classical Japanese narrative ink scroll style, lively calligraphic sumi brush lines, expressive anthropomorphic animals in playful dynamic motion on antique paper.',
+  '狩野派・障壁画': 'Kano school Japanese Momoyama folding-screen (byobu) painting aesthetic, bold heroic brushwork, dramatic pine branches, stylized clouds, and luminous gold leaf (kinpaku) accents.',
+  '光琳・琳派': 'Rinpa school (Ogata Korin) Japanese decorative painting aesthetic, bold stylized organic forms, vivid flat mineral colors, gold and silver foil accents, tarashikomi ink pooling.',
+  '若冲風': 'Ito Jakuchu hyper-detailed Edo painting style, intricate plumage and botanical micro-detail, vibrant jewel-like mineral colors, dramatic contrast.',
+  '北斎風': 'Katsushika Hokusai dramatic dynamic composition, bold Prussian blue waves, expressive rhythmic linework, iconic Edo ukiyo-e woodblock mastery.',
+  '広重風': 'Utagawa Hiroshige poetic atmospheric ukiyo-e print style, serene bokashi gradations, refined seasonal lyricism.',
+  '江戸小紋': 'Traditional Edo Komon ultra-fine stencil-dyed micro pattern, crisp geometric precision, refined two-tone artisan craftsmanship.',
+  '有職文様': 'Yusoku monyo aristocratic Heian court textile pattern, noble symmetrical medallions, dignified classical Japanese geometric harmony.',
+  '更紗（バティック）': 'Exotic antique Sarasa and Javanese batik textile aesthetic, intricate hand-drawn wax-resist botanical and arabesque motifs, rich earthy natural dyes.',
+  '夢二浪漫': 'Takehisa Yumeji Taisho Romanticism poetic illustration style, melancholic graceful lines, muted nostalgic color palette, lyrical retro elegance.',
+  '大正ロマン': 'Taisho Roman early 20th-century Japanese modernist kimono aesthetic, bold fusion of Japanese motifs with Art Nouveau geometry and stained-glass jewel tones.',
+  '昭和レトロ': 'Showa-era vintage Japanese graphic design, nostalgic mid-century kissaten cafe poster charm, warm slightly weathered print colors.',
+  '和モダン': 'Contemporary Japanese modern textile design, clean minimalist composition blending traditional motifs with sleek modern graphic balance.',
+
+  // 西洋・工芸様式
+  'モリス風': 'William Morris Arts and Crafts textile design, dense symmetrical botanical foliage, intertwined acanthus leaves and wildflowers, heritage tapestry richness.',
+  'ガレ風': 'Émile Gallé Art Nouveau cameo glass aesthetic, poetic botanical naturalism, layered translucent organic silhouettes.',
+  'ミュシャ風': 'Alphonse Mucha Art Nouveau decorative panel aesthetic, flowing whiplash contour lines, ornate floral halos, harmonious gold-accented elegance.',
+  'アール・ヌーヴォー': 'Classic Art Nouveau ornamental textile style, sinuous organic curves, stylized irises and vines, graceful fin-de-siècle elegance.',
+  'アール・デコ': '1920s Art Deco geometric luxury pattern, sunburst rays, stepped symmetry, sleek metallic gold and bold contrasting planes.',
+  'トワルドジュイ': 'Traditional French Toile de Jouy copperplate-printed fabric, delicate monochromatic engraved pastoral and botanical vignettes on a clean light ground.',
+  '北欧風': 'Scandinavian mid-century modern textile design, clean flat organic shapes, balanced negative space, Nordic folk simplicity.',
+  'アンティーク': 'Vintage European antique textile aesthetic, timeless heirloom patina, classical engraving and aged fabric elegance.',
+
+  // 墨絵・染織・画材技法
+  '墨絵・水墨画': 'Traditional Japanese Sumi-e ink wash painting, expressive calligraphic brushstrokes, wet-on-wet ink diffusion, subtle tonal ink gradations (notan) on textured washi paper.',
+  '墨線画（白描）': 'Hakubyo traditional Japanese fine monochrome ink line drawing, pure crisp sumi brushwork with high-contrast line artistry.',
+  '友禅ぼかし': 'Kyoto Yuzen silk dyeing technique, delicate hand-painted resist outlines (itome) with soft luminous watercolor bokashi color gradations.',
+  '江戸型染め': 'Traditional Edo Katazome stencil dyeing, bold crisp white resist lines, deep natural indigo and mineral pigments, artisanal hand-dyed clarity.',
+  '絞り染め・辻が花風': 'Tsujigahana and Shibori tie-dye textile aesthetic, organic soft-edged dye bleeds, delicate hand-drawn ink details over tied-and-dyed floral forms.',
+  'ろうけつ染め': 'Traditional Roketsu-zome wax-resist batik dyeing, characteristic fine crackle lines (hibi) and rich layered dye penetration.',
+  '日本画・岩絵具': 'Nihonga traditional Japanese mineral pigment painting, matte velvety iwa-enogu texture, refined mineral luster, delicate gofun white highlights.',
+  '蒔絵・漆芸風': 'Japanese Maki-e gold lacquerware aesthetic, deep glossy urushi black background with radiant gold and silver powder relief motifs.',
+  '木版画': 'Hand-carved woodblock print aesthetic, crisp carved relief edges, subtle woodgrain ink impression on handmade paper.',
+  '銅版画・エッチング': 'Antique copperplate etching and engraving, fine cross-hatching lines, intricate scientific and classical printmaker detail.',
+  '水彩画': 'Delicate transparent watercolor painting on textured paper, soft luminous pigment washes and gentle wet-edge blooms.',
+  'ペン画': 'Fine nib ink pen illustration, crisp detailed linework and delicate stippling/hatching textures.',
+  '切り絵・影絵': 'Kirie Japanese paper-cutting and silhouette art, razor-sharp layered cut-paper shapes, dramatic positive-negative contrast.',
+  'ステンドグラス': 'Luminous stained-glass mosaic aesthetic, bold dark leading lines framing jewel-like translucent colored glass segments.',
+  'リソグラフ風': 'Contemporary Risograph soy-ink print aesthetic, tactile halftone grain, vibrant spot colors with subtle artistic ink overprint.',
+  '西陣織・金襴風': 'Nishijin-ori and Kinran brocade woven textile aesthetic, intricate woven silk threads, shimmering gold thread (kinshi) highlights, opulent loom-woven texture.',
+  '刺繍風': 'Traditional Japanese Nihon-shishu silk embroidery aesthetic, lustrous satin-stitch silk threads, tactile dimensional needlework relief.',
+
+  // 人気モチーフ強調
+  '金魚・鯉': 'Graceful swimming Japanese goldfish (kingyo) and Nishikigoi koi carp with flowing fins and subtle water ripples.',
+  '蝶': 'Elegant Japanese swallowtail butterflies (ageha) with intricate wing patterns.',
+  '桜': 'Refined Japanese cherry blossoms (sakura) with delicate petals.',
+  '菊': 'Noble Japanese chrysanthemums (kiku) with layered petals.',
+
+  // 配色・トーン
+  'くすみカラー': 'Muted dusty desaturated morandi color palette, sophisticated smoky understated elegance.',
+  'パステル': 'Soft luminous pastel color palette, gentle airy tints, refined delicate lightness.',
+  'ビビッド': 'Bold vivid jewel-toned color palette, striking high-saturation chromatic contrast.',
+  '渋め・粋': 'Edo-chic understated dark and earthy palette (indigo, charcoal, moss, rust), mature sophisticated restraint.',
+  'セピア': 'Warm nostalgic sepia-toned monochrome and antique brown palette.',
+  'モノトーン': 'Refined monochrome black, white, and charcoal grayscale palette with high graphic clarity.',
+  '金銀彩アクセント': 'Accented with shimmering metallic gold leaf (kinpaku) and silver foil (ginpaku) highlights.'
+};
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -92,6 +154,7 @@ export async function POST(req: Request) {
       itemType = 'hanhaba',
       aiStyle = 'none', 
       tasteMode = 'katazome',
+      tags = [],
       engine = 'flux',
       paymentMode = 'free',
       premiumCode = '',
@@ -158,11 +221,25 @@ export async function POST(req: Request) {
     }
 
     const cleanMotifForTranslation = motif
+      .replace(/。?雰囲気・タッチ[：:][^。\n]*/g, '')
       .replace(/。?柄の大きさ[：:][^\n]*/g, '')
       .replace(/\(tiny delicate repeating motifs[^\)]*\)/gi, '')
       .replace(/\(medium-scale repeating motifs[^\)]*\)/gi, '')
       .replace(/\(large bold prominent motifs[^\)]*\)/gi, '')
       .trim();
+
+    // 選択されたタグ（配列 + motif文字列内のフォールバック検出）を統合して専門英語指示へ変換
+    const activeTagSet = new Set<string>(Array.isArray(tags) ? tags : []);
+    for (const key of Object.keys(TAG_STYLE_DICTIONARY)) {
+      if (motif.includes(key)) {
+        activeTagSet.add(key);
+      }
+    }
+    const activeTags = Array.from(activeTagSet);
+    const tagDirectives = activeTags
+      .map((t) => TAG_STYLE_DICTIONARY[t])
+      .filter(Boolean)
+      .join(' ');
 
     const englishMotif = await translateToEnglish(cleanMotifForTranslation);
     
@@ -255,12 +332,30 @@ All motifs MUST face straight UP towards the top edge. Perfect vertical upright 
 
     const tasteDetail = TASTE_PROMPTS[tasteMode] || TASTE_PROMPTS['katazome'];
     const styleDetail = STYLE_PROMPTS[aiStyle] || '';
-    const colorInstruction = (color && color !== 'おまかせ') ? `Main Color Theme: ${color}.` : 'Harmonious mature color palette.';
+
+    const isSumiMonochrome =
+      (activeTags.includes('墨絵・水墨画') || activeTags.includes('墨線画（白描）')) &&
+      (!color || color === 'おまかせ');
+    const colorInstruction = isSumiMonochrome
+      ? 'Traditional monochrome sumi black ink washes and subtle grayscale tonal gradations on natural off-white/cream washi paper ground.'
+      : (color && color !== 'おまかせ')
+        ? `Main Color Theme: ${color}.`
+        : 'Harmonious mature color palette.';
+
+    const allowsPastel = activeTags.includes('パステル');
+    const allowsGradation = activeTags.some((t) =>
+      ['墨絵・水墨画', '友禅ぼかし', '絞り染め・辻が花風', '水彩画', 'ガレ風', '広重風', '浮世絵', '日本画・岩絵具', 'ろうけつ染め'].includes(t)
+    );
+
+    const pastelRule = allowsPastel ? '' : 'NO pastel, ';
+    const gradientRule = allowsGradation
+      ? 'Allow authentic artisanal ink wash, bokashi dye gradation, or watercolor pigment transitions matching the specified technique, while keeping a flat 2D surface.'
+      : 'Zero gradients, zero 3D drop shadows.';
 
     const enforcement = `【STRICT QUALITY & FORMAT ENFORCEMENT】
 Strictly MATURE, SOPHISTICATED, ARTISAN-CRAFTED high-end kimono textile aesthetic.
-ABSOLUTELY NO kawaii, NO pastel, NO chibi, NO childish, NO fluffy, NO cartoon, NO anime, NO fairy tale, NO soft glowing gradient.
-Zero gradients, zero shadows. Top-down 2D flat orthogonal surface only. NO humans, NO mockups, NO 3D perspective.
+ABSOLUTELY NO kawaii, ${pastelRule}NO chibi, NO childish, NO fluffy, NO cartoon, NO anime, NO fairy tale.
+${gradientRule} Top-down 2D flat orthogonal surface only. NO humans, NO mockups, NO 3D perspective.
 Negative constraints: ${negativeScalePrompt}, ${negativeDirectionPrompt}, sweet cute elements, childish doodle.`;
 
     const formatLine = isOtaiko
@@ -279,8 +374,8 @@ ${formatLine}
 【Motifs】
 ${englishMotif} (${cleanMotifForTranslation})
 
-【Taste & Technique】
-${tasteDetail}
+【Artistic Style & Technique】
+${tagDirectives ? `${tagDirectives} ` : ''}${tasteDetail}
 ${styleDetail ? `【Style Accent】\n${styleDetail}\n` : ''}
 【Color】
 ${colorInstruction}
