@@ -1211,12 +1211,49 @@ export default function ControlPanel({
           </div>
         )}
 
-        {/* 生成完了後の作品表示エリア */}
-        {imageUrl && !imageUrl.includes('sample_piano_cat') && !imageUrl.includes('sample_cafe') && !imageUrl.includes('sample_antique') && !imageUrl.includes('sample_hokusai_cat') && (
+        {/* 作品・お仕立て注文導線エリア（常時表示） */}
+        {imageUrl && (
           <div className="pt-6 mt-6 border-t-2 border-zinc-950 space-y-4 animate-fade-in bg-zinc-50 -mx-4 sm:-mx-7 lg:-mx-8 px-4 sm:px-7 lg:px-8 pb-6">
             <h3 className="text-center font-bold text-sm tracking-widest text-zinc-900 pt-2">
-              ✨ あなただけの作品が完成しました
+              ✨ この図案でお仕立て・保存・シェア
             </h3>
+
+            {/* 妄想を現実に */}
+            <div>
+              <a 
+                href="#" 
+                onClick={handleOrderClick} 
+                className="block w-full py-3.5 text-center bg-[#8b1e2a] hover:bg-[#721822] text-white text-[14px] font-black tracking-widest transition-all shadow-xl hover:shadow-2xl hover:scale-[1.01] rounded border border-red-900"
+              >
+                <div className="flex items-center justify-center gap-2">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-amber-300">
+                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                  </svg>
+                  <span>
+                    {itemType === 'tote'
+                      ? '妄想を現実に（トートバッグ手作りキットにお仕立て） ＞'
+                      : itemType === 'scarf' 
+                        ? '妄想を現実に（100cm大判ウールスカーフにお仕立て） ＞' 
+                        : itemType === 'textile'
+                          ? '妄想を現実に（オリジナル生地プリントにお仕立て） ＞'
+                          : '妄想を現実に（本物の帯・着物にお仕立て） ＞'}
+                  </span>
+                </div>
+                <span className="text-[10px] font-medium tracking-wider text-amber-200 mt-0.5 block">
+                  {itemType === 'tote'
+                    ? '（単品 5,500円 / 3個セット 9,900円・実質0円対象）'
+                    : itemType === 'scarf'
+                      ? '（半幅帯と同価格 17,000円前後 / 実質0円対象）'
+                      : itemType === 'textile'
+                        ? '（1m単位プリント・実質0円対象）'
+                        : '（生地・サイズ・仕立て価格を確認する）'}
+                </span>
+              </a>
+              <p className="text-[9.5px] text-zinc-500 text-center leading-relaxed mt-1">
+                ※チケット代（1,100円）は商品購入時に全額ポイント還元（実質0円）されます<br />
+                ※保存した画像から後日いつでもご注文可能です
+              </p>
+            </div>
 
             {creationMode === 'ai' && (
               <button
@@ -1355,39 +1392,6 @@ export default function ControlPanel({
                     <span className="text-[8.5px] font-bold mt-1 tracking-tighter">Facebook</span>
                   </button>
                 </div>
-              </div>
-
-              {/* 妄想を現実に */}
-              <div>
-                <a 
-                  href="#" 
-                  onClick={handleOrderClick} 
-                  className="block w-full py-3.5 mt-2 text-center bg-[#8b1e2a] hover:bg-[#721822] text-white text-[14px] font-black tracking-widest transition-all shadow-xl hover:shadow-2xl hover:scale-[1.01] rounded border border-red-900"
-                >
-                  <div className="flex items-center justify-center gap-2">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-amber-300">
-                      <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-                    </svg>
-                    <span>
-                      {itemType === 'tote'
-                        ? '妄想を現実に（トートバッグ手作りキットにお仕立て） ＞'
-                        : itemType === 'scarf' 
-                          ? '妄想を現実に（100cm大判ウールスカーフにお仕立て） ＞' 
-                          : '妄想を現実に（本物の帯・着物にお仕立て） ＞'}
-                    </span>
-                  </div>
-                  <span className="text-[10px] font-medium tracking-wider text-amber-200 mt-0.5 block">
-                    {itemType === 'tote'
-                      ? '（単品 5,500円 / 3個セット 9,900円・実質0円対象）'
-                      : itemType === 'scarf'
-                        ? '（半幅帯と同価格 17,000円前後 / 実質0円対象）'
-                        : '（生地・サイズ・仕立て価格を確認する）'}
-                  </span>
-                </a>
-                <p className="text-[9.5px] text-zinc-500 text-center leading-relaxed mt-1">
-                  ※チケット代（1,100円）は商品購入時に全額ポイント還元（実質0円）されます<br />
-                  ※保存した画像から後日いつでもご注文可能です
-                </p>
               </div>
 
               {primaryMotif && (
