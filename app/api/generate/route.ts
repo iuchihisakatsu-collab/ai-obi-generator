@@ -63,6 +63,57 @@ async function translateToEnglish(text: string): Promise<string> {
   }
 }
 
+async function analyzeReferenceForArrangement(referenceImageUrl: string): Promise<{ blocked: boolean; reason?: string; blueprint: string }> {
+  try {
+    const res = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: `You are a copyright-compliance & senior kimono textile art director.
+Inspect the uploaded reference image and output a JSON object ONLY:
+1. "blocked": boolean — Set to true ONLY if the image clearly depicts copyrighted anime/manga/game/movie characters, famous mascots, or protected brand logos/trademarks that would infringe IP if adapted. Set to false for nature, animals, florals, geometric motifs, personal sketches, fabrics, landscapes, or original art.
+2. "reason": string — If blocked is true, a polite Japanese explanation (e.g. "著作権・商標保護の対象となるキャラクターやロゴが含まれている可能性があるため生成できません。").
+3. "blueprint": string — If blocked is false, write a highly detailed English textile design blueprint (80-130 words) describing the exact motifs, spatial composition, color palette (with exact tones), linework, and artistic medium of the reference image so it can be faithfully reimagined as an original Japanese kimono/obi textile pattern without copying any trademarked elements.`
+        },
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: 'Analyze this reference image for a copyright-safe original Japanese kimono/obi textile arrangement.'
+            },
+            {
+              type: 'image_url',
+              image_url: {
+                url: referenceImageUrl,
+                detail: 'high',
+              },
+            },
+          ],
+        },
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.2,
+      max_tokens: 300,
+    });
+
+    const raw = res.choices[0]?.message?.content;
+    if (!raw) {
+      return { blocked: false, blueprint: '' };
+    }
+    const parsed = JSON.parse(raw);
+    return {
+      blocked: Boolean(parsed.blocked),
+      reason: parsed.reason,
+      blueprint: parsed.blueprint || '',
+    };
+  } catch (err) {
+    console.error('Reference image vision analysis error:', err);
+    return { blocked: false, blueprint: '' };
+  }
+}
+
 const TASTE_PROMPTS: Record<string, string> = {
   katazome: 'Traditional Japanese katazome stencil dye aesthetic, crisp clean silhouettes, sumi ink and indigo wash, Edo-period graphic boldness, zero gradients, wabi-sabi balance.',
   botanical: 'Antique copperplate etching style, vintage scientific botanical illustration, intricate hatching lines, William Morris Arts and Crafts depth, muted sepia and earthy tones.',
@@ -148,7 +199,8 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const { 
-      motif, 
+      motif = '', 
+      referenceImageUrl = '',
       color = 'おまかせ', 
       density = '', 
       itemType = 'hanhaba',
@@ -161,7 +213,9 @@ export async function POST(req: Request) {
       patternScale: explicitScale
     } = body;
 
-    if (!motif) return NextResponse.json({ error: 'モチーフを指定してください。' }, { status: 400 });
+    if (!motif && !referenceImageUrl) {
+      return NextResponse.json({ error: 'モチーフを指定してください。' }, { status: 400 });
+    }
 
     const isPremium = paymentMode === 'premium' || engine === 'openai_premium' || (engine === 'openai' && Boolean(premiumCode));
     const isFlux = !isPremium && engine === 'flux';
@@ -172,6 +226,18 @@ export async function POST(req: Request) {
     // SNSで拡散済みの「X-」から始まるコードを、裏側で「IG-X-」として処理するための特別対応
     if (code.startsWith('X-')) {
       code = 'IG-' + code;
+    }
+
+    let referenceBlueprint = '';
+    if (referenceImageUrl) {
+      const refAnalysis = await analyzeReferenceForArrangement(referenceImageUrl);
+      if (refAnalysis.blocked) {
+        return NextResponse.json(
+          { error: refAnalysis.reason || '著作権・商標保護の対象となる要素が含まれている可能性があるため生成できません。' },
+          { status: 400 }
+        );
+      }
+      referenceBlueprint = refAnalysis.blueprint;
     }
 
     if (isPremium) {
@@ -372,7 +438,7 @@ ${scaleKeyword}
 ${formatLine}
 
 【Motifs】
-${englishMotif} (${cleanMotifForTranslation})
+${referenceBlueprint ? `[REFERENCE IMAGE TEXTILE ARRANGEMENT] Reimagine and adapt the visual motifs, color harmony, and artistic spirit of the reference image into an original Japanese kimono/obi textile design (NO copyrighted characters, NO logos, NO verbatim tracing): ${referenceBlueprint}${englishMotif ? ` | Additional direction: ${englishMotif}` : ''}` : `${englishMotif} (${cleanMotifForTranslation})`}
 
 【Artistic Style & Technique】
 ${tagDirectives ? `${tagDirectives} ` : ''}${tasteDetail}
