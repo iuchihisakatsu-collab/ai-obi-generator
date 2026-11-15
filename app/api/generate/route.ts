@@ -166,7 +166,28 @@ export async function POST(req: Request) {
 
     const englishMotif = await translateToEnglish(cleanMotifForTranslation);
     
-    // 1. 柄の大きさ（Scale）判定
+    // 1. 柄の向き・構成モード（お太鼓・ワンポイント / スカーフ額縁 / 四方総柄 / 一方向総柄）の判定
+    const isOtaiko = density.includes('お太鼓') || density.includes('ワンポイント') || density.includes('CENTERED');
+    const isScarfMode = !isOtaiko && !density.includes('四方') && (
+      itemType === 'scarf' ||
+      density.includes('額縁') ||
+      density.includes('スクエア') ||
+      motif.includes('スカーフ') ||
+      motif.toLowerCase().includes('scarf')
+    );
+    const isShiho = !isScarfMode && !isOtaiko && (
+      density.includes('四方') ||
+      density.includes('ALL-OVER') ||
+      density.includes('天地無用') ||
+      itemType === 'kimono'
+    );
+    const isUpright = !isScarfMode && !isOtaiko && !isShiho && (
+      density.includes('一方向') ||
+      density.includes('UPWARD') ||
+      density.includes('上向き')
+    );
+
+    // 2. 柄の大きさ（Scale）判定
     let detectedScale: 'small' | 'medium' | 'large' = 'medium';
     const rawScale = (explicitScale || '').toLowerCase();
     if (rawScale === 'small' || rawScale === 'fine' || motif.includes('細かい') || motif.includes('tiny delicate') || motif.includes('micro')) {
@@ -177,7 +198,19 @@ export async function POST(req: Request) {
 
     let scaleKeyword = '';
     let negativeScalePrompt = '';
-    if (detectedScale === 'small') {
+    if (isOtaiko) {
+      if (detectedScale === 'small') {
+        scaleKeyword = '[SCALE: REFINED SMALL ONE-POINT FOCAL MOTIF] A single compact, delicate focal motif (approx. 25% of canvas width) centered cleanly on a wide, uninterrupted solid background.';
+      } else if (detectedScale === 'large') {
+        scaleKeyword = '[SCALE: BOLD STATEMENT ONE-POINT FOCAL MOTIF] A single large, dramatic focal motif (approx. 65% of canvas width) centered prominently on a clean solid background.';
+      } else {
+        scaleKeyword = '[SCALE: BALANCED ONE-POINT FOCAL MOTIF] A single harmonious focal motif (approx. 45% of canvas width) centered cleanly on a generous solid background.';
+      }
+      negativeScalePrompt = 'repeating pattern, seamless repeat, tiled pattern, grid of motifs, all-over pattern, scattered multiple copies, wallpaper repeat, edge-to-edge clutter';
+    } else if (isScarfMode) {
+      scaleKeyword = '[COMPOSITION: SQUARE SILK SCARF CARRÉ] Ornate decorative border frame along all four edges with a balanced central medallion composition.';
+      negativeScalePrompt = 'seamless tile, cut-off edges, infinite repeat pattern';
+    } else if (detectedScale === 'small') {
       scaleKeyword = '[SCALE: ULTRA-DENSE MICRO-KOMON] Miniature delicate scattered motifs (15mm scale), dozens of tiny repeating elements densely filling the surface without giant focal hero elements.';
       negativeScalePrompt = 'giant motifs, oversized subjects, single hero illustration, close-up, large empty space, huge animal, massive single object, portrait composition';
     } else if (detectedScale === 'large') {
@@ -188,12 +221,6 @@ export async function POST(req: Request) {
       negativeScalePrompt = 'giant single portrait, micro dot clutter, single focal hero';
     }
 
-    // 2. 柄の向き・天地（Direction / Orientation）の超強力な判定と強制
-    const isScarfMode = motif.includes('スカーフ') || motif.toLowerCase().includes('scarf');
-    const isOtaiko = density.includes('お太鼓柄') || density.includes('CENTERED');
-    const isShiho = density.includes('四方') || density.includes('ALL-OVER') || density.includes('天地無用') || (!isScarfMode && !isOtaiko && (density.includes('四方') || itemType === 'kimono'));
-    const isUpright = density.includes('一方向') || density.includes('UPWARD') || density.includes('上向き');
-
     let directionHeading = '';
     let directionEnforcement = '';
     let negativeDirectionPrompt = '';
@@ -201,9 +228,14 @@ export async function POST(req: Request) {
     if (isScarfMode) {
       directionHeading = 'LUXURY SILK SCARF (CARRÉ) FRAMED COMPOSITION';
       directionEnforcement = 'Perfect square framed composition with solid outer margin and central ornate medallion. DO NOT tile.';
+      negativeDirectionPrompt = 'repeating tiles, cut-off border, scattered small dots';
     } else if (isOtaiko) {
-      directionHeading = 'OTAIKO DRUM ACCENT PANEL';
-      directionEnforcement = 'Non-seamless centered panel design with a single magnificent focal motif placed in upper center.';
+      directionHeading = 'SINGLE CENTERED ONE-POINT FOCAL PANEL (NON-SEAMLESS)';
+      directionEnforcement = `CRITICAL MANDATORY COMPOSITION:
+Draw ONE single cohesive focal motif (or single unified focal cluster) placed cleanly in the center of the square canvas, facing upright.
+Surround the single focal motif with wide, clean, uninterrupted solid background color margin on all sides.
+DO NOT tile, DO NOT repeat across the edges, DO NOT scatter multiple copies across the background.`;
+      negativeDirectionPrompt = 'repeating tiles, seamless repeat, tiled background, multiple scattered copies, upside down, all-over pattern';
     } else if (isShiho && !isUpright) {
       // ★ 四方柄（天地無用）：AIの直立バイアスを完全に破壊する強烈な指示
       directionHeading = 'OMNIDIRECTIONAL MULTI-DIRECTIONAL TOSSED PATTERN (CHIRA-SHI)';
@@ -231,12 +263,18 @@ ABSOLUTELY NO kawaii, NO pastel, NO chibi, NO childish, NO fluffy, NO cartoon, N
 Zero gradients, zero shadows. Top-down 2D flat orthogonal surface only. NO humans, NO mockups, NO 3D perspective.
 Negative constraints: ${negativeScalePrompt}, ${negativeDirectionPrompt}, sweet cute elements, childish doodle.`;
 
+    const formatLine = isOtaiko
+      ? 'Flat 2D non-seamless single centered one-point placement artwork on a clean solid background for Japanese obi drum / tote bag front panel.'
+      : isScarfMode
+        ? 'Flat 2D non-seamless square scarf panel artwork with ornate border frame.'
+        : 'Flat 2D continuous seamless textile pattern for Japanese kimono and obi fabric.';
+
     // FLUXが最も忠実に従うよう、先頭に「向き」と「サイズ」をドカンと配置
     const prompt = `[${directionHeading}]
 ${directionEnforcement}
 ${scaleKeyword}
 
-Flat 2D continuous seamless textile pattern for Japanese kimono and obi fabric.
+${formatLine}
 
 【Motifs】
 ${englishMotif} (${cleanMotifForTranslation})
