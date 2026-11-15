@@ -603,7 +603,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
   const selectedHandleColorObj = TRADITIONAL_COLORS.find((c) => c.hex.toLowerCase() === toteHandleColor.toLowerCase());
 
   return (
-    <div ref={previewRef} className="w-full lg:w-1/2 shrink-0 sticky top-2 z-30 lg:top-8 flex flex-col gap-3">
+    <div ref={previewRef} className="w-full shrink-0 sticky top-2 z-30 lg:top-8 flex flex-col gap-3">
       <div className="bg-white border border-zinc-300 shadow-xl overflow-hidden animate-fade-in">
         
         {/* アイテム切替（3列×2行グリッド） */}
@@ -682,12 +682,12 @@ export default function PreviewArea(props: PreviewAreaProps) {
         </div>
 
         {/* 描画エリア */}
-        <div className="bg-[#e4e4e7] flex flex-col items-center justify-center p-3 sm:p-5 relative shadow-inner min-h-[320px]">
+        <div className="bg-[#e4e4e7] flex flex-col items-center justify-center p-2 sm:p-4 relative shadow-inner min-h-[320px]">
           {displayMode === 'mockup' && (
             <div className="w-full flex flex-col items-center animate-fade-in relative">
               
-              {/* 全アイテム共通枠サイズ */}
-              <div className="relative mx-auto drop-shadow-xl w-[240px] sm:w-[360px] aspect-square">
+              {/* 全アイテム共通枠サイズ（幅いっぱい拡大表示） */}
+              <div className="relative mx-auto drop-shadow-xl w-full max-w-[640px] aspect-square">
                 
                 {/* 1. マッピング画像（背面に描画） */}
                 <div ref={previewContainerRef} className="w-full h-full relative overflow-hidden">
@@ -945,7 +945,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
           {/* トリム表示（京袋帯 34cm 裁断イメージ） */}
           {displayMode === 'trim' && itemType === 'kyobukuro' && (
             <div className="w-full flex flex-col items-center animate-fade-in">
-              <div className="relative w-[272px] sm:w-[340px] mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden" style={{ aspectRatio: '34 / 40' }}>
+              <div className="relative w-full max-w-[540px] mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden" style={{ aspectRatio: '34 / 40' }}>
                 <div
                   className="absolute inset-0"
                   style={{
@@ -977,7 +977,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
                   />
                 </div>
               ) : (
-                <div className="relative w-[260px] sm:w-[400px] aspect-square mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden">
+                <div className="relative w-full max-w-[640px] aspect-square mx-auto border border-zinc-300 bg-white shadow-md overflow-hidden">
                   <div
                     className="absolute inset-0"
                     style={{
