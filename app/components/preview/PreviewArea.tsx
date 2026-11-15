@@ -95,10 +95,10 @@ export default function PreviewArea(props: PreviewAreaProps) {
     { id: 'hidarieri',   name: '左衿',         file: 'hidarieri_117.png',    z: 10, rot: 31,  scale: 100, x: 52,   y: 50 },
   ]);
 
-  // ★ 4. トートバッグパーツ定義（撮影PNGマスク使用）
+  // ★ 4. トートバッグパーツ定義（撮影PNGマスク使用・確定数値反映済み）
   const [toteOffsets, setToteOffsets] = useState([
-    { id: 'body',   name: 'バッグ本体', file: 'tote_mask_body.png',   z: 20, rot: 0, scale: 100, x: 50, y: 50 },
-    { id: 'handle', name: '持ち手',     file: 'tote_mask_handle.png', z: 30, rot: 0, scale: 100, x: 50, y: 50 },
+    { id: 'body',   name: 'バッグ本体', file: 'tote_mask_body.png',   z: 20, rot: 3,   scale: 100, x: 46, y: 69.5 },
+    { id: 'handle', name: '持ち手',     file: 'tote_mask_handle.png', z: 30, rot: -12, scale: 100, x: 58, y: 49.5 },
   ]);
 
   // アイテム別のスライダー変更ハンドラ
