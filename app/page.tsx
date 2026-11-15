@@ -60,7 +60,7 @@ function HomeContent() {
   const [designFee, setDesignFee] = useState<number>(1000);
 
   const [creationMode, setCreationMode] = useState<'ai' | 'geometric' | 'upload'>('ai');
-  const [itemType, setItemType] = useState<'hanhaba' | 'kyobukuro' | 'kimono' | 'scarf' | 'tote'>('hanhaba');
+  const [itemType, setItemType] = useState<'hanhaba' | 'kyobukuro' | 'kimono' | 'scarf' | 'tote' | 'textile'>('hanhaba');
   const [displayMode, setDisplayMode] = useState<'mockup' | 'trim' | 'data'>('mockup');
   
   const [aiStyle, setAiStyle] = useState<string>('none');
@@ -625,7 +625,7 @@ function HomeContent() {
         title: finalTitle,
         serialNumber: validSerial,
         imageUrl: finalImg,
-        itemType,
+        itemType: itemType as any,
         creationMode: creationMode === 'geometric' ? 'geometric' : 'ai',
         vendor: 'Printag Creator',
         designFee,
