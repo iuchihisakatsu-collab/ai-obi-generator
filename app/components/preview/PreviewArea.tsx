@@ -1,7 +1,8 @@
 // app/components/preview/PreviewArea.tsx
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { TRADITIONAL_COLORS } from '../../lib/constants';
 
 export type ItemType = 'hanhaba' | 'kyobukuro' | 'kimono' | 'scarf' | 'tote' | 'textile';
@@ -63,6 +64,8 @@ export default function PreviewArea(props: PreviewAreaProps) {
   const [activeFloatPalette, setActiveFloatPalette] = useState<'lining' | 'haneri' | 'obiage' | 'obi' | 'hara' | 'toteHandle' | null>(null);
   const [isZoomModalOpen, setIsZoomModalOpen] = useState<boolean>(false);
   const [showTuningPanel, setShowTuningPanel] = useState<boolean>(false);
+  const [mounted, setMounted] = useState<boolean>(false);
+  useEffect(() => { setMounted(true); }, []);
 
   // ★ 1. 半幅帯パーツ定義（確定数値を初期値に完全焼き付け）
   const [hanhabaOffsets, setHanhabaOffsets] = useState([
@@ -610,7 +613,21 @@ export default function PreviewArea(props: PreviewAreaProps) {
         <div className="p-2.5 bg-zinc-900 text-white">
           <div className="flex items-center justify-between mb-1.5 px-0.5">
             <span className="text-[10px] font-bold text-zinc-400 tracking-wider">仕立てアイテム：</span>
-            <span className="text-[9px] text-zinc-500 font-mono">40cm MASTER SCALE</span>
+            <div className="flex items-center gap-3">
+              <span className="text-[9px] text-zinc-500 font-mono">40cm MASTER SCALE</span>
+              <a
+                href="/gallery"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-[10px] font-bold tracking-[0.18em] text-zinc-200 hover:text-white border-b border-zinc-500 hover:border-white pb-0.5 transition-colors uppercase"
+              >
+                <span>GALLERY</span>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M7 17L17 7" />
+                  <path d="M7 7h10v10" />
+                </svg>
+              </a>
+            </div>
           </div>
           <div className="grid grid-cols-3 gap-1">
             {[
@@ -682,15 +699,15 @@ export default function PreviewArea(props: PreviewAreaProps) {
         </div>
 
         {/* 描画エリア */}
-        <div className="bg-[#e4e4e7] flex flex-col items-center justify-center p-2 sm:p-4 relative shadow-inner min-h-[320px]">
+        <div className="bg-[#e4e4e7] flex flex-col items-center justify-center p-3 sm:p-5 relative shadow-inner min-h-[320px]">
           {displayMode === 'mockup' && (
             <div className="w-full flex flex-col items-center animate-fade-in relative">
               
               {/* 全アイテム共通枠サイズ（幅いっぱい拡大表示） */}
-              <div className="relative mx-auto drop-shadow-xl w-full max-w-[640px] aspect-square">
+              <div className="relative mx-auto w-full max-w-[640px] aspect-square isolate">
                 
                 {/* 1. マッピング画像（背面に描画） */}
-                <div ref={previewContainerRef} className="w-full h-full relative overflow-hidden">
+                <div ref={previewContainerRef} className="w-full h-full relative overflow-hidden shadow-xl">
                   {itemType === 'hanhaba' && renderHanhabaLayers()}
                   {itemType === 'kyobukuro' && renderKyobukuroLayers()}
                   {itemType === 'kimono' && renderKimonoLayers()}
@@ -699,16 +716,21 @@ export default function PreviewArea(props: PreviewAreaProps) {
                   {itemType === 'textile' && renderTextileLayers()}
                 </div>
 
-                {/* 2. 最前面オーバーレイ層（z-[9999]） */}
-                <div className="absolute inset-0 pointer-events-none z-[9999]">
+                {/* 2. 最前面オーバーレイ層 */}
+                <div className="absolute inset-0 pointer-events-none z-50">
                   
-                  {/* 拡大ボタン（右上） */}
+                  {/* 拡大フロートボタン（右上） */}
                   <button
                     type="button"
                     onClick={() => setIsZoomModalOpen(true)}
-                    className="pointer-events-auto absolute top-2 right-2 flex items-center gap-1 bg-zinc-950 text-white px-2.5 py-1 rounded-full text-[10px] font-black shadow-2xl transition-transform hover:scale-105 active:scale-95 border border-white/30"
+                    className="pointer-events-auto absolute top-2.5 right-2.5 z-50 flex items-center gap-1.5 bg-zinc-950/90 hover:bg-black text-white px-3 py-1.5 rounded-full text-[10.5px] font-bold tracking-wider shadow-lg transition-transform hover:scale-105 active:scale-95 border border-white/30"
                   >
-                    <span>🔍</span>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="11" cy="11" r="8" />
+                      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                      <line x1="11" y1="8" x2="11" y2="14" />
+                      <line x1="8" y1="11" x2="14" y2="11" />
+                    </svg>
                     <span>拡大</span>
                   </button>
 
@@ -829,7 +851,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
                           onClick={() => setActiveFloatPalette(null)}
                           className="text-[11px] font-black text-zinc-500 hover:text-zinc-950 px-1"
                         >
-                          ✕ 閉じる
+                          閉じる
                         </button>
                       </div>
 
@@ -1003,14 +1025,14 @@ export default function PreviewArea(props: PreviewAreaProps) {
             onClick={() => setShowTuningPanel(!showTuningPanel)}
             className="text-[10px] text-zinc-400 hover:text-zinc-600 tracking-wider inline-flex items-center gap-1"
           >
-            {showTuningPanel ? '✕ 閉じる' : '柄あわせ調整'}
+            {showTuningPanel ? '閉じる' : '柄あわせ調整'}
           </button>
 
           {showTuningPanel && (
             <div className="mt-2 bg-white border-2 border-zinc-900 rounded p-4 shadow-2xl text-left animate-fade-in">
               <div className="mb-3 pb-2 border-b border-zinc-200">
                 <h4 className="text-xs font-black text-zinc-900 mb-1 flex items-center gap-1.5">
-                  <span>🛠️</span>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
                   <span>
                     工房スタッフ専用：柄あわせ調整ツール（{itemType === 'hanhaba' ? '半幅帯' : itemType === 'kyobukuro' ? '京袋帯' : itemType === 'tote' ? 'トートバッグ' : '着物'}）
                   </span>
@@ -1095,7 +1117,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
                   onClick={handleCopyCode}
                   className="w-full py-2 bg-zinc-900 hover:bg-zinc-800 text-white text-[11px] font-bold rounded shadow transition-colors flex items-center justify-center gap-1.5"
                 >
-                  <span>📋</span>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
                   <span>【{itemType === 'hanhaba' ? '半幅帯' : itemType === 'kyobukuro' ? '京袋帯' : itemType === 'tote' ? 'トートバッグ' : '着物'}】の確定数値をコピー</span>
                 </button>
               </div>
@@ -1104,8 +1126,8 @@ export default function PreviewArea(props: PreviewAreaProps) {
         </div>
       )}
 
-      {/* 全画面拡大モーダル */}
-      {isZoomModalOpen && (
+      {/* 全画面拡大モーダル（Portalで最前面に描画） */}
+      {mounted && isZoomModalOpen && createPortal(
         <div 
           style={{ zIndex: 99999 }}
           className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in"
@@ -1118,9 +1140,13 @@ export default function PreviewArea(props: PreviewAreaProps) {
             <button
               type="button"
               onClick={() => setIsZoomModalOpen(false)}
-              className="absolute top-3 right-3 text-zinc-500 hover:text-zinc-950 text-base font-black w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center"
+              aria-label="閉じる"
+              className="absolute top-3 right-3 text-zinc-500 hover:text-zinc-950 w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center"
             >
-              ✕
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
             </button>
             <h3 className="text-xs sm:text-sm font-black text-zinc-900 mb-4 tracking-widest">
               【原寸拡大プレビュー】{itemType === 'hanhaba' ? '半幅帯' : itemType === 'kyobukuro' ? '京袋帯' : itemType === 'tote' ? 'トートバッグ' : itemType === 'scarf' ? 'スカーフ' : itemType === 'textile' ? 'テキスタイル' : '着物'}
@@ -1134,7 +1160,8 @@ export default function PreviewArea(props: PreviewAreaProps) {
               {itemType === 'textile' && renderTextileLayers()}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
