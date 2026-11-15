@@ -458,11 +458,24 @@ function HomeContent() {
       
       const tagPrompt = selectedTags.length > 0 ? `。雰囲気・タッチ：${selectedTags.join('、')}` : '';
 
-      const scalePromptMap = {
-        small: '。柄の大きさ：細かい小紋調、小さなリピート柄 (tiny delicate repeating motifs, dense micro-pattern)',
-        medium: '。柄の大きさ：標準的なサイズ (medium-scale repeating motifs)',
-        large: '。柄の大きさ：大胆な大柄 (large bold prominent motifs, oversized pattern elements)',
-      };
+      const isPointOrFrame =
+        density.includes('お太鼓') ||
+        density.includes('ワンポイント') ||
+        density.includes('額縁') ||
+        density.includes('スクエア') ||
+        (itemType === 'scarf' && !density.includes('四方'));
+
+      const scalePromptMap = isPointOrFrame
+        ? {
+            small: '。柄の大きさ：控えめなワンポイントサイズ',
+            medium: '。柄の大きさ：標準的なワンポイントサイズ',
+            large: '。柄の大きさ：大胆で存在感のあるワンポイントサイズ',
+          }
+        : {
+            small: '。柄の大きさ：細かい小紋調、小さなリピート柄 (tiny delicate repeating motifs, dense micro-pattern)',
+            medium: '。柄の大きさ：標準的なサイズ (medium-scale repeating motifs)',
+            large: '。柄の大きさ：大胆な大柄 (large bold prominent motifs, oversized pattern elements)',
+          };
       const scalePrompt = scalePromptMap[patternScale];
       
       const res = await fetch('/api/generate', {
@@ -608,6 +621,8 @@ function HomeContent() {
         } else {
           throw new Error('画像データのアップロードに失敗しました。');
         }
+      } else if (finalImg && finalImg.startsWith('/')) {
+        finalImg = `https://design.gofukuyasan.com${finalImg}`;
       }
 
       if (itemType === 'kyobukuro' && customHaraUrl) {
