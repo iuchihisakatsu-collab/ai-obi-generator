@@ -7,9 +7,8 @@ import { TRADITIONAL_COLORS } from '../../lib/constants';
 interface ControlPanelProps {
   creationMode: 'ai' | 'geometric';
   setCreationMode: (mode: 'ai' | 'geometric') => void;
-  // ★ ここに 'tote' が入っています
-  itemType: 'hanhaba' | 'kyobukuro' | 'kimono' | 'scarf' | 'tote';
-  setItemType: (type: 'hanhaba' | 'kyobukuro' | 'kimono' | 'scarf' | 'tote') => void;
+  itemType: 'hanhaba' | 'kyobukuro' | 'kimono' | 'scarf' | 'tote' | 'textile';
+  setItemType: (type: 'hanhaba' | 'kyobukuro' | 'kimono' | 'scarf' | 'tote' | 'textile') => void;
   
   aiStyle: string;
   setAiStyle: (val: string) => void;
@@ -1233,7 +1232,7 @@ export default function ControlPanel({
                         />
                       </div>
                       
-                      {/* NEW: クリエイターのひとこと */}
+                      {/* クリエイターのひとこと */}
                       <div>
                         <label className="block text-[9px] font-bold text-zinc-500 tracking-widest uppercase mb-2">CREATOR'S NOTE (Optional) / こだわりやひとこと</label>
                         <textarea
@@ -1324,7 +1323,9 @@ export default function ControlPanel({
                         ? 'ORDER AS WOOL SCARF / スカーフにお仕立て' 
                         : itemType === 'tote'
                           ? 'ORDER TOTE BAG KIT / トートバッグキット'
-                          : 'ORDER AS KIMONO OR OBI / 着物・帯にお仕立て'}
+                          : itemType === 'textile'
+                            ? 'ORDER CUSTOM FABRIC / オーダー生地（1m〜）'
+                            : 'ORDER AS KIMONO OR OBI / 着物・帯にお仕立て'}
                     </span>
                     <span className="text-[9px] font-light tracking-widest opacity-80">
                       実質0円対象 / ポイント還元
