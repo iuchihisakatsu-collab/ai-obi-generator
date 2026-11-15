@@ -2,6 +2,8 @@
 'use client';
 
 import React, { useState } from 'react';
+// ★ ここで伝統色のデータを読み込んでいます（クラッシュ防止）
+import { TRADITIONAL_COLORS } from '../../lib/constants';
 
 export interface PreviewAreaProps {
   imageUrl: string;
@@ -89,9 +91,9 @@ export default function PreviewArea(props: PreviewAreaProps) {
     { id: 'hidarieri',   name: '左衿',         file: 'hidarieri_117.png',    z: 10, rot: 31,  scale: 100, x: 52,   y: 50 },
   ]);
 
-  // ★ 4. トートバッグ調整用ステート
+  // ★ 4. トートバッグ調整用ステート（ファイル名を修正）
   const [toteOffsets, setToteOffsets] = useState([
-    { id: 'tote_body', name: 'トートバッグ本体', file: 'tote_body.png', z: 10, rot: 0, scale: 100, x: 50, y: 50 }
+    { id: 'tote_body', name: 'トートバッグ本体', file: 'tote_mask_body.png', z: 10, rot: 0, scale: 100, x: 50, y: 50 }
   ]);
 
   const handleOffsetChange = (index: number, axis: 'x' | 'y' | 'rot' | 'scale', value: number) => {
@@ -125,7 +127,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
 
   const effectivePatternUrl = creationMode === 'geometric' ? imageUrl : (rotatedPatternUrl || blobUrl || imageUrl);
   const baseScale = creationMode === 'geometric' ? bgSizeMm * UNIVERSAL_SCALE_FACTOR : 400 * UNIVERSAL_SCALE_FACTOR;
-  const v = '32';
+  const v = Date.now().toString(); // キャッシュ回避を強力に
 
   const renderHanhabaLayers = () => (
     <div className="relative w-full h-full overflow-hidden">
@@ -200,11 +202,12 @@ export default function PreviewArea(props: PreviewAreaProps) {
     </div>
   );
 
-  // ★ 5. トートバッグマッピング描画
+  // ★ 5. トートバッグマッピング描画（ファイル名修正済み）
   const renderTotePreview = () => {
     const part = toteOffsets[0];
     return (
       <div className="relative w-full h-full flex items-center justify-center p-3 bg-white">
+        
         {/* 1. 柄が乗る本体（マスク処理） */}
         <div 
           className="absolute inset-0 pointer-events-none" 
@@ -239,13 +242,13 @@ export default function PreviewArea(props: PreviewAreaProps) {
           />
         </div>
 
-        {/* 2. 持ち手（マスク＋色塗り）※プレビュー画面では仮で「裏地の色」を利用してテスト可能 */}
+        {/* 2. 持ち手（マスク＋色塗り） */}
         <div 
           className="absolute inset-0 pointer-events-none"
           style={{
             zIndex: 20,
-            maskImage: `url('/tote_handle.png?v=${v}')`,
-            WebkitMaskImage: `url('/tote_handle.png?v=${v}')`,
+            maskImage: `url('/tote_mask_handle.png?v=${v}')`,
+            WebkitMaskImage: `url('/tote_mask_handle.png?v=${v}')`,
             maskSize: 'contain',
             WebkitMaskSize: 'contain',
             maskRepeat: 'no-repeat',
@@ -335,7 +338,6 @@ export default function PreviewArea(props: PreviewAreaProps) {
             >
               スカーフ
             </button>
-            {/* ★ トートバッグ追加 */}
             <button
               type="button"
               onClick={() => { handleItemTypeChange('tote'); setActiveFloatPalette(null); }}
@@ -348,42 +350,38 @@ export default function PreviewArea(props: PreviewAreaProps) {
           </div>
         </div>
 
-        {/* 表示タブ */}
-        <div className="px-3 py-2 border-b border-zinc-200 bg-zinc-100 flex gap-1.5 overflow-x-auto">
+        {/* ★ タブをスッキリ統一化しました */}
+        <div className="px-3 py-2 border-b border-zinc-200 bg-zinc-100 flex gap-1.5 overflow-x-auto no-scrollbar">
           <button
             type="button"
             onClick={() => setDisplayMode('mockup')}
-            className={`flex-1 px-3 py-1.5 text-[10px] sm:text-xs font-bold tracking-wider transition-all border rounded-sm whitespace-nowrap ${
+            className={`flex-1 px-3 py-1.5 text-[10px] font-bold tracking-wider transition-all border rounded-sm whitespace-nowrap ${
               displayMode === 'mockup' ? 'bg-zinc-900 text-white border-zinc-900 shadow' : 'bg-white text-zinc-600 border-zinc-300'
             }`}
           >
-            {itemType === 'hanhaba' && '半幅帯マッピング'}
-            {itemType === 'kyobukuro' && '京袋帯マッピング'}
-            {itemType === 'kimono' && '着物マッピング'}
-            {itemType === 'scarf' && 'スカーフ全体図 (100×100)'}
-            {itemType === 'tote' && 'トートバッグマッピング'}
+            プレビュー (合成)
           </button>
 
           {itemType === 'kyobukuro' && (
             <button
               type="button"
               onClick={() => setDisplayMode('trim')}
-              className={`flex-1 px-3 py-1.5 text-[10px] sm:text-xs font-bold tracking-wider transition-all border rounded-sm whitespace-nowrap ${
+              className={`flex-1 px-3 py-1.5 text-[10px] font-bold tracking-wider transition-all border rounded-sm whitespace-nowrap ${
                 displayMode === 'trim' ? 'bg-zinc-900 text-white border-zinc-900 shadow' : 'bg-white text-zinc-600 border-zinc-300'
               }`}
             >
-              34cm 裁断イメージ
+              裁断イメージ
             </button>
           )}
 
           <button
             type="button"
             onClick={() => setDisplayMode('data')}
-            className={`flex-1 px-3 py-1.5 text-[10px] sm:text-xs font-bold tracking-wider transition-all border rounded-sm whitespace-nowrap ${
+            className={`flex-1 px-3 py-1.5 text-[10px] font-bold tracking-wider transition-all border rounded-sm whitespace-nowrap ${
               displayMode === 'data' ? 'bg-zinc-900 text-white border-zinc-900 shadow' : 'bg-white text-zinc-600 border-zinc-300'
             }`}
           >
-            {itemType === 'hanhaba' ? '18cm プリントデータ' : itemType === 'scarf' ? '100cm 正方形データ' : itemType === 'tote' ? '36cm角 データ' : '40cm 反物データ'}
+            プリント用データ
           </button>
         </div>
 
@@ -392,7 +390,6 @@ export default function PreviewArea(props: PreviewAreaProps) {
           {displayMode === 'mockup' && (
             <div className="w-full flex flex-col items-center animate-fade-in relative">
               
-              {/* 全アイテム共通枠サイズ */}
               <div className="relative mx-auto drop-shadow-xl w-[240px] sm:w-[360px] aspect-square">
                 
                 <div ref={previewContainerRef} className="w-full h-full relative overflow-hidden">
@@ -507,6 +504,7 @@ export default function PreviewArea(props: PreviewAreaProps) {
                     </div>
                   )}
 
+                  {/* パレット表示 */}
                   {activeFloatPalette && (
                     <div className="pointer-events-auto absolute top-10 left-2 right-2 bg-white border-2 border-zinc-900 p-2.5 rounded shadow-2xl animate-fade-in max-w-[340px]">
                       <div className="flex justify-between items-center mb-1.5 pb-1 border-b border-zinc-200">
@@ -532,9 +530,10 @@ export default function PreviewArea(props: PreviewAreaProps) {
                         </div>
                       )}
 
+                      {/* ★ 安全対策 (TRADITIONAL_COLORS || []) でクラッシュを防止 */}
                       {!(activeFloatPalette === 'hara' || (activeFloatPalette === 'obi' && customObiUrl)) && (
                         <div className="max-h-[150px] overflow-y-auto pr-1 grid grid-cols-4 sm:grid-cols-6 gap-1">
-                          {TRADITIONAL_COLORS.map((col) => (
+                          {(TRADITIONAL_COLORS || []).map((col) => (
                             <button
                               key={col.name}
                               type="button"
@@ -630,112 +629,4 @@ export default function PreviewArea(props: PreviewAreaProps) {
                   </span>
                 </h4>
                 <p className="text-[9px] text-zinc-500 leading-normal">
-                  生地を裁断する前に、柄（送り）が美しく繋がるかを確認・微調整するためのシミュレーターです。
-                </p>
-              </div>
-
-              <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-zinc-300">
-                {currentOffsets.map((layer, idx) => (
-                  <div key={layer.id} className="p-3 bg-zinc-50 border border-zinc-300 rounded shadow-sm">
-                    <div className="flex justify-between items-center mb-2 pb-1 border-b border-zinc-200">
-                      <span className="text-[11px] font-black text-zinc-800">{layer.name}</span>
-                      <span className="font-mono text-zinc-400 text-[9px]">{layer.file}</span>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-                      <div>
-                        <div className="flex justify-between text-[9px] text-zinc-600 mb-1">
-                          <span>X（横位置）</span>
-                          <span className="font-mono font-bold text-zinc-900">{layer.x}%</span>
-                        </div>
-                        <input
-                          type="range" min="0" max="100" step="0.5"
-                          value={layer.x}
-                          onChange={(e) => handleOffsetChange(idx, 'x', Number(e.target.value))}
-                          className="w-full accent-zinc-900 cursor-pointer h-1 bg-zinc-300 rounded"
-                        />
-                      </div>
-
-                      <div>
-                        <div className="flex justify-between text-[9px] text-zinc-600 mb-1">
-                          <span>Y（縦位置）</span>
-                          <span className="font-mono font-bold text-zinc-900">{layer.y}%</span>
-                        </div>
-                        <input
-                          type="range" min="0" max="100" step="0.5"
-                          value={layer.y}
-                          onChange={(e) => handleOffsetChange(idx, 'y', Number(e.target.value))}
-                          className="w-full accent-zinc-900 cursor-pointer h-1 bg-zinc-300 rounded"
-                        />
-                      </div>
-
-                      <div>
-                        <div className="flex justify-between text-[9px] text-zinc-600 mb-1">
-                          <span>角度（rot）</span>
-                          <span className="font-mono font-bold text-zinc-900">{layer.rot}°</span>
-                        </div>
-                        <input
-                          type="range" min="-180" max="180" step="1"
-                          value={layer.rot}
-                          onChange={(e) => handleOffsetChange(idx, 'rot', Number(e.target.value))}
-                          className="w-full accent-zinc-900 cursor-pointer h-1 bg-zinc-300 rounded"
-                        />
-                      </div>
-
-                      <div>
-                        <div className="flex justify-between text-[9px] text-zinc-600 mb-1">
-                          <span>倍率（scale）</span>
-                          <span className="font-mono font-bold text-zinc-900">{layer.scale}%</span>
-                        </div>
-                        <input
-                          type="range" min="50" max="150" step="1"
-                          value={layer.scale}
-                          onChange={(e) => handleOffsetChange(idx, 'scale', Number(e.target.value))}
-                          className="w-full accent-zinc-900 cursor-pointer h-1 bg-zinc-300 rounded"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="pt-3 mt-2 border-t border-zinc-200">
-                <button
-                  type="button"
-                  onClick={handleCopyCode}
-                  className="w-full py-2 bg-zinc-900 hover:bg-zinc-800 text-white text-[11px] font-bold rounded shadow transition-colors flex items-center justify-center gap-1.5"
-                >
-                  <span>📋</span>
-                  <span>【{itemType === 'hanhaba' ? '半幅帯' : itemType === 'kyobukuro' ? '京袋帯' : itemType === 'kimono' ? '着物' : 'トートバッグ'}】の確定数値をコピー</span>
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* 全画面拡大モーダル */}
-      {isZoomModalOpen && (
-        <div 
-          style={{ zIndex: 99999 }}
-          className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in"
-          onClick={() => setIsZoomModalOpen(false)}
-        >
-          <div className="relative bg-white p-4 sm:p-6 rounded-lg max-w-[95vw] max-h-[95vh] overflow-auto shadow-2xl flex flex-col items-center border border-zinc-300" onClick={(e) => e.stopPropagation()}>
-            <button type="button" onClick={() => setIsZoomModalOpen(false)} className="absolute top-3 right-3 text-zinc-500 hover:text-zinc-950 text-base font-black w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center">✕</button>
-            <h3 className="text-xs sm:text-sm font-black text-zinc-900 mb-4 tracking-widest">
-              【原寸拡大プレビュー】{itemType === 'hanhaba' ? '半幅帯' : itemType === 'kyobukuro' ? '京袋帯' : itemType === 'kimono' ? '着物' : itemType === 'tote' ? 'トートバッグ' : 'スカーフ (100×100cm)'}
-            </h3>
-            <div className="w-[300px] sm:w-[500px] lg:w-[600px] aspect-square bg-[#e4e4e7] relative overflow-hidden shadow-inner border border-zinc-300">
-              {itemType === 'hanhaba' && renderHanhabaLayers()}
-              {itemType === 'kyobukuro' && renderKyobukuroLayers()}
-              {itemType === 'kimono' && renderKimonoLayers()}
-              {itemType === 'scarf' && renderScarfPreview()}
-              {itemType === 'tote' && renderTotePreview()}
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+                  生地を裁断する前に、柄（送り）が美しく繋がるかを確認
