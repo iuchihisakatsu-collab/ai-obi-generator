@@ -71,3 +71,61 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: false, error: 'ギャラリーへの保存に失敗しました' }, { status: 500 });
   }
 }
+
+export async function DELETE(req: Request) {
+  try {
+    const body = await req.json();
+    const { password, id, imageUrl } = body;
+
+    if (password !== 'gofuku2026') {
+      return NextResponse.json({ success: false, error: 'パスワードが違います' }, { status: 401 });
+    }
+
+    if (!id && !imageUrl) {
+      return NextResponse.json({ success: false, error: '削除対象のIDが指定されていません' }, { status: 400 });
+    }
+
+    const rawItems = await kv.lrange('gallery_items', 0, -1);
+    if (!rawItems || rawItems.length === 0) {
+      return NextResponse.json({ success: true, deleted: false });
+    }
+
+    let removedCount = 0;
+    const remainingSerialized: string[] = [];
+
+    for (const raw of rawItems) {
+      let parsed: any = null;
+      if (typeof raw === 'string') {
+        try {
+          parsed = JSON.parse(raw);
+        } catch {
+          parsed = null;
+        }
+      } else if (raw && typeof raw === 'object') {
+        parsed = raw;
+      }
+
+      const isTarget =
+        parsed &&
+        ((id && parsed.id === id) || (!id && imageUrl && parsed.imageUrl === imageUrl));
+
+      if (isTarget) {
+        removedCount += 1;
+      } else {
+        remainingSerialized.push(typeof raw === 'string' ? raw : JSON.stringify(raw));
+      }
+    }
+
+    if (removedCount > 0) {
+      await kv.del('gallery_items');
+      if (remainingSerialized.length > 0) {
+        await kv.rpush('gallery_items', ...remainingSerialized);
+      }
+    }
+
+    return NextResponse.json({ success: true, deleted: removedCount > 0, removedCount });
+  } catch (error) {
+    console.error('Gallery DELETE Error:', error);
+    return NextResponse.json({ success: false, error: 'ギャラリー作品の削除に失敗しました' }, { status: 500 });
+  }
+}
