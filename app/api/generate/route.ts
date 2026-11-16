@@ -221,6 +221,13 @@ export async function POST(req: Request) {
     const isFlux = !isPremium && engine === 'flux';
     const isOpenAiFree = !isPremium && (engine === 'openai_free' || engine === 'openai');
 
+    if (referenceImageUrl && !isPremium) {
+      return NextResponse.json(
+        { error: '「写真を参照に図案を作る」機能はチケットコードが必要です。' },
+        { status: 400 }
+      );
+    }
+
     let code = (premiumCode || '').trim().toUpperCase();
     
     // SNSで拡散済みの「X-」から始まるコードを、裏側で「IG-X-」として処理するための特別対応
