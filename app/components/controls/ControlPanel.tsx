@@ -77,7 +77,6 @@ interface ControlPanelProps {
   premiumCode: string;
   setPremiumCode: (val: string) => void;
   premiumStatusMsg: string;
-  onReferenceImageGenerate?: (referenceDataUrl: string, note: string) => Promise<void>;
   
   onOpenPolicy: () => void;
 }
@@ -182,17 +181,10 @@ export default function ControlPanel({
   imageUrl, patternTitle, setPatternTitle, serialNumber,
   handleDownloadOriginal, handleOrderClick,
   premiumCode, setPremiumCode, premiumStatusMsg,
-  onReferenceImageGenerate,
   onOpenPolicy,
 }: ControlPanelProps) {
 
   const [analyzingPhoto, setAnalyzingPhoto] = useState(false);
-  const [refModalOpen, setRefModalOpen] = useState(false);
-  const [refPreviewDataUrl, setRefPreviewDataUrl] = useState<string>('');
-  const [refNoteInput, setRefNoteInput] = useState<string>('');
-  const [refModalCodeInput, setRefModalCodeInput] = useState<string>(premiumCode || '');
-  const [refModalAgreed, setRefModalAgreed] = useState<boolean>(false);
-  const [refGenerating, setRefGenerating] = useState<boolean>(false);
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
   const [showCodeInput, setShowCodeInput] = useState(false);
   const [inputCodeValue, setInputCodeValue] = useState(premiumCode || '');
@@ -208,7 +200,6 @@ export default function ControlPanel({
   useEffect(() => {
     if (premiumCode) {
       setInputCodeValue(premiumCode);
-      setRefModalCodeInput(premiumCode);
     }
   }, [premiumCode]);
 
@@ -309,44 +300,6 @@ export default function ControlPanel({
     } catch (err) {
       setAnalyzingPhoto(false);
       console.error(err);
-    }
-  };
-
-  const handleSelectReferencePhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const dataUrl = reader.result as string;
-      setRefPreviewDataUrl(dataUrl);
-      setRefNoteInput('');
-      setRefModalAgreed(false);
-      setRefModalOpen(true);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleConfirmReferenceModal = async () => {
-    if (!refPreviewDataUrl || !refModalAgreed || refGenerating) return;
-    const activeCode = (premiumCode || refModalCodeInput).trim();
-    if (!activeCode) {
-      alert('チケットコードを入力してください。');
-      return;
-    }
-    if (!premiumCode && activeCode) {
-      setPremiumCode(activeCode);
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('komon_premium_code', activeCode);
-      }
-    }
-    if (!onReferenceImageGenerate) return;
-    setRefGenerating(true);
-    try {
-      await onReferenceImageGenerate(refPreviewDataUrl, refNoteInput);
-      setRefModalOpen(false);
-    } finally {
-      setRefGenerating(false);
     }
   };
 
@@ -589,24 +542,16 @@ export default function ControlPanel({
           <>
             {/* 01. 何を描く？（モチーフ入力） */}
             <div className="space-y-2">
-              <div className="flex flex-wrap justify-between items-center gap-1.5">
+              <div className="flex justify-between items-center">
                 <label className="block text-xs font-bold text-zinc-900 tracking-wider">
                   01. 何を描く？（テーマ・モチーフ）
                 </label>
 
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <label className="cursor-pointer inline-flex items-center gap-1 px-2.5 py-1 bg-zinc-100 hover:bg-zinc-200 text-zinc-900 border border-zinc-300 rounded text-[10px] font-bold shadow-2xs transition-all active:scale-95">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
-                    <span>{analyzingPhoto ? '解析中...' : '写真からテキスト自動入力'}</span>
-                    <input type="file" accept="image/*" onChange={handlePhotoUploadAndExtract} disabled={analyzingPhoto || loading} className="hidden" />
-                  </label>
-
-                  <label className="cursor-pointer inline-flex items-center gap-1 px-2.5 py-1 bg-zinc-900 hover:bg-zinc-800 text-white rounded text-[10px] font-bold shadow-sm transition-all active:scale-95">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                    <span>写真を参照に図案を作る</span>
-                    <input type="file" accept="image/*" onChange={handleSelectReferencePhoto} disabled={analyzingPhoto || loading || refGenerating} className="hidden" />
-                  </label>
-                </div>
+                <label className="cursor-pointer inline-flex items-center gap-1.5 px-2.5 py-1 bg-zinc-900 hover:bg-zinc-800 text-white rounded text-[10.5px] font-bold shadow-sm transition-all active:scale-95">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+                  <span>{analyzingPhoto ? '解析中...' : '写真から自動入力'}</span>
+                  <input type="file" accept="image/*" onChange={handlePhotoUploadAndExtract} disabled={analyzingPhoto || loading} className="hidden" />
+                </label>
               </div>
 
               <div className="relative">
@@ -1689,129 +1634,6 @@ export default function ControlPanel({
           </div>
         )}
       </div>
-
-      {/* 写真を参照に図案を作る：著作権・版権確認ポップアップ */}
-      {refModalOpen && (
-        <div
-          className="fixed inset-0 z-[99999] bg-zinc-950/70 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in"
-          onClick={() => !refGenerating && setRefModalOpen(false)}
-        >
-          <div
-            className="bg-white rounded-md shadow-2xl w-full max-w-md overflow-hidden border border-zinc-300 text-left"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="bg-zinc-900 px-4 py-3 flex items-center justify-between">
-              <h4 className="text-xs font-black text-white tracking-wider flex items-center gap-1.5">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-400 shrink-0">
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                </svg>
-                <span>写真を参照に図案を作る（著作権・権利確認）</span>
-              </h4>
-              <button
-                type="button"
-                onClick={() => !refGenerating && setRefModalOpen(false)}
-                className="text-zinc-400 hover:text-white text-xs font-bold"
-              >
-                閉じる
-              </button>
-            </div>
-
-            <div className="p-4 sm:p-5 space-y-4">
-              {refPreviewDataUrl && (
-                <div className="flex items-center gap-3 p-2.5 bg-zinc-50 border border-zinc-200 rounded">
-                  <img src={refPreviewDataUrl} alt="" className="w-14 h-14 object-cover rounded border border-zinc-300 shrink-0" />
-                  <div className="text-[10.5px] text-zinc-600 leading-relaxed">
-                    <p className="font-bold text-zinc-900">選択した写真を参照して和装図案化します</p>
-                    <p className="text-[9.5px] text-zinc-500 mt-0.5">
-                      現在の設定（{currentTasteObj.title} / {currentDensityLabel} / {currentScaleLabel.split('（')[0]}）も反映されます。
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              <div>
-                <label className="block text-[10.5px] font-bold text-zinc-800 mb-1">
-                  追加のアレンジ指示（任意）
-                </label>
-                <input
-                  type="text"
-                  value={refNoteInput}
-                  onChange={(e) => setRefNoteInput(e.target.value)}
-                  placeholder="例：江戸型染め風に、小紋散らしで"
-                  disabled={refGenerating}
-                  className="w-full border border-zinc-300 p-2 bg-white text-xs rounded focus:outline-none focus:border-zinc-900"
-                />
-              </div>
-
-              {/* チケット消費案内 */}
-              <div className="p-2.5 bg-amber-50/80 border border-amber-200 rounded space-y-1.5">
-                <p className="text-[10.5px] font-bold text-amber-950">
-                  チケットを1回消費して生成します
-                </p>
-                {hasValidCode ? (
-                  <p className="text-[10px] font-mono text-emerald-800 font-bold">
-                    適用中コード: {premiumCode}{ticketRemaining !== null && ticketRemaining !== undefined ? `（残り ${ticketRemaining}回）` : ''}
-                  </p>
-                ) : (
-                  <div className="space-y-1">
-                    <p className="text-[9.5px] text-zinc-600">チケットコードを入力してください：</p>
-                    <input
-                      type="text"
-                      value={refModalCodeInput}
-                      onChange={(e) => setRefModalCodeInput(e.target.value)}
-                      placeholder="例: IG-XXXXXX または GFK-XXXX-XXXX"
-                      disabled={refGenerating}
-                      className="w-full border border-zinc-300 p-1.5 bg-white text-xs font-mono rounded focus:outline-none focus:border-zinc-900"
-                    />
-                  </div>
-                )}
-              </div>
-
-              {/* 著作権・版権に対する注意事項 */}
-              <div className="p-3 bg-zinc-50 border border-zinc-200 rounded space-y-1.5 text-[10px] text-zinc-600 leading-relaxed">
-                <p className="font-black text-zinc-900">【著作権・版権に関するご注意】</p>
-                <ul className="list-disc pl-4 space-y-1">
-                  <li>アニメ・漫画・ゲーム等の既存キャラクター、著名人の肖像、ブランドロゴ・商標など、第三者の著作権・版権・肖像権を侵害する画像の利用は固く禁止いたします。</li>
-                  <li>本機能は写真の構図・配色・雰囲気を参照し、着物・帯向けのオリジナル図案としてAIが再構築するものです。</li>
-                  <li>お仕立てへ進むデータは製作前にスタッフが必ず目視確認を行い、権利侵害の恐れがある場合は製作をお断りいたします。</li>
-                </ul>
-              </div>
-
-              <label className="flex items-start gap-2 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={refModalAgreed}
-                  onChange={(e) => setRefModalAgreed(e.target.checked)}
-                  disabled={refGenerating}
-                  className="mt-0.5 h-3.5 w-3.5 border-zinc-300 text-zinc-900 focus:ring-zinc-900 shrink-0"
-                />
-                <span className="text-[10px] font-bold text-zinc-800 leading-tight">
-                  上記の著作権・版権に関する注意事項を確認し、同意します
-                </span>
-              </label>
-
-              <div className="flex gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={() => setRefModalOpen(false)}
-                  disabled={refGenerating}
-                  className="flex-1 py-2.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-bold rounded transition-colors"
-                >
-                  キャンセル
-                </button>
-                <button
-                  type="button"
-                  onClick={handleConfirmReferenceModal}
-                  disabled={!refModalAgreed || refGenerating || !(premiumCode || refModalCodeInput).trim()}
-                  className="flex-[2] py-2.5 bg-zinc-900 hover:bg-black disabled:bg-zinc-300 disabled:text-zinc-500 text-white text-xs font-black rounded shadow transition-all"
-                >
-                  {refGenerating ? '図案を生成中...' : 'OK・チケット1回消費して生成'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
