@@ -63,7 +63,7 @@ async function translateToEnglish(text: string): Promise<string> {
   }
 }
 
-async function analyzeReferenceForArrangement(referenceImageUrl: string): Promise<{ blocked: boolean; reason?: string; blueprint: string }> {
+async function analyzeReferenceForArrangement(referenceImageUrl: string): Promise<{ blocked: boolean; reason?: string; subjectFocus: string; blueprint: string }> {
   try {
     const res = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
@@ -72,16 +72,17 @@ async function analyzeReferenceForArrangement(referenceImageUrl: string): Promis
           role: 'system',
           content: `You are a copyright-compliance & senior kimono textile art director.
 Inspect the uploaded reference image and output a JSON object ONLY:
-1. "blocked": boolean — Set to true ONLY if the image clearly depicts copyrighted anime/manga/game/movie characters, famous mascots, or protected brand logos/trademarks that would infringe IP if adapted. Set to false for nature, animals, florals, geometric motifs, personal sketches, fabrics, landscapes, or original art.
+1. "blocked": boolean — Set to true ONLY if the image clearly depicts copyrighted anime/manga/game/movie characters, famous mascots, or protected brand logos/trademarks that would infringe IP if adapted. Set to false for pets, animals, nature, florals, geometric motifs, personal sketches, fabrics, landscapes, or original art.
 2. "reason": string — If blocked is true, a polite Japanese explanation (e.g. "著作権・商標保護の対象となるキャラクターやロゴが含まれている可能性があるため生成できません。").
-3. "blueprint": string — If blocked is false, write a highly detailed English textile design blueprint (80-130 words) describing the exact motifs, spatial composition, color palette (with exact tones), linework, and artistic medium of the reference image so it can be faithfully reimagined as an original Japanese kimono/obi textile pattern without copying any trademarked elements.`
+3. "subjectFocus": string — If blocked is false, describe ONLY the main subject (e.g., exact dog/cat breed or mix, exact ear shape and ear colors, fur pattern and colors, facial markings, expression, or main botanical/object subject) in 35-60 words, completely ignoring background clutter like strollers, cages, rooms, shelves, furniture, leashes, or walls.
+4. "blueprint": string — If blocked is false, write a concise English summary (50-80 words) of the subject's visual traits and colors so it can be faithfully adapted into an original Japanese kimono/obi textile design.`
         },
         {
           role: 'user',
           content: [
             {
               type: 'text',
-              text: 'Analyze this reference image for a copyright-safe original Japanese kimono/obi textile arrangement.'
+              text: 'Analyze this reference image for a copyright-safe faithful Japanese kimono/obi textile adaptation.'
             },
             {
               type: 'image_url',
@@ -95,23 +96,100 @@ Inspect the uploaded reference image and output a JSON object ONLY:
       ],
       response_format: { type: 'json_object' },
       temperature: 0.2,
-      max_tokens: 300,
+      max_tokens: 320,
     });
 
     const raw = res.choices[0]?.message?.content;
     if (!raw) {
-      return { blocked: false, blueprint: '' };
+      return { blocked: false, subjectFocus: '', blueprint: '' };
     }
     const parsed = JSON.parse(raw);
     return {
       blocked: Boolean(parsed.blocked),
       reason: parsed.reason,
+      subjectFocus: parsed.subjectFocus || '',
       blueprint: parsed.blueprint || '',
     };
   } catch (err) {
     console.error('Reference image vision analysis error:', err);
-    return { blocked: false, blueprint: '' };
+    return { blocked: false, subjectFocus: '', blueprint: '' };
   }
+}
+
+async function generateImageFromReference(referenceImageUrl: string, editPrompt: string): Promise<Buffer> {
+  let imageBytes: Uint8Array;
+  let mimeType = 'image/jpeg';
+  let filename = 'reference.jpg';
+
+  if (referenceImageUrl.startsWith('data:')) {
+    const match = referenceImageUrl.match(/^data:(image\/[a-zA-Z0-9+.-]+);base64,(.+)$/);
+    if (!match) {
+      throw new Error('参照画像の形式が不正です。');
+    }
+    mimeType = match[1];
+    const ext = mimeType.includes('png') ? 'png' : mimeType.includes('webp') ? 'webp' : 'jpg';
+    filename = `reference.${ext}`;
+    const buf = Buffer.from(match[2], 'base64');
+    imageBytes = new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
+  } else {
+    const imgRes = await fetch(referenceImageUrl);
+    if (!imgRes.ok) {
+      throw new Error('参照画像の取得に失敗しました。');
+    }
+    mimeType = imgRes.headers.get('content-type') || 'image/jpeg';
+    const ext = mimeType.includes('png') ? 'png' : mimeType.includes('webp') ? 'webp' : 'jpg';
+    filename = `reference.${ext}`;
+    const arrBuf = await imgRes.arrayBuffer();
+    imageBytes = new Uint8Array(arrBuf);
+  }
+
+  const callOpenAiEditEndpoint = async (modelName: string) => {
+    const formData = new FormData();
+    const arrayBuffer = imageBytes.buffer.slice(
+      imageBytes.byteOffset,
+      imageBytes.byteOffset + imageBytes.byteLength
+    ) as ArrayBuffer;
+    formData.append('model', modelName);
+    formData.append('image', new Blob([arrayBuffer], { type: mimeType }), filename);
+    formData.append('prompt', editPrompt);
+    formData.append('n', '1');
+    formData.append('size', '1024x1024');
+    formData.append('quality', 'high');
+
+    return fetch('https://api.openai.com/v1/images/edits', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+      },
+      body: formData,
+    });
+  };
+
+  let editRes = await callOpenAiEditEndpoint('gpt-image-2.5-sunburst');
+  if (!editRes.ok) {
+    const firstErrText = await editRes.text().catch(() => '');
+    console.warn('gpt-image-2.5-sunburst edits fallback to gpt-image-1:', editRes.status, firstErrText);
+    editRes = await callOpenAiEditEndpoint('gpt-image-1');
+  }
+
+  if (!editRes.ok) {
+    const errJson = await editRes.json().catch(() => null);
+    const errMessage = errJson?.error?.message || `参照画像からの生成に失敗しました (${editRes.status})`;
+    throw new Error(errMessage);
+  }
+
+  const editData = await editRes.json();
+  const item = editData?.data?.[0];
+
+  if (item?.b64_json) {
+    return Buffer.from(item.b64_json, 'base64');
+  }
+  if (item?.url) {
+    const outRes = await fetch(item.url);
+    return Buffer.from(await outRes.arrayBuffer());
+  }
+
+  throw new Error('参照画像からの生成データ取得に失敗しました');
 }
 
 const TASTE_PROMPTS: Record<string, string> = {
@@ -236,6 +314,7 @@ export async function POST(req: Request) {
     }
 
     let referenceBlueprint = '';
+    let referenceSubjectFocus = '';
     if (referenceImageUrl) {
       const refAnalysis = await analyzeReferenceForArrangement(referenceImageUrl);
       if (refAnalysis.blocked) {
@@ -245,6 +324,7 @@ export async function POST(req: Request) {
         );
       }
       referenceBlueprint = refAnalysis.blueprint;
+      referenceSubjectFocus = refAnalysis.subjectFocus;
     }
 
     if (isPremium) {
@@ -487,25 +567,62 @@ ${enforcement}`;
       }
     }
 
-    // OpenAI 高精細生成
-    const response = await openai.images.generate({
-      model: "gpt-image-2.5-sunburst",
-      prompt: prompt,
-      n: 1,
-      size: "1024x1024",
-      quality: "high",
-    });
-
-    const item = response.data?.[0];
+    // OpenAI 高精細生成（写真参照時は元画像ピクセルを直接入力する Image-to-Image を使用）
     let buffer: Buffer;
 
-    if (item?.b64_json) {
-      buffer = Buffer.from(item.b64_json, 'base64');
-    } else if (item?.url) {
-      const imgRes = await fetch(item.url);
-      buffer = Buffer.from(await imgRes.arrayBuffer());
+    if (referenceImageUrl) {
+      const subjectDetail = referenceSubjectFocus || referenceBlueprint || 'the exact main subject shown in the reference photo';
+      const refLayoutDirective = isOtaiko
+        ? `SINGLE CENTERED ONE-POINT TEXTILE PORTRAIT (NON-SEAMLESS):
+Place ONE clean, well-proportioned portrait/bust of the exact subject from the reference photo right in the center of the square canvas (${detectedScale === 'small' ? 'approx. 30% of canvas width' : detectedScale === 'large' ? 'approx. 65% of canvas width' : 'approx. 48% of canvas width'}), facing upright.
+Surround the centered subject with wide, clean, uninterrupted solid background color margin on all four sides so it fits cleanly on an obi drum or tote bag front.
+${(tagDirectives || englishMotif) ? 'If decorative motifs or stylistic tags are specified, arrange subtle botanical/craft accents around the portrait as a tasteful frame without covering or altering the subject face.' : 'Keep the surrounding ground clean and uncluttered.'}`
+        : isShiho && !isUpright
+          ? `OMNIDIRECTIONAL SEAMLESS KIMONO KOMON REPEAT (CHIRA-SHI):
+Create a seamless all-over repeating Japanese kimono textile pattern featuring multiple illustrated vignettes of the exact subject from the reference photo (${detectedScale === 'small' ? 'small delicate 15-20mm komon scale, densely scattered' : detectedScale === 'large' ? 'bold large 90mm+ scale' : 'medium 40-50mm scale'}), randomly rotated and tossed in all directions (0°, 90°, 180°, 270°) evenly across the clean solid background color.`
+          : `UPRIGHT SEAMLESS TEXTILE REPEAT PATTERN:
+Create a seamless repeating Japanese obi/textile pattern featuring illustrated vignettes of the exact subject from the reference photo (${detectedScale === 'small' ? 'small delicate 15-20mm komon scale, densely scattered' : detectedScale === 'large' ? 'bold large 90mm+ scale' : 'medium 40-50mm scale'}), neatly aligned upright (all facing straight up) evenly across the clean solid background color.`;
+
+      const refGroundRule = (color && color !== 'おまかせ')
+        ? `Background Ground Color: Clean, uniform solid ${color} textile ground.`
+        : `Background Ground Color: Clean, uniform solid warm Japanese off-white / kinari textile ground (NO grey photo background).`;
+
+      const referenceEditPrompt = `[FAITHFUL SUBJECT-LOCKED JAPANESE TEXTILE ADAPTATION]
+1. STRICT IDENTITY & LIKENESS LOCK:
+Keep the EXACT subject from the attached reference photo (${subjectDetail}).
+Preserve the exact facial features, head silhouette, ear shape and ear colors, fur/coat colors and markings, eye placement, nose, and expression of the specific individual animal/subject in the photo.
+NEVER replace the subject with a different breed or generic animal.
+2. COMPLETE BACKGROUND & CLUTTER REMOVAL:
+Completely remove and erase all background clutter from the photo—NO pet stroller, NO buggy bars, NO cage, NO leash, NO room walls, NO shelves, NO furniture, NO hands, NO photo floor/sky. Isolate ONLY the clean subject.
+3. COMPOSITION & PLACEMENT:
+${refLayoutDirective}
+4. ARTISTIC TEXTILE STYLING & COLOR:
+Render the isolated subject in a refined, wearable Japanese artisanal textile illustration style (${tagDirectives ? `${tagDirectives} ` : ''}${tasteDetail}) while strictly keeping the subject's true fur colors and markings faithful to the photo.
+${refGroundRule}
+${englishMotif ? `5. USER ADDITIONAL DIRECTION:\n${englishMotif} (${cleanMotifForTranslation})\n` : ''}
+6. FORMAT & QUALITY:
+Top-down flat 2D orthogonal print-ready textile artwork, crisp clean edges, NO 3D perspective, NO photo frames, NO mockups, NO watermarks or text.`;
+
+      buffer = await generateImageFromReference(referenceImageUrl, referenceEditPrompt);
     } else {
-      throw new Error('画像データの取得に失敗しました');
+      const response = await openai.images.generate({
+        model: "gpt-image-2.5-sunburst",
+        prompt: prompt,
+        n: 1,
+        size: "1024x1024",
+        quality: "high",
+      });
+
+      const item = response.data?.[0];
+
+      if (item?.b64_json) {
+        buffer = Buffer.from(item.b64_json, 'base64');
+      } else if (item?.url) {
+        const imgRes = await fetch(item.url);
+        buffer = Buffer.from(await imgRes.arrayBuffer());
+      } else {
+        throw new Error('画像データの取得に失敗しました');
+      }
     }
 
     const blob = await put(`textile-openai-${Date.now()}.png`, buffer, { access: 'public', contentType: 'image/png' });
