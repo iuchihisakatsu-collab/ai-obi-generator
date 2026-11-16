@@ -67,15 +67,16 @@ function HomeContent() {
   const [tasteMode, setTasteMode] = useState<string>('katazome');
   const [selectedArtist, setSelectedArtist] = useState<string>('none');
 
-  const [motif, setMotif] = useState<string>('黒猫、ピアノの鍵盤、月、椿');
+  const [motif, setMotif] = useState<string>('');
   const [motif2, setMotif2] = useState<string>('');
-  const [selectedTags, setSelectedTags] = useState<string[]>(['大正ロマン', '水彩画']);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [referenceImageUrl, setReferenceImageUrl] = useState<string>('');
   
   const [patternScale, setPatternScale] = useState<'small' | 'medium' | 'large'>('medium');
 
   const [selectedColors, setSelectedColors] = useState<typeof TRADITIONAL_COLORS>([]);
   const [showColorPalette, setShowColorPalette] = useState<boolean>(false);
-  const [density, setDensity] = useState<string>('一方向リピート（上向き総柄・18cm最適化）');
+  const [density, setDensity] = useState<string>('一方向（上向き）');
 
   const [geoPatternType, setGeoPatternType] = useState<'plain' | 'stripe' | 'dot' | 'grid' | 'gingham' | 'checker'>('plain');
   const [stripeDir, setStripeDir] = useState<StripeDirection>('vertical');
@@ -127,11 +128,6 @@ function HomeContent() {
 
   const previewRef = useRef<HTMLDivElement>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const initialColors = TRADITIONAL_COLORS.filter(c => ['漆黒', '真紅'].includes(c.name.split(' ')[0]));
-    setSelectedColors(initialColors);
-  }, []);
 
   useEffect(() => {
     const savedCode = localStorage.getItem('komon_premium_code');
@@ -406,79 +402,6 @@ function HomeContent() {
     }
   };
 
-  const handleReferenceArrangeGenerate = async (referenceDataUrl: string, note: string) => {
-    if (!referenceDataUrl || loading) return;
-
-    const activeCode = (premiumCode || localStorage.getItem('komon_premium_code') || '').trim();
-    if (!activeCode) {
-      setErrorMsg('「写真を参照に図案を作る」機能はチケットコードが必要です。');
-      return;
-    }
-
-    setErrorMsg('');
-    setPremiumStatusMsg('');
-    setLoading(true);
-    setGeneratingMode('openai_premium');
-    setLoadingStep(0);
-
-    const stepTimer = setInterval(() => setLoadingStep(prev => (prev + 1) % 5), 4000);
-
-    try {
-      const colorNames = selectedColors.map(c => getColorNameFromHex(c.hex)).join('、');
-
-      const res = await fetch('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          motif: note.trim(),
-          referenceImageUrl: referenceDataUrl,
-          color: colorNames || 'おまかせ',
-          density,
-          itemType,
-          aiStyle: 'none',
-          tasteMode,
-          tags: selectedTags,
-          engine: 'openai',
-          paymentMode: 'premium',
-          premiumCode: activeCode,
-          ticketCode: activeCode,
-          code: activeCode,
-          useTicket: true,
-          patternScale,
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok || data.error) {
-        throw new Error(data.error || '写真参照の図案生成に失敗しました');
-      }
-
-      setImageUrl(data.imageUrl);
-      setBlobUrl(data.blobUrl);
-
-      const newSerial = `KOMON-${Math.floor(1000 + Math.random() * 9000)}`;
-      setSerialNumber(newSerial);
-      setPatternTitle(note.trim() ? `${note.trim().slice(0, 12)}アレンジ` : '写真参照アレンジ図案');
-
-      const remaining = data.ticketRemaining ?? data.remaining ?? data.remainingCount ?? null;
-      if (typeof remaining === 'number') {
-        setTicketRemaining(remaining);
-        setPremiumStatusMsg(`チケットを消費して写真参照図案を生成しました（残り ${remaining} 回）`);
-      } else {
-        setPremiumStatusMsg('チケットを消費して写真参照図案を生成しました！');
-      }
-
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    } catch (err: any) {
-      console.error(err);
-      setErrorMsg(err.message || '写真参照の図案生成中にエラーが発生しました');
-    } finally {
-      clearInterval(stepTimer);
-      setLoading(false);
-      setGeneratingMode(null);
-    }
-  };
-
   const handleCopyPrompt = (text: string, type: 'seamless' | 'centered' | 'scarf') => {
     navigator.clipboard.writeText(text);
     setCopiedPromptType(type);
@@ -493,6 +416,11 @@ function HomeContent() {
       return;
     }
 
+    if (referenceImageUrl && engineType !== 'openai_premium') {
+      setErrorMsg('写真を参照して生成する場合はチケットコードを入力し、「チケットで本気デザインを生成」を押してください。');
+      return;
+    }
+
     if (engineType === 'flux' && remainingFlux <= 0) {
       setErrorMsg('本日のスケッチ作成上限に達しました。');
       return;
@@ -504,7 +432,7 @@ function HomeContent() {
 
     setErrorMsg('');
     setPremiumStatusMsg('');
-    if (creationMode === 'ai' && !motif.trim()) { setErrorMsg('描きたいモチーフを入力してください。'); return; }
+    if (creationMode === 'ai' && !motif.trim() && !referenceImageUrl) { setErrorMsg('描きたいモチーフを入力してください。'); return; }
     for (const forbidden of FORBIDDEN_WORDS) {
       if (motif.includes(forbidden)) { setErrorMsg(`禁止ワード「${forbidden}」が含まれています。`); return; }
     }
@@ -551,11 +479,16 @@ function HomeContent() {
           };
       const scalePrompt = scalePromptMap[patternScale];
       
+      const combinedMotifText = motif.trim()
+        ? motif.trim() + tagPrompt + scalePrompt
+        : '';
+
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          motif: motif.trim() + tagPrompt + scalePrompt, 
+          motif: combinedMotifText,
+          referenceImageUrl: referenceImageUrl || undefined,
           motif2: motif2.trim(), 
           color: colorNames || 'おまかせ', 
           density, 
@@ -589,7 +522,13 @@ function HomeContent() {
       setSerialNumber(newSerial);
 
       const colorPrefix = selectedColors.length > 0 ? `${getColorNameFromHex(selectedColors[0].hex)}の` : '';
-      setPatternTitle(motif.trim() ? `${colorPrefix}${motif.trim().split('、')[0]}小紋` : '無題の小紋');
+      setPatternTitle(
+        motif.trim()
+          ? `${colorPrefix}${motif.trim().split('、')[0]}小紋`
+          : referenceImageUrl
+            ? `${colorPrefix}写真参照アレンジ図案`
+            : '無題の小紋'
+      );
 
       if (engineType === 'openai_premium') {
         const remaining = data.ticketRemaining ?? data.remaining ?? data.remainingCount ?? null;
@@ -1091,7 +1030,8 @@ function HomeContent() {
                 handleDownloadOriginal={handleDownloadOriginal} handleOrderClick={handleOrderClick}
                 premiumCode={premiumCode} setPremiumCode={handleSetPremiumCode}
                 premiumStatusMsg={premiumStatusMsg}
-                onReferenceImageGenerate={handleReferenceArrangeGenerate}
+                referenceImageUrl={referenceImageUrl}
+                setReferenceImageUrl={setReferenceImageUrl}
                 onOpenPolicy={() => setIsPolicyOpen(true)}
               />
             </div>

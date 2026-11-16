@@ -1,7 +1,7 @@
 // app/components/controls/ControlPanel.tsx
 'use client';
 
-import { MouseEvent, useEffect, useState } from 'react';
+import { MouseEvent, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { TRADITIONAL_COLORS } from '../../lib/constants';
 import { type ItemType } from '../preview/PreviewArea';
@@ -78,7 +78,8 @@ interface ControlPanelProps {
   premiumCode: string;
   setPremiumCode: (val: string) => void;
   premiumStatusMsg: string;
-  onReferenceImageGenerate?: (referenceDataUrl: string, note: string) => Promise<void>;
+  referenceImageUrl?: string;
+  setReferenceImageUrl?: (url: string) => void;
   
   onOpenPolicy: () => void;
 }
@@ -156,6 +157,39 @@ const TAG_CATEGORIES = [
   }
 ];
 
+async function resizeImageFileToDataUrl(file: File, maxDim = 1024, quality = 0.88): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('画像の読み込みに失敗しました'));
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      const img = new Image();
+      img.onerror = () => resolve(dataUrl);
+      img.onload = () => {
+        const w = img.naturalWidth || img.width;
+        const h = img.naturalHeight || img.height;
+        const scale = Math.min(1, maxDim / Math.max(w, h));
+        const targetW = Math.max(1, Math.round(w * scale));
+        const targetH = Math.max(1, Math.round(h * scale));
+        const canvas = document.createElement('canvas');
+        canvas.width = targetW;
+        canvas.height = targetH;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(dataUrl);
+          return;
+        }
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, targetW, targetH);
+        ctx.drawImage(img, 0, 0, targetW, targetH);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = dataUrl;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function ControlPanel({
   creationMode, setCreationMode,
   itemType, setItemType,
@@ -183,17 +217,15 @@ export default function ControlPanel({
   imageUrl, patternTitle, setPatternTitle, serialNumber,
   handleDownloadOriginal, handleOrderClick,
   premiumCode, setPremiumCode, premiumStatusMsg,
-  onReferenceImageGenerate,
+  referenceImageUrl = '',
+  setReferenceImageUrl,
   onOpenPolicy,
 }: ControlPanelProps) {
 
   const [analyzingPhoto, setAnalyzingPhoto] = useState(false);
   const [refModalOpen, setRefModalOpen] = useState(false);
   const [refPreviewDataUrl, setRefPreviewDataUrl] = useState<string>('');
-  const [refNoteInput, setRefNoteInput] = useState<string>('');
-  const [refModalCodeInput, setRefModalCodeInput] = useState<string>(premiumCode || '');
   const [refModalAgreed, setRefModalAgreed] = useState<boolean>(false);
-  const [refGenerating, setRefGenerating] = useState<boolean>(false);
   const [mounted, setMounted] = useState<boolean>(false);
   useEffect(() => { setMounted(true); }, []);
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
@@ -211,7 +243,6 @@ export default function ControlPanel({
   useEffect(() => {
     if (premiumCode) {
       setInputCodeValue(premiumCode);
-      setRefModalCodeInput(premiumCode);
     }
   }, [premiumCode]);
 
@@ -279,103 +310,70 @@ export default function ControlPanel({
 
   const handlePhotoUploadAndExtract = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
 
     setAnalyzingPhoto(true);
     try {
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const base64Data = reader.result as string;
-        try {
-          const res = await fetch('/api/analyze-image', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ imageUrl: base64Data }),
-          });
-          const result = await res.json();
-          if (result.success && result.data) {
-            const { prompt: extractedPrompt, motif: exMotif, color: exColor, texture: exTexture } = result.data;
-            const finalPrompt = extractedPrompt || `${exMotif}。配色：${exColor}。タッチ：${exTexture}`;
-            setMotif(finalPrompt);
-            alert('写真から色・柄の特徴を抽出してモチーフ欄に入力しました！');
-          } else {
-            alert(result.error || '写真の解析に失敗しました。');
-          }
-        } catch (err) {
-          console.error(err);
-          alert('解析通信エラーが発生しました。');
-        } finally {
-          setAnalyzingPhoto(false);
-        }
-      };
-      reader.readAsDataURL(file);
+      const base64Data = await resizeImageFileToDataUrl(file, 1024, 0.86);
+      const res = await fetch('/api/analyze-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageUrl: base64Data }),
+      });
+      const result = await res.json();
+      if (result.success && result.data) {
+        const { prompt: extractedPrompt, motif: exMotif, color: exColor, texture: exTexture } = result.data;
+        const finalPrompt = extractedPrompt || `${exMotif}。配色：${exColor}。タッチ：${exTexture}`;
+        setMotif(finalPrompt);
+        alert('写真から色・柄の特徴を抽出してモチーフ欄に入力しました！');
+      } else {
+        alert(result.error || '写真の解析に失敗しました。');
+      }
     } catch (err) {
-      setAnalyzingPhoto(false);
       console.error(err);
+      alert('解析通信エラーが発生しました。');
+    } finally {
+      setAnalyzingPhoto(false);
     }
   };
 
-  const handleSelectReferencePhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSelectReferencePhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const dataUrl = reader.result as string;
-      setRefPreviewDataUrl(dataUrl);
-      setRefNoteInput('');
+    try {
+      const compressedDataUrl = await resizeImageFileToDataUrl(file, 1024, 0.88);
+      setRefPreviewDataUrl(compressedDataUrl);
       setRefModalAgreed(false);
       setRefModalOpen(true);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleConfirmReferenceModal = async () => {
-    if (!refPreviewDataUrl || !refModalAgreed || refGenerating) return;
-    const activeCode = (premiumCode || refModalCodeInput).trim();
-    if (!activeCode) {
-      alert('チケットコードを入力してください。');
-      return;
-    }
-    if (!premiumCode && activeCode) {
-      setPremiumCode(activeCode);
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('komon_premium_code', activeCode);
-      }
-    }
-    if (!onReferenceImageGenerate) return;
-    setRefGenerating(true);
-    try {
-      await onReferenceImageGenerate(refPreviewDataUrl, refNoteInput);
-      setRefModalOpen(false);
-    } finally {
-      setRefGenerating(false);
+    } catch (err) {
+      console.error(err);
+      alert('画像の読み込みに失敗しました。別の画像でお試しください。');
     }
   };
 
+  const handleConfirmReferenceModal = () => {
+    if (!refPreviewDataUrl || !refModalAgreed) return;
+    setReferenceImageUrl?.(refPreviewDataUrl);
+    setRefModalOpen(false);
+    if (!hasValidCode) {
+      setShowCodeInput(true);
+    }
+  };
+
+  const prevItemTypeRef = useRef<ItemType>(itemType);
   useEffect(() => {
-    if (itemType === 'scarf') {
-      if (!density.includes('額縁') && !density.includes('スクエア') && !density.includes('四方')) {
-        setDensity('額縁スクエアパネル（正方形1枚絵）');
-      }
-    } else if (itemType === 'kimono') {
-      if (density.includes('お太鼓') || density.includes('ワンポイント') || density.includes('額縁') || density.includes('スクエア')) {
-        setDensity('四方柄（天地無用）');
-      }
+    if (prevItemTypeRef.current === itemType) return;
+    prevItemTypeRef.current = itemType;
+    if (itemType === 'kimono') {
+      setDensity('四方柄（天地無用）');
     } else if (itemType === 'hanhaba' || itemType === 'textile') {
-      if (density.includes('お太鼓') || density.includes('ワンポイント') || density.includes('額縁') || density.includes('スクエア')) {
-        setDensity('一方向（上向き）');
-      }
-    } else if (itemType === 'kyobukuro') {
-      if (density.includes('ワンポイント柄（中央主役）')) {
-        setDensity('お太鼓柄（ワンポイント主役パネル）');
-      }
-    } else if (itemType === 'tote') {
-      if (density.includes('お太鼓柄（ワンポイント主役パネル）')) {
-        setDensity('ワンポイント柄（中央主役）');
-      }
+      setDensity('一方向（上向き）');
+    } else {
+      setDensity('ワンポイント柄（中央主役）');
     }
-  }, [itemType, density, setDensity]);
+  }, [itemType, setDensity]);
 
   const finalTitle = patternTitle.trim() || '（無題）';
   const colorSummary = selectedColors.length > 0 ? selectedColors.map((c) => c.name.split(' ')[0]).join('・') : '自由配色';
@@ -607,15 +605,37 @@ export default function ControlPanel({
                   <label className="cursor-pointer inline-flex items-center gap-1 px-2.5 py-1 bg-zinc-900 hover:bg-zinc-800 text-white rounded text-[10px] font-bold shadow-sm transition-all active:scale-95">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
                     <span>写真を参照に図案を作る</span>
-                    <input type="file" accept="image/*" onChange={handleSelectReferencePhoto} disabled={analyzingPhoto || loading || refGenerating} className="hidden" />
+                    <input type="file" accept="image/*" onChange={handleSelectReferencePhoto} disabled={analyzingPhoto || loading} className="hidden" />
                   </label>
                 </div>
               </div>
 
+              {referenceImageUrl && (
+                <div className="p-2.5 bg-amber-50/70 border border-amber-300 rounded-sm flex items-center justify-between gap-2.5 animate-fade-in">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <img src={referenceImageUrl} alt="参照写真" className="w-11 h-11 object-cover rounded border border-zinc-300 shrink-0" />
+                    <div className="min-w-0">
+                      <span className="text-[10.5px] font-black text-zinc-900 block">参照中の写真（チケット1回消費）</span>
+                      <span className="text-[9.5px] text-zinc-600 block leading-tight mt-0.5">
+                        この写真の構図・色・雰囲気をベースに、下のテーマ欄や設定と組み合わせて図案化します。
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setReferenceImageUrl?.('')}
+                    disabled={loading}
+                    className="px-2 py-1 bg-white hover:bg-zinc-100 text-zinc-700 border border-zinc-300 rounded text-[10px] font-bold shrink-0"
+                  >
+                    × 解除
+                  </button>
+                </div>
+              )}
+
               <div className="relative">
                 <textarea 
                   className="w-full border border-zinc-300 p-3 sm:p-3.5 bg-white text-xs sm:text-sm focus:outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 resize-none transition-all duration-200 leading-relaxed font-medium shadow-sm rounded-sm" 
-                  placeholder="好きなものを自由に入力（例：黒猫、ピアノの鍵盤、月、椿）" 
+                  placeholder={referenceImageUrl ? '追加のアレンジ指示を入力（空欄のままでも写真をもとに生成できます。例：江戸型染め風に、小紋散らしで）' : '好きなものを自由に入力（例：黒猫、ピアノの鍵盤、月、椿）'} 
                   rows={2} 
                   value={motif} 
                   onChange={(e) => setMotif(e.target.value)} 
@@ -650,6 +670,19 @@ export default function ControlPanel({
 
                 {/* 選択中バッジ一覧 */}
                 <div className="flex flex-wrap gap-1.5 items-center">
+                  {referenceImageUrl && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold bg-amber-200 text-amber-950 border border-amber-400 rounded-xs">
+                      <span>写真参照ON</span>
+                      <button
+                        type="button"
+                        onClick={() => setReferenceImageUrl?.('')}
+                        className="opacity-75 hover:opacity-100 ml-0.5"
+                        title="写真参照を解除"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  )}
                   {/* 地色バッジ */}
                   <span
                     className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-xs border border-zinc-300 shadow-2xs"
@@ -727,7 +760,12 @@ export default function ControlPanel({
 
                 {/* 日本語オーダー指示文（自動組み立てプレビュー） */}
                 <p className="text-[10.5px] text-zinc-600 leading-relaxed bg-white p-2.5 rounded-xs border border-zinc-200/80">
-                  「<strong className="text-zinc-900">{motif.trim() || '（モチーフ未入力）'}</strong>」をモチーフに、
+                  {referenceImageUrl && (
+                    <>選択した写真を参照し{motif.trim() ? '、' : 'て、'}</>
+                  )}
+                  {(motif.trim() || !referenceImageUrl) && (
+                    <>「<strong className="text-zinc-900">{motif.trim() || '（モチーフ未入力）'}</strong>」をモチーフに、</>
+                  )}
                   地色は「<strong className="text-zinc-900">{baseColorName || 'おまかせ'}</strong>」
                   {accentColorNames.length > 0 && (
                     <>（差し色：<strong className="text-zinc-900">{accentColorNames.join('・')}</strong>）</>
@@ -823,7 +861,22 @@ export default function ControlPanel({
                 </div>
               )}
 
-              {!hasValidCode && (
+              {!hasValidCode && referenceImageUrl && (
+                <div className="space-y-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowCodeInput(true)}
+                    className="w-full py-3.5 px-4 font-black text-xs sm:text-sm tracking-wider bg-zinc-950 hover:bg-black text-white rounded shadow-md transition-all flex items-center justify-center gap-2 border border-zinc-900"
+                  >
+                    <span>チケットコードを入力して写真参照デザインを生成する</span>
+                  </button>
+                  <p className="text-[9px] text-zinc-500 text-center">
+                    ※写真を参照して生成する場合はチケットを1回消費します
+                  </p>
+                </div>
+              )}
+
+              {!hasValidCode && !referenceImageUrl && (
                 <div className="space-y-1">
                   <button 
                     type="button" 
@@ -855,9 +908,9 @@ export default function ControlPanel({
                 <button 
                   type="button" 
                   onClick={() => handleGenerate('flux')} 
-                  disabled={loading || effectiveRemainingFlux <= 0} 
+                  disabled={loading || effectiveRemainingFlux <= 0 || Boolean(referenceImageUrl)} 
                   className={`w-full py-2.5 px-3 font-bold text-xs tracking-wider transition-all duration-200 flex items-center justify-center gap-1.5 rounded ${
-                    effectiveRemainingFlux <= 0
+                    effectiveRemainingFlux <= 0 || referenceImageUrl
                       ? 'bg-zinc-100 text-zinc-400 border border-zinc-200 cursor-not-allowed'
                       : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-800 border border-zinc-300'
                   }`}
@@ -866,9 +919,11 @@ export default function ControlPanel({
                     <span>スケッチを描画中...</span>
                   ) : (
                     <span>
-                      {effectiveRemainingFlux <= 0
-                        ? '本日のスケッチ枠は終了しました'
-                        : `気まぐれスケッチで試す（本日残り ${effectiveRemainingFlux}回）`}
+                      {referenceImageUrl
+                        ? '気まぐれスケッチ（写真参照中は利用できません）'
+                        : effectiveRemainingFlux <= 0
+                          ? '本日のスケッチ枠は終了しました'
+                          : `気まぐれスケッチで試す（本日残り ${effectiveRemainingFlux}回）`}
                     </span>
                   )}
                 </button>
@@ -1166,135 +1221,53 @@ export default function ControlPanel({
                     </div>
                   </div>
 
-                  {/* 06. 柄の向き・天地 */}
+                  {/* 06. 柄の向き・配置（全アイテム共通3択） */}
                   <div className="pt-3 border-t border-zinc-100">
                     <div className="flex justify-between items-baseline mb-1.5">
                       <label className="block text-xs font-bold text-zinc-800 tracking-wider">
                         柄の向き・配置
                       </label>
                       <span className="text-[9.5px] text-zinc-500">
-                        {density.includes('ワンポイント')
-                          ? '中央ワンポイント主役'
-                          : density.includes('お太鼓')
-                            ? 'お太鼓ワンポイント主役'
-                            : density.includes('額縁') || density.includes('スクエア')
-                              ? '額縁スクエア構図'
-                              : density.includes('四方')
-                                ? '上下左右ランダム（着物推奨）'
-                                : '⬆️ 上向き整列（帯推奨）'}
+                        {currentDensityLabel}
                       </span>
                     </div>
 
-                    {itemType === 'scarf' ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
+                      {[
+                        {
+                          id: '四方柄（天地無用）',
+                          label: '四方柄（天地無用）',
+                          sub: '上下左右ランダム・着物向け',
+                          active: density.includes('四方') || density.includes('天地無用'),
+                        },
+                        {
+                          id: '一方向（上向き）',
+                          label: '一方向（上向き）',
+                          sub: 'すべて上向き整列・帯向け',
+                          active: density.includes('一方向') || density.includes('上向き'),
+                        },
+                        {
+                          id: 'ワンポイント柄（中央主役）',
+                          label: 'ワンポイント柄',
+                          sub: '中央主役・お太鼓/トート向け',
+                          active: density.includes('ワンポイント') || density.includes('お太鼓') || density.includes('額縁') || density.includes('スクエア'),
+                        },
+                      ].map((item) => (
                         <button
+                          key={item.id}
                           type="button"
-                          onClick={() => setDensity('額縁スクエアパネル（正方形1枚絵）')}
-                          className={`py-2 px-3 border rounded-sm transition-all shadow-xs flex flex-col items-center justify-center text-center ${
-                            density.includes('額縁') || density.includes('スクエア')
+                          onClick={() => setDensity(item.id)}
+                          className={`py-2 px-2 text-center border rounded-sm transition-all shadow-xs flex flex-col items-center justify-center ${
+                            item.active
                               ? 'bg-zinc-900 text-white border-zinc-900 ring-1 ring-zinc-900'
                               : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50'
                           }`}
                         >
-                          <span className="text-[10.5px] font-bold flex items-center gap-1">
-                            <span>額縁スクエア柄（推奨）</span>
-                          </span>
-                          <span className="text-[8px] opacity-75 mt-0.5">額縁パネル・正方形1枚絵</span>
+                          <span className="text-[10.5px] font-black">{item.label}</span>
+                          <span className="text-[8px] opacity-75 mt-0.5">{item.sub}</span>
                         </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setDensity('四方柄（天地無用）')}
-                          className={`py-2 px-3 border rounded-sm transition-all shadow-xs flex flex-col items-center justify-center text-center ${
-                            density.includes('四方') || density.includes('天地無用')
-                              ? 'bg-zinc-900 text-white border-zinc-900 ring-1 ring-zinc-900'
-                              : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50'
-                          }`}
-                        >
-                          <span className="text-[10.5px] font-bold flex items-center gap-1">
-                            <span>総柄リピート</span>
-                          </span>
-                          <span className="text-[8px] opacity-75 mt-0.5">天地無用・全面シームレス小紋</span>
-                        </button>
-                      </div>
-                    ) : itemType === 'kyobukuro' ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
-                        {[
-                          { id: '四方柄（天地無用）', label: '四方柄', sub: '天地無用・ランダム' },
-                          { id: 'お太鼓柄（ワンポイント主役パネル）', label: 'お太鼓柄', sub: '中央主役' },
-                          { id: '額縁スクエアパネル（正方形1枚絵）', label: '額縁パネル', sub: '正方形1枚絵' },
-                        ].map((item) => (
-                          <button
-                            key={item.id}
-                            type="button"
-                            onClick={() => setDensity(item.id)}
-                            className={`py-1.5 px-2 text-center border rounded-sm transition-all shadow-xs flex flex-col items-center justify-center ${
-                              density.includes(item.label) 
-                                ? 'bg-zinc-900 text-white border-zinc-900 ring-1 ring-zinc-900' 
-                                : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50'
-                            }`}
-                          >
-                            <span className="text-[10.5px] font-black">{item.label}</span>
-                            <span className="text-[8px] opacity-75 mt-0.5">{item.sub}</span>
-                          </button>
-                        ))}
-                      </div>
-                    ) : itemType === 'tote' ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
-                        {[
-                          { id: '四方柄（天地無用）', label: '四方柄', sub: '天地無用・総柄' },
-                          { id: '一方向（上向き）', label: '一方向', sub: 'すべて頭が上' },
-                          { id: 'ワンポイント柄（中央主役）', label: 'ワンポイント柄', sub: '中央に主役1点' },
-                        ].map((item) => (
-                          <button
-                            key={item.id}
-                            type="button"
-                            onClick={() => setDensity(item.id)}
-                            className={`py-1.5 px-2 text-center border rounded-sm transition-all shadow-xs flex flex-col items-center justify-center ${
-                              density.includes(item.label) 
-                                ? 'bg-zinc-900 text-white border-zinc-900 ring-1 ring-zinc-900' 
-                                : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50'
-                            }`}
-                          >
-                            <span className="text-[10.5px] font-black">{item.label}</span>
-                            <span className="text-[8px] opacity-75 mt-0.5">{item.sub}</span>
-                          </button>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-2 gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => setDensity('四方柄（天地無用）')}
-                          className={`py-2 px-3 border rounded-sm transition-all shadow-xs flex flex-col items-center justify-center text-center ${
-                            density.includes('四方') || density.includes('天地無用')
-                              ? 'bg-zinc-900 text-white border-zinc-900 ring-1 ring-zinc-900'
-                              : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50'
-                          }`}
-                        >
-                          <span className="text-[10.5px] font-bold flex items-center gap-1">
-                            <span>四方柄（天地無用）</span>
-                          </span>
-                          <span className="text-[8px] opacity-75 mt-0.5">上下左右逆さま・着物向け</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setDensity('一方向（上向き）')}
-                          className={`py-2 px-3 border rounded-sm transition-all shadow-xs flex flex-col items-center justify-center text-center ${
-                            density.includes('一方向') || density.includes('上向き')
-                              ? 'bg-zinc-900 text-white border-zinc-900 ring-1 ring-zinc-900'
-                              : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50'
-                          }`}
-                        >
-                          <span className="text-[10.5px] font-bold flex items-center gap-1">
-                            <span>⬆️</span>
-                            <span>一方向（上向き）</span>
-                          </span>
-                          <span className="text-[8px] opacity-75 mt-0.5">すべて頭が上・帯/バッグ向け</span>
-                        </button>
-                      </div>
-                    )}
+                      ))}
+                    </div>
                   </div>
 
                   {/* 07. 作品名 */}
@@ -1697,7 +1670,7 @@ export default function ControlPanel({
       {mounted && refModalOpen && createPortal(
         <div
           className="fixed inset-0 z-[99999] bg-zinc-950/70 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in"
-          onClick={() => !refGenerating && setRefModalOpen(false)}
+          onClick={() => setRefModalOpen(false)}
         >
           <div
             className="bg-white rounded-md shadow-2xl w-full max-w-md overflow-hidden border border-zinc-300 text-left"
@@ -1712,7 +1685,7 @@ export default function ControlPanel({
               </h4>
               <button
                 type="button"
-                onClick={() => !refGenerating && setRefModalOpen(false)}
+                onClick={() => setRefModalOpen(false)}
                 className="text-zinc-400 hover:text-white text-xs font-bold"
               >
                 閉じる
@@ -1724,51 +1697,13 @@ export default function ControlPanel({
                 <div className="flex items-center gap-3 p-2.5 bg-zinc-50 border border-zinc-200 rounded">
                   <img src={refPreviewDataUrl} alt="" className="w-14 h-14 object-cover rounded border border-zinc-300 shrink-0" />
                   <div className="text-[10.5px] text-zinc-600 leading-relaxed">
-                    <p className="font-bold text-zinc-900">選択した写真を参照して和装図案化します</p>
+                    <p className="font-bold text-zinc-900">この写真を参照画像としてセットします</p>
                     <p className="text-[9.5px] text-zinc-500 mt-0.5">
-                      現在の設定（{currentTasteObj.title} / {currentDensityLabel} / {currentScaleLabel.split('（')[0]}）も反映されます。
+                      同意してセット後、通常のテーマ入力欄や色・配置設定と組み合わせて生成できます（チケット1回消費）。
                     </p>
                   </div>
                 </div>
               )}
-
-              <div>
-                <label className="block text-[10.5px] font-bold text-zinc-800 mb-1">
-                  追加のアレンジ指示（任意）
-                </label>
-                <input
-                  type="text"
-                  value={refNoteInput}
-                  onChange={(e) => setRefNoteInput(e.target.value)}
-                  placeholder="例：江戸型染め風に、小紋散らしで"
-                  disabled={refGenerating}
-                  className="w-full border border-zinc-300 p-2 bg-white text-xs rounded focus:outline-none focus:border-zinc-900"
-                />
-              </div>
-
-              {/* チケット消費案内 */}
-              <div className="p-2.5 bg-amber-50/80 border border-amber-200 rounded space-y-1.5">
-                <p className="text-[10.5px] font-bold text-amber-950">
-                  チケットを1回消費して生成します
-                </p>
-                {hasValidCode ? (
-                  <p className="text-[10px] font-mono text-emerald-800 font-bold">
-                    適用中コード: {premiumCode}{ticketRemaining !== null && ticketRemaining !== undefined ? `（残り ${ticketRemaining}回）` : ''}
-                  </p>
-                ) : (
-                  <div className="space-y-1">
-                    <p className="text-[9.5px] text-zinc-600">チケットコードを入力してください：</p>
-                    <input
-                      type="text"
-                      value={refModalCodeInput}
-                      onChange={(e) => setRefModalCodeInput(e.target.value)}
-                      placeholder="例: IG-XXXXXX または GFK-XXXX-XXXX"
-                      disabled={refGenerating}
-                      className="w-full border border-zinc-300 p-1.5 bg-white text-xs font-mono rounded focus:outline-none focus:border-zinc-900"
-                    />
-                  </div>
-                )}
-              </div>
 
               {/* 著作権・版権に対する注意事項 */}
               <div className="p-3 bg-zinc-50 border border-zinc-200 rounded space-y-1.5 text-[10px] text-zinc-600 leading-relaxed">
@@ -1785,7 +1720,6 @@ export default function ControlPanel({
                   type="checkbox"
                   checked={refModalAgreed}
                   onChange={(e) => setRefModalAgreed(e.target.checked)}
-                  disabled={refGenerating}
                   className="mt-0.5 h-3.5 w-3.5 border-zinc-300 text-zinc-900 focus:ring-zinc-900 shrink-0"
                 />
                 <span className="text-[10px] font-bold text-zinc-800 leading-tight">
@@ -1797,7 +1731,6 @@ export default function ControlPanel({
                 <button
                   type="button"
                   onClick={() => setRefModalOpen(false)}
-                  disabled={refGenerating}
                   className="flex-1 py-2.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-bold rounded transition-colors"
                 >
                   キャンセル
@@ -1805,10 +1738,10 @@ export default function ControlPanel({
                 <button
                   type="button"
                   onClick={handleConfirmReferenceModal}
-                  disabled={!refModalAgreed || refGenerating || !(premiumCode || refModalCodeInput).trim()}
+                  disabled={!refModalAgreed}
                   className="flex-[2] py-2.5 bg-zinc-900 hover:bg-black disabled:bg-zinc-300 disabled:text-zinc-500 text-white text-xs font-black rounded shadow transition-all"
                 >
-                  {refGenerating ? '図案を生成中...' : 'OK・チケット1回消費して生成'}
+                  同意して写真をセットする
                 </button>
               </div>
             </div>

@@ -318,7 +318,7 @@ export async function POST(req: Request) {
     
     // 1. 柄の向き・構成モード（お太鼓・ワンポイント / スカーフ額縁 / 四方総柄 / 一方向総柄）の判定
     const isOtaiko = density.includes('お太鼓') || density.includes('ワンポイント') || density.includes('CENTERED');
-    const isScarfMode = !isOtaiko && !density.includes('四方') && (
+    const isScarfMode = !isOtaiko && !density.includes('四方') && !density.includes('一方向') && (
       itemType === 'scarf' ||
       density.includes('額縁') ||
       density.includes('スクエア') ||
