@@ -71,6 +71,7 @@ function HomeContent() {
   const [motif2, setMotif2] = useState<string>('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [referenceImageUrl, setReferenceImageUrl] = useState<string>('');
+  const [arrangeMode, setArrangeMode] = useState<'faithful' | 'stylized' | 'creative'>('faithful');
   
   const [patternScale, setPatternScale] = useState<'small' | 'medium' | 'large'>('medium');
 
@@ -1032,6 +1033,8 @@ function HomeContent() {
                 premiumStatusMsg={premiumStatusMsg}
                 referenceImageUrl={referenceImageUrl}
                 setReferenceImageUrl={setReferenceImageUrl}
+                arrangeMode={arrangeMode}
+                setArrangeMode={setArrangeMode}
                 onOpenPolicy={() => setIsPolicyOpen(true)}
               />
             </div>

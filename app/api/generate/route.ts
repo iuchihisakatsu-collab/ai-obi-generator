@@ -279,6 +279,7 @@ export async function POST(req: Request) {
     const { 
       motif = '', 
       referenceImageUrl = '',
+      arrangeMode = 'faithful',
       color = 'おまかせ', 
       density = '', 
       itemType = 'hanhaba',
@@ -581,25 +582,45 @@ ${(tagDirectives || englishMotif) ? 'If decorative motifs or stylistic tags are 
           ? `OMNIDIRECTIONAL SEAMLESS KIMONO KOMON REPEAT (CHIRA-SHI):
 Create a seamless all-over repeating Japanese kimono textile pattern featuring multiple illustrated vignettes of the exact subject from the reference photo (${detectedScale === 'small' ? 'small delicate 15-20mm komon scale, densely scattered' : detectedScale === 'large' ? 'bold large 90mm+ scale' : 'medium 40-50mm scale'}), randomly rotated and tossed in all directions (0°, 90°, 180°, 270°) evenly across the clean solid background color.`
           : `UPRIGHT SEAMLESS TEXTILE REPEAT PATTERN:
-Create a seamless repeating Japanese obi/textile pattern featuring illustrated vignettes of the exact subject from the reference photo (${detectedScale === 'small' ? 'small delicate 15-20mm komon scale, densely scattered' : detectedScale === 'large' ? 'bold large 90mm+ scale' : 'medium 40-50mm scale'}), neatly aligned upright (all facing straight up) evenly across the clean solid background color.`;
+Create a seamless repeating Japanese obi/textile pattern featuring illustrated vignettes of the exact subject from the reference photo (${detectedScale === 'small' ? 'small delicate 15-20mm komon scale' : detectedScale === 'large' ? 'bold large 90mm+ scale' : 'medium 40-50mm scale'}), neatly aligned upright (all facing straight up) evenly across the clean solid background color.`;
 
       const refGroundRule = (color && color !== 'おまかせ')
         ? `Background Ground Color: Clean, uniform solid ${color} textile ground.`
         : `Background Ground Color: Clean, uniform solid warm Japanese off-white / kinari textile ground (NO grey photo background).`;
 
-      const referenceEditPrompt = `[FAITHFUL SUBJECT-LOCKED JAPANESE TEXTILE ADAPTATION]
-1. STRICT IDENTITY & LIKENESS LOCK:
+      let fidelityLock = '';
+      if (arrangeMode === 'faithful') {
+        fidelityLock = `1. STRICT IDENTITY & LIKENESS LOCK:
 Keep the EXACT subject from the attached reference photo (${subjectDetail}).
 Preserve the exact facial features, head silhouette, ear shape and ear colors, fur/coat colors and markings, eye placement, nose, and expression of the specific individual animal/subject in the photo.
-NEVER replace the subject with a different breed or generic animal.
+NEVER replace the subject with a different breed or generic animal. Do not heavily distort the face.`;
+      } else if (arrangeMode === 'stylized') {
+        fidelityLock = `1. ARTISTIC STYLIZATION & LIKENESS:
+Use the subject from the attached reference photo (${subjectDetail}) as the base, but intentionally stylize and simplify it into a refined graphic textile motif.
+Keep the core shape, colors, and recognizable breed/species, but aggressively discard photorealistic details, photographic shading, and fine noisy fur textures. Flatten the forms to match the requested artistic medium.`;
+      } else {
+        fidelityLock = `1. BOLD CREATIVE REINTERPRETATION:
+Freely reinterpret the main subject and elements from the attached reference photo (${subjectDetail}) into a completely new, bold, highly stylized Japanese textile motif.
+You are NOT required to match the exact face, likeness, or realistic proportions. Prioritize dramatic artistic expression, sweeping lines, and the requested artistic medium over realism.`;
+      }
+
+      const hasHeavyStylingTag = activeTags.some(t => ['水彩画', '切り絵・影絵', '木版画', '江戸型染め', 'リソグラフ風', 'ステンドグラス', '光琳・琳派'].includes(t));
+      const stylePriority = hasHeavyStylingTag && arrangeMode !== 'faithful'
+        ? `[CRITICAL: ARTISTIC MEDIUM OVERRIDES REALISM] You MUST aggressively render this image in the physical medium of: ${tagDirectives}. Do NOT produce a photorealistic image.`
+        : `Render the isolated subject in a refined, wearable Japanese artisanal textile illustration style (${tagDirectives ? `${tagDirectives} ` : ''}${tasteDetail}).`;
+
+      const referenceEditPrompt = `[JAPANESE TEXTILE ADAPTATION: ${arrangeMode.toUpperCase()} MODE]
+${fidelityLock}
 2. COMPLETE BACKGROUND & CLUTTER REMOVAL:
 Completely remove and erase all background clutter from the photo—NO pet stroller, NO buggy bars, NO cage, NO leash, NO room walls, NO shelves, NO furniture, NO hands, NO photo floor/sky. Isolate ONLY the clean subject.
 3. COMPOSITION & PLACEMENT:
 ${refLayoutDirective}
 4. ARTISTIC TEXTILE STYLING & COLOR:
-Render the isolated subject in a refined, wearable Japanese artisanal textile illustration style (${tagDirectives ? `${tagDirectives} ` : ''}${tasteDetail}) while strictly keeping the subject's true fur colors and markings faithful to the photo.
+${stylePriority}
 ${refGroundRule}
-${englishMotif ? `5. USER ADDITIONAL DIRECTION:\n${englishMotif} (${cleanMotifForTranslation})\n` : ''}
+${englishMotif ? `5. USER ADDITIONAL DIRECTION:
+${englishMotif} (${cleanMotifForTranslation})
+` : ''}
 6. FORMAT & QUALITY:
 Top-down flat 2D orthogonal print-ready textile artwork, crisp clean edges, NO 3D perspective, NO photo frames, NO mockups, NO watermarks or text.`;
 
