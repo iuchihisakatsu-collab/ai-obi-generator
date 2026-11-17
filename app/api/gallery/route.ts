@@ -40,17 +40,31 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { imageUrl, title, author, note, itemType, scale, density } = body;
+    const { imageUrl, title, author, authorSns, note, itemType, scale, density } = body;
 
     if (!imageUrl) {
       return NextResponse.json({ error: '画像URLがありません' }, { status: 400 });
     }
 
+    const rawAuthor = (author || '').trim();
+    const sanitizedHandle = rawAuthor
+      .replace(/^https?:\/\/(www\.)?(instagram\.com|twitter\.com|x\.com)\//i, '')
+      .replace(/\/.*$/, '')
+      .replace(/^@+/, '')
+      .replace(/[^a-zA-Z0-9._]/g, '')
+      .slice(0, 30);
+
+    const normalizedAuthor = sanitizedHandle ? `@${sanitizedHandle}` : '名無しさん';
+    const normalizedSns = sanitizedHandle
+      ? (authorSns === 'x' ? 'x' : 'instagram')
+      : '';
+
     const newEntry = {
       id: `gallery_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       imageUrl,
       title: title?.trim() || '無題',
-      author: author?.trim() || '名無しさん',
+      author: normalizedAuthor,
+      authorSns: normalizedSns,
       note: note || '',
       likes: 0,
       itemType: itemType || '不明',
