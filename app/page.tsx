@@ -490,6 +490,7 @@ function HomeContent() {
         body: JSON.stringify({ 
           motif: combinedMotifText,
           referenceImageUrl: referenceImageUrl || undefined,
+          arrangeMode,
           motif2: motif2.trim(), 
           color: colorNames || 'おまかせ', 
           density, 
