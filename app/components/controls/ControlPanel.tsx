@@ -80,6 +80,8 @@ interface ControlPanelProps {
   premiumStatusMsg: string;
   referenceImageUrl?: string;
   setReferenceImageUrl?: (url: string) => void;
+  arrangeMode?: 'faithful' | 'stylized' | 'creative';
+  setArrangeMode?: (mode: 'faithful' | 'stylized' | 'creative') => void;
   
   onOpenPolicy: () => void;
 }
@@ -219,6 +221,8 @@ export default function ControlPanel({
   premiumCode, setPremiumCode, premiumStatusMsg,
   referenceImageUrl = '',
   setReferenceImageUrl,
+  arrangeMode = 'faithful',
+  setArrangeMode,
   onOpenPolicy,
 }: ControlPanelProps) {
 
@@ -621,24 +625,54 @@ export default function ControlPanel({
               </div>
 
               {referenceImageUrl && (
-                <div className="p-2.5 bg-amber-50/70 border border-amber-300 rounded-sm flex items-center justify-between gap-2.5 animate-fade-in">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <img src={referenceImageUrl} alt="参照写真" className="w-11 h-11 object-cover rounded border border-zinc-300 shrink-0" />
-                    <div className="min-w-0">
-                      <span className="text-[10.5px] font-black text-zinc-900 block">参照中の写真（チケット1回消費）</span>
-                      <span className="text-[9.5px] text-zinc-600 block leading-tight mt-0.5">
-                        この写真の構図・色・雰囲気をベースに、下のテーマ欄や設定と組み合わせて図案化します。
-                      </span>
+                <div className="p-3 bg-amber-50/70 border border-amber-300 rounded-sm flex flex-col gap-3 animate-fade-in">
+                  <div className="flex items-center justify-between gap-2.5">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <img src={referenceImageUrl} alt="参照写真" className="w-11 h-11 object-cover rounded border border-zinc-300 shrink-0" />
+                      <div className="min-w-0">
+                        <span className="text-[10.5px] font-black text-zinc-900 block">参照中の写真（チケット1回消費）</span>
+                        <span className="text-[9.5px] text-zinc-600 block leading-tight mt-0.5">
+                          この写真の構図や被写体をベースに、下の設定と組み合わせて図案化します。
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setReferenceImageUrl?.('')}
+                      disabled={loading}
+                      className="px-2 py-1 bg-white hover:bg-zinc-100 text-zinc-700 border border-zinc-300 rounded text-[10px] font-bold shrink-0"
+                    >
+                      × 解除
+                    </button>
+                  </div>
+
+                  <div className="pt-2 border-t border-amber-200/70">
+                    <label className="block text-[10px] font-bold text-amber-950 mb-1.5">
+                      アレンジ度（どれくらい写真に忠実にするか）
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
+                      {[
+                        { id: 'faithful', label: 'そっくり再現', desc: '顔立ち・模様を忠実にロック' },
+                        { id: 'stylized', label: 'ほどよく図案化', desc: '形は残し指定画材でデフォルメ' },
+                        { id: 'creative', label: '大胆アレンジ', desc: '写真の着想から大胆に再解釈' },
+                      ].map((mode) => (
+                        <button
+                          key={mode.id}
+                          type="button"
+                          disabled={loading}
+                          onClick={() => setArrangeMode?.(mode.id as 'faithful' | 'stylized' | 'creative')}
+                          className={`py-2 px-2 text-center border rounded-sm transition-all flex flex-col items-center justify-center ${
+                            arrangeMode === mode.id
+                              ? 'bg-zinc-900 text-white border-zinc-900 ring-1 ring-zinc-900 shadow-sm'
+                              : 'bg-white text-zinc-700 border-zinc-300 hover:bg-amber-50'
+                          }`}
+                        >
+                          <span className="text-[10.5px] font-black">{mode.label}</span>
+                          <span className="text-[8px] opacity-80 mt-0.5">{mode.desc}</span>
+                        </button>
+                      ))}
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setReferenceImageUrl?.('')}
-                    disabled={loading}
-                    className="px-2 py-1 bg-white hover:bg-zinc-100 text-zinc-700 border border-zinc-300 rounded text-[10px] font-bold shrink-0"
-                  >
-                    × 解除
-                  </button>
                 </div>
               )}
 
