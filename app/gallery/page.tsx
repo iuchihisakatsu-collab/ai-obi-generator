@@ -8,10 +8,32 @@ interface GalleryItem {
   imageUrl: string;
   title: string;
   author: string;
+  authorSns?: 'instagram' | 'x' | string;
   note?: string;
   likes?: number;
   itemType: string;
   createdAt: string;
+}
+
+function getAuthorSocialLink(author?: string, authorSns?: string): { handle: string; url: string; platformLabel: string } | null {
+  if (!author || author === '名無しさん') return null;
+
+  const cleaned = author
+    .trim()
+    .replace(/^https?:\/\/(www\.)?(instagram\.com|twitter\.com|x\.com)\//i, '')
+    .replace(/\/.*$/, '')
+    .replace(/^@+/, '');
+
+  if (!/^[a-zA-Z0-9._]{1,30}$/.test(cleaned)) {
+    return null;
+  }
+
+  const isX = authorSns === 'x';
+  return {
+    handle: `@${cleaned}`,
+    url: isX ? `https://x.com/${cleaned}` : `https://www.instagram.com/${cleaned}/`,
+    platformLabel: isX ? 'X' : 'Instagram',
+  };
 }
 
 export default function GalleryPage() {
@@ -83,6 +105,8 @@ export default function GalleryPage() {
     lastTapRef.current = now;
   };
 
+  const selectedAuthorLink = selectedItem ? getAuthorSocialLink(selectedItem.author, selectedItem.authorSns) : null;
+
   return (
     <div className="min-h-screen bg-white text-zinc-900 font-sans selection:bg-zinc-900 selection:text-white">
       
@@ -115,39 +139,55 @@ export default function GalleryPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-16 animate-fade-in">
-            {items.map((item, index) => (
-              <div 
-                key={item.id || index} 
-                className="group cursor-pointer flex flex-col gap-4"
-                onClick={() => setSelectedItem(item)}
-              >
-                <div className="relative aspect-square overflow-hidden bg-zinc-50">
-                  <img 
-                    src={item.imageUrl} 
-                    alt={item.title} 
-                    className="w-full h-full object-cover transition-transform duration-[2000ms] ease-out group-hover:scale-105" 
-                    loading="lazy" 
-                  />
-                  {/* ポートフォリオ風：ホバー時のいいね数表示 */}
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-500 ease-out flex items-center justify-center">
-                    <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-500 text-white text-lg font-light tracking-widest flex items-center gap-2">
-                      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1" className="mb-0.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
-                      {item.likes || 0}
-                    </span>
+            {items.map((item, index) => {
+              const authorLink = getAuthorSocialLink(item.author, item.authorSns);
+              return (
+                <div 
+                  key={item.id || index} 
+                  className="group cursor-pointer flex flex-col gap-4"
+                  onClick={() => setSelectedItem(item)}
+                >
+                  <div className="relative aspect-square overflow-hidden bg-zinc-50">
+                    <img 
+                      src={item.imageUrl} 
+                      alt={item.title} 
+                      className="w-full h-full object-cover transition-transform duration-[2000ms] ease-out group-hover:scale-105" 
+                      loading="lazy" 
+                    />
+                    {/* ポートフォリオ風：ホバー時のいいね数表示 */}
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-500 ease-out flex items-center justify-center">
+                      <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-500 text-white text-lg font-light tracking-widest flex items-center gap-2">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1" className="mb-0.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                        {item.likes || 0}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <h3 className="text-sm font-medium text-zinc-900 tracking-wider truncate">
+                      {item.title}
+                    </h3>
+                    {item.author && item.author !== '名無しさん' && (
+                      authorLink ? (
+                        <a
+                          href={authorLink.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex items-center gap-1 text-[10px] text-zinc-500 hover:text-zinc-950 tracking-widest uppercase underline decoration-zinc-300 hover:decoration-zinc-900 transition-colors w-fit"
+                        >
+                          <span>by {authorLink.handle}</span>
+                          <span className="text-[9px]">↗</span>
+                        </a>
+                      ) : (
+                        <p className="text-[10px] text-zinc-400 tracking-widest uppercase">
+                          by {item.author}
+                        </p>
+                      )
+                    )}
                   </div>
                 </div>
-                <div className="flex flex-col gap-1">
-                  <h3 className="text-sm font-medium text-zinc-900 tracking-wider truncate">
-                    {item.title}
-                  </h3>
-                  {item.author && item.author !== '名無しさん' && (
-                    <p className="text-[10px] text-zinc-400 tracking-widest uppercase">
-                      by {item.author}
-                    </p>
-                  )}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </main>
@@ -205,9 +245,21 @@ export default function GalleryPage() {
                 {selectedItem.title}
               </h2>
               {selectedItem.author && selectedItem.author !== '名無しさん' && (
-                <p className="text-[11px] text-zinc-500 tracking-widest uppercase mb-8">
-                  by {selectedItem.author}
-                </p>
+                selectedAuthorLink ? (
+                  <a
+                    href={selectedAuthorLink.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-[11px] text-zinc-600 hover:text-zinc-950 tracking-widest uppercase mb-8 underline decoration-zinc-300 hover:decoration-zinc-900 transition-colors w-fit"
+                  >
+                    <span>by {selectedAuthorLink.handle}</span>
+                    <span className="text-[9px] text-zinc-400">({selectedAuthorLink.platformLabel}) ↗</span>
+                  </a>
+                ) : (
+                  <p className="text-[11px] text-zinc-500 tracking-widest uppercase mb-8">
+                    by {selectedItem.author}
+                  </p>
+                )
               )}
 
               {/* クリエイターのひとこと（Quoteスタイル） */}
